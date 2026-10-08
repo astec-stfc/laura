@@ -32,9 +32,7 @@ LEGACY_MODULES: dict[str, str] = {
     "laura.exporters.SQL": "laura.exporters.sql_exporter",
     "laura.exporters.YAML": "laura.exporters.yaml_exporter",
     # --- laura/importers ----------------------------------------------------
-    "laura.Importers.Magnet_Table": "laura.importers.magnet_table",
     "laura.Importers.YAML_Loader": "laura.importers.yaml_loader",
-    "laura.importers.Magnet_Table": "laura.importers.magnet_table",
     "laura.importers.YAML_Loader": "laura.importers.yaml_loader",
     # --- laura/models -------------------------------------------------------
     "laura.models.RF": "laura.models.rf",

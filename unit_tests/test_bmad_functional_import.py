@@ -28,10 +28,40 @@ from laura.utils.rotation_matrix import euler_angles_to_rotation_matrix
 
 
 def _bind_importer_methods(importer):
-    """Give a ``SimpleNamespace`` stand-in the importer methods it lacks."""
     for name, member in vars(BmadLatticeImporter).items():
         if inspect.isfunction(member) and not hasattr(importer, name):
             setattr(importer, name, member.__get__(importer))
+
+
+def _line_importer(names, types, lengths, spos, params, position_mode="s", **extra):
+    importer = SimpleNamespace(
+        names_numbered={1: {"LINE_1": names}},
+        types={1: {"LINE_1": types}},
+        lengths={1: {"LINE_1": lengths}},
+        spos={1: {"LINE_1": spos}},
+        params={1: {"LINE_1": params}},
+        laura_elems={1: {"LINE_1": {}}},
+        position_mode=position_mode,
+        deferred_parameters={},
+        functional_definitions={},
+        super_lord_children={},
+        **extra,
+    )
+    _bind_importer_methods(importer)
+    return importer
+
+
+def _convert(importer):
+    return BmadLatticeImporter.create_laura_element_dictionary(importer, 1)["LINE_1"]
+
+
+def _parse(source, text):
+    source.write_text(text)
+    importer = SimpleNamespace(
+        lattice_file=str(source), deferred_parameters={}, functional_definitions={}
+    )
+    BmadLatticeImporter._read_functional_definitions(importer)
+    return importer
 
 
 def test_bmad_conversion_rules_are_loaded():
@@ -48,18 +78,13 @@ def test_bmad_conversion_rules_are_loaded():
 
 
 def test_bmad_parser_retains_only_deferred_assignments(tmp_path):
-    source = tmp_path / "line.bmad"
-    source.write_text(
+    importer = _parse(
+        tmp_path / "line.bmad",
         "quad_k1l = 0.3\n"
         "fixed_k1 = 0.4\n"
         "q_live: quadrupole, l = 0.5, k1 := quad_k1l / 0.5\n"
-        "q_fixed: quadrupole, l = 0.5, k1 = fixed_k1 / 0.5\n"
+        "q_fixed: quadrupole, l = 0.5, k1 = fixed_k1 / 0.5\n",
     )
-    importer = SimpleNamespace(
-        lattice_file=str(source), deferred_parameters={}, functional_definitions={}
-    )
-
-    BmadLatticeImporter._read_functional_definitions(importer)
 
     assert importer.functional_definitions == {"quad_k1l": pytest.approx(0.3)}
     assert BmadLatticeImporter._symbol(importer, "q_live", "K1", 0.5) == "quad_k1l"
@@ -67,19 +92,10 @@ def test_bmad_parser_retains_only_deferred_assignments(tmp_path):
 
 
 def test_bmad_parser_retains_deferred_update_after_definition(tmp_path):
-    source = tmp_path / "line.bmad"
-    source.write_text(
-        "ky = 0.3\n"
-        "q: quadrupole, l = 0.5\n"
-        "ln: line = (q)\n"
-        "use, ln\n"
-        "q[k1] := ky\n"
+    importer = _parse(
+        tmp_path / "line.bmad",
+        "ky = 0.3\nq: quadrupole, l = 0.5\nln: line = (q)\nuse, ln\nq[k1] := ky\n",
     )
-    importer = SimpleNamespace(
-        lattice_file=str(source), deferred_parameters={}, functional_definitions={}
-    )
-
-    BmadLatticeImporter._read_functional_definitions(importer)
 
     assert importer.deferred_parameters == {"q": {"K1": "ky"}}
     assert importer.functional_definitions == {"ky": pytest.approx(0.3)}
@@ -104,16 +120,11 @@ def test_bmad_bare_per_metre_strength_symbol_is_integrated():
 def test_bmad_parser_follows_call_file_statements(tmp_path):
     (tmp_path / "sub_files").mkdir()
     (tmp_path / "sub_files" / "definitions.bmad").write_text("quad_k1l = 0.3\n")
-    source = tmp_path / "line.bmad"
-    source.write_text(
+    importer = _parse(
+        tmp_path / "line.bmad",
         "call, file = sub_files/definitions.bmad\n"
-        "q_live: quadrupole, l = 0.5, k1 := quad_k1l / 0.5\n"
+        "q_live: quadrupole, l = 0.5, k1 := quad_k1l / 0.5\n",
     )
-    importer = SimpleNamespace(
-        lattice_file=str(source), deferred_parameters={}, functional_definitions={}
-    )
-
-    BmadLatticeImporter._read_functional_definitions(importer)
 
     assert importer.functional_definitions == {"quad_k1l": pytest.approx(0.3)}
     assert BmadLatticeImporter._symbol(importer, "q_live", "K1", 0.5) == "quad_k1l"
@@ -211,10 +222,7 @@ def test_create_machine_model_uses_universes_and_reuses_elements(tmp_path):
 
 
 def test_create_machine_model_keeps_section_and_layout_metadata(tmp_path):
-    """MachineModel rebuilds sections/layouts from bare name lists, so the
-    geometry, reference energy and particle resolved from Tao have to be
-    reapplied -- losing reference_energy costs ``beginning[e_tot]`` on export.
-    """
+    """MachineModel rebuilds sections from bare names; Tao metadata is reapplied."""
     init = tmp_path / "ring.init"
     init.write_text('design_lattice(1)%file = "../Lines/ring.bmad"\n')
     importer = SimpleNamespace(
@@ -274,61 +282,35 @@ def test_bmad_additional_element_mappings():
         ]
     }
     identity_spin = [{"index": 0, "coef": 1.0, **{f"exp{i}": 0.0 for i in range(1, 7)}}]
-    names = [
-        "h",
-        "v",
-        "sep",
-        "match",
-        "taylor",
-        "sol_quad",
-        "instrument",
-        "pipe",
-        "patch",
-    ]
-    importer = SimpleNamespace(
-        names_numbered={1: {"LINE_1": names}},
-        types={
-            1: {
-                "LINE_1": [
-                    "HKicker",
-                    "VKicker",
-                    "ELSeparator",
-                    "Match",
-                    "Taylor",
-                    "Sol_Quad",
-                    "Instrument",
-                    "Pipe",
-                    "Patch",
-                ]
-            }
-        },
-        lengths={1: {"LINE_1": [0.1, 0.2, 1.0, 0.0, 0.0, 2.0, 0.3, 0.4, 0.0]}},
-        spos={1: {"LINE_1": [0.1, 0.3, 1.3, 1.3, 1.3, 3.3, 3.6, 4.0, 4.0]}},
-        params={
-            1: {
-                "LINE_1": [
-                    {"KICK": 0.01},
-                    {"KICK": -0.02},
-                    {"E_FIELD": 5.0, "HKICK": 3.0, "VKICK": 4.0},
-                    {"_VEC0": np.arange(6), "_MAT6": np.eye(6)},
-                    {"_TAYLOR": identity_taylor, "_SPIN_TAYLOR": identity_spin},
-                    {"K1": 0.3, "KS": 0.4},
-                    {},
-                    {},
-                    {},
-                ]
-            }
-        },
-        laura_elems={1: {"LINE_1": {}}},
-        position_mode="s",
-        deferred_parameters={},
-        functional_definitions={},
-        super_lord_children={},
+    elements = _convert(
+        _line_importer(
+            "h v sep match taylor sol_quad instrument pipe patch".split(),
+            [
+                "HKicker",
+                "VKicker",
+                "ELSeparator",
+                "Match",
+                "Taylor",
+                "Sol_Quad",
+                "Instrument",
+                "Pipe",
+                "Patch",
+            ],
+            [0.1, 0.2, 1.0, 0.0, 0.0, 2.0, 0.3, 0.4, 0.0],
+            [0.1, 0.3, 1.3, 1.3, 1.3, 3.3, 3.6, 4.0, 4.0],
+            [
+                {"KICK": 0.01},
+                {"KICK": -0.02},
+                {"E_FIELD": 5.0, "HKICK": 3.0, "VKICK": 4.0},
+                {"_VEC0": np.arange(6), "_MAT6": np.eye(6)},
+                {"_TAYLOR": identity_taylor, "_SPIN_TAYLOR": identity_spin},
+                {"K1": 0.3, "KS": 0.4},
+                {},
+                {},
+                {},
+            ],
+        )
     )
-    _bind_importer_methods(importer)
-    elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
-        "LINE_1"
-    ]
 
     assert elements["h"].magnetic.horizontal_kick == pytest.approx(0.01)
     assert elements["v"].magnetic.vertical_kick == pytest.approx(-0.02)
@@ -348,48 +330,27 @@ def test_bmad_additional_element_mappings():
 
 
 def test_bmad_fixers_and_empty_multipoles_are_kept_as_markers():
-    """Neither carries a strength LAURA can model, but both are real points in
-    the lattice -- dropping them silently moved element bookkeeping off the
-    names the source lattice uses.
-
-    The fixer here is an *inactive* one (no ``_ACTIVE``), so its stored Twiss is
-    not this branch's and stays out of the model. The active case becomes a
-    ``TwissMatch`` instead -- see
-    ``test_bmad_active_fixer_imports_as_the_sections_twiss_point``.
-    """
-    names = ["fixer", "bare_multipole", "quad_multipole"]
-    importer = SimpleNamespace(
-        names_numbered={1: {"LINE_1": names}},
-        types={1: {"LINE_1": ["Fixer", "Multipole", "Multipole"]}},
-        lengths={1: {"LINE_1": [0.0, 0.0, 0.0]}},
-        spos={1: {"LINE_1": [1.5, 2.5, 3.5]}},
-        params={
-            1: {
-                "LINE_1": [
-                    {"BETA_A_STORED": 1.4, "ALPHA_A_STORED": -2.6},
-                    {"_MULTIPOLES": {"multipoles_on": True, "data": []}},
-                    {
-                        "_MULTIPOLES": {
-                            "multipoles_on": True,
-                            "data": [{"index": 1, "Bn": 0.25, "An": 0.0}],
-                        }
-                    },
-                ]
-            }
-        },
-        laura_elems={1: {"LINE_1": {}}},
-        position_mode="s",
-        deferred_parameters={},
-        functional_definitions={},
-        super_lord_children={},
-        _declared_poles={},  # no lattice source, so no declared orders
+    """Inactive fixer (no ``_ACTIVE``): its stored Twiss isn't this branch's."""
+    importer = _line_importer(
+        ["fixer", "bare_multipole", "quad_multipole"],
+        ["Fixer", "Multipole", "Multipole"],
+        [0.0, 0.0, 0.0],
+        [1.5, 2.5, 3.5],
+        [
+            {"BETA_A_STORED": 1.4, "ALPHA_A_STORED": -2.6},
+            {"_MULTIPOLES": {"multipoles_on": True, "data": []}},
+            {
+                "_MULTIPOLES": {
+                    "multipoles_on": True,
+                    "data": [{"index": 1, "Bn": 0.25, "An": 0.0}],
+                }
+            },
+        ],
+        _declared_poles={},
     )
-    _bind_importer_methods(importer)
 
     with pytest.warns(UserWarning) as record:
-        elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
-            "LINE_1"
-        ]
+        elements = _convert(importer)
 
     messages = [str(warning.message) for warning in record]
     assert any(
@@ -404,17 +365,12 @@ def test_bmad_fixers_and_empty_multipoles_are_kept_as_markers():
     assert elements["fixer"].physical.s == pytest.approx(1.5)
     assert elements["bare_multipole"].hardware_type == "Marker"
     assert elements["bare_multipole"].physical.s == pytest.approx(2.5)
-    # A multipole that does carry content is still a real magnet.
     assert elements["quad_multipole"].hardware_type == "Quadrupole"
     assert elements["quad_multipole"].magnetic.KnL(1) == pytest.approx(0.25)
 
 
 def test_bmad_floor_position_mode_places_elements_at_tao_coordinates():
-    """``position_mode="floor"`` swaps arc-length placement for Tao's surveyed
-    coordinates, which is the only way to carry a frame transform LAURA has no
-    model for (a tilted patch). ``s`` and ``middle`` are mutually exclusive in
-    the schema, so exactly one of them may be emitted.
-    """
+    """``s`` and ``middle`` are mutually exclusive in the schema."""
     importer = SimpleNamespace(
         lengths={1: {"L": [2.0]}},
         spos={1: {"L": [10.0]}},
@@ -447,13 +403,7 @@ def test_bmad_floor_position_mode_places_elements_at_tao_coordinates():
 
 
 def test_bmad_floor_mode_restores_bmad_arc_length():
-    """LAURA measures s from the world origin, so a line starting far
-    downrange bakes that offset into every s. Bmad's own arc-length is written
-    back -- through the ``_syncing`` guard, or the ``s -> middle`` sync would
-    recompute the position that floor mode exists to preserve.
-    """
-    from laura.models.element import Marker
-
+    """Bmad's s is written back under ``_syncing`` so ``middle`` doesn't move."""
     element = Marker(name="q", machine_area="test", physical={"middle": {"z": 5.0}})
     element.physical._trajectory = SimpleNamespace(
         xyz_at_s=lambda s: {"x": 999.0, "y": 999.0, "z": 999.0},
@@ -469,50 +419,29 @@ def test_bmad_floor_mode_restores_bmad_arc_length():
 
     assert element.physical.s == pytest.approx(9.0)  # Tao s is at the exit
     assert element.physical.s_point == "middle"
-    # The sync must not have fired and moved the element.
     assert element.physical.middle.z == pytest.approx(5.0)
 
 
 def _patch_importer(position_mode):
-    """Three patches that must stay quiet plus one that must not, in the mode
-    under test."""
-    names = ["inert_patch", "noise_patch", "sliding_patch"]
-    importer = SimpleNamespace(
-        names_numbered={1: {"LINE_1": names}},
-        types={1: {"LINE_1": ["Patch", "Patch", "Patch"]}},
-        lengths={1: {"LINE_1": [1.677, 0.0, 0.0]}},
-        spos={1: {"LINE_1": [1.677, 1.677, 1.677]}},
-        params={
-            1: {
-                "LINE_1": [
-                    # Non-zero, but both are drift-equivalent or derived from L.
-                    {"Z_OFFSET": 1.677, "DELTA_REF_TIME": 5.59e-09},
-                    # Bmad resolves tilt numerically; this is an untilted patch.
-                    {"TILT": 1.17879544139e-20},
-                    {"Y_OFFSET": 0.003, "X_PITCH": 0.0012},
-                ]
-            }
-        },
-        laura_elems={1: {"LINE_1": {}}},
-        position_mode=position_mode,
-        deferred_parameters={},
-        functional_definitions={},
-        super_lord_children={},
+    return _line_importer(
+        ["inert_patch", "noise_patch", "sliding_patch"],
+        ["Patch", "Patch", "Patch"],
+        [1.677, 0.0, 0.0],
+        [1.677, 1.677, 1.677],
+        [
+            # Non-zero, but both are drift-equivalent or derived from L.
+            {"Z_OFFSET": 1.677, "DELTA_REF_TIME": 5.59e-09},
+            # Bmad resolves tilt numerically; this is an untilted patch.
+            {"TILT": 1.17879544139e-20},
+            {"Y_OFFSET": 0.003, "X_PITCH": 0.0012},
+        ],
+        position_mode,
     )
-    _bind_importer_methods(importer)
-    return importer
 
 
 @pytest.mark.parametrize("position_mode", ["s", "floor"])
 def test_bmad_patch_warns_only_where_the_frame_shift_is_actually_lost(position_mode):
-    """A frame-shifting patch is lossy under ``"s"`` and no longer under
-    ``"floor"``, and the warning has to track that rather than the element type.
-
-    Under ``"s"`` geometry is integrated from lengths and bend angles, so
-    everything downstream of the patch is mispositioned and the warning stands.
-    ``to_bmad()`` rebuilds the patch from the step between neighbouring survey
-    frames. Warning there now would be crying wolf on a lossless path.
-    """
+    """Under ``"floor"`` to_bmad() rebuilds the patch from survey frames: lossless."""
     importer = _patch_importer(position_mode)
 
     with warnings.catch_warnings(record=True) as record:
@@ -530,22 +459,20 @@ def test_bmad_patch_warns_only_where_the_frame_shift_is_actually_lost(position_m
         assert "moves the reference frame" in moved[0]
         assert "Y_OFFSET=0.003" in moved[0] and "X_PITCH=0.0012" in moved[0]
         assert "placed as though the patch were absent" in moved[0]
-    # The generic fallback must not also fire for a patch.
     assert not any("Could not parse" in message for message in messages)
 
 
 @pytest.mark.parametrize("position_mode", ["s", "floor"])
 def test_bmad_patch_reference_energy_jump_warns_in_every_mode(position_mode):
-    """``delta_e_ref`` is a different loss from a frame shift: floor coordinates
-    say where the line goes, not what momentum it is referred to, so no
-    position_mode recovers it and the warning cannot be gated on one.
-    """
-    importer = _patch_importer(position_mode)
-    importer.names_numbered = {1: {"LINE_1": ["energy_patch"]}}
-    importer.types = {1: {"LINE_1": ["Patch"]}}
-    importer.lengths = {1: {"LINE_1": [0.0]}}
-    importer.spos = {1: {"LINE_1": [4.2]}}
-    importer.params = {1: {"LINE_1": [{"DELTA_E_REF": -1.35e8}]}}
+    """Floor coordinates carry no reference momentum, so no mode recovers it."""
+    importer = _line_importer(
+        ["energy_patch"],
+        ["Patch"],
+        [0.0],
+        [4.2],
+        [{"DELTA_E_REF": -1.35e8}],
+        position_mode,
+    )
 
     with pytest.warns(UserWarning) as record:
         BmadLatticeImporter.create_laura_element_dictionary(importer, 1)
@@ -558,51 +485,29 @@ def test_bmad_patch_reference_energy_jump_warns_in_every_mode(position_mode):
 
 
 def test_bmad_non_positive_n_cell_fills_the_element_with_cells():
-    """``n_cell = -1`` is a request to fill the cavity, not an absent value.
-
-    Bmad's cells are half an RF wavelength long, and a non-positive ``n_cell``
-    asks it to fit as many of them into the element as it can; the length it
-    settles on comes back as ``l_active``. Reading the sentinel as a single
-    cell used to shrink a 3 m S-band structure's active region to 52 mm, which
-    leaves the energy gain intact -- that comes from ``voltage`` -- and throws
-    the RF focusing away. Tracking the LCLS CU_HXR L1 cavity both ways puts the
-    exit beta at 3.41 m against Bmad's own 6.53 m.
-    """
-    names = ["sentinel_cav", "nine_cell_cav"]
-    importer = SimpleNamespace(
-        names_numbered={1: {"LINE_1": names}},
-        types={1: {"LINE_1": ["Lcavity", "Lcavity"]}},
-        lengths={1: {"LINE_1": [3.0441, 9.0]}},
-        spos={1: {"LINE_1": [3.0441, 12.0441]}},
-        params={
-            1: {
-                "LINE_1": [
-                    {
-                        "N_CELL": -1,
-                        "RF_FREQUENCY": 2856000000.0,
-                        "VOLTAGE": 5.2e7,
-                        "PHI0": 0.0,
-                    },
-                    {
-                        "N_CELL": 9,
-                        "RF_FREQUENCY": 1300000000.0,
-                        "VOLTAGE": 1.44e8,
-                        "PHI0": 0.0,
-                    },
-                ]
-            }
-        },
-        laura_elems={1: {"LINE_1": {}}},
-        position_mode="s",
-        deferred_parameters={},
-        functional_definitions={},
-        super_lord_children={},
+    """Bmad: ``n_cell <= 0`` fills the length with half-wavelength cells."""
+    elements = _convert(
+        _line_importer(
+            ["sentinel_cav", "nine_cell_cav"],
+            ["Lcavity", "Lcavity"],
+            [3.0441, 9.0],
+            [3.0441, 12.0441],
+            [
+                {
+                    "N_CELL": -1,
+                    "RF_FREQUENCY": 2856000000.0,
+                    "VOLTAGE": 5.2e7,
+                    "PHI0": 0.0,
+                },
+                {
+                    "N_CELL": 9,
+                    "RF_FREQUENCY": 1300000000.0,
+                    "VOLTAGE": 1.44e8,
+                    "PHI0": 0.0,
+                },
+            ],
+        )
     )
-    _bind_importer_methods(importer)
-
-    elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
-        "LINE_1"
-    ]
 
     sentinel = elements["sentinel_cav"]
     assert sentinel.cavity.cell_length == pytest.approx(299792458.0 / (2 * 2.856e9))
@@ -613,39 +518,44 @@ def test_bmad_non_positive_n_cell_fills_the_element_with_cells():
     assert nine.cavity.cell_length == pytest.approx(299792458.0 / (2 * 1.3e9))
 
 
-def test_bmad_taylor_reference_orbit_feeddown():
+@pytest.mark.parametrize(
+    "terms, c, r, t, u",
+    [
+        pytest.param(
+            [
+                {"coef": 3.0, **{f"exp{i}": 0.0 for i in range(1, 7)}},
+                {"coef": 4.0, "exp1": 1.0, **{f"exp{i}": 0.0 for i in range(2, 7)}},
+                {"coef": 5.0, "exp1": 2.0, **{f"exp{i}": 0.0 for i in range(2, 7)}},
+            ],
+            15.0,
+            -16.0,
+            5.0,
+            0.0,
+            id="quadratic",
+        ),
+        pytest.param(
+            [{"coef": 7.0, "exp1": 3.0, **{f"exp{i}": 0.0 for i in range(2, 7)}}],
+            -56.0,
+            84.0,
+            -42.0,
+            7.0,
+            id="cubic",
+        ),
+    ],
+)
+def test_bmad_taylor_reference_orbit_feeddown(terms, c, r, t, u):
     sections = [
         {"index": output, "ref": 2.0 if output == 1 else 0.0, "data": []}
         for output in range(1, 7)
     ]
-    sections[0]["data"] = [
-        {"coef": 3.0, **{f"exp{i}": 0.0 for i in range(1, 7)}},
-        {"coef": 4.0, "exp1": 1.0, **{f"exp{i}": 0.0 for i in range(2, 7)}},
-        {"coef": 5.0, "exp1": 2.0, **{f"exp{i}": 0.0 for i in range(2, 7)}},
-    ]
+    sections[0]["data"] = terms
     c_matrix, r_matrix, t_matrix, u_matrix = _taylor_matrices({"data": sections})
 
-    assert c_matrix[0] == pytest.approx(15.0)
-    assert r_matrix[0, 0] == pytest.approx(-16.0)
-    assert t_matrix[0, 0, 0] == pytest.approx(5.0)
-    assert not u_matrix.any()
-
-
-def test_bmad_cubic_taylor_reference_orbit_feeddown():
-    sections = [
-        {"index": output, "ref": 2.0 if output == 1 else 0.0, "data": []}
-        for output in range(1, 7)
-    ]
-    sections[0]["data"] = [
-        {"coef": 7.0, "exp1": 3.0, **{f"exp{i}": 0.0 for i in range(2, 7)}}
-    ]
-
-    c_matrix, r_matrix, t_matrix, u_matrix = _taylor_matrices({"data": sections})
-
-    assert c_matrix[0] == pytest.approx(-56.0)
-    assert r_matrix[0, 0] == pytest.approx(84.0)
-    assert t_matrix[0, 0, 0] == pytest.approx(-42.0)
-    assert u_matrix[0, 0, 0, 0] == pytest.approx(7.0)
+    assert c_matrix[0] == pytest.approx(c)
+    assert r_matrix[0, 0] == pytest.approx(r)
+    assert t_matrix[0, 0, 0] == pytest.approx(t)
+    assert u_matrix[0, 0, 0, 0] == pytest.approx(u)
+    assert np.count_nonzero(u_matrix) == (u != 0)
 
 
 def test_bmad_taylor_rejects_unrepresentable_terms():
@@ -698,10 +608,7 @@ def test_spin_taylor_yaml_round_trip(tmp_path):
 
 
 def test_bmad_floor_angles_survive_the_trip_into_laura_and_back():
-    """Bmad and LAURA compose their three angles in opposite orders, and LAURA's
-    Ry carries the opposite sign, so no renaming of axes can bridge them -- the
-    conversion has to go through the matrix.
-    """
+    """Opposite composition order and Ry sign: conversion must go through the matrix."""
     rng = np.random.default_rng(20260901)
     for theta, phi, psi in rng.uniform(-4.0, 4.0, size=(200, 3)):
         phi = float(np.clip(phi, -1.5, 1.5))
@@ -726,10 +633,6 @@ def test_bmad_floor_angles_survive_the_trip_into_laura_and_back():
 
 
 def test_bmad_floor_angles_reduce_to_a_sign_flip_for_a_flat_machine():
-    """The mixing above is real but must not turn the common case into noise: a
-    machine with no elevation or roll differs from Bmad by the sign of theta
-    alone, and a pure roll passes straight through.
-    """
     flat = bmad_floor_angles_to_laura(0.3, 0.0, 0.0)
     assert flat == pytest.approx({"theta": -0.3, "phi": 0.0, "psi": 0.0})
 
@@ -738,58 +641,39 @@ def test_bmad_floor_angles_reduce_to_a_sign_flip_for_a_flat_machine():
 
 
 def test_bmad_collective_and_radiation_settings_reach_the_elements():
-    """Bmad splits the collective settings over two places and LAURA over one.
-
-    ``csr_method`` and ``space_charge_method`` are per-element, but the switches
-    that arm them are ``bmad_com`` globals; LAURA has no global container, so
-    they ride back on the elements -- point elements included, since the export
-    reads the branch's one switch off whether *any* element wants the effect.
-    """
-    names = ["q", "cav", "mark"]
-    importer = SimpleNamespace(
-        names_numbered={1: {"LINE_1": names}},
-        types={1: {"LINE_1": ["Quadrupole", "Lcavity", "Marker"]}},
-        lengths={1: {"LINE_1": [0.5, 3.0441, 0.0]}},
-        spos={1: {"LINE_1": [0.5, 3.5441, 3.5441]}},
-        params={
-            1: {
-                "LINE_1": [
-                    {
-                        "K1": 0.5,
-                        "CSR_DS_STEP": 0.01,
-                        "_METHODS": {
-                            "csr_method": "1_Dim",
-                            "space_charge_method": "Slice",
-                        },
+    """``bmad_com`` switches have no LAURA global, so they ride on every element."""
+    elements = _convert(
+        _line_importer(
+            ["q", "cav", "mark"],
+            ["Quadrupole", "Lcavity", "Marker"],
+            [0.5, 3.0441, 0.0],
+            [0.5, 3.5441, 3.5441],
+            [
+                {
+                    "K1": 0.5,
+                    "CSR_DS_STEP": 0.01,
+                    "_METHODS": {
+                        "csr_method": "1_Dim",
+                        "space_charge_method": "Slice",
                     },
-                    {
-                        "N_CELL": -1,
-                        "N_RF_STEPS": 1000,
-                        "RF_FREQUENCY": 2856000000.0,
-                        "VOLTAGE": 5.2e7,
-                        "PHI0": 0.0,
-                        "_METHODS": {},
-                    },
-                    {"_METHODS": {}},
-                ]
-            }
-        },
-        bmad_com={
-            "csr_and_space_charge_on": False,
-            "radiation_damping_on": False,
-            "radiation_fluctuations_on": True,
-        },
-        laura_elems={1: {"LINE_1": {}}},
-        position_mode="s",
-        deferred_parameters={},
-        functional_definitions={},
-        super_lord_children={},
+                },
+                {
+                    "N_CELL": -1,
+                    "N_RF_STEPS": 1000,
+                    "RF_FREQUENCY": 2856000000.0,
+                    "VOLTAGE": 5.2e7,
+                    "PHI0": 0.0,
+                    "_METHODS": {},
+                },
+                {"_METHODS": {}},
+            ],
+            bmad_com={
+                "csr_and_space_charge_on": False,
+                "radiation_damping_on": False,
+                "radiation_fluctuations_on": True,
+            },
+        )
     )
-    _bind_importer_methods(importer)
-
-    elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
-        "LINE_1"
-    ]
 
     quadrupole = elements["q"].simulation
     assert (quadrupole.csr_method, quadrupole.space_charge_method) == (
@@ -800,8 +684,7 @@ def test_bmad_collective_and_radiation_settings_reach_the_elements():
     assert (quadrupole.sr_enable, quadrupole.isr_enable) == (False, True)
     assert (quadrupole.csr_enable, quadrupole.lsc_enable) == (False, False)
 
-    # Off everywhere is Bmad's default; recording it on every element buys
-    # nothing but noise.
+    # Off is Bmad's default, so it isn't recorded.
     cavity = elements["cav"].simulation
     assert cavity.csr_method is None and cavity.space_charge_method is None
     assert cavity.n_kicks == 1000
@@ -814,57 +697,37 @@ _BEND = {"ANGLE": 0.01, "E1": 0.0, "E2": 0.0, "HGAP": 0.0, "FINT": 0.0,
 
 
 def test_bmad_fringe_model_is_kept_only_when_it_is_not_the_default():
-    """Bmad fills ``fringe_type`` in on every element, so the value alone does
-    not say whether anybody asked for it. Its defaults differ by class --
-    ``basic_bend`` on bends, ``full`` on cavities, ``none`` elsewhere -- and
-    recording those back would put a fringe model on three thousand elements
-    that never named one.
-    """
-    names = ["b_full", "b_default", "b_linear", "q_default", "cav"]
-    importer = SimpleNamespace(
-        names_numbered={1: {"LINE_1": names}},
-        types={1: {"LINE_1": ["SBend", "SBend", "SBend", "Quadrupole", "Lcavity"]}},
-        lengths={1: {"LINE_1": [0.2, 0.2, 0.2, 0.5, 3.0441]}},
-        spos={1: {"LINE_1": [0.2, 0.4, 0.6, 1.1, 4.1441]}},
-        params={
-            1: {
-                "LINE_1": [
-                    {**_BEND, "FRINGE_TYPE": "Full"},
-                    {**_BEND, "FRINGE_TYPE": "Basic_Bend"},
-                    {**_BEND, "FRINGE_TYPE": "Linear_Edge"},
-                    {"K1": 0.5, "FRINGE_TYPE": "None", "_METHODS": {}},
-                    {
-                        "N_CELL": 1,
-                        "RF_FREQUENCY": 2856000000.0,
-                        "VOLTAGE": 5.2e7,
-                        "PHI0": 0.0,
-                        "FRINGE_TYPE": "Full",
-                        "_METHODS": {},
-                    },
-                ]
-            }
-        },
-        bmad_com={},
-        laura_elems={1: {"LINE_1": {}}},
-        position_mode="s",
-        deferred_parameters={},
-        functional_definitions={},
-        super_lord_children={},
+    """Bmad fills ``fringe_type`` everywhere; its per-class defaults are dropped."""
+    elements = _convert(
+        _line_importer(
+            ["b_full", "b_default", "b_linear", "q_default", "cav"],
+            ["SBend", "SBend", "SBend", "Quadrupole", "Lcavity"],
+            [0.2, 0.2, 0.2, 0.5, 3.0441],
+            [0.2, 0.4, 0.6, 1.1, 4.1441],
+            [
+                {**_BEND, "FRINGE_TYPE": "Full"},
+                {**_BEND, "FRINGE_TYPE": "Basic_Bend"},
+                {**_BEND, "FRINGE_TYPE": "Linear_Edge"},
+                {"K1": 0.5, "FRINGE_TYPE": "None", "_METHODS": {}},
+                {
+                    "N_CELL": 1,
+                    "RF_FREQUENCY": 2856000000.0,
+                    "VOLTAGE": 5.2e7,
+                    "PHI0": 0.0,
+                    "FRINGE_TYPE": "Full",
+                    "_METHODS": {},
+                },
+            ],
+            bmad_com={},
+        )
     )
-    _bind_importer_methods(importer)
-
-    elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
-        "LINE_1"
-    ]
 
     assert elements["b_full"].simulation.fringe_model == "full"
     assert elements["b_default"].simulation.fringe_model is None
     assert elements["q_default"].simulation.fringe_model is None
-    # first-order edges, carried as edge_order so the other codes follow
+    # carried as edge_order so the other codes follow
     assert elements["b_linear"].simulation.fringe_model == "linear_edge"
     assert elements["b_linear"].simulation.edge_order == 1
     assert elements["b_default"].simulation.edge_order is None
 
-    # Only magnets hold the field, and `Full` is Bmad's own cavity default
-    # in any case.
     assert not hasattr(elements["cav"].simulation, "fringe_model")

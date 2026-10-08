@@ -172,9 +172,9 @@ class ContainerTranslator:
         """
         Create an elegant-compatible lattice file.
 
-         Parameters
-         ----------
-         string: str
+        Parameters
+        ----------
+        string: str
             Placed ahead of element definitions
         charge: float, optional
             Adds a ``CHARGE`` element at the head of each ``LINE``.
@@ -200,8 +200,8 @@ class ContainerTranslator:
         Create a Genesis-compatible (v4) lattice file.
 
         Parameters
-         ----------
-         string: str
+        ----------
+        string: str
             Placed ahead of element definitions
 
         Returns

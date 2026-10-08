@@ -88,11 +88,11 @@ def elegant_line(head: str, terms) -> str:
     lines = ""
     for term in terms:
         if len(head) + len(term) + 2 > 76:
-            lines += head + ",&\n"
+            lines += f"{head},&\n"
             head = term
         else:
-            head += ", " + term
-    return lines + head + ";\n"
+            head += f", {term}"
+    return f"{lines}{head};\n"
 
 
 class BaseElementTranslator(PhysicalBaseElement):
@@ -316,7 +316,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         Build a quoted ELEGANT rpn expression from ``tokens`` (operands and
         operators in postfix order), e.g. ``_rpn(90, "phi", "-")`` -> ``"90 phi -"``.
         """
-        return '"' + " ".join(str(token) for token in tokens) + '"'
+        return f'"{" ".join((str(token) for token in tokens))}"'
 
     @staticmethod
     def _flag(value: Any) -> Any:
@@ -409,7 +409,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             if key == "yaw" and isinstance(value, (int, float)):
                 value = -value
             terms.append(f"{key} = {self._elegant_value(self._flag(value))}")
-        return elegant_line(self.name + ": " + etype, terms)
+        return elegant_line(f"{self.name}: {etype}", terms)
 
     def to_ocelot(self) -> object:
         """
@@ -523,10 +523,12 @@ class BaseElementTranslator(PhysicalBaseElement):
                         obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
                 if key == "fringe_integral" and "fringe_integral_exit" in buffers:
-                    setattr(
-                        obj,
-                        "fringe_integral_exit",
-                        tensor(self.magnetic.exit_fringe_integral, dtype=float64),
+                    exit_fint = self.magnetic.exit_fringe_integral
+                    # Unset exit falls back to the entrance value, as in Cheetah itself.
+                    obj.fringe_integral_exit = (
+                        obj.fringe_integral.clone()
+                        if exit_fint is None
+                        else tensor(exit_fint, dtype=float64)
                     )
         self._cheetah_float64(obj)
         if isinstance(obj, Screen_Cheetah):
@@ -632,20 +634,20 @@ class BaseElementTranslator(PhysicalBaseElement):
         Returns
         -------
         str
-            A formatted string representing the object's properties in Elegant format.
+            A formatted string representing the object's properties in Genesis format.
         """
         self.start_write()
         etype = self._convert_type_genesis(self.hardware_type)
         if "mark" in etype.lower():
             fld = ", dumpfield = 1" if "photon" in self.hardware_type.lower() else ""
-            return f"{index}{self.name}: {etype} = " + "{dumpbeam = 1" + fld + "};\n"
+            return f"{index}{self.name}: {etype} = {{dumpbeam = 1{fld}}};\n"
         terms = [
             f"{key} = {self._flag(value)}"
             for key, value in self._dump_items(
                 self._convert_keyword_genesis, elements_genesis[etype]
             )
         ]
-        return f"{index}{self.name}: {etype} = " + "{" + ", ".join(terms) + "};\n"
+        return f"{index}{self.name}: {etype} = {{{', '.join(terms)}}};\n"
 
     def to_csrtrack(self, n: int = 0, **kwargs) -> str:
         """
@@ -676,36 +678,24 @@ class BaseElementTranslator(PhysicalBaseElement):
         Generates an RF-Track element object based on the element's properties and type.
 
         Dispatches on ``hardware_type`` via
-        :data:`~laura.translator.conversion_rules.codes.rftrack_conversion.rftrack_conversion_rules`,
-        unlike ``to_ocelot``/``to_cheetah``/``to_xsuite`` this is a single generic
-        implementation — no per-element-category override is needed because RF-Track
-        builder functions receive the fully-typed translator instance (e.g. a
-        ``DipoleTranslator`` has ``e1``/``e2`` available) directly.
+        :data:`~laura.translator.conversion_rules.codes.rftrack_conversion.rftrack_conversion_rules`;
+        no per-category override is needed since builders receive the typed translator.
 
         Parameters
         ----------
         P_Q: float
             Beam reference momentum-over-charge [MV/c] at this point in the
-            lattice. Only used by dipole (``SBend``) conversion — RF-Track's
-            ``SBend``, unlike ``Quadrupole``/``Multipole``, does not support
-            deferring this to ``autophase()`` (verified: an unset/NaN value
-            silently produces zero transmission). Mirrors how
-            ``to_gpt(Brho=...)`` threads the equivalent rigidity value down
-            from ``SectionLatticeTranslator.to_gpt(Brho=...)``.
+            lattice. Only used by dipoles: RF-Track's ``SBend`` cannot defer it
+            to ``autophase()``, and a NaN value gives zero transmission.
 
         Returns
         -------
         object or list of object
             An RF-Track element object (e.g. ``RF_Track.Quadrupole``), with its
-            name and aperture (if any) applied. A handful of builders (e.g.
-            :func:`~laura.translator.conversion_rules.codes.rftrack_conversion.
-            build_tw_fieldmap`) instead return a **list** of RF-Track objects
-            meant to be flattened as siblings into the caller's own Lattice
-            rather than wrapped in a nested sub-Lattice (see that function's
-            docstring for why) -- name/aperture are applied to every item in
-            that case, and :func:`~laura.translator.converters.section.
-            SectionLatticeTranslator.to_rftrack` flattens the list when
-            appending.
+            name and aperture (if any) applied. Some builders (e.g.
+            ``build_tw_fieldmap``) return a list, which
+            :func:`~laura.translator.converters.section.SectionLatticeTranslator.to_rftrack`
+            flattens into its own Lattice.
         """
         from ..conversion_rules.codes.rftrack_conversion import (
             build_drift,
@@ -728,11 +718,9 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def to_rftrack_repr(self, varname: str, P_Q: float = float("nan")) -> tuple:
         """
-        Generates the Python source lines that (re)construct this element as a
-        standalone ``RF_Track`` object, mirroring what :func:`to_rftrack`
-        builds in memory. Used by ``SectionLatticeTranslator.to_rftrack(save=
-        True)`` to export a self-contained lattice script (RF-Track has no
-        built-in equivalent of Ocelot's ``MagneticLattice.save_as_py_file()``).
+        Generates the Python source lines that construct this element as an
+        ``RF_Track`` object, mirroring :func:`to_rftrack`; used for
+        ``SectionLatticeTranslator.to_rftrack(save=True)``.
 
         Parameters
         ----------
@@ -745,17 +733,10 @@ class BaseElementTranslator(PhysicalBaseElement):
         -------
         tuple
             ``(lines, varnames)``. ``lines`` are the Python source lines
-            (assumes ``import RF_Track as rft``/``import numpy as np`` at the
-            top of the generated file). Most elements produce exactly one
-            object (``varnames == [varname]``), but a builder whose
-            ``repr_*`` counterpart returns a **list** of ``(ctor_expr,
-            post_stmts)`` (e.g. ``repr_tw_fieldmap``, matching
-            :func:`to_rftrack`'s list-returning ``build_tw_fieldmap``)
-            produces one block per list entry, uniquely suffixed
-            (``{varname}_0``, ``{varname}_1``, ...); ``varnames`` lists every
-            object actually created, so the caller can append each one into
-            its own Lattice individually (see
-            ``SectionLatticeTranslator._save_rftrack_py_file``).
+            (assumes ``import RF_Track as rft``/``import numpy as np``).
+            ``varnames`` lists every object created: usually ``[varname]``,
+            or ``{varname}_0``, ``{varname}_1``, ... when the builder
+            returns a list.
         """
         from ..conversion_rules.codes.rftrack_conversion import (
             repr_drift,
@@ -782,10 +763,8 @@ class BaseElementTranslator(PhysicalBaseElement):
     def _rftrack_aperture_params(self):
         """
         Resolve this element's aperture (if any) into the ``(Rx, Ry, shape)``
-        arguments used by RF-Track's universal ``set_aperture(Rx, Ry, SHAPE)``
-        method (RF-Track has no standalone aperture element -- aperture is a
-        property of every element instead). Shared by :func:`_apply_rftrack_aperture`
-        and :func:`_rftrack_aperture_repr` so both apply the exact same rule.
+        arguments of RF-Track's ``set_aperture``; RF-Track has no standalone
+        aperture element.
 
         Returns
         -------
@@ -813,10 +792,7 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def _apply_rftrack_aperture(self, obj: object) -> None:
         """
-        Apply this element's aperture (if any) to an already-built RF-Track object,
-        via the universal ``set_aperture(Rx, Ry, SHAPE)`` method every RF-Track
-        element supports (RF-Track has no standalone aperture element — aperture is
-        a property of every element instead).
+        Apply this element's aperture (if any) to an already-built RF-Track object.
 
         Parameters
         ----------
@@ -885,7 +861,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         etype = self._convert_type_opal(self.hardware_type)
         if etype.lower() == "drift":
             return ""
-        wholestring = self.name.replace("-", "_") + ": " + etype
+        wholestring = f"{self.name.replace('-', '_')}: {etype}"
         for key, value in self._dump_items(
             self._convert_keyword_opal, elements_opal[etype]
         ):
@@ -959,7 +935,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         self.start_write()
         etype = self._convert_type_madx(self.hardware_type)
-        string = sanitize_string(self.name) + ": " + etype
+        string = f"{sanitize_string(self.name)}: {etype}"
         fringe = self._madx_fringe(etype)
         written = set()
         for key, value in self._dump_items(
@@ -982,7 +958,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 string += f", {key} = {value}"
         if at is not None:
             string += f", at = {at}"
-        return string + ";\n"
+        return f"{string};\n"
 
     def _fringe_integrals(self) -> Tuple[Any, Any]:
         """The entrance and exit fringe-field integrals to export."""
@@ -1110,8 +1086,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         )
 
     def _convert_type_opal(self, etype: str) -> str:
-        """Converts the element type to the corresponding Opal type using predefined rules."""
-        return self._convert_type(etype, type_conversion_rules_opal, etype)
+        """Converts the element type to the corresponding Opal type; unmapped types become drifts."""
+        return self._convert_type(etype, type_conversion_rules_opal, "drift")
 
     def _convert_keyword_opal(self, keyword: str) -> str:
         """Converts a keyword to its corresponding Opal keyword using predefined rules."""
@@ -1409,58 +1385,40 @@ class BaseElementTranslator(PhysicalBaseElement):
                 if "type" in v and v["type"] == "list":
                     for i, l in enumerate(check_value(self, v)):
                         if n is not None:
-                            param_string = (
-                                k
-                                + "("
-                                + str(i + 1)
-                                + ","
-                                + str(n)
-                                + ") = "
-                                + str(l)
-                                + ", "
-                            )
+                            param_string = f"{k}({i + 1!s},{n!s}) = {l!s}, "
                         else:
-                            param_string = k + " = " + str(l) + "\n"
+                            param_string = f"{k} = {l!s}\n"
                         if len((output + param_string).splitlines()[-1]) > 70:
                             output += "\n"
                         output += param_string
                 elif "type" in v and v["type"] == "array":
                     if n is not None:
-                        param_string = k + "(" + str(n) + ") = ("
+                        param_string = f"{k}({n!s}) = ("
                     else:
-                        param_string = k + " = ("
+                        param_string = f"{k} = ("
                     for i, l in enumerate(check_value(self, v)):
-                        param_string += str(l) + ", "
+                        param_string += f"{l!s}, "
                         if len((output + param_string).splitlines()[-1]) > 70:
                             output += "\n"
-                    output += param_string[:-2] + "),\n"
+                    output += f"{param_string[:-2]}),\n"
                 elif "type" in v and v["type"] == "not_zero":
                     if abs(check_value(self, v)) > 0:
                         if n is not None:
-                            param_string = (
-                                k
-                                + "("
-                                + str(n)
-                                + ") = "
-                                + str(check_value(self, v))
-                                + ", "
-                            )
+                            param_string = f"{k}({n!s}) = {check_value(self, v)!s}, "
                         else:
-                            param_string = k + " = " + str(check_value(self, v)) + ",\n"
+                            param_string = f"{k} = {check_value(self, v)!s},\n"
                         if len((output + param_string).splitlines()[-1]) > 70:
                             output += "\n"
                         output += param_string
                 else:
                     if n is not None:
-                        param_string = (
-                            k + "(" + str(n) + ") = " + str(check_value(self, v)) + ", "
-                        )
+                        param_string = f"{k}({n!s}) = {check_value(self, v)!s}, "
                     else:
-                        param_string = k + " = " + str(check_value(self, v)) + ",\n"
+                        param_string = f"{k} = {check_value(self, v)!s},\n"
                     if len((output + param_string).splitlines()[-1]) > 70:
                         output += "\n"
                     output += param_string
-        return output[:-2] + "\n"
+        return f"{output[:-2]}\n"
 
     @computed_field
     @property
@@ -1558,9 +1516,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 )
             except AttributeError:
                 warn(
-                    "field_reference_position should be (start/middle/end) not"
-                    + self.simulation.field_reference_position
-                    + "; returning start"
+                    f"field_reference_position should be (start/middle/end) not {self.simulation.field_reference_position}; returning start"
                 )
         else:
             try:
@@ -1688,7 +1644,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         self, param: FieldMap, code: str, **kwargs
     ) -> str | None:
         """
-        Generates a field file name based on the provided frameworkElement and tracking code.
+        Generates a field file name for this element and tracking code.
 
         Parameters
         ----------

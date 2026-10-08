@@ -1,23 +1,10 @@
-"""``overrides`` on a layout entry: what differs between passes of one device.
-
-A multipass section's passes share one element, so a value that differs per
-pass has nowhere on the element to live -- there is only one of it. It lives
-on :class:`~laura.models.elementList.LayoutPass` instead, which is the thing
-there are N of.
-
-L4 parses, checks and carries them. Nothing applies them yet: export flattens
-a multipass path and applies them on the way out (L7), and rigidity resolution
-reads a per-pass reference energy from them (L5). So these tests are about the
-overrides arriving intact on the right pass, and about every way of naming a
-target that does not exist being refused rather than silently doing nothing.
-"""
-
-import warnings
+"""Per-pass ``overrides``: carried intact, not applied; bad targets refused."""
 
 import pytest
 
-from laura.models.element import Quadrupole, RFCavity
+from laura.models.element import RFCavity
 from laura.models.elementList import MachineModel
+from unit_tests.helpers import quad, quiet
 
 SECTIONS = {
     "INJECTOR": ["INJ_Q"],
@@ -26,25 +13,25 @@ SECTIONS = {
     "DUMP": ["DMP_Q"],
 }
 
+
+def second_pass(overrides, **options):
+    """The ERL path, with *overrides* (and *options*) on the second LINAC pass."""
+    return [
+        "INJECTOR",
+        {"LINAC": {"multipass": 1}},
+        "ARC",
+        {"LINAC": {"multipass": 2, **options, "overrides": overrides}},
+        "DUMP",
+    ]
+
+
 # The decelerating return leg of an ERL: same cavity, ~180 degrees apart.
-ERL = [
-    "INJECTOR",
-    {"LINAC": {"multipass": 1}},
-    "ARC",
-    {"LINAC": {"multipass": 2, "overrides": {"CAV_01": {"cavity.phase": 180}}}},
-    "DUMP",
-]
+ERL = second_pass({"CAV_01": {"cavity.phase": 180}})
 
 
 def elements():
     built = {
-        name: Quadrupole(
-            name=name,
-            hardware_class="Magnet",
-            machine_area="A",
-            magnetic={"magnetic_length": length, "k1l": 1.0},
-            physical={"length": length},
-        )
+        name: quad(name, length, 1.0, "A")
         for name, length in (
             ("INJ_Q", 0.2),
             ("LIN_Q", 0.3),
@@ -61,12 +48,11 @@ def elements():
     return built
 
 
-def machine(layout, sections=None):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+def machine(layout):
+    with quiet():
         return MachineModel(
             elements=elements(),
-            section={"sections": sections or SECTIONS},
+            section={"sections": SECTIONS},
             layout={"layouts": {"ERL": layout}, "default_layout": "ERL"},
         )
 
@@ -78,9 +64,6 @@ def erl():
 
 def passes(model, section):
     return [p for p in model.lattices["ERL"].passes if p.section == section]
-
-
-# --- carried, on the pass that stated them -------------------------------
 
 
 def test_override_lands_on_the_pass_that_stated_it(erl):
@@ -99,155 +82,78 @@ def test_overrides_do_not_touch_the_element(erl):
 
 
 def test_overrides_are_independent_per_pass(erl):
-    """Two passes' overrides must not be the same dict object."""
     first, second = passes(erl, "LINAC")
     second.overrides["CAV_01"]["cavity.phase"] = 90
     assert first.overrides == {}
 
 
 def test_several_elements_and_paths_survive():
-    model = machine(
-        [
-            "INJECTOR",
-            {"LINAC": {"multipass": 1}},
-            "ARC",
-            {
-                "LINAC": {
-                    "multipass": 2,
-                    "overrides": {
-                        "CAV_01": {"cavity.phase": 180, "physical.length": 0.6},
-                        "LIN_Q": {"magnetic.k1l": -1.0},
-                    },
-                }
-            },
-            "DUMP",
-        ]
-    )
-    _, second = passes(model, "LINAC")
-    assert second.overrides == {
+    overrides = {
         "CAV_01": {"cavity.phase": 180, "physical.length": 0.6},
         "LIN_Q": {"magnetic.k1l": -1.0},
     }
+    _, second = passes(machine(second_pass(overrides)), "LINAC")
+    assert second.overrides == overrides
 
 
 def test_overrides_ride_alongside_direction():
-    model = machine(
-        [
-            "INJECTOR",
-            {"LINAC": {"multipass": 1}},
-            "ARC",
-            {
-                "LINAC": {
-                    "multipass": 2,
-                    "direction": -1,
-                    "overrides": {"CAV_01": {"cavity.phase": 180}},
-                }
-            },
-            "DUMP",
-        ]
-    )
+    model = machine(second_pass({"CAV_01": {"cavity.phase": 180}}, direction=-1))
     _, second = passes(model, "LINAC")
     assert second.direction == -1
     assert second.overrides == {"CAV_01": {"cavity.phase": 180}}
 
 
-# --- refused ------------------------------------------------------------
+@pytest.mark.parametrize(
+    "overrides, match",
+    [
+        pytest.param(
+            {"NOPE": {"cavity.phase": 1}},
+            "contains no such element",
+            id="unknown-element",
+        ),
+        # The override is scoped to the section this pass traverses.
+        pytest.param(
+            {"ARC_B": {"magnetic.k1l": 1.0}},
+            "contains no such element",
+            id="element-in-another-section",
+        ),
+        pytest.param(
+            {"CAV_01": {"cavity.nonsense": 1}}, "no such attribute", id="unknown-path"
+        ),
+        # A cavity has no magnetic strength, however plausible the path reads.
+        pytest.param(
+            {"CAV_01": {"magnetic.k1l": 1.0}},
+            "no such attribute",
+            id="wrong-attribute-for-the-type",
+        ),
+    ],
+)
+def test_a_target_that_does_not_exist_is_refused(overrides, match):
+    with pytest.raises(ValueError, match=match):
+        machine(second_pass(overrides))
 
 
-def test_unknown_element_is_refused():
-    with pytest.raises(ValueError, match="contains no such element"):
-        machine(
-            [
-                "INJECTOR",
-                {"LINAC": {"multipass": 1}},
-                "ARC",
-                {"LINAC": {"multipass": 2, "overrides": {"NOPE": {"cavity.phase": 1}}}},
-                "DUMP",
-            ]
-        )
+PHASE_180 = {"CAV_01": {"cavity.phase": 180}}
 
 
-def test_element_in_another_section_is_refused():
-    """The override is scoped to the section this pass traverses."""
-    with pytest.raises(ValueError, match="contains no such element"):
-        machine(
-            [
-                "INJECTOR",
-                {"LINAC": {"multipass": 1}},
-                "ARC",
-                {
-                    "LINAC": {
-                        "multipass": 2,
-                        "overrides": {"ARC_B": {"magnetic.k1l": 1.0}},
-                    }
-                },
-                "DUMP",
-            ]
-        )
-
-
-def test_unknown_attribute_path_is_refused():
-    with pytest.raises(ValueError, match="no such attribute"):
-        machine(
-            [
-                "INJECTOR",
-                {"LINAC": {"multipass": 1}},
-                "ARC",
-                {
-                    "LINAC": {
-                        "multipass": 2,
-                        "overrides": {"CAV_01": {"cavity.nonsense": 1}},
-                    }
-                },
-                "DUMP",
-            ]
-        )
-
-
-def test_wrong_attribute_for_the_element_type_is_refused():
-    """A cavity has no magnetic strength, however plausible the path reads."""
-    with pytest.raises(ValueError, match="no such attribute"):
-        machine(
-            [
-                "INJECTOR",
-                {"LINAC": {"multipass": 1}},
-                "ARC",
-                {
-                    "LINAC": {
-                        "multipass": 2,
-                        "overrides": {"CAV_01": {"magnetic.k1l": 1.0}},
-                    }
-                },
-                "DUMP",
-            ]
-        )
-
-
-def test_overrides_without_multipass_are_refused():
-    """A single traversal has an element of its own to carry the value."""
+@pytest.mark.parametrize(
+    "layout",
+    [
+        # A single traversal has an element of its own to carry the value.
+        pytest.param(
+            ["INJECTOR", {"LINAC": {"overrides": PHASE_180}}, "ARC", "DUMP"],
+            id="without-multipass",
+        ),
+        # Repetition gives each occurrence its own deep copy to write on.
+        pytest.param(
+            ["INJECTOR", "LINAC", "ARC", {"LINAC": {"overrides": PHASE_180}}, "DUMP"],
+            id="on-a-repetition-occurrence",
+        ),
+    ],
+)
+def test_overrides_off_a_multipass_pass_are_refused(layout):
     with pytest.raises(ValueError, match="does not mark it 'multipass'"):
-        machine(
-            [
-                "INJECTOR",
-                {"LINAC": {"overrides": {"CAV_01": {"cavity.phase": 180}}}},
-                "ARC",
-                "DUMP",
-            ]
-        )
-
-
-def test_overrides_on_a_repetition_occurrence_are_refused():
-    """Repetition gives each occurrence its own deep copy to write on."""
-    with pytest.raises(ValueError, match="does not mark it 'multipass'"):
-        machine(
-            [
-                "INJECTOR",
-                "LINAC",
-                "ARC",
-                {"LINAC": {"overrides": {"CAV_01": {"cavity.phase": 180}}}},
-                "DUMP",
-            ]
-        )
+        machine(layout)
 
 
 @pytest.mark.parametrize(
@@ -261,15 +167,7 @@ def test_overrides_on_a_repetition_occurrence_are_refused():
 )
 def test_malformed_overrides_are_refused(overrides):
     with pytest.raises(TypeError, match="overrides"):
-        machine(
-            [
-                "INJECTOR",
-                {"LINAC": {"multipass": 1}},
-                "ARC",
-                {"LINAC": {"multipass": 2, "overrides": overrides}},
-                "DUMP",
-            ]
-        )
+        machine(second_pass(overrides))
 
 
 def test_unknown_entry_option_is_still_refused():
@@ -283,9 +181,6 @@ def test_unknown_entry_option_is_still_refused():
                 "DUMP",
             ]
         )
-
-
-# --- untouched ----------------------------------------------------------
 
 
 def test_path_without_overrides_is_unchanged():

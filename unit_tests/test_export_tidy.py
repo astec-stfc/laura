@@ -1,12 +1,9 @@
-"""The exporter's tidying options, and ``Element.retype``.
-
-``round_floats``, ``field_directory`` and ``auto_templates`` change how a
-machine is written, never what it is: each export below is reloaded and
-compared with the machine that went out.
+"""Exporter tidying options and ``Element.retype``: they change how a machine is
+written, never what it is, so each export is reloaded and compared.
 """
 
 import os
-import warnings
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -32,6 +29,7 @@ from laura.models.element import (
 from laura.translator.utils.fields import FieldMap
 from laura.translator.utils.fields.field_parameter import FieldParameter
 from laura.translator.utils.units import UnitValue
+from unit_tests.helpers import quiet
 
 
 def _wake(scale=1.0):
@@ -74,23 +72,19 @@ def _quad(name, z, k1l=0.5):
 
 
 def _machine(tmp_path, elements):
-    """A one-section machine of *elements*, written out as a loadable tree."""
     source = tmp_path / "source"
     source.mkdir()
-    with open(source / "elements.yaml", "w") as handle:
-        yaml.dump(
-            {e.name: export_as_yaml(None, e, "global") for e in elements}, handle
-        )
-    with open(source / "sections.yaml", "w") as handle:
-        yaml.dump({"sections": {"L1": [e.name for e in elements]}}, handle)
-    with open(source / "layouts.yaml", "w") as handle:
-        yaml.dump({"default_layout": "beam", "layouts": {"beam": ["L1"]}}, handle)
+    for name, data in (
+        ("elements", {e.name: export_as_yaml(None, e, "global") for e in elements}),
+        ("sections", {"sections": {"L1": [e.name for e in elements]}}),
+        ("layouts", {"default_layout": "beam", "layouts": {"beam": ["L1"]}}),
+    ):
+        (source / f"{name}.yaml").write_text(yaml.dump(data))
     return _load(source / "elements.yaml", source)
 
 
 def _load(element_list, root):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         return LAURA(
             element_list=str(element_list),
             section=str(root / "sections.yaml"),
@@ -100,15 +94,9 @@ def _load(element_list, root):
 
 
 def _reload(machine, root, exported):
-    """*exported*, a directory export of *machine*, loaded back."""
     for name in ("sections.yaml", "layouts.yaml"):
         (exported / name).write_text((root / "source" / name).read_text())
     return _load(exported, exported)
-
-
-# ---------------------------------------------------------------------------
-# round_floats
-# ---------------------------------------------------------------------------
 
 
 class TestRounded:
@@ -156,14 +144,8 @@ class TestRounded:
         clean = rounded(cavity)
         assert clean.physical.length == length
         assert clean.physical.middle.z == 1.0
-        # A length rounding the other way, or not near a cell, is rounded as usual.
         cavity.physical.length = 3.00000000012345
         assert rounded(cavity).physical.length == 3.0000000001
-
-
-# ---------------------------------------------------------------------------
-# field_directory
-# ---------------------------------------------------------------------------
 
 
 class TestSharedFields:
@@ -208,21 +190,14 @@ class TestSharedFields:
             for f in files
             if f == "C1.yaml"
         ]
-        with open(path) as handle:
-            written = yaml.safe_load(handle)
-        assert written["simulation"]["wakefield_definition"] == (
+        text = Path(path).read_text()
+        assert yaml.safe_load(text)["simulation"]["wakefield_definition"] == (
             "$master_lattice$Data_Files/SBand_3m_wake.hdf5"
         )
-        assert "Wz" not in open(path).read()
-        # The model that went out still holds its samples.
+        assert "Wz" not in text
         assert isinstance(
             machine.elements["C1"].simulation.wakefield_definition, FieldMap
         )
-
-
-# ---------------------------------------------------------------------------
-# auto_templates
-# ---------------------------------------------------------------------------
 
 
 def _quads(n):
@@ -276,12 +251,11 @@ class TestAutoTemplatesRoundTrip:
         export_machine(str(exported), machine, auto_templates=True)
 
         assert (exported / "_Quadrupole_L0p1.yaml").exists()
-        with open(exported / "Magnet" / "Quadrupole" / "Q1.yaml") as handle:
-            q1 = yaml.safe_load(handle)
+        quads = exported / "Magnet" / "Quadrupole"
+        q1 = yaml.safe_load((quads / "Q1.yaml").read_text())
         assert q1["inherits_from"] == "Quadrupole_L0p1"
         assert "gap" not in q1.get("magnetic", {})
-        with open(exported / "Magnet" / "Quadrupole" / "Q0.yaml") as handle:
-            q0 = yaml.safe_load(handle)
+        q0 = yaml.safe_load((quads / "Q0.yaml").read_text())
         assert q0["magnetic"]["multipoles"]["K1L"]["normal"] == -0.5
 
         reloaded = _reload(machine, tmp_path, exported)
@@ -296,11 +270,6 @@ class TestAutoTemplatesRoundTrip:
         machine = _machine(tmp_path, _quads(5))
         export_machine(str(tmp_path / "exported"), machine, auto_templates=True)
         assert all(e.inherits_from is None for e in machine.elements.values())
-
-
-# ---------------------------------------------------------------------------
-# Element.retype
-# ---------------------------------------------------------------------------
 
 
 class TestRetype:

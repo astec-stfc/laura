@@ -47,9 +47,9 @@ def unit_power_string(power_list, power_factor=1):
     if float(power).is_integer():
         if power == 1:
             return unit
-        return unit + "^" + str(int(power))
+        return f"{unit}^{int(power)!s}"
     num, denom = power.as_integer_ratio()
-    return unit + "^(" + str(num) + "/" + str(denom) + ")"
+    return f"{unit}^({num!s}/{denom!s})"
 
 
 def unit_fraction(string):
@@ -161,9 +161,9 @@ def collect_units(unit_powers):
         finalunit = unit_power_string(combined_list[0])
         for u in combined_list[1:]:
             if u[1] > 0:
-                finalunit += "*" + unit_power_string(u)
+                finalunit += f"*{unit_power_string(u)}"
             else:
-                finalunit += "/" + unit_power_string(u, power_factor=-1)
+                finalunit += f"/{unit_power_string(u, power_factor=-1)}"
     else:
         finalunit = ""
     return finalunit
@@ -312,16 +312,14 @@ class UnitValue(np.ndarray):
                 f, prefix = nice_scale_prefix(self.val)
                 if self._isint:
                     return str(
-                        int.__repr__(int(self.val / f)) + " " + prefix + self.units
+                        f"{int.__repr__(int(self.val / f))} {prefix}{self.units}"
                     )
                 return str(
-                    float.__repr__(float(self.val / f)) + " " + prefix + self.units
+                    f"{float.__repr__(float(self.val / f))} {prefix}{self.units}"
                 )
             return str.__repr__(str(self.val))
         else:
-            return str(
-                np.ndarray.__repr__(self.val)[:-1] + ", units='" + self.units + "')"
-            )
+            return str(f"{np.ndarray.__repr__(self.val)[:-1]}, units='{self.units}')")
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -418,7 +416,7 @@ class UnitValue(np.ndarray):
     def in_units_of(self, prefix):
         from beamphysics.units import PREFIX_FACTOR, SHORT_PREFIX_FACTOR
 
-        prefix = prefix + "-" if prefix[-1] != "-" else prefix
+        prefix = f"{prefix}-" if prefix[-1] != "-" else prefix
         f = 1
         if prefix in SHORT_PREFIX_FACTOR:
             f = SHORT_PREFIX_FACTOR[prefix]

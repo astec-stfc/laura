@@ -1,9 +1,6 @@
-"""Tests for the MAD-X TWISS TFS importer (``MadxLatticeImporter``).
+"""Tests for ``MadxLatticeImporter``.
 
-A MAD-X TWISS TFS table supplies both element parameters and, via its own ``S``
-column (MAD-X's cumulative arc-length at the exit of each element),
-``position_mode="s"`` positioning. The fixture is a hand-written TFS table
-exercising one element of each type.
+A TFS ``S`` column is MAD-X's arc length at each element's exit.
 """
 
 import os
@@ -18,6 +15,18 @@ from laura.translator.converters.codes.madx import MadxLatticeImporter
 _TWISS = os.path.join(os.path.dirname(__file__), "data", "madx_test_twiss.tfs")
 
 
+def _madx(tmp_path, text, **kwargs):
+    source = tmp_path / "line.madx"
+    source.write_text(text)
+    return MadxLatticeImporter(source_file=str(source), **kwargs)
+
+
+def _tfs(tmp_path, text):
+    twiss = tmp_path / "twiss.tfs"
+    twiss.write_text(text)
+    return MadxLatticeImporter(twiss_file=str(twiss))
+
+
 @pytest.fixture
 def importer():
     imp = MadxLatticeImporter(twiss_file=_TWISS)
@@ -27,8 +36,7 @@ def importer():
 
 class TestMadxImporter:
     def test_drift_imported(self, importer):
-        """Sequential placement carries the geometry in the order, so a drift
-        is hardware like anything else rather than a gap to be re-derived."""
+        """Sequential placement keeps a drift as hardware, not a gap to re-derive."""
         drift = importer.elements["DR1"]
         assert drift.hardware_type == "Drift"
         assert drift.physical.length > 0
@@ -102,15 +110,13 @@ class TestMadxImporter:
 
 def test_source_import_retains_deferred_strength(tmp_path):
     pytest.importorskip("cpymad")
-    source = tmp_path / "line.madx"
-    source.write_text(
+    importer = _madx(
+        tmp_path,
         "beam, particle=electron, energy=1;\n"
         "quad_k1l = 0.3;\n"
         "q: quadrupole, l=0.5, k1 := quad_k1l / 0.5;\n"
-        "line: sequence, l=1; q, at=0.5; endsequence;\n"
+        "line: sequence, l=1; q, at=0.5; endsequence;\n",
     )
-
-    importer = MadxLatticeImporter(source_file=str(source))
     elements = importer.create_laura_element_dictionary()
     layout = importer.create_layout()
 
@@ -120,17 +126,14 @@ def test_source_import_retains_deferred_strength(tmp_path):
 
 
 def test_cavity_given_by_harmonic_gets_its_frequency(tmp_path):
-    """MAD-X fills FREQ from HARMON only once it has twissed; CLIC DR's cavity
-    (h = 2852) came in at LAURA's 2998.5 MHz default instead of 2.0 GHz."""
+    """MAD-X fills FREQ from HARMON only once it has twissed."""
     pytest.importorskip("cpymad")
-    source = tmp_path / "ring.madx"
-    source.write_text(
+    cavity = _madx(
+        tmp_path,
         "beam, particle=electron, energy=2.86;\n"
         "rf: rfcavity, volt=4.5, harmon=2852, lag=0.5;\n"
-        "ring: sequence, l=427.5; rf, at=10; endsequence;\n"
-    )
-
-    cavity = MadxLatticeImporter(source_file=str(source)).create_laura_element_dictionary()["rf"]
+        "ring: sequence, l=427.5; rf, at=10; endsequence;\n",
+    ).create_laura_element_dictionary()["rf"]
 
     beta = (1 - (0.51099895e-3 / 2.86) ** 2) ** 0.5
     assert cavity.cavity.frequency == pytest.approx(2852 * beta * 299792458.0 / 427.5)
@@ -138,16 +141,14 @@ def test_cavity_given_by_harmonic_gets_its_frequency(tmp_path):
 
 def test_source_import_numbers_occurrences_and_integrates_direct_strength(tmp_path):
     pytest.importorskip("cpymad")
-    source = tmp_path / "repeated.madx"
-    source.write_text(
+    importer = _madx(
+        tmp_path,
         "beam, particle=electron, energy=1;\n"
         "quad_k1 = 0.4;\n"
         "q: quadrupole, l=0.5, k1 := quad_k1;\n"
         "bpm: monitor;\n"
-        "line: sequence, l=2; q, at=0.5; bpm, at=1; q, at=1.5; endsequence;\n"
+        "line: sequence, l=2; q, at=0.5; bpm, at=1; q, at=1.5; endsequence;\n",
     )
-
-    importer = MadxLatticeImporter(source_file=str(source))
     elements = importer.create_laura_element_dictionary()
 
     assert list(elements) == ["line_start", "q.1", "bpm", "q.2", "line_end"]
@@ -159,17 +160,15 @@ def test_source_import_numbers_occurrences_and_integrates_direct_strength(tmp_pa
 def test_source_import_retains_strength_deferred_after_definition(tmp_path):
     """``q, k1 := x;`` after the definition (cpymad inform 1, not 2)."""
     pytest.importorskip("cpymad")
-    source = tmp_path / "update.madx"
-    source.write_text(
+    importer = _madx(
+        tmp_path,
         "beam, particle=electron, energy=1;\n"
         "q: quadrupole, l=0.5, k1=0;\n"
         "line: line = (q);\n"
         "use, period=line;\n"
         "quad_k1 = 0.4;\n"
-        "q, k1 := quad_k1;\n"
+        "q, k1 := quad_k1;\n",
     )
-
-    importer = MadxLatticeImporter(source_file=str(source))
     elements = importer.create_laura_element_dictionary()
 
     assert elements["q"].magnetic.multipoles.K1L.normal == "quad_k1"
@@ -179,15 +178,13 @@ def test_source_import_retains_strength_deferred_after_definition(tmp_path):
 def test_bend_states_madx_fringe_defaults(tmp_path):
     """Unset hgap/fint are MAD-X's 0, not LAURA's gap or another code's fint."""
     pytest.importorskip("cpymad")
-    source = tmp_path / "bends.madx"
-    source.write_text(
+    elements = _madx(
+        tmp_path,
         "beam, particle=electron, energy=1;\n"
         "b0: sbend, l=0.5, angle=0.02;\n"
         "b1: sbend, l=0.5, angle=0.02, hgap=0.01, fint=0.4;\n"
-        "line: sequence, l=2; b0, at=0.5; b1, at=1.5; endsequence;\n"
-    )
-
-    elements = MadxLatticeImporter(source_file=str(source)).create_laura_element_dictionary()
+        "line: sequence, l=2; b0, at=0.5; b1, at=1.5; endsequence;\n",
+    ).create_laura_element_dictionary()
 
     assert elements["b0"].magnetic.gap == 0.0
     assert elements["b0"].magnetic.edge_field_integral == 0.0
@@ -201,34 +198,27 @@ def test_source_import_follows_call_statements(tmp_path):
     (tmp_path / "sub" / "definitions.madx").write_text(
         "qk1 = 0.3;\nq: quadrupole, l = 0.5, k1 = qk1;\n"
     )
-    source = tmp_path / "main.madx"
-    source.write_text(
+    importer = _madx(
+        tmp_path,
         'call, file = "sub/definitions.madx";\n'
         "beam, particle=electron, energy=1;\n"
-        "line: sequence, l=1; q, at=0.5; endsequence;\n"
+        "line: sequence, l=1; q, at=0.5; endsequence;\n",
     )
-
-    importer = MadxLatticeImporter(source_file=str(source))
     elements = importer.create_laura_element_dictionary()
 
     assert elements["q"].magnetic.KnL(1) == pytest.approx(0.15)
 
 
 def test_declared_constants_in_called_files_are_preserved(tmp_path):
-    """A constant declared only in a call'd file, and not referenced by any
-    element's deferred expression, must still show up in
-    functional_definitions."""
     pytest.importorskip("cpymad")
     (tmp_path / "sub.madx").write_text("unused_const = 3.14;\n")
-    source = tmp_path / "main.madx"
-    source.write_text(
+    importer = _madx(
+        tmp_path,
         'call, file = "sub.madx";\n'
         "beam, particle=electron, energy=1;\n"
         "q: quadrupole, l=0.5, k1=0.4;\n"
-        "line: sequence, l=1; q, at=0.5; endsequence;\n"
+        "line: sequence, l=1; q, at=0.5; endsequence;\n",
     )
-
-    importer = MadxLatticeImporter(source_file=str(source))
     importer.create_laura_element_dictionary()
 
     assert importer.functional_definitions["unused_const"] == pytest.approx(3.14)
@@ -236,16 +226,14 @@ def test_declared_constants_in_called_files_are_preserved(tmp_path):
 
 def test_create_machine_model_builds_one_layout_per_sequence(tmp_path):
     pytest.importorskip("cpymad")
-    source = tmp_path / "two_sequences.madx"
-    source.write_text(
+    importer = _madx(
+        tmp_path,
         "beam, particle=electron, energy=1;\n"
         "q1: quadrupole, l=0.5, k1=0.4;\n"
         "line1: sequence, l=1; q1, at=0.5; endsequence;\n"
         "q2: quadrupole, l=0.5, k1=0.6;\n"
-        "line2: sequence, l=1; q2, at=0.5; endsequence;\n"
+        "line2: sequence, l=1; q2, at=0.5; endsequence;\n",
     )
-
-    importer = MadxLatticeImporter(source_file=str(source))
     model = importer.create_machine_model(min_section_length=1)
 
     assert set(model.lattices) == {"line1", "line2"}
@@ -262,17 +250,13 @@ def test_create_machine_model_requires_source_file_for_multiple_sequences(tmp_pa
 
 def test_source_import_folds_dipedges_into_dipole(tmp_path):
     pytest.importorskip("cpymad")
-    source = tmp_path / "edges.madx"
-    source.write_text(
+    elements = _madx(
+        tmp_path,
         "beam, particle=electron, energy=1;\n"
         "edge: dipedge, h=0.2, e1=0.03, hgap=0.01, fint=0.4;\n"
         "bend: sbend, l=1, angle=0.2;\n"
         "line: sequence, l=2; edge, at=0.5; bend, at=1; "
-        "edge, at=1.5; endsequence;\n"
-    )
-
-    elements = MadxLatticeImporter(
-        source_file=str(source)
+        "edge, at=1.5; endsequence;\n",
     ).create_laura_element_dictionary()
     bend = elements["bend"]
 
@@ -284,21 +268,18 @@ def test_source_import_folds_dipedges_into_dipole(tmp_path):
 
 
 def test_twiss_file_start_marker_imports_as_twiss_match(tmp_path):
-    """Every MAD-X TWISS table carries its own synthetic ``<sequence>$start``
-    marker at s=0, whose betx/alfx/bety/alfy/dx/dpx/dy/dpy columns are the
-    initial optics the TWISS command was given -- explicit betx=/alfx=/...,
-    a BETA0= reference, or a ring's own periodic solution."""
-    twiss = tmp_path / "twiss.tfs"
-    twiss.write_text(
+    """Every TWISS table has a synthetic ``<sequence>$start`` marker at s=0 holding
+    the initial optics.
+    """
+    importer = _tfs(
+        tmp_path,
         '@ SEQUENCE %s "SEQ"\n'
         "* NAME KEYWORD S L BETX ALFX BETY ALFY DX DPX DY DPY\n"
         "$ %s %s %le %le %le %le %le %le %le %le %le %le\n"
         '"SEQ$START" "MARKER" 0.0 0.0 9.42 -0.66 22.19 1.51 0.1 0.01 0.2 0.02\n'
         '"Q1" "QUADRUPOLE" 0.5 0.5 10.0 -0.3 20.0 0.4 0.11 0.01 0.22 0.03\n'
-        '"SEQ$END" "MARKER" 0.5 0.0 10.0 -0.3 20.0 0.4 0.11 0.01 0.22 0.03\n'
+        '"SEQ$END" "MARKER" 0.5 0.0 10.0 -0.3 20.0 0.4 0.11 0.01 0.22 0.03\n',
     )
-
-    importer = MadxLatticeImporter(twiss_file=str(twiss))
     elements = importer.create_laura_element_dictionary()
 
     start = elements["SEQ$START"]
@@ -319,22 +300,16 @@ def test_twiss_file_start_marker_imports_as_twiss_match(tmp_path):
 
 
 def test_twiss_file_repeated_placements_and_integrated_strengths(tmp_path):
-    """A TWISS table has one row per *placement*, so a reused definition
-    repeats under the same name, and it reports strengths integrated
-    (``K1L``) rather than per-metre (``K1``)."""
-    twiss = tmp_path / "twiss.tfs"
-    twiss.write_text(
+    """A TWISS table has one row per placement and integrated strengths (``K1L``)."""
+    elements = _tfs(
+        tmp_path,
         '@ SEQUENCE %s "SEQ"\n'
         "* NAME KEYWORD S L K1L K2SL\n"
         "$ %s %s %le %le %le %le\n"
         '"Q1" "QUADRUPOLE" 0.5 0.5 0.15 0.0\n'
         '"DR" "DRIFT" 1.5 1.0 0.0 0.0\n'
         '"Q1" "QUADRUPOLE" 2.0 0.5 0.15 0.0\n'
-        '"S1" "SEXTUPOLE" 2.2 0.2 0.0 0.8\n'
-    )
-
-    elements = MadxLatticeImporter(
-        twiss_file=str(twiss)
+        '"S1" "SEXTUPOLE" 2.2 0.2 0.0 0.8\n',
     ).create_laura_element_dictionary()
 
     assert list(elements) == ["Q1.1", "DR", "Q1.2", "S1"]
@@ -344,9 +319,9 @@ def test_twiss_file_repeated_placements_and_integrated_strengths(tmp_path):
 
 
 def test_twiss_model_elegant_line_is_not_self_referential():
-    """A TWISS import names the layout and its only section after the same
-    sequence, and elegant's line/element namespace is flat -- so the layout
-    wrapper came out as ``X: LINE = (X)``, which elegant rejects."""
+    """elegant's namespace is flat, so layout and section named after one sequence
+    gave ``X: LINE = (X)``.
+    """
     from laura.translator.converters.model import (
         MachineModelTranslator,
         _layout_line_name,
@@ -370,10 +345,7 @@ def test_twiss_model_elegant_line_is_not_self_referential():
     ],
 )
 def test_twiss_import_leaves_collective_and_radiation_off(kwargs, csr, radiation):
-    """LAURA's simulation models default CSR, LSC, SR and ISR all on, so an
-    untouched MAD-X import exported every drift as a ``CSRDRIFT`` and every
-    bend with ``csr = 1, synch_rad = 1, isr = 1`` -- physics MAD-X cannot
-    specify. They are opt-in now."""
+    """LAURA defaults CSR, LSC, SR and ISR on; MAD-X cannot specify them."""
     from laura.translator.converters.model import MachineModelTranslator
 
     model = MadxLatticeImporter(twiss_file=_TWISS, **kwargs).create_machine_model()
@@ -390,11 +362,11 @@ def test_twiss_import_leaves_collective_and_radiation_off(kwargs, csr, radiation
 
 
 def test_nested_sequence_is_flattened(tmp_path):
-    """A ring assembled from sub-sequences (e.g. LEIR's SS10/Arc10/SS20/...)
-    has those sub-sequences as opaque `Sequence` entries in
-    `madx.sequence[...].elements`."""
-    source = tmp_path / "nested.madx"
-    source.write_text(
+    """cpymad lists sub-sequences as opaque `Sequence` entries in
+    `madx.sequence[...].elements`.
+    """
+    elements = _madx(
+        tmp_path,
         "q1: quadrupole, l=0.5, k1=0.2;\n"
         "q2: quadrupole, l=0.5, k1=0.3;\n"
         "sub1: sequence, l=1; q1, at=0.5; endsequence;\n"
@@ -402,11 +374,8 @@ def test_nested_sequence_is_flattened(tmp_path):
         "main: sequence, l=2;\n"
         "  sub1, at=0.5;\n"
         "  sub2, at=1.5;\n"
-        "endsequence;\n"
-    )
-
-    elements = MadxLatticeImporter(
-        source_file=str(source), sequence="main"
+        "endsequence;\n",
+        sequence="main",
     ).create_laura_element_dictionary()
 
     quads = [name for name, el in elements.items() if el.hardware_type == "Quadrupole"]
@@ -414,8 +383,8 @@ def test_nested_sequence_is_flattened(tmp_path):
 
 
 def test_previously_unmapped_native_types_are_imported(tmp_path):
-    source = tmp_path / "types.madx"
-    source.write_text(
+    elements = _madx(
+        tmp_path,
         "rb: rbend, l=1, angle=0.05;\n"
         "hm: hmonitor;\n"
         "vm: vmonitor;\n"
@@ -424,11 +393,8 @@ def test_previously_unmapped_native_types_are_imported(tmp_path):
         "tk: tkicker, l=0.1;\n"
         "line: sequence, l=3;\n"
         "  rb, at=0.5; hm, at=1.1; vm, at=1.2; ins, at=1.3; col, at=1.6; tk, at=1.9;\n"
-        "endsequence;\n"
-    )
-
-    elements = MadxLatticeImporter(
-        source_file=str(source), sequence="line"
+        "endsequence;\n",
+        sequence="line",
     ).create_laura_element_dictionary()
 
     assert elements["rb"].hardware_type == "Dipole"
@@ -441,15 +407,12 @@ def test_previously_unmapped_native_types_are_imported(tmp_path):
 
 
 def test_multipole_resolves_order_from_knl_ksl(tmp_path):
-    source = tmp_path / "multipole.madx"
-    source.write_text(
+    elements = _madx(
+        tmp_path,
         "sext: multipole, knl={0, 0, 1.117};\n"
         "skewquad: multipole, ksl={0, -0.05};\n"
-        "line: sequence, l=2; sext, at=0.5; skewquad, at=1.5; endsequence;\n"
-    )
-
-    elements = MadxLatticeImporter(
-        source_file=str(source), sequence="line"
+        "line: sequence, l=2; sext, at=0.5; skewquad, at=1.5; endsequence;\n",
+        sequence="line",
     ).create_laura_element_dictionary()
 
     assert elements["sext"].hardware_type == "Sextupole"
@@ -459,15 +422,12 @@ def test_multipole_resolves_order_from_knl_ksl(tmp_path):
 
 
 def test_symbolic_bend_angle_does_not_crash_physical_angle(tmp_path):
-    source = tmp_path / "symbolic_angle.madx"
-    source.write_text(
+    elements = _madx(
+        tmp_path,
         "kminwr = 0.01;\n"
         "b: sbend, l=1, angle:=kminwr;\n"
-        "line: sequence, l=1; b, at=0.5; endsequence;\n"
-    )
-
-    elements = MadxLatticeImporter(
-        source_file=str(source), sequence="line"
+        "line: sequence, l=1; b, at=0.5; endsequence;\n",
+        sequence="line",
     ).create_laura_element_dictionary()
 
     assert elements["b"].hardware_type == "Dipole"
@@ -508,19 +468,11 @@ def test_native_element_list_is_not_self_referential(tmp_path):
 
 
 def test_placeholder_is_imported_as_marker(tmp_path):
-    """Robustness check against a real 27 km LHC lattice found PLACEHOLDER
-    (a reserved-space slot for hardware not yet installed/modelled, e.g.
-    "Superconducting Cavity Place Holder" -- a real, named, positioned
-    element, not an anonymous gap) had no `_switch_dict` entry and was
-    silently dropped (311 of them in the LHC beam-1 sequence alone)."""
-    source = tmp_path / "placeholder.madx"
-    source.write_text(
-        "ph: placeholder, l=0.5;\n"
-        "line: sequence, l=1; ph, at=0.5; endsequence;\n"
-    )
-
-    elements = MadxLatticeImporter(
-        source_file=str(source), sequence="line"
+    """PLACEHOLDER is a real reserved-space element (311 in LHC beam 1), not a gap."""
+    elements = _madx(
+        tmp_path,
+        "ph: placeholder, l=0.5;\nline: sequence, l=1; ph, at=0.5; endsequence;\n",
+        sequence="line",
     ).create_laura_element_dictionary()
 
     assert elements["ph"].hardware_type == "Marker"
@@ -532,13 +484,7 @@ def test_placeholder_is_imported_as_marker(tmp_path):
 def test_export_yaml_runs_for_every_source_and_mode(
     importer, tmp_path, source, position_mode
 ):
-    """`export_yaml` accepts either thing `create_section`/`create_layout`
-    hands back, in every position mode.
-
-    A layout's `elements` is a list of *names* and a section has no `sections`
-    at all, so neither can be walked like the `MachineModel` the exporter was
-    written for. Regression test: every combination below raised.
-    """
+    """A layout's `elements` are names and a section has no `sections`."""
     lattice = (
         next(iter(importer.create_section().values()))
         if source == "section"
@@ -554,8 +500,6 @@ def test_export_yaml_runs_for_every_source_and_mode(
         assert "DR1" in (out / "_sections.yaml").read_text()
 
 
-# --- the design energy, from BEAM ----------------------------------------
-
 _SEQUENCE = (
     "qf: quadrupole, l=0.5, k1=0.3;\n"
     "qd: quadrupole, l=0.5, k1=-0.3;\n"
@@ -564,9 +508,7 @@ _SEQUENCE = (
 
 
 def _section_entry(tmp_path, text):
-    source = tmp_path / "ring.madx"
-    source.write_text(text)
-    model = MadxLatticeImporter(source_file=str(source)).create_machine_model()
+    model = _madx(tmp_path, text).create_machine_model()
     entry = model.section["sections"]["s"]
     return entry if isinstance(entry, dict) else {}
 
@@ -578,8 +520,7 @@ def _section_entry(tmp_path, text):
      math.hypot(7000e9, 938.27208816e6)),
 ])
 def test_the_section_takes_its_reference_energy_from_beam(tmp_path, text, energy):
-    """SIMBA's rings take their reference momentum from here; without it
-    they used the bunch's mean, which absorbed any injection offset."""
+    """SIMBA's rings take their reference momentum from here."""
     pytest.importorskip("cpymad")
     assert _section_entry(tmp_path, text)["reference_energy"] == pytest.approx(
         energy, rel=1e-9
@@ -598,15 +539,14 @@ def test_no_beam_for_the_sequence_means_no_reference_energy(tmp_path, text):
 
 
 def test_a_twiss_file_gives_its_energy_header(tmp_path):
-    twiss = tmp_path / "twiss.tfs"
-    twiss.write_text(
+    importer = _tfs(
+        tmp_path,
         '@ SEQUENCE %s "SEQ"\n'
         "@ ENERGY %le 2.86\n"
         "* NAME KEYWORD S L K1\n"
         "$ %s %s %le %le %le\n"
         '"Q1" "QUADRUPOLE" 0.5 0.5 0.4\n'
-        '"Q2" "QUADRUPOLE" 1.0 0.5 -0.4\n'
+        '"Q2" "QUADRUPOLE" 1.0 0.5 -0.4\n',
     )
-    importer = MadxLatticeImporter(twiss_file=str(twiss))
     section = next(iter(importer.create_section().values()))
     assert section.reference_energy == pytest.approx(2.86e9)

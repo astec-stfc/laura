@@ -1,5 +1,8 @@
 import unittest
 from dataclasses import dataclass
+
+import pytest
+
 from laura.models.control import ControlVariable, ControlsInformation
 from laura.utils.dynamics import (
     DelayedResponse,
@@ -14,8 +17,6 @@ FIRST_ORDER_PATH = "laura.utils.dynamics.FirstOrderResponse"
 
 @dataclass
 class ExternalSignal:
-    """A signal defined outside `laura.utils.signals`."""
-
     gain: float
 
     def __call__(self, value: float = 0.0):
@@ -24,8 +25,6 @@ class ExternalSignal:
 
 @dataclass
 class NotCallableSignal:
-    """A dataclass that cannot be used as an update function."""
-
     gain: float
 
 
@@ -78,9 +77,89 @@ class TestControlVariable(unittest.TestCase):
             )
 
 
+def _update_cv(**kwargs):
+    return ControlVariable(identifier="var1", protocol="CA", **kwargs)
+
+
+def _dynamics_cv(**kwargs):
+    return ControlVariable(
+        identifier="LINAC:QUAD01:K1:MEAS",
+        protocol="CA",
+        setpoint="LINAC:QUAD01:K1:CMD",
+        **kwargs,
+    )
+
+
+@pytest.mark.parametrize(
+    "update, match",
+    [
+        # RandomWalk requires `noise`, so the bare class is not enough.
+        (RandomWalk, None),
+        ({"function": EXTERNAL_PATH}, None),
+        ({"function": "NotASignal"}, None),
+        ({"function": "no.such.module.Signal"}, None),
+        ({"function": "laura.utils.signals.NotASignal"}, None),
+        # `np` is importable from laura.utils.signals but is not a signal.
+        ({"function": "laura.utils.signals.np"}, None),
+        ({"function": f"{__name__}.NotCallableSignal", "gain": 1.0}, "__call__"),
+        ({"period": 1.0}, None),
+        ({"function": SINUSOID_PATH, "period": 1.0}, None),
+        ({"function": SINUSOID_PATH, "period": 1.0, "amplitude": 2.0, "amplitud": 3.0}, "amplitud"),
+        ({"function": SINUSOID_PATH, "period": "slow", "amplitude": 2.0}, "period"),
+        (5, None),
+    ],
+    ids=[
+        "class_without_required_fields",
+        "external_signal_attributes_validated",
+        "unknown_signal",
+        "unimportable_module",
+        "missing_module_attribute",
+        "non_dataclass_target",
+        "non_callable_signal",
+        "no_function_key",
+        "missing_required_attribute",
+        "unknown_attribute",
+        "wrong_attribute_type",
+        "invalid_type",
+    ],
+)
+def test_invalid_update_warns_and_is_dropped(update, match):
+    with pytest.warns(UserWarning, match=match):
+        cv = _update_cv(update=update)
+    assert cv.update is None
+
+
+@pytest.mark.parametrize(
+    "dynamics, match",
+    [
+        (FirstOrderResponse, None),
+        ({"tau": 0.5}, "'model'"),
+        ({"model": "second_order", "tau": 0.5}, None),
+        ({"model": "first_order"}, None),
+        # `value` holds runtime state (init=False), so it is not accepted as config.
+        ({"model": "first_order", "tau": 0.5, "value": 2.0}, "value"),
+        ({"model": "first_order", "tau": "slow"}, "tau"),
+        # tau <= 0 fails in __post_init__, caught like any construction failure.
+        ({"model": "first_order", "tau": -1.0}, None),
+    ],
+    ids=[
+        "class_without_required_fields",
+        "no_model_key",
+        "unknown_model",
+        "missing_required_attribute",
+        "runtime_state_not_configurable",
+        "wrong_attribute_type",
+        "invalid_domain",
+    ],
+)
+def test_invalid_dynamics_warns_and_is_dropped(dynamics, match):
+    with pytest.warns(UserWarning, match=match):
+        cv = _dynamics_cv(dynamics=dynamics)
+    assert cv.dynamics is None
+
+
 class TestControlVariableUpdate(unittest.TestCase):
-    def make(self, **kwargs):
-        return ControlVariable(identifier="var1", protocol="CA", **kwargs)
+    make = staticmethod(_update_cv)
 
     def test_update_defaults_to_none(self):
         self.assertIsNone(self.make().update)
@@ -106,12 +185,6 @@ class TestControlVariableUpdate(unittest.TestCase):
             },
         )
 
-    def test_update_from_class_without_required_fields_warns(self):
-        # RandomWalk requires `noise`, so the bare class is not enough.
-        with self.assertWarns(UserWarning):
-            cv = self.make(update=RandomWalk)
-        self.assertIsNone(cv.update)
-
     def test_bare_name_is_upgraded_to_full_path(self):
         cv = self.make(
             update={"function": "Sinusoid", "period": 1.0, "amplitude": 2.0}
@@ -127,79 +200,9 @@ class TestControlVariableUpdate(unittest.TestCase):
         cv = self.make(update=ExternalSignal(gain=3.0))
         self.assertEqual(cv.update["function"], EXTERNAL_PATH)
 
-    def test_external_signal_attributes_are_validated(self):
-        with self.assertWarns(UserWarning):
-            cv = self.make(update={"function": EXTERNAL_PATH})
-        self.assertIsNone(cv.update)
-
-    def test_update_with_unknown_signal_warns(self):
-        with self.assertWarns(UserWarning):
-            cv = self.make(update={"function": "NotASignal"})
-        self.assertIsNone(cv.update)
-
-    def test_update_with_unimportable_module_warns(self):
-        with self.assertWarns(UserWarning):
-            cv = self.make(update={"function": "no.such.module.Signal"})
-        self.assertIsNone(cv.update)
-
-    def test_update_with_missing_module_attribute_warns(self):
-        with self.assertWarns(UserWarning):
-            cv = self.make(update={"function": "laura.utils.signals.NotASignal"})
-        self.assertIsNone(cv.update)
-
-    def test_update_with_non_dataclass_target_warns(self):
-        # `np` is importable from laura.utils.signals but is not a signal.
-        with self.assertWarns(UserWarning):
-            cv = self.make(update={"function": "laura.utils.signals.np"})
-        self.assertIsNone(cv.update)
-
-    def test_update_with_non_callable_signal_warns(self):
-        with self.assertWarns(UserWarning) as ctx:
-            cv = self.make(
-                update={"function": f"{__name__}.NotCallableSignal", "gain": 1.0}
-            )
-        self.assertIsNone(cv.update)
-        self.assertIn("__call__", str(ctx.warning))
-
-    def test_update_without_function_key_warns(self):
-        with self.assertWarns(UserWarning):
-            cv = self.make(update={"period": 1.0})
-        self.assertIsNone(cv.update)
-
-    def test_update_with_missing_required_attribute_warns(self):
-        with self.assertWarns(UserWarning):
-            cv = self.make(update={"function": SINUSOID_PATH, "period": 1.0})
-        self.assertIsNone(cv.update)
-
-    def test_update_with_unknown_attribute_warns(self):
-        with self.assertWarns(UserWarning) as ctx:
-            cv = self.make(
-                update={
-                    "function": SINUSOID_PATH,
-                    "period": 1.0,
-                    "amplitude": 2.0,
-                    "amplitud": 3.0,
-                }
-            )
-        self.assertIsNone(cv.update)
-        self.assertIn("amplitud", str(ctx.warning))
-
-    def test_update_with_wrong_attribute_type_warns(self):
-        with self.assertWarns(UserWarning) as ctx:
-            cv = self.make(
-                update={"function": SINUSOID_PATH, "period": "slow", "amplitude": 2.0}
-            )
-        self.assertIsNone(cv.update)
-        self.assertIn("period", str(ctx.warning))
-
     def test_update_accepts_int_where_float_expected(self):
         cv = self.make(update={"function": SINUSOID_PATH, "period": 1, "amplitude": 2})
         self.assertEqual(cv.build_update()(0.25), 2.0)
-
-    def test_update_with_invalid_type_warns(self):
-        with self.assertWarns(UserWarning):
-            cv = self.make(update=5)
-        self.assertIsNone(cv.update)
 
     def test_warning_names_the_variable(self):
         with self.assertWarns(UserWarning) as ctx:
@@ -236,13 +239,7 @@ class TestControlVariableUpdate(unittest.TestCase):
 
 
 class TestControlVariableDynamics(unittest.TestCase):
-    def make(self, **kwargs):
-        return ControlVariable(
-            identifier="LINAC:QUAD01:K1:MEAS",
-            protocol="CA",
-            setpoint="LINAC:QUAD01:K1:CMD",
-            **kwargs,
-        )
+    make = staticmethod(_dynamics_cv)
 
     def test_dynamics_defaults_to_none(self):
         self.assertIsNone(self.make().dynamics)
@@ -257,47 +254,6 @@ class TestControlVariableDynamics(unittest.TestCase):
         self.assertEqual(
             cv.dynamics, {"model": FIRST_ORDER_PATH, "tau": 0.5, "initial": 0.0}
         )
-
-    def test_dynamics_from_class_without_required_fields_warns(self):
-        with self.assertWarns(UserWarning):
-            cv = self.make(dynamics=FirstOrderResponse)
-        self.assertIsNone(cv.dynamics)
-
-    def test_dynamics_without_model_key_warns(self):
-        with self.assertWarns(UserWarning) as ctx:
-            cv = self.make(dynamics={"tau": 0.5})
-        self.assertIsNone(cv.dynamics)
-        self.assertIn("'model'", str(ctx.warning))
-
-    def test_dynamics_with_unknown_model_warns(self):
-        with self.assertWarns(UserWarning):
-            cv = self.make(dynamics={"model": "second_order", "tau": 0.5})
-        self.assertIsNone(cv.dynamics)
-
-    def test_dynamics_with_missing_required_attribute_warns(self):
-        with self.assertWarns(UserWarning):
-            cv = self.make(dynamics={"model": "first_order"})
-        self.assertIsNone(cv.dynamics)
-
-    def test_runtime_state_is_not_configurable(self):
-        # `value` holds runtime state (init=False), so it is not accepted as config.
-        with self.assertWarns(UserWarning) as ctx:
-            cv = self.make(dynamics={"model": "first_order", "tau": 0.5, "value": 2.0})
-        self.assertIsNone(cv.dynamics)
-        self.assertIn("value", str(ctx.warning))
-
-    def test_dynamics_with_wrong_attribute_type_warns(self):
-        with self.assertWarns(UserWarning) as ctx:
-            cv = self.make(dynamics={"model": "first_order", "tau": "slow"})
-        self.assertIsNone(cv.dynamics)
-        self.assertIn("tau", str(ctx.warning))
-
-    def test_dynamics_with_invalid_domain_warns(self):
-        # tau <= 0 raises ValueError from __post_init__, which the validator
-        # catches like any other construction failure.
-        with self.assertWarns(UserWarning):
-            cv = self.make(dynamics={"model": "first_order", "tau": -1.0})
-        self.assertIsNone(cv.dynamics)
 
     def test_dynamics_survives_round_trip(self):
         cv = self.make(dynamics={"model": "first_order", "tau": 0.5})
@@ -318,8 +274,7 @@ class TestControlVariableDynamics(unittest.TestCase):
 
 
 class TestCallSignal(unittest.TestCase):
-    """Signals declare only the inputs they need; a generic driver supplies all of
-    them and `call_signal` passes on the subset each one accepts."""
+    """Signals take only the inputs they need; `call_signal` passes each its subset."""
 
     def test_passes_only_declared_arguments(self):
         signal = Sinusoid(period=4.0, amplitude=2.0)  # takes t
@@ -349,8 +304,7 @@ class TestCallSignal(unittest.TestCase):
 
 
 class TestTypeChecked(unittest.TestCase):
-    """`type_checked` makes a dataclass validate its own argument types on
-    construction, so the callable-spec validator can lean on the constructor."""
+    """`type_checked` validates argument types on construction."""
 
     def test_wrong_type_raises_type_error(self):
         with self.assertRaises(TypeError) as ctx:
@@ -366,14 +320,12 @@ class TestTypeChecked(unittest.TestCase):
             FirstOrderResponse(tau=True)
 
     def test_own_post_init_still_runs(self):
-        # FirstOrderResponse validates tau > 0 in its own __post_init__, which
-        # type_checked must not displace.
+        # type_checked must not displace FirstOrderResponse's own __post_init__ check.
         with self.assertRaises(ValueError):
             FirstOrderResponse(tau=-1.0)
 
     def test_type_check_precedes_own_post_init(self):
-        # A non-numeric tau is a TypeError (from the type check), not whatever
-        # the `tau <= 0` comparison would raise.
+        # A non-numeric tau fails the type check before the `tau <= 0` comparison.
         with self.assertRaises(TypeError):
             FirstOrderResponse(tau="oops")
 
@@ -413,78 +365,38 @@ class TestResponseModels(unittest.TestCase):
             DelayedResponse(delay=-1.0)
 
 
+_VAR1 = {
+    "identifier": "var1",
+    "dtype": "float",
+    "protocol": "CA",
+    "units": "V",
+    "description": "A float variable for voltage",
+}
+_VAR2 = {"identifier": "var2", "dtype": "int", "protocol": "PVA"}
+
+
+@pytest.mark.parametrize(
+    "variables",
+    [
+        {"var1": ControlVariable(**_VAR1), "var2": ControlVariable(**_VAR2)},
+        {"var1": _VAR1, "var2": _VAR2},
+        {"var1": ControlVariable(**_VAR1), "var2": _VAR2},
+    ],
+    ids=["instances", "dicts", "mixed"],
+)
+def test_controls_information_creation(variables):
+    controls_info = ControlsInformation(variables=variables)
+    assert "var1" in controls_info.variables
+    assert "var2" in controls_info.variables
+    assert controls_info.variables["var1"].dtype is float
+    assert controls_info.variables["var2"].dtype is int
+
+
 class TestControlsInformation(unittest.TestCase):
-    def test_controls_information_creation(self):
-        controls_info = ControlsInformation(
-            variables={
-                "var1": ControlVariable(
-                    identifier="var1",
-                    dtype="float",
-                    protocol="CA",
-                    units="V",
-                    description="A float variable for voltage",
-                ),
-                "var2": ControlVariable(
-                    identifier="var2",
-                    dtype="int",
-                    protocol="PVA",
-                ),
-            }
-        )
-        self.assertIn("var1", controls_info.variables)
-        self.assertIn("var2", controls_info.variables)
-        self.assertEqual(controls_info.variables["var1"].dtype, float)
-        self.assertEqual(controls_info.variables["var2"].dtype, int)
-
-    def test_controls_information_with_dicts(self):
-        controls_info = ControlsInformation(
-            variables={
-                "var1": {
-                    "identifier": "var1",
-                    "dtype": "float",
-                    "protocol": "CA",
-                    "units": "V",
-                    "description": "A float variable for voltage",
-                },
-                "var2": {
-                    "identifier": "var2",
-                    "dtype": "int",
-                    "protocol": "PVA",
-                },
-            }
-        )
-        self.assertIn("var1", controls_info.variables)
-        self.assertIn("var2", controls_info.variables)
-        self.assertEqual(controls_info.variables["var1"].dtype, float)
-        self.assertEqual(controls_info.variables["var2"].dtype, int)
-
     def test_controls_information_without_variables(self):
-        # The exporter prunes an empty variables map, so an alias-only block
-        # must reload without one.
+        # The exporter prunes an empty variables map.
         controls_info = ControlsInformation(identifier_pattern="QUAD:LI21:201")
         self.assertEqual(controls_info.variables, {})
-
-    def test_controls_information_with_mixed_types(self):
-        controls_info = ControlsInformation(
-            variables={
-                "var1": ControlVariable(
-                    identifier="var1",
-                    dtype="float",
-                    protocol="CA",
-                    units="V",
-                    description="A float variable for voltage",
-                ),
-                "var2": {
-                    "identifier": "var2",
-                    "dtype": "int",
-                    "protocol": "PVA",
-                },
-            }
-        )
-        self.assertIn("var1", controls_info.variables)
-        self.assertIn("var2", controls_info.variables)
-        self.assertEqual(controls_info.variables["var1"].dtype, float)
-        self.assertEqual(controls_info.variables["var2"].dtype, int)
 
     def test_controls_information_with_invalid_dict(self):
         with self.assertRaises(ValueError):
@@ -525,9 +437,7 @@ class TestControlsInformation(unittest.TestCase):
 
 
 class TestControlVariableSerializeDefaults(unittest.TestCase):
-    """`_SERIALIZE_DEFAULTS` keys must match the field names `serialize` reads
-    from `self`, not their YAML aliases -- ``control_type`` is the field,
-    ``type`` is only the alias it is populated from."""
+    """`_SERIALIZE_DEFAULTS` keys are field names (``control_type``), not aliases."""
 
     def test_default_control_type_is_omitted(self):
         cv = ControlVariable(identifier="var1", protocol="CA")
@@ -535,7 +445,6 @@ class TestControlVariableSerializeDefaults(unittest.TestCase):
 
     def test_non_default_control_type_is_kept(self):
         cv = ControlVariable(identifier="var1", protocol="CA", type="waveform")
-        print(cv.model_dump())
         self.assertEqual(cv.model_dump()["type"], "waveform")
 
     def test_default_control_type_omitted_via_alias(self):

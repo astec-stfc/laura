@@ -6,7 +6,7 @@ samples::
     W(s) = sum_i amp_i * exp(-damp_i * z_scale * s) * sin(2*pi*phi_i - k_i * z_scale * s)
 
 for *s*, the distance a trailing particle sits behind the source, non-negative.
-``phi`` is in turns. LAURA's :class:`~laura.translator.utils.fields.field`
+``phi`` is in turns. LAURA's :class:`~laura.translator.utils.fields.FieldMap`
 holds sampled arrays and nothing else, so the modes are evaluated onto a grid on the way in.
 """
 

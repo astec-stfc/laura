@@ -22,7 +22,7 @@ def _layout_line_name(name: str, sections: List[str]) -> Optional[str]:
 
 class MachineModelTranslator(ContainerTranslator, MachineModel):
     """
-    Translator for a :class:`~laura.models.elementList.MachineModel`.
+    Translator for a :class:`~laura.models.element_list.MachineModel`.
 
     Its children are its layouts, so every ``to_CODE`` method inherited from
     :class:`~laura.translator.converters.fanout.ContainerTranslator` returns

@@ -18,7 +18,14 @@ from ...utils.functions import (
 from ...utils.madx.TFSFile import TFSFile
 from .. import keyword_conversion_rules_madx, type_conversion_rules_madx
 from . import magnetic_orders
-from .importer import LatticeImporter, read_with_calls, section_entry
+from .importer import (
+    LatticeImporter,
+    check_layouts,
+    compact_expression,
+    keyword_rules,
+    read_with_calls,
+    twiss_simulation,
+)
 
 _RAW_KEYS = ("k0", "k1", "k2", "k3", "angle", "l", "kick", "hkick", "vkick", "ks")
 
@@ -81,7 +88,7 @@ class MadxLatticeImporter(LatticeImporter):
     """Keep LAURA's CSR and LSC defaults on imported elements -- see :func:`_switch_off`."""
 
     radiation: bool = False
-    """Keep LAURA's CSR/ISR defaults on imported magnets."""
+    """Keep LAURA's SR/ISR defaults on imported elements."""
 
     madx_data: Dict = {}
     """Dictionary containing data about the MAD-X lattice, keyed by element name."""
@@ -125,7 +132,7 @@ class MadxLatticeImporter(LatticeImporter):
     ) -> str | None:
         if not isinstance(expression, str) or not expression:
             return None
-        compact = expression.lower().replace(" ", "").replace("(", "").replace(")", "")
+        compact = compact_expression(expression)
         for name in definitions:
             if compact == name.lower():
                 return name
@@ -329,16 +336,10 @@ class MadxLatticeImporter(LatticeImporter):
                 str(row["name"]), {}
             ).items():
                 symbol = self._single_symbol(expression, source_definitions, length)
-                compact = (
-                    expression.lower()
-                    .replace(" ", "")
-                    .replace("(", "")
-                    .replace(")", "")
-                )
                 if (
                     symbol
                     and param in {"k0", "k1", "k2", "k3", "ks"}
-                    and compact == symbol.lower()
+                    and compact_expression(expression) == symbol.lower()
                 ):
                     value = source_definitions[symbol] * length
                     if symbol in scaled_definitions and not np.isclose(
@@ -372,17 +373,10 @@ class MadxLatticeImporter(LatticeImporter):
                     "machine_area": self.machine_area,
                     "l": 0.0,
                     "s": 0.0,
-                    "simulation": {
-                        "beta_x": row["betx"],
-                        "beta_y": row["bety"],
-                        "alpha_x": row["alfx"],
-                        "alpha_y": row["alfy"],
-                        "eta_x": row.get("dx", 0.0),
-                        "eta_y": row.get("dy", 0.0),
-                        "eta_xp": row.get("dpx", 0.0),
-                        "eta_yp": row.get("dpy", 0.0),
-                        "from_beam": False,
-                    },
+                    "simulation": twiss_simulation(
+                        *(row[key] for key in ("betx", "bety", "alfx", "alfy")),
+                        *(row.get(key, 0.0) for key in ("dx", "dy", "dpx", "dpy")),
+                    ),
                 }
                 continue
             if elemtype == "multipole":
@@ -452,9 +446,7 @@ class MadxLatticeImporter(LatticeImporter):
                 if subk in model_fields:
                     entry[subk] = {}
 
-            merged = keyword_conversion_rules_madx["general"]
-            if sftype.lower() in keyword_conversion_rules_madx:
-                merged = keyword_conversion_rules_madx[sftype.lower()] | merged
+            merged = keyword_rules(keyword_conversion_rules_madx, sftype)
             kwele = {y: x for x, y in merged.items()}
             kwele["fint"] = "edge_field_integral"
 
@@ -604,12 +596,10 @@ class MadxLatticeImporter(LatticeImporter):
     ) -> MachineModel:
         """Build a model with one layout per top-level MAD-X sequence.
 
-        Only usable with ``source_file`` -- a single ``twiss_file`` table
-        only ever describes one already-selected sequence, so that case
-        falls back to a single-layout model wrapping :meth:`create_layout`.
-        Sequence-specific ``name__sequence`` copies are is created
-        for repeated elements because :class:`MachineModel`
-        stores one placement per name.
+        A ``twiss_file`` holds one sequence, so that path falls back to a
+        single-layout model wrapping :meth:`create_layout`. Elements repeated
+        across sequences get ``name__sequence`` copies, since
+        :class:`MachineModel` stores one placement per name.
 
         ``sections`` (``{name: [first_element, last_element]}``, see
         :meth:`create_layout`) splits the ``twiss_file`` path into named
@@ -678,28 +668,13 @@ class MadxLatticeImporter(LatticeImporter):
             if layout_sections:
                 layout_definitions[sequence] = layout_sections
 
-        if skipped_sections:
-            warn(
-                "Skipped MAD-X sequences shorter than min_section_length="
-                f"{min_section_length}: {', '.join(skipped_sections)}"
-            )
-        if not layout_definitions:
-            raise ValueError(
-                f"No MAD-X sequences meet min_section_length={min_section_length}."
-            )
-
-        return MachineModel(
-            elements=elements,
-            section={
-                "sections": {
-                    name: section_entry(names, built_sections.get(name))
-                    for name, names in section_definitions.items()
-                }
-            },
-            layout={
-                "layouts": layout_definitions,
-                "default_layout": next(iter(layout_definitions)),
-            },
-            master_lattice=str(Path(self.source_file).resolve().parent),
-            functional_definitions=all_functional_definitions,
+        check_layouts(
+            layout_definitions, skipped_sections, min_section_length, "MAD-X sequences"
+        )
+        return self._layouts_model(
+            elements,
+            section_definitions,
+            built_sections,
+            layout_definitions,
+            all_functional_definitions,
         )

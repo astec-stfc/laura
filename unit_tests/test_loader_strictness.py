@@ -1,10 +1,4 @@
-"""
-Tests for explicit, rejectable element-load failures.
-
-LAURA's loader skips an element it cannot parse and returns ``None``, so a
-machine can load "successfully" while missing elements.
-These tests check that losses can be made visible.
-"""
+"""Explicit element-load failures; by default the loader skips them silently."""
 
 import pytest
 import yaml
@@ -55,9 +49,8 @@ BAD_ELEMENTS = [
     pytest.param(INVALID, "validation_error", id="validation_error"),
 ]
 
-# Inheritance is resolved on the raw dict, one layer above
-# ``interpret_YAML_Element``, so its two failure reasons cannot join
-# BAD_ELEMENTS.  They meet the others at the file level, below.
+# Inheritance resolves on the raw dict above ``interpret_YAML_Element``, so its
+# reasons cannot join BAD_ELEMENTS; they appear only at the file level.
 ORPHAN = {**GOOD_QUAD, "name": "ORPHAN", "inherits_from": "NOT_A_REAL_ELEMENT"}
 
 CYCLE = {
@@ -84,14 +77,21 @@ def _write(directory, data, filename=None):
     return str(path)
 
 
-# ---------------------------------------------------------------------------
-# interpret_YAML_Element
-# ---------------------------------------------------------------------------
+def _combined(directory, document):
+    return _write(directory, document, filename="summary.yaml")
+
+
+def _element_dir(tmp_path, files):
+    directory = tmp_path / "elements"
+    directory.mkdir(exist_ok=True)
+    for filename, data in files.items():
+        _write(directory, data, filename)
+    return directory
 
 
 @pytest.mark.parametrize("data,reason", BAD_ELEMENTS)
 def test_failure_is_recorded_on_the_errors_list(data, reason):
-    """The default stays permissive, but the loss is now itemised."""
+    assert interpret_YAML_Element(data) is None
     errors = []
     assert interpret_YAML_Element(data, errors=errors) is None
     assert len(errors) == 1
@@ -106,11 +106,7 @@ def test_strict_raises_instead_of_skipping(data, reason):
         interpret_YAML_Element(data, strict=True)
     assert exc.value.reason == reason
     assert exc.value.name == data["name"]
-
-
-@pytest.mark.parametrize("data,reason", BAD_ELEMENTS)
-def test_strict_failure_is_recorded_before_it_is_raised(data, reason):
-    """A strict caller that catches the error still finds it on the report."""
+    # A strict caller that catches the error still finds it on the report.
     errors = []
     with pytest.raises(ElementLoadError):
         interpret_YAML_Element(data, strict=True, errors=errors)
@@ -130,17 +126,6 @@ def test_a_good_element_records_nothing():
     assert errors == []
 
 
-@pytest.mark.parametrize("data,reason", BAD_ELEMENTS)
-def test_default_behaviour_is_unchanged(data, reason):
-    """No errors list, no strict flag: skip and return None, as before."""
-    assert interpret_YAML_Element(data) is None
-
-
-# ---------------------------------------------------------------------------
-# read_YAML_Element_File / read_YAML_Combined_File
-# ---------------------------------------------------------------------------
-
-
 def test_element_file_records_its_filename(tmp_path):
     errors = []
     path = _write(tmp_path, INVALID)
@@ -155,14 +140,11 @@ def test_element_file_strict_raises(tmp_path):
 
 
 def test_combined_file_reports_every_failure(tmp_path):
-    combined = tmp_path / "summary.yaml"
-    combined.write_text(
-        yaml.safe_dump(
-            {d["name"]: d for d in (GOOD_QUAD, NO_TYPE, UNREGISTERED, INVALID)}
-        )
+    combined = _combined(
+        tmp_path, {d["name"]: d for d in (GOOD_QUAD, NO_TYPE, UNREGISTERED, INVALID)}
     )
     errors = []
-    results = read_YAML_Combined_File(str(combined), errors=errors)
+    results = read_YAML_Combined_File(combined, errors=errors)
     assert sum(1 for r in results if r is not None) == 1
     assert {e.reason for e in errors} == {
         "no_hardware_type",
@@ -173,36 +155,22 @@ def test_combined_file_reports_every_failure(tmp_path):
 
 @pytest.mark.parametrize("document,reason", BAD_DOCUMENTS)
 def test_every_reason_is_recorded_at_the_file_level(tmp_path, document, reason):
-    """Both failure channels, over the whole set of reasons — including the
-    two that inheritance added, which never reach ``interpret_YAML_Element``."""
-    combined = tmp_path / "summary.yaml"
-    combined.write_text(yaml.safe_dump(document))
+    """Includes the two inheritance reasons, which skip ``interpret_YAML_Element``."""
+    combined = _combined(tmp_path, document)
     errors = []
-    read_YAML_Combined_File(str(combined), errors=errors)
+    read_YAML_Combined_File(combined, errors=errors)
     assert errors
     assert {e.reason for e in errors} == {reason}
-
-
-@pytest.mark.parametrize("document,reason", BAD_DOCUMENTS)
-def test_every_reason_is_raised_under_strict(tmp_path, document, reason):
-    combined = tmp_path / "summary.yaml"
-    combined.write_text(yaml.safe_dump(document))
     with pytest.raises(ElementLoadError) as exc:
-        read_YAML_Combined_File(str(combined), strict=True)
+        read_YAML_Combined_File(combined, strict=True)
     assert exc.value.reason == reason
 
 
 def test_combined_file_strict_raises_on_the_first_failure(tmp_path):
-    combined = tmp_path / "summary.yaml"
-    combined.write_text(yaml.safe_dump({d["name"]: d for d in (GOOD_QUAD, INVALID)}))
+    combined = _combined(tmp_path, {d["name"]: d for d in (GOOD_QUAD, INVALID)})
     with pytest.raises(ElementLoadError) as exc:
-        read_YAML_Combined_File(str(combined), strict=True)
+        read_YAML_Combined_File(combined, strict=True)
     assert exc.value.name == "BADLEN"
-
-
-# ---------------------------------------------------------------------------
-# LazyElementDict
-# ---------------------------------------------------------------------------
 
 
 def test_lazy_dict_records_on_access(tmp_path):
@@ -217,8 +185,6 @@ def test_lazy_dict_records_on_access(tmp_path):
 
 
 def test_lazy_dict_does_not_re_read_a_failed_element(tmp_path):
-    """A failed element used to be re-parsed from disk on every access, and
-    each attempt would now append a duplicate error record."""
     path = _write(tmp_path, INVALID)
     lazy = LazyElementDict({"BADLEN": path})
     for _ in range(3):
@@ -242,17 +208,12 @@ def test_lazy_dict_shares_an_external_errors_list(tmp_path):
     assert len(errors) == 1
 
 
-# ---------------------------------------------------------------------------
-# LAURA
-# ---------------------------------------------------------------------------
-
-
 def _machine_dir(tmp_path):
-    directory = tmp_path / "elements"
-    directory.mkdir(exist_ok=True)
-    _write(directory, GOOD_QUAD)
-    _write(directory, INVALID)
-    return directory
+    return _element_dir(tmp_path, {"Q1.yaml": GOOD_QUAD, "BADLEN.yaml": INVALID})
+
+
+def _duplicate_dir(tmp_path):
+    return _element_dir(tmp_path, {"one.yaml": GOOD_QUAD, "two.yaml": GOOD_QUAD})
 
 
 def test_machine_load_errors_are_itemised_eagerly(tmp_path):
@@ -278,15 +239,9 @@ def test_machine_strict_eager_rejects_the_whole_load(tmp_path):
 
 
 def test_machine_strict_lazy_rejects_the_whole_load(tmp_path):
-    """Strict lazy mode fails at construction only because of the force-load
-    above; the guarantee being pinned is that it fails, not when."""
+    """Pins that strict lazy mode fails, not when."""
     with pytest.raises(ElementLoadError):
         LAURA(element_list=str(_machine_dir(tmp_path)), strict=True)
-
-
-# ---------------------------------------------------------------------------
-# Duplicate names
-# ---------------------------------------------------------------------------
 
 
 def test_collect_unique_by_name_keeps_the_last_and_reports_the_loss():
@@ -299,7 +254,7 @@ def test_collect_unique_by_name_keeps_the_last_and_reports_the_loss():
         ],
         errors=errors,
     )
-    assert result == {"Q1": "second", "Q2": "other"}  # later wins, as before
+    assert result == {"Q1": "second", "Q2": "other"}  # later wins
     assert len(errors) == 1
     assert isinstance(errors[0], DuplicateElementError)
     assert errors[0].reason == "duplicate_name"
@@ -330,7 +285,6 @@ def test_three_definitions_report_two_losses():
 
 
 def test_duplicate_filenames_are_found_without_parsing(tmp_path):
-    """Two files declaring the same ``name:``, found from the metadata scan."""
     first = _write(tmp_path, GOOD_QUAD, filename="one.yaml")
     second = _write(tmp_path, GOOD_QUAD, filename="two.yaml")
     errors = []
@@ -356,22 +310,14 @@ def test_a_name_disagreeing_with_its_filename_collides(tmp_path):
 
 
 def test_machine_reports_duplicate_element_files(tmp_path):
-    directory = tmp_path / "elements"
-    directory.mkdir()
-    _write(directory, GOOD_QUAD, filename="one.yaml")
-    _write(directory, GOOD_QUAD, filename="two.yaml")
-    machine = LAURA(element_list=str(directory))
+    machine = LAURA(element_list=str(_duplicate_dir(tmp_path)))
     assert [e.reason for e in machine.load_errors] == ["duplicate_name"]
     assert len(machine.elements) == 1
 
 
 def test_machine_strict_rejects_duplicate_element_files(tmp_path):
-    directory = tmp_path / "elements"
-    directory.mkdir()
-    _write(directory, GOOD_QUAD, filename="one.yaml")
-    _write(directory, GOOD_QUAD, filename="two.yaml")
     with pytest.raises(DuplicateElementError):
-        LAURA(element_list=str(directory), strict=True)
+        LAURA(element_list=str(_duplicate_dir(tmp_path)), strict=True)
 
 
 def test_machine_reports_duplicates_from_an_element_list():
@@ -383,9 +329,7 @@ def test_machine_reports_duplicates_from_an_element_list():
 
 
 def test_machine_without_failures_reports_none(tmp_path):
-    directory = tmp_path / "elements"
-    directory.mkdir()
-    _write(directory, GOOD_QUAD)
+    directory = _element_dir(tmp_path, {"Q1.yaml": GOOD_QUAD})
     machine = LAURA(element_list=str(directory), eager_mode=True, strict=True)
     assert machine.load_errors == []
     assert "Q1" in machine.elements

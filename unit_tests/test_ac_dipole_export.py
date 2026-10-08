@@ -1,26 +1,8 @@
-"""Bmad and ELEGANT can write an AC dipole; until now LAURA did not.
+"""AC dipole export to Bmad and ELEGANT.
 
-``waveform`` gave LAURA somewhere to keep an injection kicker's pulse shape,
-and the Bmad importer somewhere to put ``amp_vs_time``. The exports were the
-other half and were missing on both sides: ``Horizontal_AC_Dipole`` and
-``Vertical_AC_Dipole`` were in ``bmad_unsupported``, and ELEGANT's ``BUMPER``
-rules existed with no type mapping to reach them, so an AC dipole came out as
-a drift.
-
-Three unit conventions are asserted here rather than assumed, because each one
-is a silent factor that produces a lattice which tracks perfectly and kicks by
-the wrong amount:
-
-* ``field_amplitude`` [V] is the integrated field in T*m times 1e6. Bmad's
-  ``BL_HKICK`` is T*m, so the conversion is a plain factor; its ``HKICK`` is
-  radians, which needs a rigidity, which is why the exporter does not use it.
-* ELEGANT's ``BUMPER`` states its strength as ``ANGLE`` in radians, so it
-  *does* need the rigidity -- passed in, or left out of the file.
-* Bmad drives its kicker as a cosine where LAURA, MAD-X and Xtrack drive a
-  sine. A quarter turn of phase, invisible in any amplitude check.
-
-The parity tests run the codes. They are the point of the file: everything
-above can be got right on paper and still be wrong.
+* ``field_amplitude`` [V] is the integrated field [T*m] times 1e6; Bmad's ``BL_HKICK`` is T*m.
+* ELEGANT's ``BUMPER`` ``ANGLE`` is in radians, so it needs the rigidity.
+* Bmad drives a cosine where LAURA, MAD-X and Xtrack drive a sine.
 """
 
 import math
@@ -64,7 +46,6 @@ def dipole(cls=HorizontalACDipole, name="KICK1", directory=None, **simulation):
 
 
 def attribute(definition, key):
-    """Pull ``key = value`` out of a one-line element definition."""
     for term in definition.replace("&\n", "").split(","):
         name, _, value = term.partition("=")
         if name.strip().lower() == key:
@@ -74,12 +55,10 @@ def attribute(definition, key):
 
 class TestBmad:
     def test_an_ac_dipole_is_an_ac_kicker(self):
-        """It used to be in ``bmad_unsupported`` and came out as a drift."""
         assert dipole(waveform=PULSE).to_bmad().split()[1].rstrip(",") == "ac_kicker"
 
     def test_the_kick_is_the_integrated_field_not_an_angle(self):
-        """``bl_hkick`` is in T*m; ``hkick`` is that over the rigidity, which
-        an element translator has no reference momentum to divide by."""
+        """``hkick`` would need a rigidity the element translator does not have."""
         definition = dipole(field_amplitude=2.0e6, waveform=PULSE).to_bmad()
         assert attribute(definition, "hkick") is None
         assert float(attribute(definition, "bl_hkick")) == pytest.approx(2.0)
@@ -97,8 +76,7 @@ class TestBmad:
         "rule, written", [("linear", "linear"), ("spline", "cubic")]
     )
     def test_each_interpolation_rule_is_named(self, rule, written):
-        """Bmad defaults to cubic where every other code defaults to linear,
-        so leaving ``interpolation`` off would change the pulse."""
+        """Bmad defaults to cubic; every other code to linear."""
         definition = dipole(waveform={**PULSE, "interpolation": rule}).to_bmad()
         assert attribute(definition, "interpolation") == written
 
@@ -114,13 +92,11 @@ class TestBmad:
         assert "frequencies = {(100000.0, 1.0, 0.0)}" in definition
 
     def test_the_phase_is_shifted_from_sine_to_cosine(self):
-        """A quarter turn: LAURA's zero phase is a sine, Bmad's is a cosine."""
         definition = dipole(frequency=1.0e5, phase=0.0).to_bmad()
         assert f"1.0, {SINE_TO_COSINE_TURNS})" in definition
 
     def test_a_waveform_wins_over_a_frequency_and_says_so(self):
-        """Bmad's AC_Kicker takes ``amp_vs_time`` or ``frequencies``, never
-        both; LAURA's schema does not forbid authoring both."""
+        """Bmad's AC_Kicker takes ``amp_vs_time`` or ``frequencies``, never both."""
         with pytest.warns(UserWarning, match="not both"):
             definition = dipole(frequency=1.0e5, waveform=PULSE).to_bmad()
         assert attribute(definition, "frequencies") is None
@@ -131,11 +107,9 @@ class TestBmad:
 
 
 class TestElegant:
-    """``directory`` is set throughout: a waveform writes an SDDS sidecar
-    beside the lattice, and the default is the working directory."""
+    """A waveform writes an SDDS sidecar beside the lattice, hence ``directory``."""
 
     def test_an_ac_dipole_is_a_bumper(self, tmp_path):
-        """It had no type mapping at all, so it came out as a drift."""
         line = dipole(waveform=PULSE, directory=tmp_path).to_elegant(Brho=BRHO)
         assert line.split()[1].rstrip(",") == "bumper"
 
@@ -146,8 +120,6 @@ class TestElegant:
         assert float(attribute(line, "angle")) == pytest.approx(2.0 / BRHO)
 
     def test_without_a_rigidity_the_strength_is_left_out_and_reported(self, tmp_path):
-        """Writing ``angle = field_amplitude`` would be a 1e6 radian kick that
-        ELEGANT tracks without complaint."""
         with pytest.warns(UserWarning, match="rigidity"):
             line = dipole(waveform=PULSE, directory=tmp_path).to_elegant()
         assert attribute(line, "angle") is None
@@ -167,9 +139,7 @@ class TestElegant:
         assert "1.200000000000000e-06" in written
 
     def test_the_firing_turn_is_not_written(self, tmp_path):
-        """Under the agreed split ``fire_on_pass`` is a study setting, not a
-        property of the machine, so it belongs to the tracking code's run
-        configuration and not to the lattice LAURA writes."""
+        """``fire_on_pass`` is a run setting, not a lattice property."""
         line = dipole(waveform=PULSE, directory=tmp_path).to_elegant(Brho=BRHO)
         assert "fire_on_pass" not in line
 
@@ -182,9 +152,6 @@ class TestElegant:
             ).to_elegant(Brho=BRHO)
 
     def test_a_section_threads_the_rigidity_down(self, tmp_path):
-        """Nothing else in an ELEGANT export needs a rigidity, so there was
-        nowhere for one to come from; without the parameter every kicker in a
-        whole-lattice export is written with no strength."""
         from laura.models.element_list import SectionLattice
         from laura.translator.converters.section import SectionLatticeTranslator
 
@@ -199,36 +166,28 @@ class TestElegant:
         assert f"angle = {2.0e4 * MV_PER_VOLT / BRHO}" in written
 
     def test_a_sinusoid_reports_that_a_bumper_cannot_be_driven(self):
-        """A BUMPER has no frequency of its own. RFDF does, but it is a
-        deflecting cavity rather than a dipole, so swapping to it is a
-        modelling decision for the person writing the study."""
+        """A BUMPER has no frequency; RFDF does, but is a deflecting cavity."""
         with pytest.warns(UserWarning, match="RFDF"):
             dipole(frequency=1.0e5).to_elegant(Brho=BRHO)
 
 
 class TestXsuiteUnits:
-    """Found while measuring the Bmad and ELEGANT conventions.
+    """xtrack's ``volt`` is in MV and ``lag`` in turns, as in MAD-X."""
 
-    ``to_xsuite`` was passing ``field_amplitude`` straight into xtrack's
-    ``volt`` and ``phase`` straight into its ``lag``, where ``to_madx`` -- the
-    same two conventions -- divides by 1e6 and by 360.
-    """
+    @pytest.fixture(autouse=True)
+    def _xtrack(self):
+        pytest.importorskip("xtrack")
 
     def test_volt_is_in_mv(self):
-        pytest.importorskip("xtrack")
         _, _, properties = dipole(field_amplitude=2.0e6, frequency=1e5).to_xsuite(1)
         assert properties["volt"] == pytest.approx(2.0)
 
     def test_lag_is_in_turns(self):
-        pytest.importorskip("xtrack")
         _, _, properties = dipole(frequency=1e5, phase=90.0).to_xsuite(1)
         assert properties["lag"] == pytest.approx(0.25)
 
     def test_the_units_survive_a_round_trip(self):
-        """The importer had the mirror image of both errors, so Xsuite was
-        self-consistently wrong: out and back gave the element it started
-        from, and no single-direction test could see it."""
-        xt = pytest.importorskip("xtrack")
+        import xtrack as xt
 
         from laura.translator.converters.codes.xsuite import XsuiteLatticeImporter
 
@@ -243,21 +202,16 @@ class TestXsuiteUnits:
 
 @pytest.mark.skipif(not LIBTAO.exists(), reason="libtao is not installed")
 class TestBmadParity:
-    """What Bmad makes of the file LAURA writes."""
-
     @staticmethod
-    def parsed(tmp_path, *translators):
+    def tao(tmp_path, body):
+        """Write a 1 GeV electron lattice holding ``body`` and open it in Tao."""
         from pytao import Tao
 
         lattice = tmp_path / "lat.bmad"
-        line = ", ".join(translator.name for translator in translators)
         lattice.write_text(
             "beginning[beta_a] = 10\nbeginning[beta_b] = 10\n"
             "beginning[e_tot] = 1e9\nparameter[geometry] = open\n"
-            "parameter[particle] = electron\n\n"
-            + "".join(translator.to_bmad() for translator in translators)
-            + "D: drift, l = 1.0\n"
-            f"LN: line = ({line}, D)\nuse, LN\n"
+            "parameter[particle] = electron\n\n" + body
         )
         init = tmp_path / "tao.init"
         init.write_text(
@@ -266,13 +220,32 @@ class TestBmadParity:
         )
         return Tao(f"-init {init} -noplot", so_lib=str(LIBTAO))
 
+    @classmethod
+    def parsed(cls, tmp_path, *translators):
+        line = ", ".join(translator.name for translator in translators)
+        return cls.tao(
+            tmp_path,
+            "".join(translator.to_bmad() for translator in translators)
+            + "D: drift, l = 1.0\n"
+            f"LN: line = ({line}, D)\nuse, LN\n",
+        )
+
+    @classmethod
+    def round_trip(cls, tmp_path, translator):
+        from laura.translator.converters.codes.bmad import BmadLatticeImporter
+
+        cls.parsed(tmp_path, translator)
+        importer = BmadLatticeImporter(
+            lattice_file=str(tmp_path / "lat.bmad"), libtao=str(LIBTAO)
+        )
+        return importer.create_laura_element_dictionary(1)["LN_1"]["KICK1"]
+
     def test_bmad_reads_the_kick_back_in_tesla_metres(self, tmp_path):
         tao = self.parsed(tmp_path, dipole(field_amplitude=2.0e6, waveform=PULSE))
         attributes = tao.ele_gen_attribs("KICK1")
         assert attributes["units#BL_HKICK"] == "T*m"
         assert attributes["BL_HKICK"] == pytest.approx(2.0)
-        # And what the translator avoided writing: an angle, which Bmad
-        # derives for itself from the beam it was given.
+        # Bmad derives the angle itself from the beam energy.
         assert abs(attributes["HKICK"]) == pytest.approx(2.0 / BRHO, rel=1e-4)
 
     def test_bmad_reads_the_knots_back_unchanged(self, tmp_path):
@@ -285,82 +258,39 @@ class TestBmadParity:
         assert tao.ele_gen_attribs("KICK1")["INTERPOLATION"] == "Linear"
 
     def test_a_kicker_survives_the_round_trip(self, tmp_path):
-        """Export, let Bmad parse it, import it back."""
-        from laura.translator.converters.codes.bmad import BmadLatticeImporter
-
-        self.parsed(tmp_path, dipole(field_amplitude=2.0e6, waveform=PULSE))
-        importer = BmadLatticeImporter(
-            lattice_file=str(tmp_path / "lat.bmad"), libtao=str(LIBTAO)
-        )
-        imported = importer.create_laura_element_dictionary(1)["LN_1"]["KICK1"]
+        imported = self.round_trip(tmp_path, dipole(field_amplitude=2.0e6, waveform=PULSE))
         assert imported.simulation.field_amplitude == pytest.approx(2.0e6)
         assert imported.simulation.waveform.time == pytest.approx(PULSE["time"])
         assert imported.simulation.waveform.factor == pytest.approx(PULSE["factor"])
         assert imported.simulation.waveform.interpolation == "linear"
 
     def test_the_phase_survives_the_round_trip(self, tmp_path):
-        """The quarter turn has to be undone on the way back in, or two
-        exports of one exciter drift apart by 90 degrees each trip."""
-        from laura.translator.converters.codes.bmad import BmadLatticeImporter
-
-        self.parsed(tmp_path, dipole(frequency=1.0e5, phase=30.0))
-        importer = BmadLatticeImporter(
-            lattice_file=str(tmp_path / "lat.bmad"), libtao=str(LIBTAO)
-        )
-        imported = importer.create_laura_element_dictionary(1)["LN_1"]["KICK1"]
+        imported = self.round_trip(tmp_path, dipole(frequency=1.0e5, phase=30.0))
         assert imported.simulation.phase == pytest.approx(30.0)
 
     def test_bmad_drives_a_cosine(self, tmp_path):
-        """The measurement the quarter-turn shift rests on.
-
-        Bmad evaluates ``amp = cos(twopi * (f*t + phi))``, so a lattice held
-        at ``f = 0`` reads the phase off directly. A LAURA phase of 90 degrees
-        means ``sin(90) = 1``, a full-strength kick; written through unshifted
-        it would reach Bmad as ``cos(90) = 0`` and not kick at all.
-        """
-        # The elements are written by hand because the translator leaves
-        # ``frequencies`` off a zero-frequency element -- a DC kicker, which
-        # is what f = 0 means to both codes, but not what is under test here.
-        lattice = tmp_path / "lat.bmad"
-        lattice.write_text(
-            "beginning[beta_a] = 10\nbeginning[beta_b] = 10\n"
-            "beginning[e_tot] = 1e9\nparameter[geometry] = open\n"
-            "parameter[particle] = electron\n\n"
-            + "".join(
+        """Bmad evaluates ``amp = cos(twopi * (f*t + phi))``, so at f = 0 the phase reads off directly."""
+        # Hand-written: the translator omits ``frequencies`` at f = 0 (a DC kicker).
+        px = self.tao(
+            tmp_path,
+            "".join(
                 f"K{i}: ac_kicker, l = 0, bl_hkick = 1.0, "
                 f"frequencies = {{(0.0, 1.0, {phase / 360.0 + SINE_TO_COSINE_TURNS})}}\n"
                 for i, phase in enumerate((90.0, 0.0))
             )
-            + "LN: line = (K0, K1)\nuse, LN\n"
-        )
-        init = tmp_path / "tao.init"
-        init.write_text(
-            "&tao_start\n  n_universes = 1\n/\n"
-            f"&tao_design_lattice\n  design_lattice(1)%file = '{lattice}'\n/\n"
-        )
-        from pytao import Tao
-
-        px = Tao(f"-init {init} -noplot", so_lib=str(LIBTAO)).lat_list(
-            "*", "orbit.vec.2"
-        )
-        # K0 is LAURA's sin(90) = 1, at full strength; K1 is sin(0) = 0 and
-        # adds nothing, so the orbit after it is unchanged.
+            + "LN: line = (K0, K1)\nuse, LN\n",
+        ).lat_list("*", "orbit.vec.2")
+        # K0 is LAURA's sin(90) = 1; K1 is sin(0) = 0.
         assert px[1] == pytest.approx(-1.0 / BRHO, rel=1e-4)
         assert px[2] == pytest.approx(px[1], rel=1e-9)
 
 
 @pytest.mark.skipif(which("elegant") is None, reason="elegant is not installed")
 class TestElegantParity:
-    """What ELEGANT makes of the file LAURA writes.
+    """ELEGANT applies ``ANGLE * factor(t - t_ref)``, t_ref being the bunch arrival time;
+    the later particle lands on the 1 us peak."""
 
-    ELEGANT applies ``ANGLE * factor(t - t_ref)``, where ``t_ref`` is the
-    bunch's own arrival time -- so the two particles below straddle it, and
-    the later one lands exactly on the waveform's 1 us peak.
-    """
-
-    # 0.02 T*m, a plausible injection kicker. The size matters: ELEGANT bends
-    # by the angle rather than adding it to the slope, so a radian-scale kick
-    # would come back as its tangent and say nothing about the units.
+    # 0.02 T*m; kept small because ELEGANT bends by the angle, returning its tangent.
     FIELD = 2.0e4
     ANGLE = FIELD * MV_PER_VOLT / BRHO
 

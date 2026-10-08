@@ -16,10 +16,8 @@ def same_element_placement(left: Any, right: Any) -> bool:
     """True if two :class:`~laura.models.element.Element` objects occupy the
     same physical placement (position, orientation, length).
 
-    Used by ``create_machine_model`` on the reverse-direction importers
-    (Bmad/Elegant/MAD-X) to decide whether a name shared across independent
-    layouts is a genuine share (e.g. a common injector line) or a name
-    collision that needs a per-layout copy.
+    Used by ``create_machine_model`` on the reverse-direction importers to
+    tell a genuine shared element from a name collision across layouts.
     """
     a, b = left.physical, right.physical
     if (a.middle is None) != (b.middle is None):
@@ -56,17 +54,13 @@ def merge_layout_elements(
     """Merge one section's elements into a cross-layout ``elements`` dict,
     mutating both ``elements`` and ``section_definitions[section_name]``.
 
-    Shared by every reverse-direction importer's ``create_machine_model``
-    (Bmad/Elegant/MAD-X). An element already present under the same name is
-    reused as-is when it occupies the same placement
-    (:func:`same_element_placement`); otherwise it's copied under a
-    ``name__suffix`` name (numbered further on repeat collisions), because
-    :class:`~laura.models.elementList.MachineModel` stores one placement per
-    name. A subelement (``element.is_subelement()``) whose parent was
-    renamed is renamed to match and re-pointed at the parent's new name,
-    even when its own placement happens to coincide with an existing
-    element's -- this only ever applies to Bmad's Kicker H/V-corrector
-    split; it's a no-op for importers that never set ``subelement``.
+    Shared by the reverse-direction importers' ``create_machine_model``. An
+    element already present under the same name is reused when it occupies
+    the same placement (:func:`same_element_placement`); otherwise it is
+    copied as ``name__suffix`` (numbered on repeat collisions), because
+    :class:`~laura.models.element_list.MachineModel` stores one placement per
+    name. A subelement whose parent was renamed is renamed to match (only
+    Bmad's Kicker H/V-corrector split sets ``subelement``).
 
     Parameters
     ----------
@@ -320,12 +314,10 @@ def introspect_model_defaults(
     ----------
     resolve_optional: bool
         A field typed ``Optional[SomeModel]`` with no ``default_factory`` (e.g.
-        ``physical: Optional[PhysicalElement] = None``) has a class-level
-        default of ``None`` -- there is no instance to recurse into. When
-        ``False`` (the default, preserving prior behaviour) such a field's
-        entry is just ``None``. When ``True``, its declared type is unwrapped
-        and introspected directly (using ``SomeModel``'s own field defaults)
-        instead of stopping at ``None``.
+        A field typed ``Optional[SomeModel]`` with no ``default_factory``
+        has a class-level default of ``None``. When ``False`` (default) its
+        entry is ``None``; when ``True``, ``SomeModel`` is unwrapped and its
+        own field defaults are introspected.
     """
     result = {}
 
@@ -453,7 +445,7 @@ def tw_cavity_energy_gain(cavity):
     Estimate energy gain in a travelling-wave RF cavity.
 
     Parameters:
-        cavity (laura.models.element.RFCavity): RFCavity element
+        cavity (RFCavityTranslator): travelling-wave cavity translator
 
     Returns:
         float: Estimated energy gain [eV]
@@ -461,11 +453,11 @@ def tw_cavity_energy_gain(cavity):
 
     # Approximate effective accelerating gradient
     e_acc = cavity.field_amplitude * np.sin(
-        np.pi * cavity.mode_numerator * 2 / cavity.mode_denominator / 2
+        np.pi * cavity.cavity.mode_numerator / cavity.cavity.mode_denominator
     )
 
     # Total cavity length
-    l_total = cavity.n_cells * cavity.cell_length
+    l_total = cavity.cavity.n_cells * cavity.cavity.cell_length
 
     # Energy gain in MeV (since 1 MV/m * 1 m = 1 MeV for charge = e)
     delta_w = e_acc * l_total * np.cos(np.pi * cavity.phase / 180)

@@ -5,7 +5,7 @@ from .base import BaseElementTranslator
 
 class DriftTranslator(BaseElementTranslator):
     """
-    Translator class for converting a :class:`~laura.models.element.Diagnostic` element instance into a string or
+    Translator class for converting a :class:`~laura.models.element.Drift` element instance into a string or
     object that can be understood by various simulation codes.
     """
 

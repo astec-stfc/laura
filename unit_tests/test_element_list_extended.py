@@ -1,14 +1,9 @@
-"""Tests for laura.models.elementList — SectionLattice, MachineLayout, MachineModel, ElementList."""
-
 import pytest
-import numpy as np
 
 from laura.models.element import (
     Quadrupole,
     Marker,
-    PhysicalBaseElement,
     Dipole,
-    Drift,
     BeamPositionMonitor,
 )
 from laura.models.physical import Position, PhysicalElement
@@ -18,18 +13,11 @@ from laura.models.element_list import (
     MachineLayout,
     MachineModel,
     load_functional_definitions,
+    normalise_lattice_type,
 )
-from laura.models.base_models import (
-    IgnoreExtra,
-    set_functional_definitions,
-    set_resolve_functional,
-)
+from laura.models.base_models import IgnoreExtra
 from laura.models.exceptions import LatticeError
 
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
 
 @pytest.fixture
 def elements():
@@ -76,9 +64,14 @@ def machine_layout(section_lattice):
     )
 
 
-# ---------------------------------------------------------------------------
-# ElementList
-# ---------------------------------------------------------------------------
+@pytest.fixture
+def machine_model(elements):
+    return MachineModel(
+        layout={"default_layout": "beam1", "layouts": {"beam1": ["S1"]}},
+        section={"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}},
+        elements={e.name: e for e in elements},
+    )
+
 
 class TestElementList:
     def test_names(self, element_list):
@@ -107,15 +100,44 @@ class TestElementList:
         assert "M1" in s
 
     def test_getattr_delegates(self, element_list):
-        """Test that ElementList.__getattr__ delegates to element attributes."""
         result = element_list.hardware_type
         assert isinstance(result, dict)
         assert result["Q1"] == "Quadrupole"
 
+    def test_missing_attribute_recorded_as_none(self):
+        m1 = Marker(name="M1", machine_area="A")
+        el = ElementList(elements={"M1": m1})
+        assert el._get_attributes_or_none("no_such_attr") == {"M1": None}
 
-# ---------------------------------------------------------------------------
-# SectionLattice
-# ---------------------------------------------------------------------------
+    def test_present_attribute_gathered(self):
+        m1 = Marker(name="M1", machine_area="A")
+        el = ElementList(elements={"M1": m1})
+        assert el._get_attributes_or_none("name") == {"M1": "M1"}
+
+    def test_getattr_wraps_in_elementlist_when_all_none(self):
+        m1 = Marker(name="M1", machine_area="A")
+        m2 = Marker(name="M2", machine_area="A")
+        el = ElementList(elements={"M1": m1, "M2": m2})
+        result = el.totally_missing_attr
+        assert isinstance(result, ElementList)
+        assert result.elements == {"M1": None, "M2": None}
+
+
+class TestNormaliseLatticeType:
+    def test_non_string_raises_typeerror(self):
+        with pytest.raises(TypeError, match="must be a string"):
+            normalise_lattice_type(5, context="section")
+
+    def test_unknown_value_raises_valueerror(self):
+        with pytest.raises(ValueError, match="must be one of"):
+            normalise_lattice_type("not_a_type", context="section")
+
+    def test_none_returns_default(self):
+        assert normalise_lattice_type(None, context="section") == "beam"
+
+    def test_valid_value_normalised(self):
+        assert normalise_lattice_type(" RF ", context="section") == "rf"
+
 
 class TestSectionLattice:
     def test_names(self, section_lattice):
@@ -132,7 +154,6 @@ class TestSectionLattice:
     def test_create_drifts(self, section_lattice):
         drifts = section_lattice.create_drifts()
         assert isinstance(drifts, dict)
-        # Count drift elements
         drift_names = [k for k in drifts.keys() if "drift" in k.lower()]
         assert len(drift_names) > 0
 
@@ -163,10 +184,7 @@ class TestSectionLattice:
         )
 
     def test_create_drifts_collapses_a_diagnostic_by_default(self):
-        """Not every code can express a marker that occupies space, so the
-        default is to shrink a Diagnostic to a point and let the drifts either
-        side take up the slack.
-        """
+        """Not every code has a thick marker, so the drifts absorb the length."""
         section = self._thick_diagnostic_section()
         drifts = section.createDrifts()
 
@@ -175,10 +193,7 @@ class TestSectionLattice:
         assert total == pytest.approx(2.3)
 
     def test_create_drifts_can_keep_a_diagnostic_thick(self):
-        """Codes whose diagnostics do take a length -- Bmad's monitor and
-        instrument both do -- ask for the length to survive, or the element's
-        recorded position moves half an element-length upstream.
-        """
+        """For codes with thick diagnostics, e.g. Bmad monitor/instrument."""
         section = self._thick_diagnostic_section()
         drifts = section.createDrifts(keep_diagnostic_length=True)
 
@@ -187,10 +202,6 @@ class TestSectionLattice:
         assert total == pytest.approx(2.3)
 
     def test_create_drifts_does_not_touch_the_section_it_was_given(self):
-        """This used to assign straight into the caller's model, so one call
-        permanently zeroed every diagnostic length in it and every later
-        export -- to any code, or back to YAML -- inherited the loss.
-        """
         section = self._thick_diagnostic_section()
         section.createDrifts()
         section.createDrifts()
@@ -209,7 +220,6 @@ class TestSectionLattice:
     def test_get_s_values_at_entrance(self, section_lattice):
         s_entrance = section_lattice.get_s_values(at_entrance=True)
         s_exit = section_lattice.get_s_values(at_entrance=False)
-        # Entrance s-values should be <= exit s-values
         assert s_entrance[0] <= s_exit[0]
 
     def test_str(self, section_lattice):
@@ -220,13 +230,9 @@ class TestSectionLattice:
         assert section_lattice.section_type == "beam"
 
 
-# ---------------------------------------------------------------------------
-# MachineLayout
-# ---------------------------------------------------------------------------
-
 class TestMachineLayout:
     def test_names(self, machine_layout):
-        assert "S1" in machine_layout.names
+        assert machine_layout.names == ["S1"]
 
     def test_getitem(self, machine_layout):
         s1 = machine_layout["S1"]
@@ -251,6 +257,7 @@ class TestMachineLayout:
 
     def test_elements_between_all(self, machine_layout):
         result = machine_layout.elements_between()
+        assert isinstance(result, list)
         assert len(result) == 4
 
     def test_elements_between_filter_type(self, machine_layout):
@@ -288,26 +295,15 @@ class TestMachineLayout:
         assert "S1" in s
 
 
-# ---------------------------------------------------------------------------
-# MachineModel
-# ---------------------------------------------------------------------------
-
 class TestMachineModel:
     def test_empty_model(self):
         mm = MachineModel()
         assert len(mm.elements) == 0
 
-    def test_from_elements_and_sections(self, elements):
-        sections = {"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}}
-        layouts = {"default_layout": "beam1", "layouts": {"beam1": ["S1"]}}
-        mm = MachineModel(
-            layout=layouts,
-            section=sections,
-            elements={e.name: e for e in elements},
-        )
-        assert "S1" in mm.sections
-        assert "beam1" in mm.lattices
-        assert mm.default_path == "beam1"
+    def test_from_elements_and_sections(self, machine_model):
+        assert "S1" in machine_model.sections
+        assert "beam1" in machine_model.lattices
+        assert machine_model.default_path == "beam1"
 
     def test_from_elements_and_inline_typed_sections(self, elements):
         sections = {
@@ -386,78 +382,42 @@ class TestMachineModel:
         result = mm.elements_between(path="beam1", section_type="rf")
         assert result == ["Q2", "M2"]
 
-    def test_getitem(self, elements):
-        sections = {"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}}
-        layouts = {"default_layout": "beam1", "layouts": {"beam1": ["S1"]}}
-        mm = MachineModel(
-            layout=layouts, section=sections,
-            elements={e.name: e for e in elements},
-        )
-        q1 = mm["Q1"]
+    def test_getitem(self, machine_model):
+        q1 = machine_model["Q1"]
         assert q1.name == "Q1"
 
-    def test_setitem(self, elements):
-        sections = {"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}}
-        layouts = {"default_layout": "beam1", "layouts": {"beam1": ["S1"]}}
-        mm = MachineModel(
-            layout=layouts, section=sections,
-            elements={e.name: e for e in elements},
-        )
+    def test_setitem(self, machine_model):
         new_marker = Marker(
             name="M3", machine_area="S1", hardware_class="Marker",
             physical={"middle": {"x": 0.0, "y": 0.0, "z": 5.0}},
         )
-        mm["M3"] = new_marker
-        assert "M3" in mm.elements
+        machine_model["M3"] = new_marker
+        assert "M3" in machine_model.elements
 
-    def test_get_element(self, elements):
-        sections = {"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}}
-        layouts = {"default_layout": "beam1", "layouts": {"beam1": ["S1"]}}
-        mm = MachineModel(
-            layout=layouts, section=sections,
-            elements={e.name: e for e in elements},
-        )
-        q1 = mm.get_element("Q1")
+    def test_get_element(self, machine_model):
+        q1 = machine_model.get_element("Q1")
         assert q1.name == "Q1"
 
-    def test_get_element_not_found(self, elements):
-        mm = MachineModel(
-            layout={"default_layout": "beam1", "layouts": {"beam1": ["S1"]}},
-            section={"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}},
-            elements={e.name: e for e in elements},
-        )
+    def test_get_element_not_found(self, machine_model):
         with pytest.raises(LatticeError):
-            mm.get_element("NONEXISTENT")
+            machine_model.get_element("NONEXISTENT")
 
-    def test_add(self, elements):
-        mm = MachineModel(
-            layout={"default_layout": "beam1", "layouts": {"beam1": ["S1"]}},
-            section={"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}},
-            elements={e.name: e for e in elements},
-        )
+    def test_add(self, machine_model):
         new_elem = Marker(
             name="M3", machine_area="S1", hardware_class="Marker",
             physical={"middle": {"x": 0.0, "y": 0.0, "z": 5.0}},
         )
-        result = mm + {"M3": new_elem}
+        result = machine_model + {"M3": new_elem}
         assert "M3" in result
 
-    def test_elements_between(self, elements):
-        mm = MachineModel(
-            layout={"default_layout": "beam1", "layouts": {"beam1": ["S1"]}},
-            section={"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}},
-            elements={e.name: e for e in elements},
-        )
-        result = mm.elements_between(start="Q1", end="Q2", path="beam1")
+    def test_elements_between(self, machine_model):
+        result = machine_model.elements_between(start="Q1", end="Q2", path="beam1")
         assert "Q1" in result
         assert "Q2" in result
+        assert isinstance(machine_model.elements_between(), list)
 
     def test_space_charge_is_authored_on_the_section_definition(self, elements):
-        # The definitions are what a model hands on -- written out to
-        # `_sections.yaml`, or passed to a code that rebuilds the machine from
-        # `machine.section` -- so a setting only applied to the built
-        # SectionLattice afterwards is lost the moment anything downstream asks
-        # the machine for its sections again.
+        # Settings applied only to the built SectionLattice are lost on rebuild.
         definitions = {
             "sections": {
                 "S1": {
@@ -483,13 +443,8 @@ class TestMachineModel:
         )
         assert rebuilt.sections["S1"].space_charge.number_of_bins == 40
 
-    def test_section_written_as_a_bare_list_has_no_space_charge(self, elements):
-        mm = MachineModel(
-            layout={"default_layout": "beam1", "layouts": {"beam1": ["S1"]}},
-            section={"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}},
-            elements={e.name: e for e in elements},
-        )
-        assert mm.sections["S1"].space_charge is None
+    def test_section_written_as_a_bare_list_has_no_space_charge(self, machine_model):
+        assert machine_model.sections["S1"].space_charge is None
 
     def test_layout_validation_missing_layouts_key(self):
         with pytest.raises(KeyError):
@@ -505,38 +460,16 @@ class TestMachineModel:
                 section={"not_sections": {}},
             )
 
-    def test_iter(self, elements):
-        mm = MachineModel(
-            layout={"default_layout": "beam1", "layouts": {"beam1": ["S1"]}},
-            section={"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}},
-            elements={e.name: e for e in elements},
-        )
-        names = list(mm)
+    def test_iter(self, machine_model):
+        names = list(machine_model)
         assert "Q1" in names
 
-    def test_str(self, elements):
-        mm = MachineModel(
-            layout={"default_layout": "beam1", "layouts": {"beam1": ["S1"]}},
-            section={"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}},
-            elements={e.name: e for e in elements},
-        )
-        s = str(mm)
+    def test_str(self, machine_model):
+        s = str(machine_model)
         assert "Q1" in s or "M1" in s
 
 
-# ---------------------------------------------------------------------------
-# Functional definitions (dict or YAML)
-# ---------------------------------------------------------------------------
-
 class TestFunctionalDefinitionsLoading:
-    @pytest.fixture(autouse=True)
-    def _reset(self):
-        set_functional_definitions({}, merge=False)
-        set_resolve_functional(False)
-        yield
-        set_functional_definitions({}, merge=False)
-        set_resolve_functional(False)
-
     def test_resolve_functional_flag_set_and_cascaded(self, elements):
         mm = MachineModel(
             layout={"default_layout": "beam1", "layouts": {"beam1": ["S1"]}},
@@ -545,29 +478,44 @@ class TestFunctionalDefinitionsLoading:
             functional_definitions={"quad1_k1l": -2.0},
             resolve_functional=True,
         )
-        # the flag is set globally and cascaded into the child section
         assert IgnoreExtra.resolve_functional is True
         assert mm.sections["S1"].resolve_functional is True
-
-    def test_load_dict_passthrough(self):
-        assert load_functional_definitions({"a": 1}) == {"a": 1}
-
-    def test_load_none(self):
-        assert load_functional_definitions(None) == {}
 
     def test_load_flat_yaml(self, tmp_path):
         f = tmp_path / "defs.yaml"
         f.write_text("quad1_k1l: -2.0\ncav1_phase: 90\n")
         assert load_functional_definitions(str(f)) == {"quad1_k1l": -2.0, "cav1_phase": 90}
 
-    def test_load_nested_yaml(self, tmp_path):
-        f = tmp_path / "defs.yaml"
-        f.write_text("functional_definitions:\n  quad1_k1l: -3.3\n")
-        assert load_functional_definitions(str(f)) == {"quad1_k1l": -3.3}
+    def test_none_returns_empty_dict(self):
+        assert load_functional_definitions(None) == {}
+
+    def test_dict_passthrough(self):
+        assert load_functional_definitions({"a": 1}) == {"a": 1}
 
     def test_missing_file_raises(self):
-        with pytest.raises(ValueError):
-            load_functional_definitions("/no/such/file.yaml")
+        with pytest.raises(ValueError, match="does not exist"):
+            load_functional_definitions("no_such_functional_definitions.yaml")
+
+    def test_invalid_type_raises(self):
+        with pytest.raises(ValueError, match="path, dict, or None"):
+            load_functional_definitions(5)
+
+    def test_resolved_relative_to_master_lattice(self, tmp_path):
+        f = tmp_path / "func_defs.yaml"
+        f.write_text("quad1_k1l: -2.0\ncav1_phase: 90\n")
+        result = load_functional_definitions("func_defs.yaml", master_lattice=str(tmp_path))
+        assert result == {"quad1_k1l": -2.0, "cav1_phase": 90}
+
+    def test_nested_functional_definitions_key(self, tmp_path):
+        f = tmp_path / "nested.yaml"
+        f.write_text("functional_definitions:\n  a: 1\n  b: 2\n")
+        result = load_functional_definitions(str(f))
+        assert result == {"a": 1, "b": 2}
+
+    def test_empty_file_returns_empty_dict(self, tmp_path):
+        f = tmp_path / "empty.yaml"
+        f.write_text("")
+        assert load_functional_definitions(str(f)) == {}
 
     def test_machine_model_registers_from_yaml(self, tmp_path):
         f = tmp_path / "defs.yaml"
@@ -590,7 +538,6 @@ class TestFunctionalDefinitionsLoading:
             elements={e.name: e for e in elements},
             functional_definitions=str(f),
         )
-        # the loaded definitions cascade into the child section and layout
         assert mm.sections["S1"].functional_definitions == {"quad1_k1l": -2.0}
         assert mm.lattices["beam1"].functional_definitions == {"quad1_k1l": -2.0}
 
@@ -611,7 +558,7 @@ class TestFunctionalDefinitionsLoading:
         msg = str(exc.value)
         assert "missing_k1l" in msg
         assert "QBAD" in msg
-        assert str(f) in msg  # error points at the source file
+        assert str(f) in msg
 
     def test_undefined_reference_raises_with_dict_source(self):
         qbad = Quadrupole(
@@ -626,9 +573,6 @@ class TestFunctionalDefinitionsLoading:
         assert "missing_k1l" in str(exc.value)
 
     def test_dipole_angle_and_edge_validation(self):
-        from laura.models.element import Dipole
-        # undefined bend angle and edge angle are both caught; the reserved
-        # "angle/2" edge expression is not treated as a functional reference.
         dbad = Dipole(
             name="DBAD", machine_area="ARC",
             magnetic={"magnetic_length": 0.5, "k0l": "missing_bend",
@@ -644,13 +588,12 @@ class TestFunctionalDefinitionsLoading:
         assert "angle/2" not in msg  # reserved token, not a functional reference
 
     def test_reserved_edge_expression_passes_validation(self):
-        from laura.models.element import Dipole
         d = Dipole(
             name="D", machine_area="ARC",
             magnetic={"magnetic_length": 0.5, "k0l": "bend1",
                       "entrance_edge_angle": "angle", "exit_edge_angle": "angle/2"},
         )
-        # only bend1 needs defining; the "angle"/"angle/2" edges are reserved
+        # "angle"/"angle/2" edges are reserved tokens
         sl = SectionLattice(
             name="ARC", order=["D"], elements=[d],
             functional_definitions={"bend1": 0.1},
@@ -658,8 +601,6 @@ class TestFunctionalDefinitionsLoading:
         assert sl.functional_definitions == {"bend1": 0.1}
 
     def test_magnet_simulation_field_amplitude_is_validated(self):
-        # The magnet-simulation field_amplitude is functional too, so an
-        # undefined reference there is caught by validation.
         qbad = Quadrupole(
             name="QBAD", machine_area="S1",
             simulation={"field_amplitude": "missing_fa"},
@@ -678,7 +619,6 @@ class TestFunctionalDefinitionsLoading:
             name="Q1", machine_area="S1",
             magnetic={"length": 0.3, "k1l": "quad1_k1l"},
         )
-        # no error: the reference is defined
         sl = SectionLattice(
             name="S1", order=["Q1"], elements=[q],
             functional_definitions=str(f),

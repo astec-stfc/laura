@@ -1,8 +1,8 @@
 """Tidying for the YAML exporter: what makes an imported machine readable on disk.
 
-An importer hands over exactly what the source code computed.
-Each helper here makes the importer more sensible; `export_machine` switches them on
-with ``round_floats``, ``field_directory`` and ``auto_templates``.
+An importer hands over exactly what the source code computed; each helper here
+makes that more readable. `export_machine` switches them on with
+``round_floats``, ``field_directory`` and ``auto_templates``.
 """
 
 import collections

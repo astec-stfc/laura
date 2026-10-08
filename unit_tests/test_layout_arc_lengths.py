@@ -4,8 +4,9 @@ import warnings
 
 import pytest
 
-from laura.models.element import Drift
+from laura.models.element import Dipole, Drift
 from laura.models.elementList import LatticeError, MachineModel
+from unit_tests.helpers import quad, quiet
 
 
 def drift(name, length, **physical):
@@ -18,8 +19,7 @@ def drift(name, length, **physical):
 
 
 def machine(elements, sections, layout=("A", "B")):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         return MachineModel(
             elements={e.name: e for e in elements},
             section={"sections": sections},
@@ -27,13 +27,21 @@ def machine(elements, sections, layout=("A", "B")):
         )
 
 
-@pytest.fixture
-def sequential():
+AB = {"A": ["a1", "a2"], "B": ["b1", "b2"]}
+
+
+def line(layout=("A", "B")):
     """A = two 1 m drifts, B = two 2 m drifts. Nothing states a position."""
     return machine(
         [drift("a1", 1.0), drift("a2", 1.0), drift("b1", 2.0), drift("b2", 2.0)],
-        {"A": ["a1", "a2"], "B": ["b1", "b2"]},
+        AB,
+        layout,
     )
+
+
+@pytest.fixture
+def sequential():
+    return line()
 
 
 @pytest.fixture
@@ -46,14 +54,13 @@ def absolute():
             drift("b1", 2.0, s=12.0, s_point="end"),
             drift("b2", 2.0, s=14.0, s_point="end"),
         ],
-        {"A": ["a1", "a2"], "B": ["b1", "b2"]},
+        AB,
     )
 
 
 class TestSequentialSectionsChain:
     def test_the_stored_geometry_is_composed(self, sequential):
-        # B is placed after A rather than back at the origin. Before
-        # composition existed, b1 resolved to s = 1.0 and sat inside A.
+        # B is placed after A, not back at the origin.
         assert sequential.elements["a1"].physical.s == pytest.approx(0.5)
         assert sequential.elements["b1"].physical.s == pytest.approx(3.0)
 
@@ -175,51 +182,33 @@ class TestSharedElements:
 
 
 class TestLayoutDirectionSyntax:
-    """``direction: -1`` on a layout's section reference.
+    """``direction`` belongs to the beam path, not the section."""
 
-    Direction belongs to the beam path, not the section: the same section can
-    be traversed forwards by one layout and backwards by another.
-    """
-
-    def build(self, entries):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            return MachineModel(
-                elements={
-                    e.name: e
-                    for e in (
-                        drift("a1", 1.0),
-                        drift("a2", 1.0),
-                        drift("b1", 2.0),
-                        drift("b2", 2.0),
-                    )
-                },
-                section={"sections": {"A": ["a1", "a2"], "B": ["b1", "b2"]}},
-                layout={"layouts": {"L": entries}, "default_layout": "L"},
-            )
-
-    def test_a_bare_name_is_forwards(self):
-        assert self.build(["A", "B"]).lattices["L"]._direction == {}
-
-    def test_a_marked_section_is_recorded(self):
-        machine = self.build(["A", {"B": {"direction": -1}}])
-        assert machine.lattices["L"]._direction == {"B": -1}
-
-    def test_an_explicit_positive_direction_is_forwards(self):
-        assert self.build(["A", {"B": {"direction": 1}}]).lattices["L"]._direction == {}
+    @pytest.mark.parametrize(
+        "entry, expected",
+        [
+            pytest.param("B", {}, id="bare-name-is-forwards"),
+            pytest.param({"B": {"direction": -1}}, {"B": -1}, id="marked-is-recorded"),
+            pytest.param(
+                {"B": {"direction": 1}}, {}, id="explicit-positive-is-forwards"
+            ),
+        ],
+    )
+    def test_the_direction_is_recorded(self, entry, expected):
+        assert line(["A", entry]).lattices["L"]._direction == expected
 
     def test_the_sections_are_still_built(self):
-        machine = self.build(["A", {"B": {"direction": -1}}])
+        machine = line(["A", {"B": {"direction": -1}}])
         assert list(machine.lattices["L"].sections) == ["A", "B"]
 
     def test_arc_lengths_uses_it_by_default(self):
-        machine = self.build(["A", {"B": {"direction": -1}}])
+        machine = line(["A", {"B": {"direction": -1}}])
         assert machine.lattices["L"].arc_lengths() == pytest.approx(
             {"a1": 0.0, "a2": 1.0, "b1": 4.0, "b2": 2.0}
         )
 
     def test_an_explicit_argument_overrides_it(self):
-        machine = self.build(["A", {"B": {"direction": -1}}])
+        machine = line(["A", {"B": {"direction": -1}}])
         assert machine.lattices["L"].arc_lengths(direction={}) == pytest.approx(
             {"a1": 0.0, "a2": 1.0, "b1": 2.0, "b2": 4.0}
         )
@@ -227,25 +216,20 @@ class TestLayoutDirectionSyntax:
     @pytest.mark.parametrize("direction", [0, 2, -2, "backwards", None])
     def test_a_direction_that_is_not_plus_or_minus_one(self, direction):
         with pytest.raises(ValueError, match="must be 1 or -1"):
-            self.build(["A", {"B": {"direction": direction}}])
+            line(["A", {"B": {"direction": direction}}])
 
     def test_an_unknown_option(self):
         with pytest.raises(TypeError, match="'direction'"):
-            self.build(["A", {"B": {"reversed": True}}])
+            line(["A", {"B": {"reversed": True}}])
 
     @pytest.mark.parametrize("entry", [3, None, ["B"], {"B": 1, "A": 1}])
     def test_an_entry_that_is_neither_a_name_nor_a_name_with_options(self, entry):
         with pytest.raises(TypeError):
-            self.build(["A", entry])
+            line(["A", entry])
 
 
 class TestComposition:
-    """Chaining a layout's sequential sections into one frame.
-
-    The oracle is :meth:`test_split_and_whole_place_identically`: the same
-    lattice written as one section and as two must land in the same place,
-    including through bends, where a mis-composed frame would show up at once.
-    """
+    """The same lattice as one section or two must place identically, bends included."""
 
     SPEC = [
         ("A1", 0.1, 0.5),
@@ -258,8 +242,6 @@ class TestComposition:
     ]
 
     def elements(self):
-        from laura.models.element import Dipole, Quadrupole
-
         built = []
         for name, length, strength in self.SPEC:
             if strength is None:
@@ -275,15 +257,7 @@ class TestComposition:
                     )
                 )
             else:
-                built.append(
-                    Quadrupole(
-                        name=name,
-                        hardware_class="Magnet",
-                        machine_area="S",
-                        magnetic={"magnetic_length": length, "k1l": strength},
-                        physical={"length": length},
-                    )
-                )
+                built.append(quad(name, length, strength))
         return built
 
     def build(self, sections, layouts):
@@ -319,13 +293,7 @@ class TestComposition:
             drift("s1", 1.0, s=10.0, s_point="end"),
             drift("q1", 1.0),
         ]
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            model = MachineModel(
-                elements={e.name: e for e in stated},
-                section={"sections": {"A": ["s1"], "B": ["q1"]}},
-                layout={"layouts": {"L": ["A", "B"]}, "default_layout": "L"},
-            )
+        model = machine(stated, {"A": ["s1"], "B": ["q1"]})
         assert model.elements["s1"].physical.s == pytest.approx(9.5)
         # ...but a sequential section following it starts from its exit
         assert model.elements["q1"].physical.s == pytest.approx(10.5)
@@ -337,16 +305,8 @@ class TestComposition:
         assert model.elements["B1"].physical.s is None
 
     def test_the_non_owning_path_still_gets_its_own_arc_lengths(self):
-        """The case `arc_lengths` exists for, and the one easiest to get wrong.
-
-        ``X`` is composed into ``L1``'s frame, so its stored ``s`` is right for
-        ``L1`` and wrong for ``L2``.  A composed section must therefore be
-        re-offset from its *section-local* coordinates when a different path
-        asks -- reporting it as stored, or adding the running offset on top of
-        the stored value, are both wrong.
-        """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        """``X`` lives in ``L1``'s frame; ``L2`` must re-offset it from local ``s``."""
+        with quiet():
             model = MachineModel(
                 elements={
                     e.name: e
@@ -373,8 +333,7 @@ class TestComposition:
     def test_composition_is_idempotent(self, names):
         split, _ = self.build({"A": names[:3], "B": names[3:]}, {"L": ["A", "B"]})
         before = {n: split.elements[n].physical.s for n in names}
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with quiet():
             split.resolve_positions()
         for name in names:
             assert split.elements[name].physical.s == pytest.approx(before[name])

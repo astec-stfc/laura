@@ -5,7 +5,6 @@ Provides efficient computation of rotation matrices from Euler angles and
 lattice geometry calculations based on Position and Rotation.
 """
 
-import warnings
 
 import numpy as np
 from typing import TYPE_CHECKING
@@ -92,56 +91,6 @@ def position_rotated(position: "Position", rotation: "Rotation") -> "Position":
     return Position(x=rotated_vec[0], y=rotated_vec[1], z=rotated_vec[2])
 
 
-def element_start_position(
-    middle: "Position", rotation: "Rotation", length: float
-) -> "Position":
-    """
-    Calculate element entrance position from middle position and rotation.
-
-    The entrance is length/2 upstream along the element's s-axis.
-
-    Args:
-        middle: Element center position
-        rotation: Element orientation
-        length: Element length
-
-    Returns:
-        Entrance position
-
-    .. deprecated::
-       Use :attr:`laura.models.physical.PhysicalElement.start` instead.  This
-       helper sees only ``rotation``, so an element oriented through
-       ``global_rotation`` -- which is how floor-coordinate placement stores it
-       -- comes back unrotated, and it has no bend model, so a dipole gets the
-       chord of a straight element.  Measured on a 2 m, 0.3 rad bend at 0.7 rad
-       of global yaw, it is 0.61 m out.  Both faults come from the arguments
-       it takes: with only ``(middle, rotation, length)`` there is no way to fix
-       them here.
-    """
-    warnings.warn(
-        "element_start_position is deprecated and will be removed: it ignores "
-        "global_rotation and the bending angle, so it disagrees with "
-        "PhysicalElement.start for any element that is oriented or bent. "
-        "Use PhysicalElement.start.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    from ..models.physical import Position  # Avoid circular import
-
-    # Vector pointing upstream (negative s)
-    upstream = np.array([0.0, 0.0, -length / 2.0])
-
-    # Rotate to element frame
-    matrix = euler_angles_to_rotation_matrix(rotation.theta, rotation.phi, rotation.psi)
-    offset = matrix @ upstream
-
-    return Position(
-        x=middle.x + offset[0],
-        y=middle.y + offset[1],
-        z=middle.z + offset[2],
-    )
-
-
 def rotation_matrix_to_euler(R: np.ndarray) -> tuple: # noqa N803
     """
     Extract (yaw, pitch, roll) Euler angles from a 3x3 rotation matrix.
@@ -170,51 +119,3 @@ def rotation_matrix_to_euler(R: np.ndarray) -> tuple: # noqa N803
     return yaw, pitch, roll
 
 
-def element_end_position(
-    middle: "Position", rotation: "Rotation", length: float
-) -> "Position":
-    """
-    Calculate element exit position from middle position and rotation.
-
-    The exit is length/2 downstream along the element's s-axis.
-
-    Args:
-        middle: Element center position
-        rotation: Element orientation
-        length: Element length
-
-    Returns:
-        Exit position
-
-    .. deprecated::
-       Use :attr:`laura.models.physical.PhysicalElement.end` instead.  This
-       helper sees only ``rotation``, so an element oriented through
-       ``global_rotation`` -- which is how floor-coordinate placement stores it
-       -- comes back unrotated, and it has no bend model, so a dipole gets the
-       chord of a straight element.  Measured on a 2 m, 0.3 rad bend at 0.7 rad
-       of global yaw, it is 0.47 m out.  Both faults come from the arguments
-       it takes: with only ``(middle, rotation, length)`` there is no way to fix
-       them here.
-    """
-    warnings.warn(
-        "element_end_position is deprecated and will be removed: it ignores "
-        "global_rotation and the bending angle, so it disagrees with "
-        "PhysicalElement.end for any element that is oriented or bent. "
-        "Use PhysicalElement.end.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    from ..models.physical import Position  # Avoid circular import
-
-    # Vector pointing downstream (positive s)
-    downstream = np.array([0.0, 0.0, length / 2.0])
-
-    # Rotate to element frame
-    matrix = euler_angles_to_rotation_matrix(rotation.theta, rotation.phi, rotation.psi)
-    offset = matrix @ downstream
-
-    return Position(
-        x=middle.x + offset[0],
-        y=middle.y + offset[1],
-        z=middle.z + offset[2],
-    )

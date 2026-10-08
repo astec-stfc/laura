@@ -13,7 +13,7 @@ import laura.models.element as laura_elements
 from laura.models.element_list import MachineLayout, SectionLattice
 
 from ...utils.ac_dipole import MV_PER_VOLT
-from .importer import LatticeImporter
+from .importer import LatticeImporter, twiss_simulation
 
 xsuite_unsupported = [
     "Laser",
@@ -621,9 +621,6 @@ class XsuiteLatticeImporter(LatticeImporter):
             }
         return {}
 
-    def create_element_dictionary(self) -> Dict:
-        return self.create_laura_element_dictionary()
-
     def create_laura_element_dictionary(self) -> Dict:
         try:
             import xtrack  # noqa: F401
@@ -652,17 +649,13 @@ class XsuiteLatticeImporter(LatticeImporter):
                     name=twiss_name,
                     machine_area=self.machine_area,
                     physical={"s": 0.0, "s_point": "end", "length": 0.0},
-                    simulation={
-                        "beta_x": optics["betx"],
-                        "beta_y": optics["bety"],
-                        "alpha_x": optics["alfx"],
-                        "alpha_y": optics["alfy"],
-                        "eta_x": optics["dx"],
-                        "eta_y": optics["dy"],
-                        "eta_xp": optics["dpx"],
-                        "eta_yp": optics["dpy"],
-                        "from_beam": False,
-                    },
+                    simulation=twiss_simulation(
+                        *(
+                            optics[key]
+                            for key in ("betx", "bety", "alfx", "alfy")
+                            + ("dx", "dy", "dpx", "dpy")
+                        )
+                    ),
                 )
         stored_types = getattr(self.line, "metadata", {}).get("laura_element_types", {})
         element_names = list(self.line.element_names)

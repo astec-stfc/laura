@@ -1,6 +1,6 @@
 """RDF serialisation of LAURA accelerator element models.
 
-Converts a :class:`~laura.models.elementList.MachineModel` to an
+Converts a :class:`~laura.models.element_list.MachineModel` to an
 ``rdflib.Graph`` and writes it to Turtle, JSON-LD, N-Triples, or RDF/XML.
 
 Requires the optional ``rdf`` dependency group::
@@ -69,7 +69,7 @@ def build_rdf_graph(
     Parameters
     ----------
     machine:
-        Loaded :class:`~laura.models.elementList.MachineModel`.
+        Loaded :class:`~laura.models.element_list.MachineModel`.
     machine_name:
         Logical accelerator name embedded in element IRIs.
         Default ``"machine"``.
@@ -162,7 +162,7 @@ def export_machine_rdf(
     format: str = "turtle",
     machine_name: str = "machine",
 ) -> None:
-    """Serialise a :class:`~laura.models.elementList.MachineModel` to an RDF file.
+    """Serialise a :class:`~laura.models.element_list.MachineModel` to an RDF file.
 
     Parameters
     ----------

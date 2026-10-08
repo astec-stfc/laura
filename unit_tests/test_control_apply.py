@@ -1,7 +1,4 @@
-"""Tests for laura.models.control expression evaluation / apply machinery
-(resolve_path, eval_expr, set_attr_by_path, ControlVariable.apply,
-ControlsInformation.build_context/apply/__getattr__), which the docstring
-in control.py demonstrates but which had no direct test coverage."""
+"""laura.models.control expression evaluation and apply."""
 
 import pytest
 

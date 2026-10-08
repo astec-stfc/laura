@@ -22,7 +22,6 @@ dependencies = [
     "pyyaml>=6",
     "numpy>=1.26",
     "scipy>=1.15",
-    "pandas>=2.2.2",
     "munch>=4",
     "pydantic-core>=2.41.5",
     "easygdf",
@@ -90,6 +89,7 @@ test = [
     "rdflib>=7.0",
     "sqlalchemy>=2.0",
     "jsonschema>=4.0",
+    "openpyxl",
 ]
 
 docs = [

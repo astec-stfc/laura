@@ -12,8 +12,8 @@ from .base import BaseElementTranslator, elegant_line
 
 class ACDipoleTranslator(BaseElementTranslator):
     """
-    Translator class for converting a :class:`~laura.models.element.Horizontal_AC_Dipole`
-    or :class:`~laura.models.element.Vertical_AC_Dipole` element instance into a
+    Translator class for converting a :class:`~laura.models.element.HorizontalACDipole`
+    or :class:`~laura.models.element.VerticalACDipole` element instance into a
     string or object that can be understood by various simulation codes.
     """
 
@@ -227,16 +227,9 @@ class ACDipoleTranslator(BaseElementTranslator):
         """
         Generates an Xsuite ``ACDipole`` object based on the element's properties.
 
-        Xsuite's ``ACDipole.freq`` is expressed in units of :math:`2\\pi` per
-        turn (a tune-like, machine-revolution-relative quantity), not an
-        absolute frequency, whereas this element's ``simulation.frequency`` is
-        stored in Hz. Converting between the two requires the ring's
-        revolution frequency, which an individual element translator has no
-        access to by default -- pass it explicitly via ``revolution_frequency``
-        [Hz] (e.g. ``beta0 * c / circumference``) when calling this method
-        directly to have it done automatically; if omitted,
-        ``simulation.frequency`` is passed through as-is (rescale it yourself
-        before use).
+        Xsuite's ``ACDipole.freq`` is in units of :math:`2\\pi` per turn (a
+        tune-like quantity), whereas ``simulation.frequency`` is in Hz, so
+        converting needs the ring's ``revolution_frequency``.
 
         Parameters
         ----------

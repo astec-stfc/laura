@@ -1,30 +1,14 @@
 """Exact chord geometry for ``PhysicalElement.start`` / ``.end`` on a bend.
 
-These pin the relations analytically rather than against captured numbers,
-which is the point.  A number captured from the code
-under test cannot contradict it.
-
-The geometry.  An element of arc length ``L`` bending through ``theta`` has
-radius ``rho = L / theta``.  Measuring from the arc's entry, the point at
-angle ``phi`` sits at ``(rho(1 - cos phi), 0, rho sin phi)``.  The element's
-``middle`` is the point at ``theta/2`` -- the *arc* midpoint, not the chord
-midpoint -- so:
-
-* ``middle -> start`` and ``middle -> end`` each subtend ``theta/2`` at the
-  centre of curvature, giving a chord of ``2 rho sin(theta/4)``;
-* ``start -> end`` subtends the full ``theta``, giving ``2 rho sin(theta/2)``.
-
-Note which of those actually discriminates.  The old formula placed start and
-end symmetrically about ``middle`` along the full chord, so it got
-``start -> end`` exactly right and both halves wrong -- it is the
-``middle ->`` distances that catch it, and the error grows with angle
-(~1.4 mm per metre of arc at 0.3 rad, ~5.6 mm at 0.6 rad).
+With ``rho = L / theta`` and ``middle`` at the *arc* midpoint, ``middle -> start/end``
+is ``2 rho sin(theta/4)`` and ``start -> end`` is ``2 rho sin(theta/2)``.
 """
 
 import numpy as np
 import pytest
 
-from laura.models.element import Dipole, Quadrupole
+from laura.models.element import Dipole
+from unit_tests.helpers import quad
 
 ANGLES = [0.05, 0.1, 0.3, 0.6, -0.3]
 
@@ -54,7 +38,6 @@ def test_middle_to_start_is_the_half_angle_chord(angle):
 
 @pytest.mark.parametrize("angle", ANGLES)
 def test_middle_to_end_is_the_half_angle_chord(angle):
-    """The arc midpoint is equidistant from both faces."""
     phys = _bend(angle).physical
     rho = phys.length / phys._physical_angle
     assert _norm(phys.end) == pytest.approx(abs(2 * rho * np.sin(angle / 4)), rel=1e-12)
@@ -62,8 +45,7 @@ def test_middle_to_end_is_the_half_angle_chord(angle):
 
 @pytest.mark.parametrize("angle", ANGLES)
 def test_start_to_end_is_the_full_chord(angle):
-    """Passes under the old formula too -- kept because it constrains the pair
-    jointly, not because it discriminates."""
+    """Doesn't discriminate alone; constrains the pair jointly."""
     phys = _bend(angle).physical
     rho = phys.length / phys._physical_angle
     span = np.array(phys.end.array) - np.array(phys.start.array)
@@ -74,8 +56,7 @@ def test_start_to_end_is_the_full_chord(angle):
 
 @pytest.mark.parametrize("angle", ANGLES)
 def test_the_faces_lie_on_the_arc(angle):
-    """Strongest form: both faces are exactly ``rho`` from the centre of
-    curvature, which no chord-based approximation satisfies."""
+    """Both faces are exactly ``rho`` from the centre of curvature."""
     phys = _bend(angle).physical
     theta = phys._physical_angle
     rho = phys.length / theta
@@ -87,12 +68,7 @@ def test_the_faces_lie_on_the_arc(angle):
 
 
 def test_a_straight_element_is_unaffected():
-    phys = Quadrupole(
-        name="Q1",
-        hardware_class="Magnet",
-        machine_area="S",
-        physical={"length": 0.4, "middle": {"x": 0.0, "y": 0.0, "z": 0.0}},
-    ).physical
+    phys = quad(length=0.4, middle={"x": 0.0, "y": 0.0, "z": 0.0}).physical
     assert phys.start.z == pytest.approx(-0.2)
     assert phys.end.z == pytest.approx(0.2)
 
@@ -107,12 +83,7 @@ def test_a_negligible_angle_takes_the_straight_branch(angle):
 
 @pytest.mark.parametrize("angle", [0.05, 0.3, 0.6])
 def test_the_old_half_chord_formula_would_fail_these(angle):
-    """Pins the size of the correction, so a silent revert is visible.
-
-    The superseded expression was ``L(1 - cos theta) / (2 theta)`` and
-    ``L sin(theta) / (2 theta)`` -- exactly half the full chord, i.e. the
-    element treated as symmetric about the *chord* midpoint.
-    """
+    """Pins the correction over the old half-chord ``L(1 - cos theta) / (2 theta)``."""
     length = 1.0
     phys = _bend(angle, length=length).physical
     rho = length / angle
@@ -127,9 +98,7 @@ def test_the_old_half_chord_formula_would_fail_these(angle):
 
 
 def test_a_pinned_layout_angle_outranks_an_authored_one():
-    """``set_physical_angle`` is called after construction, by whoever is moving the
-    magnet -- a chicane changing its angle -- so it is the newer statement of intent
-    than the ``physical_angle`` the lattice file was authored with."""
+    """A pinned angle (a moving chicane) is newer intent than the authored one."""
     bend = Dipole(
         name="B1",
         hardware_class="Magnet",

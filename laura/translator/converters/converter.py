@@ -69,7 +69,7 @@ def translate_elements(
         List of :class:`~laura.models.element.Element` objects.
     master_lattice: str
         Directory containing lattice/data files including field/wakefield files.
-    directory:
+    directory: str
         Directory to which files will be written.
 
     Returns

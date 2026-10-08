@@ -1,16 +1,5 @@
-"""Authored repetition and nested lines in a section order.
+"""Section repeats (``fodo_cell: {repeat: 3}``) and nested lines, expanded at load."""
 
-A section may be written as ``fodo_cell: {repeat: 3}`` over a line defined
-once, the way PALS, MAD-X and elegant all let you.  Expansion happens at load,
-so everything downstream keeps seeing the flat name list it already handled --
-including the per-occurrence numbering sequential placement does for a name
-written out twice by hand.
-
-The oracle here is :class:`TestAgreesWithTheExpandedForm`: the compact channel
-and the same channel typed out in full must give the same fifteen placements.
-"""
-
-import warnings
 from pathlib import Path
 
 import pytest
@@ -19,16 +8,18 @@ from pydantic import ValidationError
 
 from laura import LAURA
 from laura.Exporters.YAML import export_machine_combined_file
-from laura.models.element import Drift, Quadrupole
+from laura.models.element import Drift
 from laura.models.elementList import (
     LatticeError,
     MachineModel,
     expand_section_order,
 )
+from unit_tests.helpers import quad, quiet
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples" / "testing"
 
 CELL = ["drift1", "quad1", "drift2", "quad2", "drift1"]
+COMPACT = {"fodo_channel": [{"fodo_cell": {"repeat": 3}}], "fodo_cell": CELL}
 
 
 def drift(name, length):
@@ -40,32 +31,20 @@ def drift(name, length):
     )
 
 
-def quad(name, length, k1l):
-    return Quadrupole(
-        name=name,
-        hardware_class="Magnet",
-        machine_area="FODO",
-        magnetic={"magnetic_length": length, "k1l": k1l},
-        physical={"length": length},
-    )
-
-
 def elements():
-    """The four FODO element definitions of the PALS example."""
     return {
         e.name: e
         for e in (
             drift("drift1", 0.25),
-            quad("quad1", 1.0, 1.0),
+            quad("quad1", 1.0, 1.0, "FODO"),
             drift("drift2", 0.5),
-            quad("quad2", 1.0, -1.0),
+            quad("quad2", 1.0, -1.0, "FODO"),
         )
     }
 
 
 def machine(sections, layouts=("fodo_channel",)):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         return MachineModel(
             elements=elements(),
             section={"sections": sections},
@@ -76,83 +55,88 @@ def machine(sections, layouts=("fodo_channel",)):
         )
 
 
-# ---------------------------------------------------------------------------
-# the expansion itself
-# ---------------------------------------------------------------------------
+def written_sections(model, path):
+    with quiet():
+        export_machine_combined_file(str(path), model, position_mode="sequential")
+    return yaml.safe_load((path / "_sections.yaml").read_text())["sections"]
+
+
+def reload(path):
+    with quiet():
+        return LAURA(
+            element_list=str(path / "summary.yaml"),
+            section=str(path / "_sections.yaml"),
+            layout={
+                "layouts": {"fodo_lattice": ["fodo_channel"]},
+                "default_layout": "fodo_lattice",
+            },
+        )
+
+
+Q123 = ["q1", "q2", "q3"]
 
 
 class TestExpandSectionOrder:
-    def test_a_flat_order_is_left_alone(self):
-        assert expand_section_order("cell", CELL, {"cell": CELL}) == CELL
-
-    def test_a_repeat_writes_the_entry_out_that_many_times(self):
-        assert expand_section_order("s", [{"q1": {"repeat": 3}}], {}) == ["q1"] * 3
-
-    def test_a_named_line_is_spliced_in(self):
-        authored = {"cell": CELL, "channel": ["q0", "cell"]}
-        assert (
-            expand_section_order("channel", authored["channel"], authored)
-            == ["q0"] + CELL
-        )
-
-    def test_a_repeated_line_is_spliced_in_that_many_times(self):
-        authored = {"cell": CELL, "channel": [{"cell": {"repeat": 3}}]}
-        assert (
-            expand_section_order("channel", authored["channel"], authored) == CELL * 3
-        )
-
-    def test_lines_nest(self):
-        authored = {
-            "inner": ["a", "b"],
-            "middle": [{"inner": {"repeat": 2}}],
-            "outer": [{"middle": {"repeat": 2}}, "c"],
-        }
-        assert expand_section_order("outer", authored["outer"], authored) == [
-            "a",
-            "b",
-        ] * 4 + ["c"]
-
-    def test_a_negative_repeat_reverses_the_entry(self):
-        authored = {"cell": ["q1", "q2", "q3"]}
-        assert expand_section_order("s", [{"cell": {"repeat": -1}}], authored) == [
-            "q3",
-            "q2",
-            "q1",
-        ]
-
-    def test_a_negative_repeat_reverses_then_repeats(self):
-        authored = {"cell": ["q1", "q2", "q3"]}
-        assert (
-            expand_section_order("s", [{"cell": {"repeat": -2}}], authored)
-            == ["q3", "q2", "q1"] * 2
-        )
-
-    def test_a_reversed_line_joins_onto_a_forward_one(self):
-        # the MAD-X idiom: LINE = (cell, -cell)
-        authored = {"cell": ["q1", "q2", "q3"]}
-        assert expand_section_order(
-            "s", ["cell", {"cell": {"repeat": -1}}], authored
-        ) == ["q1", "q2", "q3", "q3", "q2", "q1"]
-
-    def test_reversing_a_single_element_is_a_no_op(self):
-        assert expand_section_order("s", [{"q1": {"repeat": -1}}], {}) == ["q1"]
-
-    def test_reversal_applies_after_the_nested_line_is_expanded(self):
-        authored = {
-            "inner": ["a", "b"],
-            "cell": ["x", {"inner": {"repeat": 2}}, "y"],
-        }
-        assert expand_section_order("s", [{"cell": {"repeat": -1}}], authored) == [
-            "y",
-            "b",
-            "a",
-            "b",
-            "a",
-            "x",
-        ]
+    @pytest.mark.parametrize(
+        "authored, expected",
+        [
+            pytest.param({"s": CELL}, CELL, id="flat-order-left-alone"),
+            pytest.param(
+                {"s": [{"q1": {"repeat": 3}}]}, ["q1"] * 3, id="repeat-writes-it-out"
+            ),
+            pytest.param(
+                {"cell": CELL, "s": ["q0", "cell"]}, ["q0"] + CELL, id="line-spliced-in"
+            ),
+            pytest.param(
+                {"cell": CELL, "s": [{"cell": {"repeat": 3}}]},
+                CELL * 3,
+                id="repeated-line-spliced-in",
+            ),
+            pytest.param(
+                {
+                    "inner": ["a", "b"],
+                    "middle": [{"inner": {"repeat": 2}}],
+                    "s": [{"middle": {"repeat": 2}}, "c"],
+                },
+                ["a", "b"] * 4 + ["c"],
+                id="lines-nest",
+            ),
+            pytest.param(
+                {"cell": Q123, "s": [{"cell": {"repeat": -1}}]},
+                Q123[::-1],
+                id="negative-repeat-reverses",
+            ),
+            pytest.param(
+                {"cell": Q123, "s": [{"cell": {"repeat": -2}}]},
+                Q123[::-1] * 2,
+                id="negative-repeat-reverses-then-repeats",
+            ),
+            # the MAD-X idiom: LINE = (cell, -cell)
+            pytest.param(
+                {"cell": Q123, "s": ["cell", {"cell": {"repeat": -1}}]},
+                Q123 + Q123[::-1],
+                id="reversed-line-joins-forward-one",
+            ),
+            pytest.param(
+                {"s": [{"q1": {"repeat": -1}}]},
+                ["q1"],
+                id="reversing-one-element-no-op",
+            ),
+            pytest.param(
+                {
+                    "inner": ["a", "b"],
+                    "cell": ["x", {"inner": {"repeat": 2}}, "y"],
+                    "s": [{"cell": {"repeat": -1}}],
+                },
+                ["y", "b", "a", "b", "a", "x"],
+                id="reversal-after-nested-expansion",
+            ),
+        ],
+    )
+    def test_expansion(self, authored, expected):
+        assert expand_section_order("s", authored["s"], authored) == expected
 
     def test_a_line_may_be_used_before_it_is_defined(self):
-        # the example file writes fodo_channel above fodo_cell
         loaded = yaml.safe_load((EXAMPLES / "repeats_sections.yaml").read_text())
         authored = loaded["sections"]
         assert list(authored) == ["fodo_channel", "fodo_cell"]
@@ -163,14 +147,16 @@ class TestExpandSectionOrder:
 
 
 class TestRefusesTheAmbiguous:
-    def test_a_line_that_includes_itself(self):
-        authored = {"a": ["b"], "b": [{"a": {"repeat": 2}}]}
+    @pytest.mark.parametrize(
+        "authored",
+        [
+            pytest.param({"a": ["b"], "b": [{"a": {"repeat": 2}}]}, id="via-another"),
+            pytest.param({"a": ["a"]}, id="directly"),
+        ],
+    )
+    def test_a_line_that_includes_itself(self, authored):
         with pytest.raises(LatticeError, match="includes itself"):
             expand_section_order("a", authored["a"], authored)
-
-    def test_a_line_that_includes_itself_directly(self):
-        with pytest.raises(LatticeError, match="includes itself"):
-            expand_section_order("a", ["a"], {"a": ["a"]})
 
     def test_a_repeat_of_zero(self):
         with pytest.raises(ValueError, match="not be\\s+zero"):
@@ -191,17 +177,10 @@ class TestRefusesTheAmbiguous:
             expand_section_order("s", [entry], {})
 
 
-# ---------------------------------------------------------------------------
-# through a machine
-# ---------------------------------------------------------------------------
-
-
 class TestThroughAMachine:
     @pytest.fixture
     def compact(self):
-        return machine(
-            {"fodo_channel": [{"fodo_cell": {"repeat": 3}}], "fodo_cell": CELL}
-        )
+        return machine(COMPACT)
 
     def test_the_channel_holds_fifteen_placements(self, compact):
         assert len(compact.sections["fodo_channel"].order) == 15
@@ -235,13 +214,9 @@ class TestThroughAMachine:
         assert both.sections["fodo_channel"].order == CELL[:4]
 
     def test_a_repeating_line_may_not_also_be_a_section(self):
-        # Both sections would want their own placement of the same numbered
-        # copies. Refused at load rather than one of them silently winning.
+        # both would want their own placement of the same numbered copies
         with pytest.raises(ValidationError, match="same system"):
-            machine(
-                {"fodo_channel": [{"fodo_cell": {"repeat": 3}}], "fodo_cell": CELL},
-                layouts=("fodo_cell", "fodo_channel"),
-            )
+            machine(COMPACT, layouts=("fodo_cell", "fodo_channel"))
 
 
 class TestReversalThroughAMachine:
@@ -270,45 +245,25 @@ class TestReversalThroughAMachine:
             assert near.s == pytest.approx(centre - far.s)
 
     def test_each_half_holds_its_own_copies(self, mirrored):
-        # the same definition placed twice is two devices at two positions
         assert mirrored.elements["quad1.1"].physical.s != (
             mirrored.elements["quad1.2"].physical.s
         )
 
     def test_the_reversal_survives_the_round_trip(self, mirrored, tmp_path):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            export_machine_combined_file(
-                str(tmp_path), mirrored, position_mode="sequential"
-            )
-        sections = yaml.safe_load((tmp_path / "_sections.yaml").read_text())["sections"]
+        sections = written_sections(mirrored, tmp_path)
         assert sections["fodo_channel"]["elements"] == [
             "fodo_cell",
             {"fodo_cell": {"repeat": -1}},
         ]
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            reloaded = LAURA(
-                element_list=str(tmp_path / "summary.yaml"),
-                section=str(tmp_path / "_sections.yaml"),
-                layout={
-                    "layouts": {"fodo_lattice": ["fodo_channel"]},
-                    "default_layout": "fodo_lattice",
-                },
-            )
+        reloaded = reload(tmp_path)
         for name, element in mirrored.elements.items():
             assert reloaded[name].physical.s == pytest.approx(element.physical.s)
 
 
 class TestAgreesWithTheExpandedForm:
-    """The compact channel and the hand-typed one must land in the same place."""
-
     @pytest.fixture
     def pair(self):
-        compact = machine(
-            {"fodo_channel": [{"fodo_cell": {"repeat": 3}}], "fodo_cell": CELL}
-        )
-        return compact, machine({"fodo_channel": CELL * 3})
+        return machine(COMPACT), machine({"fodo_channel": CELL * 3})
 
     def test_the_same_order(self, pair):
         compact, expanded = pair
@@ -330,8 +285,6 @@ class TestAgreesWithTheExpandedForm:
 
 
 class TestOutsideASequentialSection:
-    """Repetition is an authoring feature; it expands whatever the mode."""
-
     def test_it_expands_but_does_not_number(self):
         positioned = {
             "drift1": Drift(
@@ -340,17 +293,9 @@ class TestOutsideASequentialSection:
                 machine_area="FODO",
                 physical={"length": 0.25, "s": 0.25, "s_point": "end"},
             ),
-            "quad1": quad("quad1", 1.0, 1.0),
+            "quad1": quad("quad1", 1.0, 1.0, "FODO", s=1.25, s_point="end"),
         }
-        positioned["quad1"] = Quadrupole(
-            name="quad1",
-            hardware_class="Magnet",
-            machine_area="FODO",
-            magnetic={"magnetic_length": 1.0, "k1l": 1.0},
-            physical={"length": 1.0, "s": 1.25, "s_point": "end"},
-        )
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with quiet():
             model = MachineModel(
                 elements=positioned,
                 section={
@@ -362,24 +307,11 @@ class TestOutsideASequentialSection:
         assert model.sections["S"]._repeat_origins == {}
 
 
-# ---------------------------------------------------------------------------
-# round trip
-# ---------------------------------------------------------------------------
-
-
 class TestWritesTheCompactFormBackOut:
     @pytest.fixture
     def written(self, tmp_path):
-        model = machine(
-            {"fodo_channel": [{"fodo_cell": {"repeat": 3}}], "fodo_cell": CELL}
-        )
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            export_machine_combined_file(
-                str(tmp_path), model, position_mode="sequential"
-            )
-        sections = yaml.safe_load((tmp_path / "_sections.yaml").read_text())["sections"]
-        return model, tmp_path, sections
+        model = machine(COMPACT)
+        return model, tmp_path, written_sections(model, tmp_path)
 
     def test_the_repeat_survives(self, written):
         _, _, sections = written
@@ -391,24 +323,13 @@ class TestWritesTheCompactFormBackOut:
 
     def test_it_reloads_to_the_same_machine(self, written):
         model, path, _ = written
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            reloaded = LAURA(
-                element_list=str(path / "summary.yaml"),
-                section=str(path / "_sections.yaml"),
-                layout={
-                    "layouts": {"fodo_lattice": ["fodo_channel"]},
-                    "default_layout": "fodo_lattice",
-                },
-            )
+        reloaded = reload(path)
         assert len(reloaded.elements) == len(model.elements)
         for name, element in model.elements.items():
             assert reloaded[name].physical.s == pytest.approx(element.physical.s)
 
     def test_a_copy_edited_since_load_is_written_out_flat(self, tmp_path):
-        model = machine(
-            {"fodo_channel": [{"fodo_cell": {"repeat": 3}}], "fodo_cell": CELL}
-        )
+        model = machine(COMPACT)
         model.elements["drift1.4"].physical.length = 0.4
         with pytest.warns(UserWarning, match="fully expanded"):
             export_machine_combined_file(
@@ -419,26 +340,14 @@ class TestWritesTheCompactFormBackOut:
         assert "fodo_cell" not in sections
 
     def test_a_flat_section_is_unaffected(self, tmp_path):
-        model = machine({"fodo_channel": CELL * 3})
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            export_machine_combined_file(
-                str(tmp_path), model, position_mode="sequential"
-            )
-        sections = yaml.safe_load((tmp_path / "_sections.yaml").read_text())["sections"]
+        sections = written_sections(machine({"fodo_channel": CELL * 3}), tmp_path)
         assert sections["fodo_channel"]["elements"] == CELL * 3
-
-
-# ---------------------------------------------------------------------------
-# the shipped example
-# ---------------------------------------------------------------------------
 
 
 class TestTheExampleFiles:
     @pytest.fixture
     def example(self):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with quiet():
             return LAURA(
                 element_list=str(EXAMPLES / "repeats_elements.yaml"),
                 section=str(EXAMPLES / "repeats_sections.yaml"),

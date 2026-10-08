@@ -13,7 +13,7 @@ def _coerce_csv_strings(v: Union[str, List]) -> List[str]:
 
 
 class ShutterElement(_ShutterElementBase):
-    """Laser info model."""
+    """Shutter info model."""
 
     @field_validator("interlocks", mode="before")
     @classmethod

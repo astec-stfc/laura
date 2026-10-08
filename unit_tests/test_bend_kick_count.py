@@ -1,10 +1,7 @@
-"""A bend left at the default kick count gets enough steps for its angle and
-its gradient.
+"""A bend at the default kick count gets enough steps for its angle and gradient.
 
-ELEGANT's ``CSBEND`` misses its own reference by ~0.3 θ (θ/N)⁴: at the old
-fixed four, a 45-degree bend put a millimetre of closed orbit round a ring.
-With a ``K1`` it also lengthens its on-axis path by ~0.09 |k1| L² θ² / N⁴: at
-four, CLIC DR's gradient dipoles moved the synchronous momentum by -3.7e-5.
+ELEGANT's ``CSBEND`` misses its reference by ~0.3 θ (θ/N)⁴ and, with a ``K1``,
+lengthens its on-axis path by ~0.09 |k1| L² θ² / N⁴.
 """
 
 import re
@@ -39,7 +36,6 @@ def slices(angle, **parameters):
 
 
 def track(tmp_path, element, run_setup=""):
-    """One on-axis particle through ``element`` and a watch point."""
     (tmp_path / "bend.lte").write_text(
         element.to_elegant()
         + 'W: WATCH, FILENAME="w.sdds", MODE=coordinate\n'
@@ -111,8 +107,6 @@ def test_bmad_still_takes_only_an_explicit_count():
 
 @pytest.mark.skipif(ELEGANT is None, reason="elegant is not installed")
 def test_elegant_keeps_a_strong_bend_on_its_reference(tmp_path):
-    """An on-axis particle through LAURA's own 45-degree bend leaves on axis.
-    At four kicks it left 3.3e-4 rad off."""
     track(tmp_path, bend(0.785))
     [[x, xp]] = columns(tmp_path, "w.sdds", ["x", "xp"])
     assert abs(xp) < 1e-8
@@ -126,9 +120,6 @@ def test_elegant_keeps_a_strong_bend_on_its_reference(tmp_path):
     dict(angle=0.2, length=1.0, k1l=0.5),
 ])
 def test_elegant_keeps_a_gradient_bend_to_its_length(tmp_path, parameters):
-    """An on-axis particle's path through LAURA's own gradient bend is the
-    bend's length to :data:`BEND_PATH_ERROR`. At four kicks CLIC DR's dipole
-    was 3.3e-8 long."""
     track(tmp_path, bend(**parameters), run_setup=', centroid = "c.sdds"')
     s, path = columns(tmp_path, "c.sdds", ["s", "Cs"])[-1]
     assert abs(path - s) / parameters["length"] <= BEND_PATH_ERROR

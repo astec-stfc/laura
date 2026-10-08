@@ -1,27 +1,17 @@
-"""Tier-2 Bmad export: a multipass section as a real Bmad multipass lord.
+"""Bmad multipass export: hardware written once, ``NAME\\1``, ``NAME\\2`` its passes.
 
-:meth:`~laura.translator.converters.layout.MachineLayoutTranslator.to_bmad`
-flattens -- one standalone file per occurrence, which every backend can read
-and which is the honest answer for codes with nowhere to put per-pass state.
-Bmad is the one backend that can hold the *identity* instead, so
-``to_bmad_multipass`` writes the hardware once and lets ``NAME\\1``, ``NAME\\2``
-be the beam's visits to it.
-
-What Bmad will and will not take per slave is not guessable and was measured
-against Tao 2026-09-09: ``phi0_multipass`` yes, ``k1`` and ``e_tot`` no --
-those are lord attributes, and a lattice file setting them per slave parses
-without complaint and has no effect.
+Tao takes ``phi0_multipass`` per slave, but ``k1``/``e_tot`` are lord-only and silently ignored.
 """
 
 import os
-import warnings
 from pathlib import Path
 
 import pytest
 
-from laura.models.element import Quadrupole, RFCavity, TwissMatch
+from laura.models.element import RFCavity, TwissMatch
 from laura.models.elementList import MachineModel
 from laura.translator.converters.layout import MachineLayoutTranslator
+from unit_tests.helpers import quad, quiet
 
 SECTIONS = {
     "INJECTOR": ["INJ_Q"],
@@ -42,13 +32,7 @@ ERL = [
 
 def elements():
     built = {
-        name: Quadrupole(
-            name=name,
-            hardware_class="Magnet",
-            machine_area="A",
-            magnetic={"magnetic_length": length, "k1l": 1.0},
-            physical={"length": length},
-        )
+        name: quad(name, length, 1.0, machine_area="A")
         for name, length in (
             ("INJ_Q", 0.2),
             ("LIN_Q", 0.3),
@@ -66,8 +50,7 @@ def elements():
 
 
 def translator(layout, *, multipass=True):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         model = MachineModel(
             elements=elements(),
             section={"sections": SECTIONS},
@@ -85,12 +68,8 @@ def erl():
 
 @pytest.fixture
 def lattice(erl):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         return erl.to_bmad_multipass("electron")
-
-
-# --- the structure -------------------------------------------------------
 
 
 def test_the_multipass_section_is_a_multipass_line(lattice):
@@ -121,12 +100,8 @@ def test_the_header_is_written_once(lattice):
     assert lattice.count("parameter[particle] = electron") == 1
 
 
-# --- per-pass state ------------------------------------------------------
-
-
 def test_a_per_pass_phase_becomes_phi0_multipass(lattice):
-    # -0.5, not 180: Bmad phases are turns, and LAURA's sign convention is
-    # `-phase / 360`, which is what the element definition already writes.
+    # Bmad phases are turns, and LAURA writes `-phase / 360`.
     assert "CAV_01\\2[phi0_multipass] = -0.5\n" in lattice
 
 
@@ -135,23 +110,19 @@ def test_pass_one_carries_no_settings_of_its_own(lattice):
 
 
 def test_settings_come_after_the_lattice_is_expanded(lattice):
-    # Slaves do not exist until `use` has been expanded, so Bmad cannot resolve
-    # `CAV_01\2` before this line.
+    # Slaves exist only once `use` has been expanded.
     assert lattice.index("expand_lattice") < lattice.index("CAV_01\\2[")
     assert lattice.index("use, ERL") < lattice.index("expand_lattice")
 
 
 def test_a_layout_with_nothing_per_pass_does_not_expand(erl):
     plain = translator(["INJECTOR", "LINAC", "ARC", "DUMP"])
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         assert "expand_lattice" not in plain.to_bmad_multipass("electron")
 
 
 def test_a_lord_only_attribute_is_dropped_with_a_warning():
-    # Strength is the case that matters: an ERL's shared magnet holds its field,
-    # so `k` differs per pass -- but Bmad keeps `k1` on the lord, and resolving
-    # this needs `field_master`, which v1 leaves as a slot.
+    # Bmad keeps `k1` on the lord; per-pass strength would need `field_master`.
     changed = [
         "INJECTOR",
         {"LINAC": {"multipass": 1}},
@@ -165,10 +136,8 @@ def test_a_lord_only_attribute_is_dropped_with_a_warning():
 
 
 def test_a_fixer_that_starts_a_later_section_stays_in_the_line():
-    # Only the path's first section gives the beginning Twiss. A fixer heading
-    # a section further on is where that path declares its design optics.
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    # Only the first section gives the beginning Twiss; a later fixer declares design optics.
+    with quiet():
         model = MachineModel(
             elements=elements()
             | {
@@ -190,9 +159,6 @@ def test_a_fixer_that_starts_a_later_section_stays_in_the_line():
     assert "beginning[beta_a]" not in lattice
 
 
-# --- what it refuses -----------------------------------------------------
-
-
 def test_a_flattened_translator_is_refused(erl):
     plain = translator(ERL, multipass=False)
     with pytest.raises(ValueError, match="multipass=True"):
@@ -210,8 +176,6 @@ def test_a_reversed_pass_is_refused():
     with pytest.raises(NotImplementedError, match="reflection patch"):
         translator(reversed_leg).to_bmad_multipass("electron")
 
-
-# --- against Tao ---------------------------------------------------------
 
 LIBTAO = Path(
     os.environ.get(
@@ -236,28 +200,26 @@ def test_tao_reads_the_export_as_a_multipass_lord(lattice, tmp_path):
 
     assert tao.ele_gen_attribs("CAV_01")["lord_status"] == "Multipass_Lord"
     assert tao.ele_gen_attribs("CAV_01\\1")["slave_status"] == "Multipass_Slave"
-    # The point of the whole exercise: one cavity, and the return pass is 180
-    # degrees off it.
     assert tao.ele_gen_attribs("CAV_01\\1")["PHI0_MULTIPASS"] == 0.0
     assert tao.ele_gen_attribs("CAV_01\\2")["PHI0_MULTIPASS"] == -0.5
 
 
-# --- back again ----------------------------------------------------------
-
-
 @pytest.fixture
 def imported(lattice, tmp_path):
-    """The exported lattice read back through Tao."""
+    return _import_layout(tmp_path, f"beginning[e_tot] = 10e6\n{lattice}", "ERL")
+
+
+def _import_layout(tmp_path, text, name):
     pytest.importorskip("pytao")
     if not LIBTAO.exists():
         pytest.skip("libtao is not installed")
     os.environ.setdefault("ACC_ROOT_DIR", str(LIBTAO.parent.parent.parent))
     from laura.translator.converters.codes.bmad import BmadLatticeImporter
 
-    path = tmp_path / "erl.bmad"
-    path.write_text(f"beginning[e_tot] = 10e6\n{lattice}")
+    path = tmp_path / f"{name}.bmad"
+    path.write_text(text)
     importer = BmadLatticeImporter(lattice_file=str(path), libtao=str(LIBTAO))
-    return importer.create_layout(1, name="ERL")
+    return importer.create_layout(1, name=name)
 
 
 def traversal(layout):
@@ -292,26 +254,17 @@ def test_pass_one_carries_no_overrides(imported):
 
 
 def test_reference_energy_is_not_read_back_as_momentum(imported):
-    # Bmad keeps strength on the multipass lord, so both passes really do share
-    # one `k1`. A per-pass momentum would make LAURA rescale it on the way out.
+    # Bmad keeps strength on the lord; a per-pass momentum would make LAURA rescale `k1`.
     assert all(entry.momentum is None for entry in imported.passes)
 
 
 def test_a_lattice_with_no_multipass_still_imports_as_one_section(tmp_path):
-    pytest.importorskip("pytao")
-    if not LIBTAO.exists():
-        pytest.skip("libtao is not installed")
-    os.environ.setdefault("ACC_ROOT_DIR", str(LIBTAO.parent.parent.parent))
-    from laura.translator.converters.codes.bmad import BmadLatticeImporter
-
-    path = tmp_path / "plain.bmad"
-    path.write_text(
+    layout = _import_layout(
+        tmp_path,
         "parameter[geometry] = open\nbeginning[e_tot] = 10e6\n"
         "Q1: quadrupole, l = 0.1, k1 = 0.3\nD1: drift, l = 0.2\n"
-        "LIN: line = (Q1, D1, Q1)\nuse, LIN\n"
+        "LIN: line = (Q1, D1, Q1)\nuse, LIN\n",
+        "LIN",
     )
-    layout = BmadLatticeImporter(
-        lattice_file=str(path), libtao=str(LIBTAO)
-    ).create_layout(1, name="LIN")
     assert len(layout.sections) == 1
     assert traversal(layout) == [(next(iter(layout.sections)), None)]

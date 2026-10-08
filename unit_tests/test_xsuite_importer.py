@@ -7,9 +7,32 @@ import pytest
 xt = pytest.importorskip("xtrack")
 
 from laura.translator.converters.codes.xsuite import XsuiteLatticeImporter
-from laura.models.element import Combined_Corrector, Marker
+from laura.models.element import (
+    BeamPositionMonitor,
+    Combined_Corrector,
+    Dipole,
+    Marker,
+    RFCavity,
+    Sextupole,
+)
 from laura.models.elementList import ElementList, SectionLattice
+from laura.translator.converters.converter import translate_elements
 from laura.translator.converters.section import SectionLatticeTranslator
+
+
+def _to_xsuite(element):
+    _, native_type, properties = next(
+        iter(translate_elements([element]).values())
+    ).to_xsuite(beam_length=1)
+    return native_type, properties
+
+
+def _xsuite_round_trip(section, tmp_path):
+    section.resolve_positions(section.elements.elements)
+    translator = SectionLatticeTranslator.from_section(section)
+    translator.directory = str(tmp_path)
+    translator.to_xsuite(beam_length=1, save=True)
+    return XsuiteLatticeImporter(source_file=str(tmp_path / f"{section.name}.json"))
 
 
 def test_xsuite_importer_uses_common_s_lifecycle():
@@ -127,14 +150,7 @@ def test_xsuite_importer_maps_monitors_and_transverse_limits():
 
 
 def test_dipole_edge_adjacent_to_bend_is_merged_not_dropped():
-    """A DipoleEdge immediately bracketing a Bend (the shape produced by,
-    e.g., MAD-X-to-Xtrack conversion, where edge focusing is split into
-    separate elements rather than baked into the Bend's own edge_entry_*/
-    edge_exit_* attributes) must have its e1/hgap/fint folded into that
-    Bend's entrance_edge_angle/exit_edge_angle/gap/edge_field_integral --
-    mirroring how the MAD-X importer already folds standalone `dipedge`
-    elements into their dipole. No warning, no leftover Marker for the
-    edge: the data is fully preserved on the Bend, not discarded."""
+    """MAD-X-to-Xtrack conversion splits edge focusing into separate DipoleEdges."""
     line = xt.Line(
         elements=[
             xt.DipoleEdge(k=0.1, e1=0.05, hgap=0.02, fint=0.4, side="entry"),
@@ -157,10 +173,6 @@ def test_dipole_edge_adjacent_to_bend_is_merged_not_dropped():
 
 
 def test_dipole_edge_with_own_bend_data_is_not_overridden():
-    """When the Bend already carries its own non-zero edge attributes (the
-    normal shape for a LAURA-exported lattice), that data wins -- there's
-    no adjacent DipoleEdge in this case, but the merge logic must not
-    require one to leave the Bend's own values alone."""
     line = xt.Line(
         elements=[
             xt.Bend(
@@ -184,9 +196,6 @@ def test_dipole_edge_with_own_bend_data_is_not_overridden():
 
 
 def test_orphan_dipole_edge_conversion_is_flagged():
-    """A DipoleEdge with no adjacent Bend/RBend has nothing to merge into --
-    it must still warn and fall back to a bare Marker, like any other
-    lossy conversion, rather than silently dropping the edge data."""
     line = xt.Line(
         elements=[xt.DipoleEdge(k=0.1, e1=0.05, hgap=0.02, fint=0.4), xt.Marker()],
         element_names=["edge", "marker"],
@@ -194,8 +203,6 @@ def test_orphan_dipole_edge_conversion_is_flagged():
 
     with pytest.warns(UserWarning, match="DipoleEdge.*edge-focusing"):
         elements = XsuiteLatticeImporter(line=line).create_element_dictionary()
-
-    assert elements["edge"].hardware_type == "Marker"
 
     assert elements["edge"].hardware_type == "Marker"
 
@@ -222,12 +229,7 @@ def test_laura_xsuite_json_preserves_ambiguous_types_and_definitions(tmp_path):
         elements=ElementList(elements=elements),
         functional_definitions={"unused_zero": 0},
     )
-    section.resolve_positions(elements)
-    translator = SectionLatticeTranslator.from_section(section)
-    translator.directory = str(tmp_path)
-    translator.to_xsuite(beam_length=1, save=True)
-
-    importer = XsuiteLatticeImporter(source_file=str(tmp_path / "line.json"))
+    importer = _xsuite_round_trip(section, tmp_path)
     imported = importer.create_element_dictionary()
 
     assert imported["marker"].hardware_type == "Marker"
@@ -238,7 +240,6 @@ def test_laura_xsuite_json_preserves_ambiguous_types_and_definitions(tmp_path):
 
 
 def _sliced_line():
-    """A short thick line, sliced the way a tracking-ready lattice arrives."""
     line = xt.Line(
         elements=[
             xt.Drift(length=1.0),
@@ -254,13 +255,9 @@ def _sliced_line():
 
 
 def test_sliced_line_imports_the_thick_elements_it_came_from():
-    """slice_thick_elements replaces each magnet with a run of thin slices for
-    tracking. Those are a numerical artefact, not hardware: importing them
-    would turn a handful of magnets into a crowd of zero-length kicks with
-    their strengths and positions divided between them. The importer follows
-    Xtrack's own _line_before_slicing back to the thick elements."""
+    """Slices are a tracking artefact; Xtrack's _line_before_slicing leads back to the magnets."""
     line = _sliced_line()
-    assert len(line.element_names) > 3  # actually sliced
+    assert len(line.element_names) > 3
 
     with pytest.warns(UserWarning, match="was sliced into"):
         importer = XsuiteLatticeImporter(line=line, name="test")
@@ -273,9 +270,7 @@ def test_sliced_line_imports_the_thick_elements_it_came_from():
 
 
 def test_sliced_line_warns_once_not_on_every_revalidation():
-    """The pre-slicing view shares the sliced line's __dict__, so it reports a
-    _line_before_slicing of its own. Without recognising that, every field
-    assignment re-ran the validator and warned again."""
+    """The pre-slicing view shares the sliced line's __dict__, so has its own _line_before_slicing."""
     with pytest.warns(UserWarning, match="was sliced into") as caught:
         importer = XsuiteLatticeImporter(line=_sliced_line(), name="test")
         importer.create_element_dictionary()
@@ -290,8 +285,7 @@ def test_use_sliced_keeps_the_slices():
 
 
 def test_thin_multipole_order_selects_the_magnet_type():
-    """An Xtrack Multipole holds every order in one element, so its LAURA type
-    comes from the highest knl/ksl entry actually set."""
+    """An Xtrack Multipole holds every order; the highest one set picks the LAURA type."""
     line = xt.Line(
         elements=[
             xt.Multipole(knl=[0.0, 0.3]),
@@ -310,14 +304,10 @@ def test_thin_multipole_order_selects_the_magnet_type():
     assert elements["oct"].hardware_type == "Octupole"
     assert elements["oct"].magnetic.KnL(3) == pytest.approx(1500.0)
     assert elements["skew"].hardware_type == "Quadrupole"
-    # No order set anywhere: stays generic rather than being guessed into a type.
     assert elements["empty"].hardware_type == "Generic"
 
 
 def test_empty_multipole_imports_as_a_bare_magnet_with_a_warning():
-    """A Multipole with nothing set carries no order information, so it stays a
-    generic Magnet, left with MagneticElement's own all-zero default rather
-    than an asserted order."""
     line = xt.Line(elements=[xt.Multipole(knl=[0.0])], element_names=["empty"])
 
     with pytest.warns(UserWarning, match="order could not be determined"):
@@ -329,11 +319,7 @@ def test_empty_multipole_imports_as_a_bare_magnet_with_a_warning():
 
 
 def test_generic_magnet_can_read_back_its_multipoles():
-    """A generic Magnet gets the enriched MagneticElement, matching the schema's
-    own `range: MagneticElement`. Without it the class held the bare generated
-    base, which stores multipoles but has no KnL to read them -- so an order
-    with no dedicated LAURA class (order 4 here) went in and could not come
-    out."""
+    """Order 4 has no dedicated LAURA class, so only the generic Magnet can hold it."""
     line = xt.Line(
         elements=[xt.Multipole(knl=[0.0, 0.0, 0.0, 0.0, 7.0])],
         element_names=["deca"],
@@ -348,8 +334,6 @@ def test_generic_magnet_can_read_back_its_multipoles():
 
 
 def test_multipole_keeps_every_order_not_just_the_one_it_is_named_for():
-    """The LAURA type comes from the highest order set, but the lower orders
-    are part of the same element and must survive with it."""
     line = xt.Line(
         elements=[xt.Multipole(knl=[0.05, 0.3, 0.7], ksl=[0.0, 0.4])],
         element_names=["combined"],
@@ -365,10 +349,6 @@ def test_multipole_keeps_every_order_not_just_the_one_it_is_named_for():
 
 
 def test_specialised_element_types_are_imported():
-    """These have LAURA translators and export mappings; without the matching
-    import entries a natively-authored Xtrack line lost them on the way in."""
-    import numpy as np
-
     r_matrix = np.eye(6)
     r_matrix[0, 1] = 2.0
     t_matrix = np.zeros((6, 6, 6))
@@ -414,7 +394,7 @@ def test_specialised_element_types_are_imported():
     assert list(elements["rfmult"].simulation.knl)[1] == pytest.approx(0.5)
     assert list(elements["rfmult"].simulation.ksl)[1] == pytest.approx(0.1)
 
-    # ACDipole carries its plane as data, so the type is resolved per element.
+    # ACDipole carries its plane as data, not as a type.
     assert elements["acd_v"].hardware_type == "Vertical_AC_Dipole"
     assert elements["acd_h"].hardware_type == "Horizontal_AC_Dipole"
     # LAURA holds the amplitude in V and the phase in degrees.
@@ -426,9 +406,7 @@ def test_specialised_element_types_are_imported():
 
 
 def test_ac_dipole_with_an_unknown_plane_warns_and_falls_back():
-    """Xtrack validates `plane` on assignment, so it can never hold a nonsense
-    string -- but it is None on an ACDipole built without one, and there is no
-    plane to read off it then."""
+    """Xtrack validates `plane` on assignment, but leaves it None if never set."""
     line = xt.Line(
         elements=[xt.ACDipole(volt=1e5, freq=0.3, lag=0, ramp=[0, 1, 2, 3])],
         element_names=["acd"],
@@ -442,11 +420,9 @@ def test_ac_dipole_with_an_unknown_plane_warns_and_falls_back():
 
 
 def test_bend_defined_by_k0_keeps_its_bending_strength():
-    """Xtrack lets a Bend be defined by k0 (the dipole field) or by angle/h
-    (the reference curvature). A bend built from k0 alone leaves h -- and so
-    angle -- at zero, so reading angle discarded its strength entirely."""
+    """A Bend built from k0 alone leaves h, and so angle, at zero."""
     line = xt.Line(elements=[xt.Bend(length=1.0, k0=0.1)], element_names=["bend"])
-    assert line.element_dict["bend"].angle == 0.0  # the trap
+    assert line.element_dict["bend"].angle == 0.0
 
     element = XsuiteLatticeImporter(line=line).create_element_dictionary()["bend"]
 
@@ -454,7 +430,7 @@ def test_bend_defined_by_k0_keeps_its_bending_strength():
 
 
 def test_bend_defined_by_angle_is_unchanged():
-    """The k0 == 'from_h' case must still read through angle."""
+    """Xtrack sets k0 = 'from_h' when angle defines the bend."""
     line = xt.Line(elements=[xt.Bend(length=0.4, angle=0.1)], element_names=["bend"])
     assert isinstance(line.element_dict["bend"].k0, str)
 
@@ -464,11 +440,7 @@ def test_bend_defined_by_angle_is_unchanged():
 
 
 def test_per_metre_strength_variable_is_rescaled_to_integrated():
-    """LAURA's own export writes `k1 = vars['k1l'] / length`, so the variable is
-    already an integrated strength. A hand-written or MAD-X-converted lattice
-    writes `k1 = vars['k1']` -- a strength *per metre*. Adopting that variable
-    as K1L dropped the `* L` and left the strength wrong by a factor of the
-    element length, while still looking parametrised."""
+    """LAURA writes `k1 = vars['k1l'] / length`; a MAD-X-style `k1 = vars['k1']` is per metre."""
     env = xt.Environment()
     env["k2sf"] = -0.052
     env.new("sf", xt.Sextupole, length=1.5, k2="k2sf")
@@ -477,20 +449,15 @@ def test_per_metre_strength_variable_is_rescaled_to_integrated():
     importer = XsuiteLatticeImporter(line=line, name="test")
     element = importer.create_element_dictionary()["sf"]
 
-    # The parametrisation is kept, not flattened to a number ...
     assert element.magnetic.multipoles.K2L.normal == "k2sf"
-    # ... and the definition now holds the integrated value.
     assert importer.functional_definitions["k2sf"] == pytest.approx(-0.052 * 1.5)
 
-    # Resolving a symbol needs the definitions registered, which happens when
-    # the section/layout is built.
+    # KnL resolves symbols only once the layout has registered the definitions.
     importer.create_layout()
     assert element.magnetic.KnL(2) == pytest.approx(-0.052 * 1.5)
 
 
 def test_integrated_strength_variable_is_left_alone():
-    """The `vars['x'] / length` form LAURA itself emits is already integrated
-    and must not be scaled again."""
     env = xt.Environment()
     env["quad_k1l"] = 0.3
     env.new("quad", xt.Quadrupole, length=0.5, k1="quad_k1l / 0.5")
@@ -501,14 +468,12 @@ def test_integrated_strength_variable_is_left_alone():
 
     assert element.magnetic.multipoles.K1L.normal == "quad_k1l"
     assert importer.functional_definitions["quad_k1l"] == pytest.approx(0.3)
-    # Registered when the layout is built, as in the per-metre test above.
     importer.create_layout()
     assert element.magnetic.KnL(1) == pytest.approx(0.3)
 
 
 def test_shared_per_metre_variable_with_differing_lengths_falls_back_to_numbers():
-    """One variable cannot be rescaled to two different integrated values, so
-    it is dropped and both elements keep their own numeric strength."""
+    """One variable cannot rescale to two integrated values, so both keep numbers."""
     env = xt.Environment()
     env["k1q"] = 0.2
     env.new("short", xt.Quadrupole, length=0.5, k1="k1q")
@@ -524,8 +489,7 @@ def test_shared_per_metre_variable_with_differing_lengths_falls_back_to_numbers(
 
 
 def test_bend_per_metre_variable_is_rescaled_by_length():
-    """A bend's k0 variable rescales by length like every other per-metre
-    strength -- K0L carries the same sign as xtrack's k0."""
+    """K0L carries the same sign as xtrack's k0."""
     env = xt.Environment()
     env["k0b"] = 0.1
     env.new("bend", xt.Bend, length=2.0, k0="k0b")
@@ -539,12 +503,9 @@ def test_bend_per_metre_variable_is_rescaled_by_length():
 
 
 def test_thin_element_with_a_nominal_length_does_not_shift_the_lattice():
-    """A thin Multipole can carry a nominal magnet length (for radiation) while
-    occupying no space -- its table row has s_end == s. Taking that as the
-    physical length laid it out as a thick element and pushed everything
-    downstream along by it, accumulating over a ring."""
+    """A thin Multipole's nominal length (for radiation) occupies no space: s_end == s."""
     corrector = xt.Multipole(knl=[0.0, 0.2], length=1.2)
-    assert corrector.isthick is False and corrector.length == 1.2  # the trap
+    assert corrector.isthick is False and corrector.length == 1.2
 
     line = xt.Line(
         elements=[xt.Drift(length=1.0), corrector, xt.Drift(length=1.0),
@@ -552,21 +513,17 @@ def test_thin_element_with_a_nominal_length_does_not_shift_the_lattice():
         element_names=["d1", "corr", "d2", "quad"],
     )
     table = line.get_table()
-    assert table.s_end[1] == pytest.approx(table.s[1])  # occupies no space
+    assert table.s_end[1] == pytest.approx(table.s[1])
 
     elements = XsuiteLatticeImporter(line=line, name="test").create_element_dictionary()
 
     assert elements["corr"].physical.length == pytest.approx(0.0)
-    # The nominal length is not lost -- it stays on the magnetic model.
     assert elements["corr"].magnetic.length == pytest.approx(1.2)
-    # ... and the quadrupole downstream is where the source says it is.
     assert elements["quad"].physical.s == pytest.approx(float(table.s_end[3]))
 
 
 def test_environment_variables_are_scaled_across_every_line():
-    """An Environment's variables are shared between its lines. Scanning only
-    the line being built left a variable used by the other line unscaled, and
-    re-reading the definitions per line then reset it to its per-metre value."""
+    """An Environment's variables are shared between its lines."""
     env = xt.Environment()
     env["k1a"] = 0.2
     env["k1b"] = 0.3
@@ -579,7 +536,6 @@ def test_environment_variables_are_scaled_across_every_line():
     layout = importer.create_layout()
 
     assert list(layout.sections) == ["line_a", "line_b"]
-    # Both variables integrated, not just the second line's.
     assert importer.functional_definitions["k1a"] == pytest.approx(0.2 * 1.5)
     assert importer.functional_definitions["k1b"] == pytest.approx(0.3 * 1.5)
     assert layout.sections["line_a"].elements.elements["qa"].magnetic.KnL(
@@ -588,10 +544,7 @@ def test_environment_variables_are_scaled_across_every_line():
 
 
 def test_initial_twiss_is_imported_as_twiss_match():
-    """An ``xtrack.TwissInit`` is the direct counterpart of Ocelot's separate
-    ``Twiss()`` object -- built independently and handed to
-    ``line.twiss(twiss_init=...)``, not part of ``Line``/``element_dict`` at
-    all, so it must be passed in explicitly."""
+    """``xtrack.TwissInit`` lives outside the Line, so it is passed in explicitly."""
     line = xt.Line(
         elements=[xt.Quadrupole(length=0.5, k1=0.1)],
         element_names=["q1"],
@@ -628,17 +581,10 @@ def test_initial_twiss_is_imported_as_twiss_match():
 
 
 def test_bpm_survives_a_round_trip_through_xtrack():
-    """Xtrack has a real `BeamPositionMonitor`, so a LAURA BPM exports to it
-    rather than to the generic `ParticlesMonitor` (which is a Screen) and
-    reads back as a BPM. Codes without one, like Ocelot, get the generic
-    treatment instead."""
-    from laura.models.element import BeamPositionMonitor
-    from laura.translator.converters.converter import translate_elements
-
-    bpm = BeamPositionMonitor(
-        name="BPM1", machine_area="AREA", physical={"length": 0.0}
+    """Xtrack has a real BeamPositionMonitor; codes like Ocelot get a generic monitor."""
+    native_type, properties = _to_xsuite(
+        BeamPositionMonitor(name="BPM1", machine_area="AREA", physical={"length": 0.0})
     )
-    _, native_type, properties = translate_elements([bpm])["BPM1"].to_xsuite(beam_length=1)
     line = xt.Line(elements=[native_type(**properties)], element_names=["BPM1"])
 
     assert native_type is xt.BeamPositionMonitor
@@ -647,18 +593,14 @@ def test_bpm_survives_a_round_trip_through_xtrack():
 
 
 def test_cavity_phase_survives_a_round_trip_through_xtrack():
-    """LAURA's crest is phase 0; an `xt.Cavity` peaks at 90 deg. The importer
-    used to skip the ``90 -`` the exporter applies, so phases came back wrong."""
-    from laura.models.element import RFCavity
-    from laura.translator.converters.converter import translate_elements
-
+    """LAURA's crest is phase 0; an `xt.Cavity` peaks at 90 deg."""
     for phase in (0.0, 20.0, 90.0):
         cav = RFCavity(
             name="C1", machine_area="A", physical={"length": 0.0},
             cavity={"phase": phase, "frequency": 5e8, "structure_type": "StandingWave"},
             simulation={"field_amplitude": 1e6},
         )
-        _, native_type, properties = translate_elements([cav])["C1"].to_xsuite(beam_length=1)
+        native_type, properties = _to_xsuite(cav)
         line = xt.Line(elements=[native_type(**properties)], element_names=["C1"])
         p = xt.Particles(p0c=3e9, zeta=0, mass0=xt.ELECTRON_MASS_EV)
         line.track(p)
@@ -668,10 +610,7 @@ def test_cavity_phase_survives_a_round_trip_through_xtrack():
 
 
 def test_symbolic_cavity_phase_survives_a_round_trip_through_xtrack(tmp_path):
-    """The exporter writes ``(90 - (X)) * pi/180``; reading back only the number
-    lost the link to X (CLIC DR's ``lag := lgrf``)."""
-    from laura.models.element import RFCavity
-
+    """The exporter writes ``(90 - (X)) * pi/180``; X must come back as a symbol."""
     cavity = RFCavity(
         name="C1", machine_area="test", physical={"s": 0.5, "length": 0.5},
         cavity={"phase": "lgrf", "frequency": 5e8, "structure_type": "StandingWave"},
@@ -681,43 +620,29 @@ def test_symbolic_cavity_phase_survives_a_round_trip_through_xtrack(tmp_path):
         name="line", order=["C1"], elements=ElementList(elements={"C1": cavity}),
         functional_definitions={"lgrf": -90.0},
     )
-    section.resolve_positions({"C1": cavity})
-    translator = SectionLatticeTranslator.from_section(section)
-    translator.directory = str(tmp_path)
-    translator.to_xsuite(beam_length=1, save=True)
-
-    importer = XsuiteLatticeImporter(source_file=str(tmp_path / "line.json"))
+    importer = _xsuite_round_trip(section, tmp_path)
     element = importer.create_element_dictionary()["C1"]
     assert element.cavity.phase == "lgrf"
     assert importer.functional_definitions["lgrf"] == pytest.approx(-90.0)
 
 
 def test_dipole_kick_count_is_left_to_xtrack():
-    """LAURA's default ``n_kicks = 4`` is ELEGANT's 4th-order step count; as
-    Xtrack thin kicks it put a combined-function ring's tunes 0.4 out."""
-    from laura.models.element import Dipole
-    from laura.translator.converters.converter import translate_elements
-
+    """LAURA's default n_kicks = 4 is ELEGANT's 4th-order step count, too few as Xtrack thin kicks."""
     bend = Dipole(
         name="B1", machine_area="A", physical={"length": 1.3},
         magnetic={"magnetic_length": 1.3, "k0l": 0.1, "k1l": -0.9},
     )
-    _, _, properties = translate_elements([bend])["B1"].to_xsuite(beam_length=1)
+    _, properties = _to_xsuite(bend)
     assert "num_multipole_kicks" not in properties
 
 
 def test_sextupole_keeps_elegants_meaning_of_n_kicks():
-    """Xtrack's automatic count for a thick sextupole is one kick, which put
-    CLIC DR's corrected chromaticity 0.3-0.4 out; ``n_kicks`` steps of a
-    4th-order integrator, as in ELEGANT, are converged."""
-    from laura.models.element import Sextupole
-    from laura.translator.converters.converter import translate_elements
-
+    """Xtrack's automatic count for a thick sextupole is one kick, which is not converged."""
     sextupole = Sextupole(
         name="S1", machine_area="A", physical={"length": 0.15},
         magnetic={"magnetic_length": 0.15, "k2l": 5.0},
     )
-    _, native_type, properties = translate_elements([sextupole])["S1"].to_xsuite(beam_length=1)
+    native_type, properties = _to_xsuite(sextupole)
     assert properties["num_multipole_kicks"] == 4
     assert native_type(**properties).integrator == "yoshida4"
 
@@ -726,24 +651,20 @@ def test_sextupole_keeps_elegants_meaning_of_n_kicks():
     "cavity, simulation, kicks",
     [
         ({"n_cells": 9, "cell_length": 0.1}, {}, 27),  # 3 per cell
-        ({}, {"n_kicks": 5}, 5),  # an explicit count is honoured
-        ({"n_cells": 9, "cell_length": 0.1}, {"n_kicks": 5}, 5),  # ...even with cells
+        ({}, {"n_kicks": 5}, 5),
+        ({"n_cells": 9, "cell_length": 0.1}, {"n_kicks": 5}, 5),
         ({}, {}, None),  # neither: left to xtrack (a single kick)
     ],
 )
 def test_cavity_kick_count(cavity, simulation, kicks):
-    """Unlike a magnet's, an `xt.Cavity`'s automatic kick count is just one."""
-    from laura.models.element import RFCavity
-    from laura.translator.converters.converter import translate_elements
-
     cav = RFCavity(
         name="C1", machine_area="A", physical={"length": 1.0},
         cavity={"frequency": 3e9, "structure_type": "StandingWave", **cavity},
         simulation={"field_amplitude": 1e6, **simulation},
     )
-    _, native_type, properties = translate_elements([cav])["C1"].to_xsuite(beam_length=1)
+    native_type, properties = _to_xsuite(cav)
     assert properties.get("num_kicks") == kicks
-    native_type(**properties)  # and xtrack accepts what was written
+    native_type(**properties)
 
 
 @pytest.mark.parametrize("angle, geometry", [(np.pi / 2, "closed"), (-np.pi / 2, "closed"), (0.1, None)])
@@ -755,7 +676,7 @@ def test_bends_totalling_two_pi_make_a_closed_section(angle, geometry):
     )
     section = XsuiteLatticeImporter(line=line, name="ring").create_layout().sections["ring"]
     assert section.geometry == geometry
-    # and it survives into the machine model SIMBA loads, which a bare list dropped
+    # and survives into the machine model SIMBA loads
     model = XsuiteLatticeImporter(line=line, name="ring")._single_layout_model()
     entry = model.section["sections"]["ring"]
     assert (entry.get("geometry") if isinstance(entry, dict) else None) == geometry

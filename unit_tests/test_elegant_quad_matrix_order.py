@@ -1,12 +1,4 @@
-"""A quadrupole's multipole order is not elegant's matrix order.
-
-LAURA's ``magnetic.order`` is the multipole order -- 1 for a quadrupole --
-and elegant's ``QUAD`` has an ``ORDER`` keyword too, meaning the order of
-its transfer matrix. The names matched, so every quadrupole went out as
-``ORDER=1``: a first-order matrix, which has no chromatic terms at all. A
-FODO cell then had dnux/dp = 0 in elegant instead of -0.526 (measured), and
-any off-momentum particle was focused as if it were on momentum.
-"""
+"""LAURA's ``magnetic.order`` is the multipole order; elegant's QUAD ``ORDER`` is the matrix order."""
 
 import shutil
 import subprocess
@@ -29,7 +21,6 @@ def _quad(name, k1l, middle):
 
 
 def _exported_cell():
-    """A FODO cell whose quadrupoles are LAURA's own elegant export."""
     quads = translate_elements([_quad("QF", -1.0, 0.75), _quad("QD", 1.0, 3.25)])
     return "\n".join(
         [
@@ -58,7 +49,6 @@ def test_the_multipole_order_is_not_written_as_a_matrix_order():
     ELEGANT is None or SDDSPRINTOUT is None, reason="elegant is not installed"
 )
 def test_an_exported_fodo_cell_has_its_chromaticity(tmp_path):
-    """The property that was lost: elegant's own chromaticity for the cell."""
     (tmp_path / "cell.lte").write_text(_exported_cell())
     (tmp_path / "cell.ele").write_text(
         '&run_setup lattice="cell.lte", use_beamline="CELL", '
@@ -76,6 +66,6 @@ def test_an_exported_fodo_cell_has_its_chromaticity(tmp_path):
             cwd=tmp_path, check=True, capture_output=True, text=True,
         ).stdout
         values[parameter] = float(out.split("=")[-1])
-    # guards the comparison: an unstable cell would have no tune to talk about
+    # an unstable cell would have no tune
     assert values["nux"] == pytest.approx(0.3277, abs=1e-3)
     assert values["dnux/dp"] == pytest.approx(-0.5257, abs=1e-3)

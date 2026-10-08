@@ -54,7 +54,7 @@ class DiagnosticTranslator(BaseElementTranslator):
         Parameters
         ----------
         n: int
-            Modulator index
+            Screen index
 
         Returns
         -------

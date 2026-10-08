@@ -33,35 +33,30 @@ def _positions(text):
     ]
 
 
-@pytest.fixture
-def per_cell_wake(tmp_path):
-    """A Green's function for one cell, which says nothing about length."""
+def _wake_file(path, length=None):
     h5py = pytest.importorskip("h5py")
     import numpy as np
 
-    path = tmp_path / "per_cell_wake.hdf5"
     with h5py.File(path, "w") as f:
         f.attrs["type"] = "LongitudinalWake"
+        if length is not None:
+            f.attrs["length"] = length
         for name, units in (("z", "m"), ("Wz", "V/C")):
             f.create_dataset(name, data=np.linspace(0, 0.01, 11))
             f[name].attrs["units"] = units
     return path
+
+
+@pytest.fixture
+def per_cell_wake(tmp_path):
+    """A Green's function for one cell, which says nothing about length."""
+    return _wake_file(tmp_path / "per_cell_wake.hdf5")
 
 
 @pytest.fixture
 def whole_structure_wake(tmp_path):
     """A wake already integrated over the structure, which records its length."""
-    h5py = pytest.importorskip("h5py")
-    import numpy as np
-
-    path = tmp_path / "structure_wake.hdf5"
-    with h5py.File(path, "w") as f:
-        f.attrs["type"] = "LongitudinalWake"
-        f.attrs["length"] = LENGTH
-        for name, units in (("z", "m"), ("Wz", "V/C")):
-            f.create_dataset(name, data=np.linspace(0, 0.01, 11))
-            f[name].attrs["units"] = units
-    return path
+    return _wake_file(tmp_path / "structure_wake.hdf5", length=LENGTH)
 
 
 def test_wake_without_a_length_goes_in_once_per_cell(tmp_path, per_cell_wake):
@@ -86,3 +81,11 @@ def test_later_cavities_keep_their_wakes_inside_themselves(tmp_path, per_cell_wa
     assert [i for i, _ in positions] == list(range(85, 85 + N_CELLS))
     assert positions[0][1] == pytest.approx(start_z + 0.5 * CELL_LENGTH)
     assert positions[-1][1] < start_z + LENGTH
+
+
+def test_wake_offsets_use_their_own_plane(tmp_path, whole_structure_wake):
+    w = _translator(tmp_path, whole_structure_wake, start_z=0)
+    w.physical.error.position.x, w.physical.error.position.y = 0.001, 0.002
+    text = w.to_astra(n=1)
+    assert re.search(r"Wk_x\(1\) = 0\.001\b", text)
+    assert re.search(r"Wk_y\(1\) = 0\.002\b", text)

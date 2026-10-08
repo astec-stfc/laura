@@ -1,12 +1,4 @@
-"""Drift-based (sequential) placement: order + lengths, no stated positions.
-
-A section whose elements carry no ``s`` and no xyz is placed by accumulating
-lengths along ``order``, hand-written ``Drift`` elements included .
-
-The strongest test here is :class:`TestAgreesWithExplicitS`: the same lattice
-written both ways must land in the same place.  That is a real oracle rather
-than a captured number, and it covers the bend arc geometry for free.
-"""
+"""Sequential placement: no ``s`` or xyz, so positions accumulate from lengths."""
 
 import warnings
 
@@ -20,10 +12,7 @@ from laura.Exporters.YAML import export_machine_combined_file
 from laura.models.element import Dipole, Drift, Marker, Quadrupole
 from laura.models.elementList import MachineModel
 from laura.models.physical import PhysicalElement
-
-# ---------------------------------------------------------------------------
-# fixtures
-# ---------------------------------------------------------------------------
+from unit_tests.helpers import quad, quiet
 
 
 def drift(name, length, **physical):
@@ -31,16 +20,6 @@ def drift(name, length, **physical):
         name=name,
         hardware_class="Drift",
         machine_area="S",
-        physical={"length": length, **physical},
-    )
-
-
-def quad(name, length=0.1, **physical):
-    return Quadrupole(
-        name=name,
-        hardware_class="Magnet",
-        machine_area="S",
-        magnetic={"magnetic_length": length, "k1l": 0.1},
         physical={"length": length, **physical},
     )
 
@@ -60,7 +39,6 @@ def marker(name, **physical):
 
 
 def machine(elements, order=None):
-    """Build a one-section MachineModel, discarding the no-layouts warning."""
     order = order or [e.name for e in elements]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message="No layouts")
@@ -71,7 +49,6 @@ def machine(elements, order=None):
 
 
 def caught(elements, order=None):
-    """``(machine, [warning messages])`` -- the no-layouts noise filtered out."""
     with warnings.catch_warnings(record=True) as records:
         warnings.simplefilter("always")
         m = machine(elements, order)
@@ -82,15 +59,25 @@ def s_values(m, names):
     return [m.elements[n].physical.s for n in names]
 
 
-# ---------------------------------------------------------------------------
-# the flag the whole feature rests on
-# ---------------------------------------------------------------------------
+def reload(path):
+    with quiet():
+        return LAURA(
+            element_list=str(path / "summary.yaml"),
+            section=str(path / "_sections.yaml"),
+        )
+
+
+FODO_ORDER = ["Q1", "D", "Q2", "D", "Q3", "D"]
+
+
+def fodo():
+    return caught(
+        [quad("Q1"), drift("D", 0.5), quad("Q2"), quad("Q3")], order=FODO_ORDER
+    )
 
 
 class TestPositionStated:
-    """``middle`` gets an origin default at construction, so 'no position' and
-    'positioned at the origin' are indistinguishable afterwards.  The flag is
-    taken before that default lands."""
+    """``middle`` defaults to the origin, so the flag is taken before that lands."""
 
     @pytest.mark.parametrize(
         "kwargs",
@@ -106,11 +93,11 @@ class TestPositionStated:
         "kwargs",
         [
             {"middle": {"x": 0, "y": 0, "z": 1.0}},
-            {"middle": {"x": 0, "y": 0, "z": 0.0}},  # deliberately at the origin
-            {"centre": [0, 0, 3.0]},  # alias
-            {"position": [0, 0, 3.0]},  # alias
+            {"middle": {"x": 0, "y": 0, "z": 0.0}},
+            {"centre": [0, 0, 3.0]},
+            {"position": [0, 0, 3.0]},
             {"s": 2.0},
-            {"s": 0.0},  # deliberately at s=0
+            {"s": 0.0},
             {"reference_placement": {"element": "Q0", "s_offset": 1.0}},
         ],
     )
@@ -123,14 +110,8 @@ class TestPositionStated:
         assert phys._position_stated is False
 
 
-# ---------------------------------------------------------------------------
-# the basic line
-# ---------------------------------------------------------------------------
-
-
 class TestSequentialLine:
     def test_five_element_line(self):
-        """The case that used to resolve with everything at z=0."""
         m = machine(
             [quad("Q1"), drift("D1", 0.5), quad("Q2"), drift("D2", 1.0), quad("Q3")]
         )
@@ -145,8 +126,6 @@ class TestSequentialLine:
         assert s_values(m, ["Q1", "Q2", "Q3"]) == pytest.approx([0.1, 0.4, 0.9])
 
     def test_drifts_survive_as_elements(self):
-        """Decided against importer parity: the user named the drift, so
-        ``machine['D1']`` must resolve."""
         m = machine([quad("Q1"), drift("D1", 0.5), quad("Q2")])
         assert "D1" in m.elements
         assert m.elements["D1"].physical.length == pytest.approx(0.5)
@@ -157,22 +136,13 @@ class TestSequentialLine:
         assert s_values(m, ["Q1", "MK", "Q2"]) == pytest.approx([0.05, 0.1, 0.15])
 
     def test_consecutive_coincident_elements_keep_section_order(self):
-        """Every s here is a sum of floats rather than a number anyone typed,
-        so the sort has to tie-break on section order within a tolerance."""
+        """Summed-float s values need a tolerant tie-break on section order."""
         m = machine([quad("Q1"), marker("MK1"), marker("MK2"), quad("Q2")])
         assert m.sections["S"].order == ["Q1", "MK1", "MK2", "Q2"]
         assert s_values(m, ["MK1", "MK2"]) == pytest.approx([0.1, 0.1])
 
 
-# ---------------------------------------------------------------------------
-# the oracle
-# ---------------------------------------------------------------------------
-
-
 class TestAgreesWithExplicitS:
-    """A sequential line and the same line written with explicit ``s`` must
-    resolve identically.  Both go through ``_resolve_s_coordinates``, which is
-    the point of normalising rather than adding a fourth coordinate system."""
 
     LINE = [
         ("quad", "Q1", 0.1),
@@ -204,12 +174,7 @@ class TestAgreesWithExplicitS:
         """Guards the oracle: two identically-wrong answers would also agree."""
         phys = self._build(explicit=False).elements["Q2"].physical
         assert abs(phys.middle.x) > 0.3
-        assert phys.middle.z < 2.15  # shorter in z than the arc length
-
-
-# ---------------------------------------------------------------------------
-# anchoring
-# ---------------------------------------------------------------------------
+        assert phys.middle.z < 2.15
 
 
 class TestAnchoring:
@@ -241,42 +206,29 @@ class TestAnchoring:
         assert "Q2" in messages[0] and "5" in messages[0] and "0.6" in messages[0]
 
     def test_an_xyz_anchor_is_still_rejected(self):
-        """Converting a stated xyz back to an arc length needs the trajectory
-        that does not exist yet, so the anchor has to be written with ``s``."""
+        """xyz -> s needs the trajectory, which doesn't exist yet."""
         with pytest.raises(ValueError, match="anchor it with 's'"):
             machine(
                 [quad("Q1", 0.1, middle=[0, 0, 12.0]), drift("D1", 0.5), quad("Q2")]
             )
 
 
-# ---------------------------------------------------------------------------
-# repeated names
-# ---------------------------------------------------------------------------
-
-
 class TestRepeatedNames:
-    ORDER = ["Q1", "D", "Q2", "D", "Q3", "D"]
-
-    def _fodo(self):
-        return caught(
-            [quad("Q1"), drift("D", 0.5), quad("Q2"), quad("Q3")], order=self.ORDER
-        )
-
     def test_each_occurrence_gets_its_own_element(self):
-        m, _ = self._fodo()
+        m, _ = fodo()
         assert m.sections["S"].order == ["Q1", "D.1", "Q2", "D.2", "Q3", "D.3"]
         assert {"D.1", "D.2", "D.3"} <= set(m.elements)
 
     def test_each_copy_is_placed_separately(self):
-        m, _ = self._fodo()
+        m, _ = fodo()
         assert s_values(m, ["D.1", "D.2", "D.3"]) == pytest.approx([0.35, 0.95, 1.55])
 
     def test_the_original_bare_name_is_retired(self):
-        m, _ = self._fodo()
+        m, _ = fodo()
         assert "D" not in m.elements
 
     def test_it_says_so(self):
-        _, messages = self._fodo()
+        _, messages = fodo()
         assert any("D.1 (from D)" in message for message in messages)
 
     def test_a_name_used_once_is_left_alone(self):
@@ -285,23 +237,7 @@ class TestRepeatedNames:
         assert messages == []
 
 
-# ---------------------------------------------------------------------------
-# and the numbering comes back off again on the way out
-# ---------------------------------------------------------------------------
-
-
 class TestRepeatsCollapseOnExport:
-    """The expansion is an artefact of holding one position per name, so a
-    sequential export -- which writes no positions at all -- puts the repeated
-    name back.  Otherwise the file that comes out is not the one anyone wrote.
-    """
-
-    ORDER = ["Q1", "D", "Q2", "D", "Q3", "D"]
-
-    def _fodo(self):
-        return caught(
-            [quad("Q1"), drift("D", 0.5), quad("Q2"), quad("Q3")], order=self.ORDER
-        )[0]
 
     def _export(self, m, destination, **kwargs):
         with warnings.catch_warnings(record=True) as records:
@@ -318,14 +254,11 @@ class TestRepeatsCollapseOnExport:
         )
 
     def test_the_order_is_written_as_it_was_authored(self, tmp_path):
-        _, order, _ = self._export(self._fodo(), tmp_path)
-        assert order == self.ORDER
+        _, order, _ = self._export(fodo()[0], tmp_path)
+        assert order == FODO_ORDER
 
     def test_the_section_writes_its_space_charge_settings(self, tmp_path):
-        """A section order alone does not describe a section: how finely the
-        collective fields are resolved over it is a property of the section
-        too, and the file is what carries it to whatever reads it back."""
-        m = self._fodo()
+        m = fodo()[0]
         m.sections["S"].space_charge = {"number_of_bins": 40, "step_size": 0.01}
         self._export(m, tmp_path)
         written = yaml.safe_load((tmp_path / "_sections.yaml").open())
@@ -333,38 +266,24 @@ class TestRepeatsCollapseOnExport:
             "number_of_bins": 40,
             "step_size": 0.01,
         }
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            reloaded = LAURA(
-                element_list=str(tmp_path / "summary.yaml"),
-                section=str(tmp_path / "_sections.yaml"),
-            )
+        reloaded = reload(tmp_path)
         assert reloaded.sections["S"].space_charge.number_of_bins == 40
 
     def test_the_repeated_element_is_written_once(self, tmp_path):
-        doc, _, _ = self._export(self._fodo(), tmp_path)
+        doc, _, _ = self._export(fodo()[0], tmp_path)
         assert [name for name in doc if name.startswith("D")] == ["D"]
         assert doc["D"]["name"] == "D"
 
     def test_it_reloads_to_the_same_machine(self, tmp_path):
-        """The repeated name expands again on the way in, so the compact file
-        and the expanded one describe the same lattice."""
-        m = self._fodo()
+        m = fodo()[0]
         self._export(m, tmp_path)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            reloaded = LAURA(
-                element_list=str(tmp_path / "summary.yaml"),
-                section=str(tmp_path / "_sections.yaml"),
-            )
+        reloaded = reload(tmp_path)
         assert s_values(reloaded, ["D.1", "D.2", "D.3"]) == pytest.approx(
             s_values(m, ["D.1", "D.2", "D.3"])
         )
 
     def test_a_copy_changed_since_load_keeps_the_whole_group_expanded(self, tmp_path):
-        """Fidelity over compactness: the copies no longer mean the same thing,
-        so writing one of them three times would be a lie."""
-        m = self._fodo()
+        m = fodo()[0]
         m.elements["D.2"].physical.length = 0.25
         doc, order, messages = self._export(m, tmp_path)
         assert order == ["Q1", "D.1", "Q2", "D.2", "Q3", "D.3"]
@@ -372,19 +291,14 @@ class TestRepeatsCollapseOnExport:
         assert any("no longer match each other" in message for message in messages)
 
     def test_the_other_position_modes_keep_the_numbering(self, tmp_path):
-        """There the position is on the element, and the copies differ by it."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            export_machine_combined_file(str(tmp_path), self._fodo(), position_mode="s")
+        with quiet():
+            export_machine_combined_file(str(tmp_path), fodo()[0], position_mode="s")
         doc = yaml.safe_load((tmp_path / "summary.yaml").open())
         assert {"D.1", "D.2", "D.3"} <= set(doc)
 
     def test_a_name_still_used_elsewhere_is_not_collapsed_onto(self, tmp_path):
-        """``D`` survives as a real element of section B, so B's placement of it
-        must not be overwritten by A's first copy."""
         elements = [quad("Q1"), drift("D", 0.5), quad("Q2")]
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with quiet():
             m = MachineModel(
                 elements={e.name: e for e in elements},
                 section={
@@ -394,27 +308,13 @@ class TestRepeatsCollapseOnExport:
                     }
                 },
             )
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
             export_machine_combined_file(str(tmp_path), m, position_mode="sequential")
         order = yaml.safe_load((tmp_path / "_sections.yaml").open())
         assert order["sections"]["A"]["elements"] == ["Q1", "D.1", "Q2", "D.2"]
 
 
-# ---------------------------------------------------------------------------
-# s and s_point must agree with each other
-# ---------------------------------------------------------------------------
-
-
 class TestSPointMatchesS:
-    """Placement writes ``s`` at the element's *middle*, so ``s_point`` must say so.
-
-    It used to keep whatever was written on input, giving resolved elements a
-    self-contradicting pair (``s=0.5, s_point="end", length=1.0``). LAURA read
-    ``s`` back as the middle regardless, so its own round trip was unharmed --
-    but the exporter wrote the pair out, and anything reading the file by the
-    schema's documented meaning placed the element half a length upstream.
-    """
+    """Placement writes ``s`` at the element's middle, so ``s_point`` must say so."""
 
     @pytest.mark.parametrize(
         "elements",
@@ -444,18 +344,16 @@ class TestSPointMatchesS:
 
     def test_an_s_export_no_longer_contradicts_itself(self, tmp_path):
         m = machine([quad("Q1", 0.1), drift("D1", 0.5), quad("Q2", 0.1)])
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with quiet():
             export_machine_combined_file(str(tmp_path), m, position_mode="s")
         written = yaml.safe_load((tmp_path / "summary.yaml").read_text())
         for name, doc in written.items():
             physical = doc["physical"]
-            # "middle" is the default, so a correct export need not say it
             assert physical.get("s_point", "middle") == "middle"
             assert physical["s"] == pytest.approx(m.elements[name].physical.middle.z)
 
     def test_a_file_written_the_old_way_still_loads_the_same(self, tmp_path):
-        # s at the middle but labelled "end" -- what LAURA used to emit
+        # s at the middle but labelled "end": legacy LAURA output
         source = tmp_path / "old.yaml"
         source.write_text(
             yaml.dump(
@@ -470,19 +368,13 @@ class TestSPointMatchesS:
                 }
             )
         )
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with quiet():
             reloaded = LAURA(
                 element_list=str(source),
                 section={"sections": {"S": ["Q1"]}},
                 layout={"layouts": {"L": ["S"]}, "default_layout": "L"},
             )
         assert reloaded["Q1"].physical.middle.z == pytest.approx(0.5)
-
-
-# ---------------------------------------------------------------------------
-# sections that are not sequential are untouched
-# ---------------------------------------------------------------------------
 
 
 class TestNonSequentialSectionsUnchanged:
@@ -506,15 +398,8 @@ class TestNonSequentialSectionsUnchanged:
         assert messages == []
 
 
-# ---------------------------------------------------------------------------
-# an element shared between sections
-# ---------------------------------------------------------------------------
-
-
 class TestSharedElements:
     def test_an_element_in_two_sections_is_placed_once(self):
-        """A name holds one placement, so the second section resolves against
-        an element that already states a position and does not re-place it."""
         elements = [quad("Q1"), drift("D1", 0.5), quad("Q2")]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message="No layouts")
@@ -530,16 +415,8 @@ class TestSharedElements:
         assert m.elements["Q2"].physical.s == pytest.approx(0.65)
 
 
-# ---------------------------------------------------------------------------
-# failures and warnings
-# ---------------------------------------------------------------------------
-
-
 class TestFailures:
-    """The design called for placement-time guards on missing, negative and NaN
-    lengths.  They turned out to be unreachable: ``length`` is a non-nullable,
-    ``ge=0`` schema slot, so the accumulator can only ever be handed a real
-    length.  These pin that, so the guards stay unnecessary."""
+    """The schema guarantees a real ``length >= 0``, so placement needs no guards."""
 
     @pytest.mark.parametrize("length", [-0.5, float("nan")])
     def test_the_schema_refuses_an_unplaceable_length(self, length):
@@ -555,15 +432,9 @@ class TestFailures:
         assert s_values(m, ["Q1", "D0", "Q2"]) == pytest.approx([0.05, 0.1, 0.15])
 
 
-# ---------------------------------------------------------------------------
-# interaction with element inheritance
-# ---------------------------------------------------------------------------
-
-
 class TestWithInheritance:
     def test_a_line_of_children_of_one_template_is_placed_sequentially(self):
-        """Position is never inherited, so children of a shared template all
-        arrive unpositioned -- which is exactly the sequential trigger."""
+        """Position is never inherited, so children arrive unpositioned."""
         from laura.Importers.YAML_Loader import resolve_inheritance
 
         namespace = {
@@ -577,8 +448,7 @@ class TestWithInheritance:
                 "physical": {"length": 0.1, "s": 4.0},
             }
         }
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with quiet():
             merged = [
                 resolve_inheritance(
                     {"name": name, "inherits_from": "STD_QUAD"}, namespace

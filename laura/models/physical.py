@@ -55,6 +55,36 @@ def _coerce_rotation_mapping(v: dict, *, error_message: str) -> "Rotation":
     raise ValueError(error_message)
 
 
+def _coerce_position(v: Any, name: str) -> "Position":
+    if isinstance(v, (list, tuple, np.ndarray)):
+        coerced = _coerce_position_vector(v)
+        if coerced is not None:
+            return coerced
+    elif isinstance(v, Position):
+        return v
+    elif isinstance(v, dict):
+        return _coerce_position_mapping(
+            v,
+            error_message=f"setting {name} as dictionary must include x, y, z as floats",
+        )
+    raise ValueError(f"{name} should be a number or a list of floats")
+
+
+def _coerce_rotation(v: Any) -> "Rotation":
+    if isinstance(v, (list, tuple, np.ndarray)):
+        coerced = _coerce_rotation_vector(v)
+        if coerced is not None:
+            return coerced
+    elif isinstance(v, Rotation):
+        return v
+    elif isinstance(v, dict):
+        return _coerce_rotation_mapping(
+            v,
+            error_message="setting rotation as dictionary must include phi, psi, theta as floats",
+        )
+    raise ValueError("rotation should be a number or a list of floats")
+
+
 class Position(_PositionBase):
     """
     Position model. Cartesian co-ordinates are used.
@@ -208,40 +238,18 @@ class ElementError(_ElementPositionErrorBase):
     def validate_position(cls, v: Union[Position, Dict, List, np.ndarray]) -> Position:
         if v is None:
             return Position(x=0, y=0, z=0)
-        if isinstance(v, (list, tuple, np.ndarray)):
-            coerced = _coerce_position_vector(v)
-            if coerced is not None:
-                return coerced
-            raise ValueError("position should be a number or a list of floats")
-        if isinstance(v, Position):
-            return v
-        if isinstance(v, dict):
-            return _coerce_position_mapping(
-                v,
-                error_message="setting position as dictionary must include x, y, z as floats",
-            )
-
-        raise ValueError("position should be a number or a list of floats")
+        return _coerce_position(v, "position")
 
     @field_validator("rotation", mode="before")
     @classmethod
     def validate_rotation(cls, v: Union[Rotation, Dict, List, np.ndarray]) -> Rotation:
         if v is None:
             return Rotation(theta=0, phi=0, psi=0)
+        coerced = _coerce_rotation(v)
         if isinstance(v, (list, tuple, np.ndarray)):
-            coerced = _coerce_rotation_vector(v)
-            if coerced is not None:
-                return Rotation(theta=coerced.phi, phi=coerced.psi, psi=coerced.theta)
-            raise ValueError("rotation should be a number or a list of floats")
-        if isinstance(v, Rotation):
-            return v
-        if isinstance(v, dict):
-            return _coerce_rotation_mapping(
-                v,
-                error_message="setting rotation as dictionary must include phi, psi, theta as floats",
-            )
-
-        raise ValueError("rotation should be a number or a list of floats")
+            # Error lists are ordered theta, phi, psi.
+            return Rotation(theta=coerced.phi, phi=coerced.psi, psi=coerced.theta)
+        return coerced
 
     def __str__(self):
         cls = self.__class__
@@ -257,7 +265,7 @@ class ElementError(_ElementPositionErrorBase):
             return str(None)
 
     def __repr__(self):
-        return self.__class__.__name__ + "(" + self.__str__() + ")"
+        return f"{self.__class__.__name__}({self.__str__()})"
 
     def __eq__(self, other):
         cls = self.__class__
@@ -281,8 +289,7 @@ class ReferencePlacement(_ReferencePlacementBase):
       at the chosen ``point``.
     * ``world_offset`` — full 3-D offset already in **global world coordinates**.
     * ``s_offset`` — scalar offset **along the local beam direction** (s-axis)
-      from the reference point.  Equivalent to ``offset: [0, 0, s_offset]``
-      but expressed as a single number.
+      from the reference point; equivalent to ``offset: [0, 0, s_offset]``.
 
     YAML examples::
 
@@ -471,7 +478,7 @@ class PhysicalElement(_PhysicalElementBase):
         if any([getattr(self, k) != 0 for k in cls.model_fields.keys()]):
             return " ".join(
                 [
-                    str(k) + "=" + getattr(self, k).__repr__()
+                    f"{k!s}={getattr(self, k).__repr__()}"
                     for k in cls.model_fields.keys()
                     if getattr(self, k) != 0
                 ]
@@ -480,7 +487,7 @@ class PhysicalElement(_PhysicalElementBase):
             return str()
 
     def __repr__(self):
-        return self.__class__.__name__ + "(" + self.__str__() + ")"
+        return f"{self.__class__.__name__}({self.__str__()})"
 
     def set_physical_angle(self, angle: float | None) -> None:
         """
@@ -521,49 +528,17 @@ class PhysicalElement(_PhysicalElementBase):
         self.physical_angle = 0.0 if angle is None else angle
         return self.physical_angle
 
-    @field_validator("middle", mode="before")
+    @field_validator("middle", "datum", mode="before")
     @classmethod
-    def validate_middle(
-        cls, v: Union[float, int, Dict, List, np.ndarray]
+    def validate_middle_and_datum(
+        cls, v: Union[float, int, Dict, List, np.ndarray], info
     ) -> Optional[Position]:
         if v is None:
-            return None  # Deferred to model_post_init to respect reference_placement
+            # middle is deferred to model_post_init to respect reference_placement
+            return None if info.field_name == "middle" else Position()
         if isinstance(v, (float, int)):
             return Position(z=v)
-        if isinstance(v, (list, tuple, np.ndarray)):
-            coerced = _coerce_position_vector(v)
-            if coerced is not None:
-                return coerced
-            raise ValueError("middle should be a number or a list of floats")
-        if isinstance(v, Position):
-            return v
-        if isinstance(v, dict):
-            return _coerce_position_mapping(
-                v,
-                error_message="setting middle as dictionary must include x, y, z as floats",
-            )
-        raise ValueError("middle should be a number or a list of floats")
-
-    @field_validator("datum", mode="before")
-    @classmethod
-    def validate_datum(cls, v: Union[float, int, Dict, List, np.ndarray]) -> Position:
-        if v is None:
-            return Position()
-        if isinstance(v, (float, int)):
-            return Position(z=v)
-        if isinstance(v, (list, tuple, np.ndarray)):
-            coerced = _coerce_position_vector(v)
-            if coerced is not None:
-                return coerced
-            raise ValueError("datum should be a number or a list of floats")
-        if isinstance(v, Position):
-            return v
-        if isinstance(v, dict):
-            return _coerce_position_mapping(
-                v,
-                error_message="setting datum as dictionary must include x, y, z as floats",
-            )
-        raise ValueError("datum should be a number or a list of floats")
+        return _coerce_position(v, info.field_name)
 
     @field_validator("rotation", "global_rotation", mode="before")
     @classmethod
@@ -572,20 +547,7 @@ class PhysicalElement(_PhysicalElementBase):
             return Rotation(theta=0, phi=0, psi=0)
         if isinstance(v, (float, int)):
             return Rotation(theta=v)
-        if isinstance(v, (list, tuple, np.ndarray)):
-            coerced = _coerce_rotation_vector(v)
-            if coerced is not None:
-                return coerced
-            raise ValueError("rotation should be a number or a list of floats")
-        if isinstance(v, Rotation):
-            return v
-        if isinstance(v, dict):
-            return _coerce_rotation_mapping(
-                v,
-                error_message="setting rotation as dictionary must include phi, psi, theta as floats",
-            )
-
-        raise ValueError("rotation should be a number or a list of floats")
+        return _coerce_rotation(v)
 
     _rotation_matrix_cache = None
     _rotation_matrix_key = None
@@ -610,12 +572,12 @@ class PhysicalElement(_PhysicalElementBase):
 
     def rotated_position(self, vec: List[Union[int, float]] = [0, 0, 0]) -> np.ndarray:
         """
-        Get the rotated position of the element based on matrix multiplication with rotation_matrix.
+        Rotate a vector by :attr:`rotation_matrix`.
 
         Parameters
         ----------
         vec: List[float]
-            Vector by which to rotate the element
+            Vector to rotate.
 
         Returns
         -------

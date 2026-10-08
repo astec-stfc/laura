@@ -25,12 +25,8 @@ class LaserElement(_LaserElementBase):
         Returns
         -------
         float
-            Laser amplitude (dimensionless)
-
-        Raises
-        ------
-        ValueError
-            If any of the requires parameters are not set or non-positive
+            Laser amplitude (dimensionless); 0, with a warning, if any of the
+            required parameters is non-positive.
         """
         if (
             any(
@@ -99,6 +95,6 @@ class LaserMirrorSense(_LaserMirrorSenseBase):
 
 
 class LaserMirrorElement(_LaserMirrorElementBase, IgnoreExtra):
-    """Laser info model."""
+    """Laser mirror model."""
 
     pass

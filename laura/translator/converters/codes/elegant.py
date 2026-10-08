@@ -20,7 +20,7 @@ from ...utils.elegant.sdds_classes_aps import SddsParams
 from ...utils.fields import FieldMap
 from ...utils.functions import merge_layout_elements, number_repeated_names
 from .. import keyword_conversion_rules_elegant
-from .importer import LatticeImporter, infer_geometry, section_entry
+from .importer import LatticeImporter, check_layouts, infer_geometry, keyword_rules
 
 elegant_unsupported = [
     "Plasma",
@@ -356,10 +356,9 @@ class ElegantLatticeImporter(LatticeImporter):
                     expression, 0.0 if parameter == "angle" else length
                 ):
                     data[parameter] = expressions[parameter]
-            rules = keyword_conversion_rules_elegant["general"]
-            element_type = data["hardware_type"].lower()
-            if element_type in keyword_conversion_rules_elegant:
-                rules = keyword_conversion_rules_elegant[element_type] | rules
+            rules = keyword_rules(
+                keyword_conversion_rules_elegant, data["hardware_type"]
+            )
             source_to_laura = {
                 source.lower(): target for target, source in rules.items()
             }
@@ -565,30 +564,15 @@ class ElegantLatticeImporter(LatticeImporter):
                 layout_sections.append(section_name)
             layout_definitions[root] = layout_sections
 
-        if skipped_layouts:
-            warn(
-                "Skipped ELEGANT layouts shorter than min_section_length="
-                f"{min_section_length}: {', '.join(skipped_layouts)}"
-            )
-        if not layout_definitions:
-            raise ValueError(
-                f"No ELEGANT layouts meet min_section_length={min_section_length}."
-            )
-        default_layout = next(iter(layout_definitions))
-        return MachineModel(
-            elements=elements,
-            section={
-                "sections": {
-                    name: section_entry(names, built_sections.get(name))
-                    for name, names in section_definitions.items()
-                }
-            },
-            layout={
-                "layouts": layout_definitions,
-                "default_layout": default_layout,
-            },
-            master_lattice=str(Path(self.source_file).resolve().parent),
-            functional_definitions=self.functional_definitions,
+        check_layouts(
+            layout_definitions, skipped_layouts, min_section_length, "ELEGANT layouts"
+        )
+        return self._layouts_model(
+            elements,
+            section_definitions,
+            built_sections,
+            layout_definitions,
+            self.functional_definitions,
         )
 
     @staticmethod

@@ -1,7 +1,4 @@
-"""Keyword conversions are memoised per shared rules set and per code type
-(`_KEYWORD_MEMO`). An element whose type is only settled at write time -- a
-drift that becomes a CSR or LSC drift, a bend that drops to ``csbend`` without
-CSR -- must still get its own type's keywords, whatever was written before."""
+"""Memoised keywords: a type settled at write time still gets its own keywords."""
 
 import pytest
 

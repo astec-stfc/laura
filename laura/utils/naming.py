@@ -1,7 +1,7 @@
 """Name helpers shared by the model layer and the importers.
 
-The reverse-direction importers when a source
-lattice reuses an element name, and sequential (drift-based) placement when a
+Used by the reverse-direction importers when a source
+lattice reuses an element name, and by sequential (drift-based) placement when a
 hand-written section order does the same.
 """
 

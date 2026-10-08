@@ -1,10 +1,4 @@
-"""The drift-free s positions against the drift-building ones they replaced.
-
-``drift_lengths`` gives the names and lengths ``insert_drifts`` would, without
-building a ``Drift`` per gap; ``SectionLattice.get_s_values`` and
-``LAURA.get_elements_s_pos`` now go through it. The oracle each time is the
-old route: build the drifts, then add up their lengths.
-"""
+"""``drift_lengths`` (no Drift objects) checked against building the drifts with ``insert_drifts``."""
 
 import pytest
 
@@ -14,25 +8,18 @@ from laura.models.element import (
     CombinedCorrector,
     Drift,
     Marker,
-    Quadrupole,
 )
 from laura.models.element_list import SectionLattice, drift_lengths, insert_drifts
 from laura.models.physical import PhysicalElement, Position
+from unit_tests import helpers
 
 
-def quad(name, z, length=0.5):
-    return Quadrupole(
-        name=name,
-        machine_area="S",
-        magnetic={"magnetic_length": length, "k1l": 0.3},
-        physical=PhysicalElement(length=length, middle=Position(z=z)),
-    )
+def quad(name, z):
+    return helpers.quad(name, 0.5, 0.3, middle=Position(z=z))
 
 
 def elements():
-    """Gaps of every kind: a thick diagnostic, a hand-written drift that
-    closes a gap itself, a subelement sitting inside a quad, a gap too short
-    to fill, and a combined corrector whose s its sub-correctors share."""
+    """One of each kind of gap: thick diagnostic, hand-written drift, subelement, sliver, combined corrector."""
     return [
         Marker(name="START", machine_area="S", physical={"middle": {"z": 0.0}}),
         quad("Q1", 0.75),
