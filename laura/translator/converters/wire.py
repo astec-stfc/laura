@@ -34,7 +34,7 @@ class WireTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convert_type_madx(self.hardware_type)
-        string = sanitize_string(self.name) + ": " + etype + f", l = {self.length}"
+        string = f"{sanitize_string(self.name)}: {etype}, l = {self.length}"
         if self.simulation.current:
             string += f", current = {{{self.simulation.current}}}"
         if self.simulation.interaction_length:
@@ -43,7 +43,7 @@ class WireTranslator(BaseElementTranslator):
         string += f", yma = {{{self.simulation.vertical_offset}}}"
         if at is not None:
             string += f", at = {at}"
-        return string + ";\n"
+        return f"{string};\n"
 
     def to_xsuite(self, beam_length: int) -> tuple:
         """

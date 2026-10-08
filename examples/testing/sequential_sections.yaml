@@ -1,0 +1,11 @@
+sections:
+  INJ_LINE:
+    - GUN_CAVITY
+    - INJ_DRIFT_LONG
+    - INJ_QUAD_01
+    - INJ_DRIFT_SHORT
+    - INJ_QUAD_02
+    - INJ_DRIFT_SHORT
+    - INJ_QUAD_03
+    - INJ_DRIFT_SHORT
+    - INJ_BPM_01

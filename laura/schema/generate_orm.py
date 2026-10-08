@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """Generate laura/schema/generated/laura_orm.py from laura/schema/YAML/laura_schema.yaml.
 
-Runs gen-sqla then post-processes to fix self-referential many-to-many
-relationships.  SQLAlchemy 2.0 raises AmbiguousForeignKeysError when a
-secondary junction table has two FK columns that both reference the same
-parent table (which is exactly what happens for self-referential M2M like
-AcceleratorElement.upstream/downstream).  gen-sqla does not emit the
-required primaryjoin/secondaryjoin, so we add them here.
+Runs gen-sqla, then adds the primaryjoin/secondaryjoin it omits on
+self-referential many-to-many relationships (e.g.
+AcceleratorElement.upstream/downstream), without which SQLAlchemy 2.0 raises
+AmbiguousForeignKeysError.
 
 Usage (from repo root)::
 
@@ -113,16 +111,13 @@ def _fix_self_referential_m2m(content: str) -> str:
         # ManyToMany
         slot = relationship( "Foo", secondary="Foo_slot")
 
-    SQLAlchemy 2.0 cannot determine which of the two FK columns in the
-    junction table is the "source" and which is the "target" when both
-    reference the same table.  The fix adds:
+    and this adds:
 
         primaryjoin="Foo.pk == FooSlot.Foo_pk"
         secondaryjoin="Foo.pk == FooSlot.slot_pk"
 
-    using string expressions that SQLAlchemy resolves lazily against the
-    mapper class registry (so forward references to later-defined junction
-    classes work correctly).
+    as strings, which SQLAlchemy resolves lazily, so forward references to
+    later-defined junction classes work.
     """
     pk_cols = _parse_pk_columns(content)
     junction_fk_cols = _parse_junction_fk_columns(content)

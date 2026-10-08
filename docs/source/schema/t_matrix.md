@@ -20,7 +20,7 @@ URI: [laura:t_matrix](https://w3id.org/laura/t_matrix)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [MatrixTransformSimulationElement](MatrixTransformSimulationElement.md) | Zero-, first-, and second-order transfer-map coefficients for a matrix transf... |  no  |
+| [MatrixTransformSimulationElement](MatrixTransformSimulationElement.md) | Zero- through third-order transfer-map coefficients for a matrix transform el... |  no  |
 
 
 

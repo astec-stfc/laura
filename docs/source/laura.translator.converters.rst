@@ -66,6 +66,15 @@ laura.translator.converters.drift module
    :show-inheritance:
    :undoc-members:
 
+laura.translator.converters.fanout module
+-----------------------------------------
+
+.. automodule:: laura.translator.converters.fanout
+   :members:
+   :private-members:
+   :show-inheritance:
+   :undoc-members:
+
 laura.translator.converters.laser module
 ----------------------------------------
 

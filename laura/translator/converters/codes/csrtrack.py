@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Dict, List, Any, Literal
 
 csrtrack_unsupported = [
-    "TwissMatch"
+    "TwissMatch",
     "MatrixTransform",
     "Laser",
     "Plasma",
@@ -57,17 +57,17 @@ class CsrTrackElement(DeprecatedMethodAliases, BaseModel):
 
     def csrtrack_str(self, s: Any) -> str:
         """
-        Convert a boolean into a string for CSRTrack.
+        Convert a value into a string for CSRTrack.
 
         Parameters
         ----------
-        s: bool
-            Boolean to convert
+        s: Any
+            Value to convert
 
         Returns
         -------
         str
-            'yes' for `True`, 'no' for `False`, or the original string if otherwise
+            'yes' for `True`, 'no' for `False`, otherwise ``str(s)``
         """
         if s is True:
             return "yes"
@@ -85,15 +85,15 @@ class CsrTrackElement(DeprecatedMethodAliases, BaseModel):
         str
             CSRTrack-compatible string for this element.
         """
-        output = str(self.header) + "{\n"
+        output = f"{self.header!s}{{\n"
         for key, val in self.model_dump().items():
             if key not in self.exclude and val is not None:
                 if key in self.csrtrackdict:
                     output += (
-                        key + "=" + self.csrtrack_str(self.csrtrackdict[key]) + "\n"
+                        f"{key}={self.csrtrack_str(self.csrtrackdict[key])}\n"
                     )
                 else:
-                    output += key + "=" + self.csrtrack_str(getattr(self, key)) + "\n"
+                    output += f"{key}={self.csrtrack_str(getattr(self, key))}\n"
         output += "}\n"
         return output
 
@@ -123,7 +123,7 @@ class CsrTrackForces(CsrTrackElement):
 
 class CsrTrackTrackStep(CsrTrackElement):
     """
-    Class for defining CSRTrack the tracking step.
+    Class for defining the CSRTrack tracking step.
     """
 
     header: str = "track_step"

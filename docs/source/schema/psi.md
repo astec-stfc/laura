@@ -1,7 +1,7 @@
 # Slot: psi 
 
 
-_Rotation about the vertical (y) axis [rad]._
+_Rotation about the longitudinal (z) axis [rad]._
 
 
 
@@ -105,7 +105,7 @@ URI: [laura:psi](https://w3id.org/laura/psi)
 <details>
 ```yaml
 name: psi
-description: Rotation about the vertical (y) axis [rad].
+description: Rotation about the longitudinal (z) axis [rad].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 ifabsent: float(0)

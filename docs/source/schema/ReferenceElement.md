@@ -92,6 +92,7 @@ URI: [laura:ReferenceElement](https://w3id.org/laura/ReferenceElement)
 | [BunchLengthMonitor](BunchLengthMonitor.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [Camera](Camera.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [Screen](Screen.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [WireScanner](WireScanner.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
@@ -110,6 +111,7 @@ URI: [laura:ReferenceElement](https://w3id.org/laura/ReferenceElement)
 | [VerticalCorrector](VerticalCorrector.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [CombinedCorrector](CombinedCorrector.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [Solenoid](Solenoid.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [Wiggler](Wiggler.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [NonLinearLens](NonLinearLens.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 

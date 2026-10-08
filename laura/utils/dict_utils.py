@@ -1,7 +1,7 @@
 """
 Dictionary and YAML utilities for LAURA models.
 
-Provides helpers for flattening nested dicts, YAML representation, and serialization.
+Flattening nested dicts, numpy scalar conversion and YAML representers.
 """
 
 from typing import Dict, MutableMapping
@@ -12,8 +12,6 @@ import yaml
 def flatten_dict(dictionary: Dict, parent_key: str = "", separator: str = "_") -> Dict:
     """
     Flatten a nested dictionary into a single level.
-
-    Used for expanding nested Pydantic BaseModel structures into flat dicts.
 
     Example:
         >>> flatten_dict({'a': {'b': 1, 'c': 2}})

@@ -4,8 +4,6 @@ Cascading attribute access for nested Pydantic models.
 This mixin enables transparent access to nested model attributes:
     quad.k1l  # instead of quad.magnetic.field_integral.k1l
     elem.maxI  # instead of elem.electrical.maxI
-
-This is a convenience layer that searches nested models for matching attribute names.
 """
 
 from typing import Type, List, Tuple, Union, Any, get_args, get_origin

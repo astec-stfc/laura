@@ -9,13 +9,9 @@ matter block::
       boost: 1.0
     ---# Type: Boolean
 
-On the built-in type pages the closing fence is emitted glued to the title, as
-above.  MyST cannot read that as front matter, so the leading ``---`` becomes a
-transition ("Document or section may not begin with a transition"), the page
-loses its H1, and every following ``##`` warns "Document headings start at H2".
-A page with no H1 also has no title to show in a toctree.
-
-The block means nothing to Sphinx either way, so it is stripped from every page.
+On the built-in type pages the closing fence is glued to the title, as above,
+so MyST reads the ``---`` as a transition and the page loses its H1. The block
+means nothing to Sphinx, so it is stripped from every page.
 
 Usage (from repo root)::
 

@@ -1,22 +1,23 @@
+from typing import Any, Dict, List, Literal, Optional, Union
+
 import numpy as np
 from pydantic import (
-    field_validator,
-    model_validator,
+    Field,
     PrivateAttr,
     computed_field,
+    field_validator,
     model_serializer,
-    Field,
+    model_validator,
 )
-from typing import List, Literal, Optional, Union, Dict, Any
 
+from ..utils.rotation_matrix import euler_angles_to_rotation_matrix
 from ._generated import (
-    _PositionBase,
-    _RotationBase,
     _ElementPositionErrorBase,
     _PhysicalElementBase,
+    _PositionBase,
     _ReferencePlacementBase,
+    _RotationBase,
 )
-from ..utils.rotation_matrix import euler_angles_to_rotation_matrix
 from .trajectory import Trajectory
 
 
@@ -52,6 +53,36 @@ def _coerce_rotation_mapping(v: dict, *, error_message: str) -> "Rotation":
             theta=float(v.get("theta", 0.0)),
         )
     raise ValueError(error_message)
+
+
+def _coerce_position(v: Any, name: str) -> "Position":
+    if isinstance(v, (list, tuple, np.ndarray)):
+        coerced = _coerce_position_vector(v)
+        if coerced is not None:
+            return coerced
+    elif isinstance(v, Position):
+        return v
+    elif isinstance(v, dict):
+        return _coerce_position_mapping(
+            v,
+            error_message=f"setting {name} as dictionary must include x, y, z as floats",
+        )
+    raise ValueError(f"{name} should be a number or a list of floats")
+
+
+def _coerce_rotation(v: Any) -> "Rotation":
+    if isinstance(v, (list, tuple, np.ndarray)):
+        coerced = _coerce_rotation_vector(v)
+        if coerced is not None:
+            return coerced
+    elif isinstance(v, Rotation):
+        return v
+    elif isinstance(v, dict):
+        return _coerce_rotation_mapping(
+            v,
+            error_message="setting rotation as dictionary must include phi, psi, theta as floats",
+        )
+    raise ValueError("rotation should be a number or a list of floats")
 
 
 class Position(_PositionBase):
@@ -207,40 +238,18 @@ class ElementError(_ElementPositionErrorBase):
     def validate_position(cls, v: Union[Position, Dict, List, np.ndarray]) -> Position:
         if v is None:
             return Position(x=0, y=0, z=0)
-        if isinstance(v, (list, tuple, np.ndarray)):
-            coerced = _coerce_position_vector(v)
-            if coerced is not None:
-                return coerced
-            raise ValueError("position should be a number or a list of floats")
-        if isinstance(v, Position):
-            return v
-        if isinstance(v, dict):
-            return _coerce_position_mapping(
-                v,
-                error_message="setting position as dictionary must include x, y, z as floats",
-            )
-
-        raise ValueError("position should be a number or a list of floats")
+        return _coerce_position(v, "position")
 
     @field_validator("rotation", mode="before")
     @classmethod
     def validate_rotation(cls, v: Union[Rotation, Dict, List, np.ndarray]) -> Rotation:
         if v is None:
             return Rotation(theta=0, phi=0, psi=0)
+        coerced = _coerce_rotation(v)
         if isinstance(v, (list, tuple, np.ndarray)):
-            coerced = _coerce_rotation_vector(v)
-            if coerced is not None:
-                return Rotation(theta=coerced.phi, phi=coerced.psi, psi=coerced.theta)
-            raise ValueError("rotation should be a number or a list of floats")
-        if isinstance(v, Rotation):
-            return v
-        if isinstance(v, dict):
-            return _coerce_rotation_mapping(
-                v,
-                error_message="setting rotation as dictionary must include phi, psi, theta as floats",
-            )
-
-        raise ValueError("rotation should be a number or a list of floats")
+            # Error lists are ordered theta, phi, psi.
+            return Rotation(theta=coerced.phi, phi=coerced.psi, psi=coerced.theta)
+        return coerced
 
     def __str__(self):
         cls = self.__class__
@@ -256,7 +265,7 @@ class ElementError(_ElementPositionErrorBase):
             return str(None)
 
     def __repr__(self):
-        return self.__class__.__name__ + "(" + self.__str__() + ")"
+        return f"{self.__class__.__name__}({self.__str__()})"
 
     def __eq__(self, other):
         cls = self.__class__
@@ -280,8 +289,7 @@ class ReferencePlacement(_ReferencePlacementBase):
       at the chosen ``point``.
     * ``world_offset`` — full 3-D offset already in **global world coordinates**.
     * ``s_offset`` — scalar offset **along the local beam direction** (s-axis)
-      from the reference point.  Equivalent to ``offset: [0, 0, s_offset]``
-      but expressed as a single number.
+      from the reference point; equivalent to ``offset: [0, 0, s_offset]``.
 
     YAML examples::
 
@@ -326,7 +334,9 @@ class ReferencePlacement(_ReferencePlacementBase):
         raise ValueError("offset must be a list of 3 floats or {x, y, z} dict")
 
     @model_validator(mode="after")
-    def _check_offset_exclusivity(self) -> "ReferencePlacement": # noqa: N804 (pydantic after-validator takes self)
+    def _check_offset_exclusivity(
+        self,  # noqa: N804 (pydantic after-validator takes self)
+    ) -> "ReferencePlacement":
         n = sum(
             [
                 self.offset is not None,
@@ -365,9 +375,14 @@ class PhysicalElement(_PhysicalElementBase):
 
     _parent: Any = PrivateAttr(default=None)
     _trajectory: Optional[Trajectory] = PrivateAttr(default=None)
+    # Whether ``physical_angle`` was supplied explicitly at construction, as
+    # opposed to being left to derive from the magnetic model.
+    _explicit_angle: bool = PrivateAttr(default=False)
 
     @model_validator(mode="after")
-    def _check_placement_exclusivity(self) -> "PhysicalElement": # noqa: N804 (pydantic after-validator takes self)
+    def _check_placement_exclusivity(
+        self,  # noqa: N804 (pydantic after-validator takes self)
+    ) -> "PhysicalElement":
         # Pydantic v2 re-runs model validators on every field assignment when
         # validate_assignment=True.  After construction the lattice assembly
         # legitimately sets both middle AND s on the same element, so we only
@@ -390,6 +405,16 @@ class PhysicalElement(_PhysicalElementBase):
         return self
 
     def model_post_init(self, __context) -> None:
+        object.__setattr__(
+            self,
+            "_position_stated",
+            self.reference_placement is not None
+            or self.middle is not None
+            or self.s is not None,
+        )
+        object.__setattr__(
+            self, "_explicit_angle", "physical_angle" in self.model_fields_set
+        )
         # Skip the middle default when another positioning mode handles placement.
         if self.reference_placement is None and self.middle is None and self.s is None:
             self.middle = Position()
@@ -453,7 +478,7 @@ class PhysicalElement(_PhysicalElementBase):
         if any([getattr(self, k) != 0 for k in cls.model_fields.keys()]):
             return " ".join(
                 [
-                    str(k) + "=" + getattr(self, k).__repr__()
+                    f"{k!s}={getattr(self, k).__repr__()}"
                     for k in cls.model_fields.keys()
                     if getattr(self, k) != 0
                 ]
@@ -462,7 +487,7 @@ class PhysicalElement(_PhysicalElementBase):
             return str()
 
     def __repr__(self):
-        return self.__class__.__name__ + "(" + self.__str__() + ")"
+        return f"{self.__class__.__name__}({self.__str__()})"
 
     def set_physical_angle(self, angle: float | None) -> None:
         """
@@ -476,70 +501,44 @@ class PhysicalElement(_PhysicalElementBase):
         """
         self._physical_angle_override = angle
 
+    @property
+    def magnet_angle(self) -> Optional[float]:
+        """The bend angle the magnetic model asks for [rad].
+
+        ``None`` where the element has no magnet that can bend, which is not the
+        same as a magnet set to bend by zero.
+        """
+        magnetic = getattr(self._parent, "magnetic", None)
+        if magnetic is None or not hasattr(type(magnetic), "angle"):
+            return None
+        try:
+            return float(magnetic.KnL(0))
+        except KeyError:
+            return 0.0
+
     @computed_field
     @property
     def _physical_angle(self) -> float:
         if self._physical_angle_override is not None:
             self.physical_angle = self._physical_angle_override
             return self._physical_angle_override
-        if self._parent is not None:
-            magnetic = getattr(self._parent, "magnetic", None)
-            # Only dipoles expose an `angle`; use the resolved bend angle
-            # (KnL(0), always numeric) and degrade to 0 if a functional
-            # definition is not yet available.
-            if magnetic is not None and hasattr(type(magnetic), "angle"):
-                try:
-                    angle = magnetic.KnL(0)
-                except KeyError:
-                    angle = 0.0
-                self.physical_angle = angle
-                return angle
-        self.physical_angle = 0.0
-        return 0.0
+        if self._explicit_angle:
+            return float(self.physical_angle)
+        angle = self.magnet_angle
+        self.physical_angle = 0.0 if angle is None else angle
+        return self.physical_angle
 
-    @field_validator("middle", mode="before")
+    @field_validator("middle", "datum", mode="before")
     @classmethod
-    def validate_middle(
-        cls, v: Union[float, int, Dict, List, np.ndarray]
+    def validate_middle_and_datum(
+        cls, v: Union[float, int, Dict, List, np.ndarray], info
     ) -> Optional[Position]:
         if v is None:
-            return None  # Deferred to model_post_init to respect reference_placement
+            # middle is deferred to model_post_init to respect reference_placement
+            return None if info.field_name == "middle" else Position()
         if isinstance(v, (float, int)):
             return Position(z=v)
-        if isinstance(v, (list, tuple, np.ndarray)):
-            coerced = _coerce_position_vector(v)
-            if coerced is not None:
-                return coerced
-            raise ValueError("middle should be a number or a list of floats")
-        if isinstance(v, Position):
-            return v
-        if isinstance(v, dict):
-            return _coerce_position_mapping(
-                v,
-                error_message="setting middle as dictionary must include x, y, z as floats",
-            )
-        raise ValueError("middle should be a number or a list of floats")
-
-    @field_validator("datum", mode="before")
-    @classmethod
-    def validate_datum(cls, v: Union[float, int, Dict, List, np.ndarray]) -> Position:
-        if v is None:
-            return Position()
-        if isinstance(v, (float, int)):
-            return Position(z=v)
-        if isinstance(v, (list, tuple, np.ndarray)):
-            coerced = _coerce_position_vector(v)
-            if coerced is not None:
-                return coerced
-            raise ValueError("datum should be a number or a list of floats")
-        if isinstance(v, Position):
-            return v
-        if isinstance(v, dict):
-            return _coerce_position_mapping(
-                v,
-                error_message="setting datum as dictionary must include x, y, z as floats",
-            )
-        raise ValueError("datum should be a number or a list of floats")
+        return _coerce_position(v, info.field_name)
 
     @field_validator("rotation", "global_rotation", mode="before")
     @classmethod
@@ -548,22 +547,10 @@ class PhysicalElement(_PhysicalElementBase):
             return Rotation(theta=0, phi=0, psi=0)
         if isinstance(v, (float, int)):
             return Rotation(theta=v)
-        if isinstance(v, (list, tuple, np.ndarray)):
-            coerced = _coerce_rotation_vector(v)
-            if coerced is not None:
-                return coerced
-            raise ValueError("rotation should be a number or a list of floats")
-        if isinstance(v, Rotation):
-            return v
-        if isinstance(v, dict):
-            return _coerce_rotation_mapping(
-                v,
-                error_message="setting rotation as dictionary must include phi, psi, theta as floats",
-            )
-
-        raise ValueError("rotation should be a number or a list of floats")
+        return _coerce_rotation(v)
 
     _rotation_matrix_cache = None
+    _rotation_matrix_key = None
 
     _physical_angle_override = None
     """Set via :func:`set_physical_angle` to pin the layout angle; ``None`` tracks the
@@ -571,26 +558,26 @@ class PhysicalElement(_PhysicalElementBase):
 
     @property
     def rotation_matrix(self) -> np.ndarray:
-        # if self._rotation_matrix_cache is not None:
-        #     return self._rotation_matrix_cache
-        
-        # Combined rotations using utility function
+        """The element's orientation as a 3x3 matrix."""
         # Apply yaw (Y), pitch (X), roll (Z) in that order
-        yaw = self.rotation.theta + self.global_rotation.theta
-        pitch = self.rotation.phi + self.global_rotation.phi
-        roll = self.rotation.psi + self.global_rotation.psi
-
-        self._rotation_matrix_cache = euler_angles_to_rotation_matrix(yaw, pitch, roll)
+        key = (
+            self.rotation.theta + self.global_rotation.theta,
+            self.rotation.phi + self.global_rotation.phi,
+            self.rotation.psi + self.global_rotation.psi,
+        )
+        if self._rotation_matrix_cache is None or self._rotation_matrix_key != key:
+            self._rotation_matrix_cache = euler_angles_to_rotation_matrix(*key)
+            self._rotation_matrix_key = key
         return self._rotation_matrix_cache
 
     def rotated_position(self, vec: List[Union[int, float]] = [0, 0, 0]) -> np.ndarray:
         """
-        Get the rotated position of the element based on matrix multiplication with rotation_matrix.
+        Rotate a vector by :attr:`rotation_matrix`.
 
         Parameters
         ----------
         vec: List[float]
-            Vector by which to rotate the element
+            Vector to rotate.
 
         Returns
         -------
@@ -598,6 +585,34 @@ class PhysicalElement(_PhysicalElementBase):
             Rotated vector.
         """
         return self.rotation_matrix @ np.array(vec)
+
+    @property
+    def _physical_tilt(self) -> float:
+        """Roll of the layout plane about the beam axis [rad].
+
+        :attr:`start`, :attr:`end` and :attr:`end_rotation_matrix` all lay the
+        bend out in the ``y = 0`` plane of :attr:`rotation_matrix`.  A magnet
+        rolled about the beam axis bends in a different plane,
+        so the layout has to be rolled with it.
+        Read off the magnet rather than folded into :attr:`rotation`.
+        """
+        magnetic = getattr(self._parent, "magnetic", None)
+        tilt = getattr(magnetic, "tilt", None) if magnetic is not None else None
+        if not isinstance(tilt, (int, float)) or not tilt:
+            return 0.0
+        placed = getattr(self.global_rotation, "psi", 0.0) or 0.0
+        return 0.0 if abs(placed) > 1e-12 else float(tilt)
+
+    @property
+    def _layout_matrix(self) -> np.ndarray:
+        """:attr:`rotation_matrix`, rolled into the plane the magnet bends in."""
+        tilt = self._physical_tilt
+        if not tilt:
+            return self.rotation_matrix
+        cz, sz = np.cos(tilt), np.sin(tilt)
+        return self.rotation_matrix @ np.array(
+            [[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]]
+        )
 
     @property
     def end_rotation_matrix(self) -> np.ndarray:
@@ -612,6 +627,7 @@ class PhysicalElement(_PhysicalElementBase):
         ``rotation_matrix`` gives the actual exit direction, which equals
         ``rotation_matrix @ Ry(-θ)`` where Ry uses LAURA's convention
         ``Ry(α) = [[cos α, 0, −sin α], [0,1,0], [sin α, 0, cos α]]``.
+
         """
         theta = self._physical_angle
         if abs(theta) < 1e-9:
@@ -619,58 +635,54 @@ class PhysicalElement(_PhysicalElementBase):
         ct, st = np.cos(theta), np.sin(theta)
         # Ry(-theta) in LAURA's convention
         ry_neg = np.array([[ct, 0, st], [0, 1, 0], [-st, 0, ct]])
-        return self.rotation_matrix @ ry_neg
+        tilt = self._physical_tilt
+        if not tilt:
+            return self.rotation_matrix @ ry_neg
+        cz, sz = np.cos(tilt), np.sin(tilt)
+        rz = np.array([[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]])
+        return self.rotation_matrix @ rz @ ry_neg @ rz.T
+
+    def offset_from_middle(self, face: Literal["start", "end"]) -> np.ndarray:
+        """The vector from :attr:`middle` to one face of the element [m].
+
+        The one home for the layout geometry: :attr:`start` and :attr:`end` are
+        this offset applied to :attr:`middle`.
+
+        The faces sit on the arc, half the bend either side of the middle, in the
+        plane the magnet bends in (:attr:`_layout_matrix`).
+        """
+        theta = self._physical_angle
+        if abs(theta) > 1e-9:
+            half = theta / 2.0
+            rho = self.length / theta
+            if face == "end":
+                local = [
+                    rho * (np.cos(half) - np.cos(theta)),
+                    0,
+                    rho * (np.sin(theta) - np.sin(half)),
+                ]
+            else:
+                local = [-rho * (1 - np.cos(half)), 0, -rho * np.sin(half)]
+        else:
+            # Straight element
+            local = [0, 0, (self.length / 2.0) * (1 if face == "end" else -1)]
+        return self._layout_matrix @ np.array(local)
+
+    def _face(self, face: Literal["start", "end"]) -> Position:
+        if self.middle is None:
+            raise RuntimeError(
+                f"Cannot compute '{face}': element has an unresolved position "
+                "(reference_placement or s-coordinate pending). "
+                "Call resolve_positions() on the containing lattice first."
+            )
+        return Position.from_list(
+            np.array(self.middle.array) + self.offset_from_middle(face)
+        )
 
     @property
     def start(self) -> Position:
-        if self.middle is None:
-            raise RuntimeError(
-                "Cannot compute 'start': element has an unresolved position "
-                "(reference_placement or s-coordinate pending). "
-                "Call resolve_positions() on the containing lattice first."
-            )
-        middle = np.array(self.middle.array)
-
-        if abs(self._physical_angle) > 1e-9:
-            # Bent element
-            sx = (
-                -self.length
-                * (1 - np.cos(self._physical_angle))
-                / (2 * self._physical_angle)
-            )
-            sy = 0
-            sz = (
-                -self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
-            )
-        else:
-            # Straight element
-            sx, sy, sz = 0, 0, -self.length / 2.0
-
-        vec = [sx, sy, sz]
-        start = middle + self.rotated_position(vec)
-        return Position.from_list(start)
+        return self._face("start")
 
     @property
     def end(self) -> Position:
-        if self.middle is None:
-            raise RuntimeError(
-                "Cannot compute 'end': element has an unresolved position "
-                "(reference_placement or s-coordinate pending). "
-                "Call resolve_positions() on the containing lattice first."
-            )
-        middle = np.array(self.middle.array)
-
-        if abs(self._physical_angle) > 1e-9:
-            ex = (
-                self.length
-                * (1 - np.cos(self._physical_angle))
-                / (2 * self._physical_angle)
-            )
-            ey = 0
-            ez = self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
-        else:
-            ex, ey, ez = 0, 0, self.length / 2.0
-
-        vec = [ex, ey, ez]
-        end = middle + self.rotated_position(vec)
-        return Position.from_list(end)
+        return self._face("end")

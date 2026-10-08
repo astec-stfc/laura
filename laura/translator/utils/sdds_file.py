@@ -179,7 +179,16 @@ class SDDSColumn(SDDSObject):
         fieldlength=0,
         description="",
     ):
-        super().__init__(name=name, data=None, unit=unit, type=type, symbol=symbol)
+        super().__init__(
+            name=name,
+            data=None,
+            unit=unit,
+            type=type,
+            symbol=symbol,
+            formatstring=formatstring,
+            fieldlength=fieldlength,
+            description=description,
+        )
         self.objectType = "Column"
         self.data = data
 
@@ -215,7 +224,16 @@ class SDDSParameter(SDDSObject):
         fieldlength=0,
         description="",
     ):
-        super().__init__(name=name, data=None, unit=unit, type=type, symbol=symbol)
+        super().__init__(
+            name=name,
+            data=None,
+            unit=unit,
+            type=type,
+            symbol=symbol,
+            formatstring=formatstring,
+            fieldlength=fieldlength,
+            description=description,
+        )
         self.objectType = "Parameter"
         self.data = data
 
@@ -275,6 +293,14 @@ class SDDSFile(object):
             self._sddsObject.mode = self._sddsObject.SDDS_ASCII
         else:
             self._sddsObject.mode = self._sddsObject.SDDS_BINARY
+        # (text, contents) header pair, e.g. ("floor coordinates--input: foo.ele
+        # lattice: bar.lte", "floor coordinates") -- populated by read_file().
+        self.file_description = ("", "")
+
+    @property
+    def description(self) -> str:
+        """The file-level SDDS description string (empty if not set/read)."""
+        return self.file_description[0]
 
     def _new_sdds_object(self, cleared: bool):
         if self._indexed:
@@ -455,7 +481,6 @@ class SDDSFile(object):
             )
             self._sddsObject.setParameterValueList(param.name, param.data)
         for name, column in self._columns.items():
-            # print(len([list(column.data)][0]))
             self._sddsObject.defineColumn(
                 column.name,
                 column.symbol,
@@ -474,6 +499,7 @@ class SDDSFile(object):
     def read_file(self, filename, page=-1):
         self._sddsObject.load(filename)
         sddsref = self._sddsObject
+        self.file_description = tuple(getattr(sddsref, "description", ("", "")))
         for col in range(len(sddsref.columnName)):
             symbol, unit, description, formatstring, type, fieldlength = (
                 sddsref.columnDefinition[col]
@@ -489,9 +515,7 @@ class SDDSFile(object):
                 fieldlength=fieldlength,
                 description=description,
             )
-        # sddsobject.SDDSparameterNames = list()
         for param in range(len(sddsref.parameterName)):
-            name = sddsref.parameterName[param]
             symbol, unit, description, formatstring, type, fieldlength = (
                 sddsref.parameterDefinition[param]
             )

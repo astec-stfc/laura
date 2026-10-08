@@ -1,62 +1,13 @@
 """
-Convert a :class:`~laura.translator.utils.fields.FieldMap` object's on-axis 1D
-samples into the plain-array form RF-Track's field-map constructors need
+Convert a :class:`~laura.translator.utils.fields.FieldMap`'s on-axis 1D samples
+into the constructor arguments of RF-Track's field-map elements
 (RF_Track_reference_manual.pdf §4.4).
 
-Unlike ASTRA/GPT/OPAL (``astra.py``/``gdf.py``/``opal.py`` in this package),
-RF-Track has no field-map *file* format of its own -- ``RF_Track.RF_FieldMap_1d``
-/``Static_Magnetic_FieldMap_1d`` are built directly from in-memory numpy arrays
--- so, unlike those modules, this one has no ``write_rftrack_field_file``: it
-only hands back a plain constructor-args tuple. The caller
-(``laura.translator.conversion_rules.codes.rftrack_conversion``) passes that
-straight into the real ``RF_Track`` constructor and also reuses it, via that
-module's own ``_format_args``, to render the equivalent Python source line for
-exported standalone scripts -- mirroring every other builder in that file
-(``_cavity_args``/``build_pillbox_cavity``/``repr_pillbox_cavity``, etc).
-
-Only 1D on-axis field maps are supported -- the only field-map data LAURA's
-generic element model actually stores (mirrors ASTRA/GPT's own on-axis
-convention; RF-Track itself reconstructs the off-axis field assuming
-cylindrical symmetry from just this on-axis data, manual §4.4). Standing-wave
-cavities and static-magnetic elements (:func:`rf_fieldmap_1d_args`/
-:func:`static_magnetic_fieldmap_1d_args`) use the on-axis samples directly.
-
-Travelling-wave cavities (:func:`rf_fieldmap_1d_travelling_wave_args_list`)
-need a genuinely complex on-axis array for the core (manual §4.4.1: "can be
-either complex numbers (travelling waves) or real numbers (standing
-waves)"), which an ASTRA TWS field file doesn't store directly -- its
-``start_cell_z``/``end_cell_z`` window is not one physical cell but one full
-*periodic repeat block* (``mode_denominator`` physical cells, since after
-that many cells the field's own phase advance, ``mode_denominator *
-2*pi*mode_numerator/mode_denominator = 2*pi*mode_numerator``, returns to the
-start -- verified against CLARA's real L01/``TWS_S-DL.hdf5``:
-``end_cell_z - start_cell_z`` = 3 physical cells worth of length, and the
-on-axis data genuinely oscillates in sign across that span). Getting this
-wrong is not a cosmetic inaccuracy: an earlier version of this function
-replicated that span ``n_cells`` times with an extra ``exp(i*i*dphi)``
-rotation between every replica (as if each one were a single physical cell);
-those spurious phases summed to *exactly* zero every ``mode_denominator``
-replicas -- and ``get_cells()`` always returns a multiple of
-``mode_denominator`` cells -- so real CLARA L01 tracking gave *exactly zero*
-net acceleration.
-
-:func:`rf_fieldmap_1d_travelling_wave_args_list` tiles the real periodic
-block ``n_cells / mode_denominator`` times with NO extra rotation between
-tiles, then recovers the complex forward-travelling-wave array via the
-conjugated analytic-signal construction, ``np.conj(scipy.signal.hilbert(...)
-)`` -- empirically verified against the real package to give the physically
-expected gain (the unconjugated form gives near-zero). The samples outside
-``[start_cell_z, end_cell_z]`` are the structure's real input/output
-couplers and are kept as separate, real ``RF_FieldMap_1d`` args rather than
-being folded into the Hilbert-transformed core -- matching manual §4.3.6's
-own recommendation to chain a real entrance coupler, the travelling-wave
-core, and a real exit coupler for a genuine TW structure. All returned
-elements should get the same ``set_phid`` applied (empirically verified;
-manual §4.3.6's own +90 degree core-vs-coupler offset is specific to the
-analytic ``SW_Structure``/``TW_Structure`` element pair, not
-``RF_FieldMap_1d``). ``rftrack_conversion.build_tw_structure`` (RF-Track's
-analytic, single-harmonic ``TW_Structure`` model) remains the fallback when a
-field map isn't available.
+RF-Track has no field-map file format: ``RF_FieldMap_1d`` and
+``Static_Magnetic_FieldMap_1d`` take in-memory arrays, so these functions return
+argument tuples for ``rftrack_conversion`` rather than writing files. Only 1D
+on-axis maps are supported; RF-Track reconstructs the off-axis field assuming
+cylindrical symmetry.
 """
 
 import numpy as np
@@ -64,19 +15,14 @@ from scipy.signal import hilbert
 
 
 def _as_str(value) -> str:
-    """h5py string attributes sometimes come back as ``bytes``/``numpy.bytes_``
-    rather than ``str`` -- normalise before comparing (same pitfall
-    ``astra.generate_astra_field_data`` already guards against)."""
+    """Normalise h5py ``bytes``/``numpy.bytes_`` string attributes to ``str``."""
     return value.decode("utf-8") if isinstance(value, bytes) else str(value)
 
 
 def _uniform_mesh(z: np.ndarray, values: np.ndarray) -> tuple:
     """
-    Return ``(hz, values)`` for RF-Track's fixed-spacing 1D mesh convention
-    (manual §4.4: "All field maps accept 3D Cartesian mesh grids with regular
-    spacing"). Resamples onto a uniform grid via linear interpolation if the
-    source samples are not already evenly spaced -- real field-map files are
-    not guaranteed to be, unlike RF-Track's own requirement.
+    Return ``(hz, values)`` on the regular 1D mesh RF-Track requires (manual
+    §4.4), linearly resampling if the source samples are unevenly spaced.
     """
     z = np.asarray(z, dtype=float)
     dz = np.diff(z)
@@ -99,12 +45,9 @@ def rf_fieldmap_1d_args(
     Parameters
     ----------
     amplitude: float
-        Real peak on-axis field [V/m]. This field's own ``Ez`` samples are
-        stored normalized to a peak of 1.0 (SIMBA/LAURA's own field-file
-        convention -- see ``astra.read_astra_field_file``), so the caller must
-        supply the true scale (e.g. the owning element's
-        ``simulation.field_amplitude``); the field object itself has no
-        concept of the element that references it.
+        Real peak on-axis field [V/m]. ``Ez`` samples are stored normalized
+        to a peak of 1.0, so the caller supplies the scale (e.g. the
+        element's ``simulation.field_amplitude``).
     frequency: float
         RF frequency [Hz].
     direction: int
@@ -139,8 +82,7 @@ def static_magnetic_fieldmap_1d_args(self, amplitude: float) -> tuple:
     Parameters
     ----------
     amplitude: float
-        Real peak on-axis field [T] -- see :func:`rf_fieldmap_1d_args` for why
-        this can't be read from the field object itself.
+        Real peak on-axis field [T]; see :func:`rf_fieldmap_1d_args`.
 
     Returns
     -------
@@ -161,47 +103,26 @@ def rf_fieldmap_1d_travelling_wave_args_list(
     self, amplitude: float, frequency: float, n_cells: int, direction: int = 1
 ) -> list:
     """
-    Return a list of 1-3 ``RF_Track.RF_FieldMap_1d`` constructor-arg tuples
-    for a travelling-wave cavity built from an ASTRA-style TWS field: a real
-    (standing-wave-style) input coupler (``z < start_cell_z``), a complex
-    travelling-wave periodic core (``start_cell_z <= z <= end_cell_z``,
-    tiled), and a real output coupler (``z > end_cell_z``) -- in that order,
-    omitting an empty coupler region. Mirrors manual §4.3.6's own
-    recommendation to chain a real entrance coupler, a travelling-wave core,
-    and a real exit coupler for a genuine TW structure
-    (``SW_Structure``+``TW_Structure``+``SW_Structure``); the caller
-    (``rftrack_conversion.build_tw_fieldmap``) appends these into one
-    sub-``Lattice``, applying the same ``set_phid`` to every element --
-    empirically verified against real CLARA L01 data that this (not the
-    manual's own +90 degree core offset, which is specific to the analytic
-    ``SW_Structure``/``TW_Structure`` element pair) gives the physically
-    correct ~30 MeV/c gain for RF_FieldMap_1d.
+    Return 1-3 ``RF_Track.RF_FieldMap_1d`` constructor-argument tuples for a
+    travelling-wave cavity from an ASTRA-style TWS field: a real input coupler
+    (``z < start_cell_z``), a complex travelling-wave core
+    (``start_cell_z <= z <= end_cell_z``, tiled) and a real output coupler
+    (``z > end_cell_z``), omitting empty couplers (manual §4.3.6). The caller
+    applies the same ``set_phid`` to every element; the manual's +90 degree
+    core offset applies only to ``SW_Structure``/``TW_Structure``.
 
-    The core spans ``mode_denominator`` physical cells (after which the
-    field's own phase advance, ``mode_denominator *
-    2*pi*mode_numerator/mode_denominator = 2*pi*mode_numerator``, returns to
-    its start -- verified against real ASTRA/CLARA field-map files, whose
-    on-axis data genuinely oscillates in sign across that span), so it's
-    tiled ``n_cells / mode_denominator`` times with every tile identical (no
-    extra phase rotation between tiles -- an earlier version that rotated by
-    ``exp(i*i*dphi)`` per tile summed to exactly zero net acceleration every
-    ``mode_denominator`` replicas, and ``get_cells()`` always returns a
-    multiple of ``mode_denominator``).
-
-    The tiled core is converted from a real, physically-oscillating array to
-    the complex forward-travelling-wave field RF-Track needs via the
-    conjugated analytic-signal (Hilbert transform) construction --
-    ``np.conj(scipy.signal.hilbert(...))`` -- empirically verified against
-    the real package (with ``direction=1``) to give the expected ~42 MeV/c
-    gain for a clean synthetic case and ~30 MeV/c for real CLARA L01 data at
-    its actual operating phase (the unconjugated version gives near-zero
-    gain).
+    The ``[start_cell_z, end_cell_z]`` window is one periodic block of
+    ``mode_denominator`` physical cells (the phase advance returns to
+    ``2*pi*mode_numerator`` after that many), so it is tiled
+    ``n_cells / mode_denominator`` times with no phase rotation between tiles;
+    rotating each tile cancels the net acceleration. The tiled core is made
+    complex with ``np.conj(scipy.signal.hilbert(...))``; the unconjugated
+    analytic signal gives near-zero gain.
 
     Parameters
     ----------
     amplitude: float
-        Real peak on-axis field [V/m] -- see :func:`rf_fieldmap_1d_args` for
-        why this can't come from the field object itself.
+        Real peak on-axis field [V/m]; see :func:`rf_fieldmap_1d_args`.
     frequency: float
         RF frequency [Hz].
     n_cells: int

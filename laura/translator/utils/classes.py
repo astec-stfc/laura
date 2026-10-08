@@ -6,8 +6,8 @@ _powers_of_8 = np.asarray([2**j for j in range(1, 20)])
 
 def get_grid_size(x: PositiveInt) -> int:
     """
-    Calculate the 3D space charge grid size given the number of particles, minimum of 4:
-    the closest power of 8 to the cube root of the number of particles.
+    Calculate the 3D space charge grid size given the number of particles: the
+    power of 2 closest to the cube root of the number of particles, minimum 4.
 
     Parameters
     ----------
@@ -17,7 +17,7 @@ def get_grid_size(x: PositiveInt) -> int:
     Returns
     -------
     int
-        The number of space charge grids
+        Grid points per dimension
     """
     cuberoot = int(round(abs(x) ** (1.0 / 3)))
     nearest = _powers_of_8[(np.abs(_powers_of_8 - cuberoot)).argmin()]

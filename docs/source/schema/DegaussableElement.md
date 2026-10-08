@@ -65,6 +65,7 @@ URI: [laura:DegaussableElement](https://w3id.org/laura/DegaussableElement)
 | [VerticalCorrector](VerticalCorrector.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
 | [CombinedCorrector](CombinedCorrector.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
 | [Solenoid](Solenoid.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
 | [Wiggler](Wiggler.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
 | [NonLinearLens](NonLinearLens.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
 

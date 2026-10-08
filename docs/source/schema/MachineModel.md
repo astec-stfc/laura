@@ -41,6 +41,8 @@ URI: [laura:MachineModel](https://w3id.org/laura/MachineModel)
     
 
         
+      MachineModel : particle
+        
       MachineModel : sections
         
           
@@ -71,6 +73,7 @@ URI: [laura:MachineModel](https://w3id.org/laura/MachineModel)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
+| [particle](particle.md) | 0..1 <br/> [String](String.md) | Machine-wide design particle species, overridable per layout | direct |
 | [elements](elements.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | All elements in the machine, keyed by name | direct |
 | [sections](sections.md) | * <br/> [SectionLattice](SectionLattice.md) | All named beamline sections | direct |
 | [layouts](layouts.md) | * <br/> [MachineLayout](MachineLayout.md) | All named beamline layouts | direct |
@@ -128,6 +131,17 @@ description: 'Top-level container for a complete accelerator lattice: elements, 
   layouts, and named lattice configurations.'
 from_schema: https://w3id.org/laura/schema
 attributes:
+  particle:
+    name: particle
+    description: Machine-wide design particle species, overridable per layout. Free
+      text rather than an enum because the accepted set includes arbitrary ions (e.g.
+      ``#12C+3``) alongside the fundamental particles.
+    from_schema: https://w3id.org/laura/schema/machine
+    domain_of:
+    - MachineLayout
+    - MachineModel
+    range: string
+    required: false
   elements:
     name: elements
     description: All elements in the machine, keyed by name.
@@ -169,6 +183,18 @@ description: 'Top-level container for a complete accelerator lattice: elements, 
   layouts, and named lattice configurations.'
 from_schema: https://w3id.org/laura/schema
 attributes:
+  particle:
+    name: particle
+    description: Machine-wide design particle species, overridable per layout. Free
+      text rather than an enum because the accepted set includes arbitrary ions (e.g.
+      ``#12C+3``) alongside the fundamental particles.
+    from_schema: https://w3id.org/laura/schema/machine
+    owner: MachineModel
+    domain_of:
+    - MachineLayout
+    - MachineModel
+    range: string
+    required: false
   elements:
     name: elements
     description: All elements in the machine, keyed by name.

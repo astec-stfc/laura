@@ -1,0 +1,35 @@
+# The four sections of an ERL, each defined once, in installation order.
+#
+# LINAC is the shared one. It appears here exactly once, because there is one
+# linac: this file describes what is installed, not what the beam does. That
+# the beam goes through it twice is stated in ``multipass_layouts.yaml``,
+# which is the file that describes the path.
+#
+# Every section here is sequentially placed -- no element states an ``s`` --
+# so each is defined by its element lengths and the layout chains them. That
+# matters for multipass: a section entered twice has to be positioned
+# relatively, since the second pass starts wherever the arc left the beam.
+
+sections:
+  INJECTOR:
+    - INJ_Q
+    - DRIFT_INJ
+
+  LINAC:
+    - DRIFT_LIN
+    - CAV_01
+    - DRIFT_LIN
+    - LIN_Q
+    - DRIFT_LIN
+    - CAV_02
+    - DRIFT_LIN
+
+  ARC:
+    - ARC_B
+    - DRIFT_ARC
+    - ARC_Q
+    - DRIFT_ARC
+
+  DUMP:
+    - DRIFT_DUMP
+    - DMP_Q

@@ -1,6 +1,7 @@
-from pydantic import BaseModel, model_serializer, ConfigDict
-from typing import TypeVar, Any, Type, List, Union, Dict, ClassVar
+from typing import Any, ClassVar, Dict, List, Type, TypeVar, Union
+
 import numpy as np
+from pydantic import BaseModel, ConfigDict, model_serializer
 from pydantic_core.core_schema import SerializationInfo
 
 from ..utils.dict_utils import (
@@ -21,11 +22,9 @@ def resolve_functional_parameter(
     """
     Resolve a (possibly functional) parameter to its numeric value.
 
-    Many element attributes (e.g. multipole strengths, cavity phases) may be
-    defined either directly as a number or symbolically as a string that names
-    an entry in the lattice's functional definitions (for example
-    ``{"quad1_k1l": -2, "cav1_phase": 90}``). The string is stored verbatim on
-    the element; whether it is resolved to a number here depends on ``force``:
+    A functional parameter is a string naming an entry in the lattice's
+    functional definitions (e.g. ``{"quad1_k1l": -2}``). Whether it is resolved
+    depends on ``force``:
 
     * ``force=True`` — always resolve (used by computations that need a number);
     * ``force=False`` — never resolve (return the string verbatim);
@@ -108,10 +107,8 @@ def functional_annotations(field_info: Any) -> Dict[str, Any]:
 
 def functional_references(model: Any) -> set:
     """
-    Recursively collect the names of functional definitions referenced by a
-    model — i.e. the string values stored in fields flagged as functional-enabled
-    (``annotations: {functional: true}`` on the schema slot). Nested models are
-    walked so that, for example, a magnet's multipole strengths are discovered.
+    Recursively collect the functional-definition names referenced by a model
+    and its nested models (string values of functional-enabled fields).
 
     Args:
         model (Any): A pydantic model (typically an element); non-models yield
@@ -130,9 +127,6 @@ def functional_references(model: Any) -> set:
             continue
         meta = functional_annotations(field_info)
         if meta.get("functional") and isinstance(value, str):
-            # A field may reserve some literal string values that are not
-            # functional-definition names (e.g. edge angles use "angle"/"angle/2"
-            # to reference the bend angle); those are skipped.
             reserved = meta.get("reserved_contains")
             if not (reserved and reserved in value):
                 refs.add(value)
@@ -208,21 +202,21 @@ def convert_numpy_types(v: Any) -> Any:
     """
     if isinstance(v, (dict)):
         return {k: convert_numpy_types(l) for k, l in v.items()}
+    if isinstance(v, np.ndarray) and v.ndim == 0:
+        return numpy_scalar_to_python(v.item())
     if isinstance(v, (np.ndarray, list, tuple)):
         return FlowList([convert_numpy_types(arr) for arr in v])
     return numpy_scalar_to_python(v)
 
 
 class ModelBase(BaseModel):
-    """Base Model that ignores extra fields."""
+    """Base model with numpy-tolerant equality and dumps."""
 
     def __eq__(self, other):
         """Equality that gracefully handles numpy arrays in private attributes."""
         try:
             return super().__eq__(other)
         except (ValueError, TypeError):
-            # Fallback: compare serialised forms when private-attribute
-            # comparison fails (e.g. numpy arrays).
             if not isinstance(other, BaseModel):
                 return NotImplemented
             return self.model_dump() == other.model_dump()
@@ -231,9 +225,42 @@ class ModelBase(BaseModel):
         return id(self)
 
     def base_model_dump(self, exclude_defaults: bool = False) -> dict:
-        return convert_numpy_types(
-            self.model_dump(exclude_none=True, exclude_defaults=exclude_defaults)
-        )
+        return convert_numpy_types(_dump(self, exclude_defaults))
+
+
+def _same(value, default) -> bool:
+    try:
+        return bool(value == default)
+    except ValueError:
+        return np.array_equal(value, default)
+
+
+def _dump(model: BaseModel, exclude_defaults: bool) -> dict:
+    """``model_dump(exclude_none=True)``, without defaults if asked.
+
+    Pydantic compares a value with its default using ``==``, so a numpy-array
+    field makes a whole ``exclude_defaults`` dump raise. Fall back to comparing
+    field by field.
+    """
+    try:
+        return model.model_dump(exclude_none=True, exclude_defaults=exclude_defaults)
+    except ValueError:
+        if not exclude_defaults:
+            raise
+    out = {}
+    for name, field in type(model).model_fields.items():
+        value = getattr(model, name)
+        if value is None or _same(value, field.get_default(call_default_factory=True)):
+            continue
+        if isinstance(value, BaseModel):
+            out[name] = _dump(value, True)
+        else:
+            out[name] = model.model_dump(include={name}, exclude_none=True)[name]
+    for name in type(model).model_computed_fields:
+        value = model.model_dump(include={name}, exclude_none=True).get(name)
+        if value is not None:
+            out[name] = value
+    return out
 
 
 class FunctionalMixin:
@@ -241,18 +268,14 @@ class FunctionalMixin:
     Provides :meth:`resolve` / :meth:`resolved` to any model holding functional
     parameters.
 
-    This is a plain mixin rather than methods on :class:`IgnoreExtra` because the
-    schema-generated element bases in ``laura/models/_generated.py`` descend from
-    their own ``ConfiguredBaseModel`` root, not from ``IgnoreExtra``. That file is
-    regenerated from ``laura_schema.yaml`` and must not be hand-edited, so wrapper
-    classes that declare functional fields mix this in alongside their generated
-    base instead.
+    A mixin rather than methods on :class:`IgnoreExtra` because the generated
+    bases in ``laura/models/_generated.py`` do not descend from ``IgnoreExtra``.
     """
 
     def resolve(self, value: Any) -> Any:
         """
         Resolve a single (possibly functional) value to its number, regardless of
-        the global resolution mode (this is an explicit request to resolve).
+        the global resolution mode.
 
         See :func:`resolve_functional_parameter`.
         """
@@ -286,10 +309,8 @@ class IgnoreExtra(ModelBase, FunctionalMixin):
     functional_definitions: ClassVar[Dict[str, Union[int, float]]] = {}
     """
     Shared registry of functional definitions for the accelerator lattice,
-    e.g. ``{"quad1_k1l": -2, "cav1_phase": 90}``
-    
-    Populate it via
-    # :func:`set_functional_definitions`
+    e.g. ``{"quad1_k1l": -2, "cav1_phase": 90}``. Populate it via
+    :func:`set_functional_definitions`.
     """
 
     resolve_functional: ClassVar[bool] = False
