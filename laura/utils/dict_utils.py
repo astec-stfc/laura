@@ -10,6 +10,8 @@ from typing import Dict
 import numpy as np
 import yaml
 
+_LEAVES = (str, int, float, list, tuple, type(None), np.ndarray)
+
 
 def flatten_dict(dictionary: Dict, parent_key: str = "", separator: str = "_") -> Dict:
     """
@@ -33,7 +35,9 @@ def flatten_dict(dictionary: Dict, parent_key: str = "", separator: str = "_") -
     for key, value in dictionary.items():
         if isinstance(key, str):
             new_key = parent_key + separator + key if parent_key else key
-            if isinstance(value, MutableMapping):
+            if isinstance(value, dict) or (
+                not isinstance(value, _LEAVES) and isinstance(value, MutableMapping)
+            ):
                 flat.update(flatten_dict(value, new_key, separator=separator))
             else:
                 flat[new_key] = value

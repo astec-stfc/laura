@@ -206,8 +206,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         data = flatten_dict({**self.model_dump()}, parent_key="", separator="_")
         data.pop("magnetic_gap", None)
-        if resolve:
-            defs = IgnoreExtra.functional_definitions
+        defs = IgnoreExtra.functional_definitions
+        if resolve and defs:
             data = {
                 key: (defs[value] if self.is_functional(value) else value)
                 for key, value in data.items()

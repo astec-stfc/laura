@@ -188,6 +188,8 @@ def functional_fields(element: BaseModel) -> Dict[str, str]:
     the native object and :func:`apply_functional_fields` can restore them.
     """
     found = {}
+    if not IgnoreExtra.functional_definitions:
+        return found
 
     def walk(value: Any, path: str) -> None:
         if isinstance(value, dict):

@@ -110,6 +110,17 @@ def represent_tuple(dumper, data):
 yaml.add_representer(tuple, represent_tuple)
 
 
+class _ExportDumper(getattr(yaml, "CDumper", yaml.Dumper)):
+    """``yaml.Dumper`` with libyaml's emitter where PyYAML has it: the same text,
+    written in about half the time, which on a 5k-element machine is seconds."""
+
+
+# the Python Dumper's own tables, shared rather than copied, so a representer
+# registered on it later (simba registers one for dict) applies here too
+_ExportDumper.yaml_representers = yaml.Dumper.yaml_representers
+_ExportDumper.yaml_multi_representers = yaml.Dumper.yaml_multi_representers
+
+
 def _clean_export_data(data: dict, ele: PhysicalElement) -> dict:
     """Remove computed / internal fields and restore essential identification fields
     that may have been stripped by exclude_defaults."""
@@ -441,7 +452,7 @@ def _copy_templates(
             continue
         namespace_copy[name] = raw
         with open(os.path.join(destination_root, f"_{name}.yaml"), "w") as handle:
-            yaml.dump(raw, handle)
+            yaml.dump(raw, handle, Dumper=_ExportDumper)
 
 
 _POSITION_KEYS = ("middle", "s", "s_point", "reference_placement")
@@ -743,7 +754,10 @@ def export_machine_sections(
     }
     with open(os.path.join(path, filename), "w") as handle:
         yaml.dump(
-            {"sections": _authored_sections(machine, flat)}, handle, sort_keys=False
+            {"sections": _authored_sections(machine, flat)},
+            handle,
+            sort_keys=False,
+            Dumper=_ExportDumper,
         )
 
 
@@ -848,7 +862,7 @@ def export_as_yaml(
     if filename is not None:
         with open(filename, "w") as yaml_file:
             yaml.default_flow_style = False
-            yaml.dump(dump, yaml_file)
+            yaml.dump(dump, yaml_file, Dumper=_ExportDumper)
     else:
         return dump
 
@@ -937,7 +951,7 @@ def export_machine_combined_file(
 
     with open(filename, "w") as yaml_file:
         yaml.default_flow_style = True
-        yaml.dump(combined_yaml, yaml_file)
+        yaml.dump(combined_yaml, yaml_file, Dumper=_ExportDumper)
 
     if position_mode == "sequential" and write_sections:
         export_machine_sections(path, machine, aliases=aliases)
@@ -1061,7 +1075,7 @@ def export_machine(
         templates, template_of = family_templates(dumps)
         for template_name, raw in templates.items():
             with open(os.path.join(path, f"_{template_name}.yaml"), "w") as handle:
-                yaml.dump(raw, handle)
+                yaml.dump(raw, handle, Dumper=_ExportDumper)
             copied_templates[template_name] = raw
         namespace = _TemplateOverlay(templates, namespace)
 
@@ -1091,7 +1105,7 @@ def export_machine(
             if name != elem.name:  # a collapsed repeat, written under the original name
                 dump["name"] = name
             with open(filename, "w") as yaml_file:
-                yaml.dump(dump, yaml_file)
+                yaml.dump(dump, yaml_file, Dumper=_ExportDumper)
             if collapse_schema and copy_schemas:
                 _copy_controls_schema(elem, schema_root, directory, copied_schemas)
             if collapse_inheritance and copy_templates:
@@ -1175,7 +1189,7 @@ def export_elements(
             namespace=namespace,
         )
         with open(filename, "w") as yaml_file:
-            yaml.dump(dump, yaml_file)
+            yaml.dump(dump, yaml_file, Dumper=_ExportDumper)
         if collapse_schema and copy_schemas:
             _copy_controls_schema(elem, schema_root, directory, copied_schemas)
         if collapse_inheritance and copy_templates:
