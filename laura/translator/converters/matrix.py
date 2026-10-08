@@ -2,7 +2,6 @@ from itertools import combinations_with_replacement, permutations
 from warnings import warn
 
 import numpy as np
-from torch import float64, tensor
 
 from laura.models.simulation import MatrixTransformSimulationElement
 
@@ -186,6 +185,8 @@ class MatrixTransformTranslator(BaseElementTranslator):
         object
             An Cheetah object representing the element, initialized with its properties.
         """
+        from torch import float64, tensor
+
         from ..conversion_rules.codes import cheetah_conversion
 
         type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
