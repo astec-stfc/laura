@@ -1,42 +1,27 @@
-"""Section ``geometry``/``reference_energy`` and layout/machine ``particle``.
-
-Each is set in the sections and layouts files, and written back out by
-`export_machine_sections`, so a machine saved as YAML keeps what a tracking
-code needs to know about its beam.
-"""
-
-import warnings
+"""Section ``geometry``/``reference_energy`` and layout/machine ``particle``."""
 
 import yaml
 
 from laura import LAURA
 from laura.exporters.yaml_exporter import export_as_yaml, export_machine_sections
-from laura.models.element import Quadrupole
-
-
-def _quad(name, z):
-    return Quadrupole(
-        name=name,
-        machine_area="L1",
-        physical={"length": 0.1, "middle": {"z": z}},
-        magnetic={"length": 0.1, "k1l": 0.5},
-    )
+from unit_tests.helpers import quad, quiet
 
 
 def _write_tree(root, sections, layouts):
-    elements = [_quad("Q1", 1.0), _quad("Q2", 2.0)]
+    elements = [
+        quad(n, machine_area="L1", middle={"z": z})
+        for n, z in (("Q1", 1.0), ("Q2", 2.0))
+    ]
     root.mkdir()
-    with open(root / "elements.yaml", "w") as handle:
-        yaml.dump({e.name: export_as_yaml(None, e, "global") for e in elements}, handle)
-    with open(root / "sections.yaml", "w") as handle:
-        yaml.dump({"sections": sections}, handle)
-    with open(root / "layouts.yaml", "w") as handle:
-        yaml.dump(layouts, handle)
+    (root / "elements.yaml").write_text(
+        yaml.dump({e.name: export_as_yaml(None, e, "global") for e in elements})
+    )
+    (root / "sections.yaml").write_text(yaml.dump({"sections": sections}))
+    (root / "layouts.yaml").write_text(yaml.dump(layouts))
 
 
 def _load(root):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         return LAURA(
             element_list=str(root / "elements.yaml"),
             section=str(root / "sections.yaml"),

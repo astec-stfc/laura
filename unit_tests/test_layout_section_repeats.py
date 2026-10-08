@@ -1,55 +1,29 @@
-"""A section listed twice in a layout is entered twice.
-
-The layout entry list is the beam path, so naming a section twice asks for two
-traversals. ``MachineLayout.sections`` is keyed by section name, though, and
-``_build_layout_objects`` fills it with a dict comprehension.
-
-The oracle is the section level, which has always read a line listed twice as
-a repeat (``expand_section_order``).  ``PATH: [CELL, CELL]`` at the layout level
-must agree with ``MAIN: [CELL, CELL]`` one level down, name for name and
-position for position.
-
-Repetition is N devices at N positions. The readings that cannot mean that
-are refused.
+"""A section listed twice in a layout is entered twice, as ``expand_section_order``
+already does one level down.
 """
-
-import warnings
 
 import pytest
 
-from laura.models.element import Drift, Quadrupole
+from laura.models.element import Drift
 from laura.models.elementList import MachineModel
-
-
-def quad(name, length, s=None):
-    physical = {"length": length}
-    if s is not None:
-        physical |= {"s": s, "s_point": "middle"}
-    return Quadrupole(
-        name=name,
-        hardware_class="Magnet",
-        machine_area="ARC",
-        magnetic={"magnetic_length": length, "k1l": 1.0},
-        physical=physical,
-    )
+from unit_tests.helpers import quad, quiet
 
 
 def elements():
     return {
-        "Q1": quad("Q1", 0.2),
+        "Q1": quad("Q1", 0.2, 1.0, "ARC"),
         "D1": Drift(
             name="D1",
             hardware_class="Drift",
             machine_area="ARC",
             physical={"length": 0.5},
         ),
-        "Q2": quad("Q2", 0.2),
+        "Q2": quad("Q2", 0.2, 1.0, "ARC"),
     }
 
 
 def machine(sections, layout):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         return MachineModel(
             elements=elements(),
             section={"sections": sections},
@@ -63,7 +37,7 @@ def cell(times):
 
 
 def profile(model):
-    """``[(name, s)]`` along the beam path, which is what a repeat has to get right."""
+    """``[(name, s)]`` along the beam path."""
     layout = model.lattices["PATH"]
     return [
         (name, round(layout.get_element(name).physical.s, 6))
@@ -104,7 +78,7 @@ class TestARepeatedSectionIsEnteredEachTime:
 
 
 class TestAgreesWithTheSectionLevel:
-    """The same duplication one level down is the oracle: it always worked."""
+    """The same duplication one level down is the oracle."""
 
     @staticmethod
     def both():
@@ -140,33 +114,31 @@ class TestNonAdjacentRepeats:
 
 
 class TestDirectionFollowsTheOccurrence:
+    @staticmethod
+    def reversed_twice():
+        return machine({"CELL": ["Q1", "D1"]}, [{"CELL": {"direction": -1}}] * 2)
+
     def test_a_direction_is_rekeyed_onto_the_occurrences(self):
-        model = machine(
-            {"CELL": ["Q1", "D1"]},
-            [{"CELL": {"direction": -1}}, {"CELL": {"direction": -1}}],
-        )
+        model = self.reversed_twice()
         assert model._layout_directions["PATH"] == {"CELL.1": -1, "CELL.2": -1}
 
     def test_the_same_direction_twice_is_still_a_repeat(self):
-        model = machine(
-            {"CELL": ["Q1", "D1"]},
-            [{"CELL": {"direction": -1}}, {"CELL": {"direction": -1}}],
-        )
-        assert list(model.sections) == ["CELL.1", "CELL.2"]
+        assert list(self.reversed_twice().sections) == ["CELL.1", "CELL.2"]
 
 
 class TestRefusesWhatCannotBeRepetition:
-    def test_occurrences_with_different_directions_are_refused(self):
-        # Anchored on the condition, not the explanation: the prose half of
-        # these messages gets trimmed, the claim does not.
-        with pytest.raises(ValueError, match="different 'direction' each time"):
-            machine(
-                {"CELL": ["Q1", "D1"]},
-                ["CELL", {"CELL": {"direction": -1}}],
-            )
-
-    def test_the_refusal_names_the_layout_and_the_section(self):
-        with pytest.raises(ValueError, match="Layout 'PATH'.*section 'CELL'"):
+    # Match the condition, not the prose half of the message, which gets trimmed.
+    @pytest.mark.parametrize(
+        "match",
+        [
+            pytest.param("different 'direction' each time", id="refused"),
+            pytest.param(
+                "Layout 'PATH'.*section 'CELL'", id="names-layout-and-section"
+            ),
+        ],
+    )
+    def test_occurrences_with_different_directions_are_refused(self, match):
+        with pytest.raises(ValueError, match=match):
             machine(
                 {"CELL": ["Q1", "D1"]},
                 ["CELL", {"CELL": {"direction": -1}}],
@@ -175,14 +147,14 @@ class TestRefusesWhatCannotBeRepetition:
     def test_a_positioned_section_cannot_be_repeated(self):
         with pytest.raises(ValueError, match="states its own positions"):
             MachineModel(
-                elements={"QP": quad("QP", 0.2, s=1.0)},
+                elements={"QP": quad("QP", 0.2, 1.0, "ARC", s=1.0, s_point="middle")},
                 section={"sections": {"POS": ["QP"]}},
                 layout={"layouts": {"PATH": ["POS", "POS"]}, "default_layout": "PATH"},
             )
 
     def test_a_positioned_section_entered_once_is_fine(self):
         model = MachineModel(
-            elements={"QP": quad("QP", 0.2, s=1.0)},
+            elements={"QP": quad("QP", 0.2, 1.0, "ARC", s=1.0, s_point="middle")},
             section={"sections": {"POS": ["QP"]}},
             layout={"layouts": {"PATH": ["POS"]}, "default_layout": "PATH"},
         )

@@ -122,11 +122,6 @@ class ApertureTranslator(BaseElementTranslator):
         """
         Creates the part of the ASTRA element dictionary relevant to circular apertures in ASTRA
 
-        Parameters
-        ----------
-        dic: dict
-            Dictionary containing the parameters for the aperture
-
         Returns
         -------
         dict
@@ -149,12 +144,14 @@ class ApertureTranslator(BaseElementTranslator):
 
     def _write_astra_planar(self, plane, width) -> dict:
         """
-        Creates the part of the ASTRA element dictionary common to all apertures in ASTRA
+        Creates the ASTRA element dictionary for one plane of a planar aperture.
 
         Parameters
         ----------
-        dic: dict
-            Dictionary containing the parameters for the aperture
+        plane: str
+            ASTRA ``File_Aperture`` value, ``"Col_X"`` or ``"Col_Y"``
+        width: float
+            Aperture half-width written as ``Ap_R`` [mm]
 
         Returns
         -------
@@ -182,8 +179,8 @@ class ApertureTranslator(BaseElementTranslator):
         str
             String representation of the element for ASTRA
 
-        Raises:
-        -------
+        Raises
+        ------
         ValueError
             If `shape` is not in the list of allowed values.
         """

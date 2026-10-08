@@ -204,11 +204,9 @@ def load_functional_definitions(
 
     The specification may be given directly as a mapping of names to numbers
     (e.g. ``{"quad1_k1l": -2, "cav1_phase": 90}``), or as a path to a YAML file
-    holding such a mapping. The YAML may either be a flat mapping or nest the
-    mapping under a top-level ``functional_definitions`` key. Paths are resolved
-    relative to the working directory, then ``master_lattice``, then the package
-    directory (mirroring how :class:`MachineModel` resolves its layout/section
-    files).
+    holding such a mapping, flat or under a top-level ``functional_definitions``
+    key. Paths are resolved relative to the working directory, then
+    ``master_lattice``, then the package directory.
 
     Parameters
     ----------
@@ -330,8 +328,10 @@ class _ElementQueries:
             Filter by element type; if list, gather multiple types; if None, gather all.
         element_model: str | list | None
             Filter by element model; if list, gather multiple models; if None, gather all.
-        element_class
+        element_class: str | list | None
             Filter by element hardware class; if list, gather multiple classes; if None, gather all.
+        section_type: str | list | None
+            Filter by section type; if list, gather multiple types; if None, gather all.
 
         Returns
         -------
@@ -353,7 +353,7 @@ class BaseLatticeModel(ModelBase):
     Base-level description for defining lattices. Allows dynamic extensibility via `append`, `remove` functions.
 
     This class should not be used for creating lattices from scratch; rather, use
-    `laura.models.elementList.SectionLattice`, `laura.models.elementList.MachineLayout`.
+    `laura.models.element_list.SectionLattice`, `laura.models.element_list.MachineLayout`.
     """
 
     name: str
@@ -373,7 +373,7 @@ class BaseLatticeModel(ModelBase):
     resolve_functional: bool = False
     """Global resolution mode. When False (default), functional attributes are
     rendered as their definition name (a string); when True they are presented as
-    resolved numbers. See :func:`~laura.models.baseModels.set_resolve_functional`."""
+    resolved numbers. See :func:`~laura.models.base_models.set_resolve_functional`."""
 
     revolution_frequency: float | None = None
     """The ring's revolution frequency [Hz], if this lattice is (part of) a closed ring."""
@@ -617,27 +617,22 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
         self, as_dict: bool = False, at_entrance: bool = False, starting_s: float = 0
     ) -> list | dict:
         """
-        Get the S values for the elements in the lattice.
-        This method calculates the cumulative length of the elements in the lattice,
-        starting from the entrance or the first element, depending on the `at_entrance` parameter.
-        It returns a list or dict of S values, which represent the positions of the elements along the lattice.
+        Get the S values for the elements in the lattice, as a cumulative sum of
+        element and drift lengths.
 
         Parameters
         ----------
         as_dict: bool, optional
             If True, returns a dictionary with element names as keys and their S values as values.
         at_entrance: bool, optional
-            If True, calculates S values starting from the entrance of the lattice.
-            If False, calculates S values starting from the first element.
+            If True, give each element's S value at its entrance rather than its exit.
         starting_s: float, optional
             Initial s position
 
         Returns
         -------
         list | dict
-            A list or dictionary of S values for the elements in the lattice.
-            If `as_dict` is True, returns a dictionary with element names as keys and their S values as values.
-            If `as_dict` is False, returns a list of S values.
+            A list or dictionary (see `as_dict`) of S values for the elements in the lattice.
         """
         elems = self.create_drifts()
         s = [starting_s]
@@ -656,14 +651,9 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
         from the resolved :class:`~laura.models.trajectory.Trajectory` built by
         :meth:`resolve_positions` (bend-aware, ``reference_placement``-aware).
 
-        Unlike :meth:`get_s_values` (a naive cumulative sum of element lengths),
-        this reads each element's already-resolved ``physical.s`` directly, and
-        projects synthetic drift elements (created by :meth:`create_drifts`,
-        which never get ``physical.s`` set) onto the nearest sibling's
-        trajectory via :meth:`~laura.models.trajectory.Trajectory.s_at_xyz`.
-
-        Falls back to :meth:`get_s_values` if no element in the section carries
-        a resolved trajectory (i.e. ``resolve_positions`` was never run).
+        Drifts from :meth:`create_drifts`, which have no ``physical.s``, are
+        projected onto the trajectory. Falls back to :meth:`get_s_values` if
+        ``resolve_positions`` was never run.
 
         Parameters
         ----------
@@ -809,11 +799,8 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
     def _detect_coordinate_system(self, element_registry: dict) -> str:
         """Return ``'s'``, ``'global'``, or ``'reference'`` for this section.
 
-        An element is treated as *pending-s* only when ``s`` is set but
-        ``middle`` is still ``None`` (i.e., not yet resolved).  Elements that
-        already have both ``s`` and ``middle`` (e.g. after a round-trip) are
-        treated as global.  This avoids false positives when a pre-resolved
-        model is reconstructed alongside elements using explicit xyz.
+        An element is *pending-s* only when ``s`` is set but ``middle`` is still
+        ``None``; one with both (e.g. after a round-trip) counts as global.
 
         Raises :exc:`ValueError` if pending-s and explicit-xyz elements are
         mixed (``reference_placement``-only elements are always allowed).
@@ -1099,8 +1086,8 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
 
         Handles three positioning modes in order:
 
-        1. ``reference_placement`` — resolved first (same as the original
-           :meth:`resolve_reference_placements` method).
+        1. ``reference_placement`` — resolved first, via
+           :meth:`resolve_reference_placements`.
         2. ``s``-coordinate — the design orbit is integrated from s=0 at
            the global origin to place each element.
         3. Global xyz (``middle``) — already resolved; s-values and trajectory
@@ -1265,7 +1252,7 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
     """
 
     sections: Dict[str, SectionLattice]  # = Field(frozen=True)
-    """Dictionary of :class:`~laura.models.elementList.SectionLattice`, keyed by name."""
+    """Dictionary of :class:`~laura.models.element_list.SectionLattice`, keyed by name."""
 
     passes: List[LayoutPass] = []
     """The beam order, one :class:`LayoutPass` per section traversal.
@@ -1431,7 +1418,7 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
         section that pass traverses, in beam order.
 
         ``section`` names which one when more than one is multipass -- for a
-        multi-turn ERL, both ``LINAC`` and ``ARC`` both have a pass 2.
+        multi-turn ERL, both ``LINAC`` and ``ARC`` have a pass 2.
 
         Raises
         ------
@@ -1726,7 +1713,7 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
 
         Returns
         -------
-        List[baseElement]
+        List[BaseElement]
             List of all elements.
         """
         return self._all_elements
@@ -1748,7 +1735,7 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
 
     def get_element(self, name: str) -> BaseElement:
         """
-        Return the LatticeElement object corresponding to a given machine element
+        Return the element with a given name.
 
         An occurrence selector is accepted and ignored: ``LIN_C#2`` is the same
         device as ``LIN_C#1``, which is the whole point of multipass.  Use
@@ -1885,8 +1872,10 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
             Filter by element type; if list, gather multiple types; if None, gather all.
         element_model: str | list | None
             Filter by element model; if list, gather multiple models; if None, gather all.
-        element_class
+        element_class: str | list | None
             Filter by element hardware class; if list, gather multiple classes; if None, gather all.
+        section_type: str | list | None
+            Filter by section type; if list, gather multiple types; if None, gather all.
 
         Returns
         -------
@@ -1936,10 +1925,9 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
 
 class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
     """
-    The full model of the accelerator. It describes all :class:`~laura.models.elementList.MachineLayout` and
-    :class:`~laura.models.elementList.SectionLattice` that particles can follow.
-    These layouts and sections are also defined as Dict[str, list] and Dict[str, list], and the full dictionary
-    containing all elements is also accessible.
+    The full model of the accelerator. It describes all :class:`~laura.models.element_list.MachineLayout` and
+    :class:`~laura.models.element_list.SectionLattice` that particles can follow,
+    and the full dictionary of elements.
     """
 
     model_config = ConfigDict(validate_assignment=False)
@@ -1954,10 +1942,10 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
     """Dictionary containing all elements defined in the machine model."""
 
     sections: Dict[str, SectionLattice] = {}
-    """Dictionary containing :class:`~laura.models.elementList.SectionLattice`, keyed by name."""
+    """Dictionary containing :class:`~laura.models.element_list.SectionLattice`, keyed by name."""
 
     lattices: Dict[str, MachineLayout] = {}
-    """Dictionary containing :class:`~laura.models.elementList.MachineLayout`, keyed by name.
+    """Dictionary containing :class:`~laura.models.element_list.MachineLayout`, keyed by name.
     #TODO rationalise either this name `lattices` or the class name `MachineLayout`.
     """
 
@@ -2073,17 +2061,15 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
                 - LINAC: {multipass: 2}
                 - DUMP
 
-        It is the opt-in that separates the two readings of a repeated section.
         Without it a section listed twice is repetition, N devices at N
-        positions, which is what the section level has always made of the same
-        shape and what :meth:`_expand_layout_repeats` builds.
+        positions (see :meth:`_expand_layout_repeats`).
 
-        ``overrides: {ELEMENT: {path: value}}`` states values that hold on this
-        traversal only -- see :attr:`LayoutPass.overrides`.
+        ``momentum`` and ``overrides: {ELEMENT: {path: value}}`` hold on this
+        traversal only -- see :class:`LayoutPass`.
 
         The third return is the entry list as authored,
-        ``[(name, direction, multipass, overrides)]`` per layout, keeping one
-        item per occurrence.
+        ``[(name, direction, multipass, momentum, overrides)]`` per layout,
+        keeping one item per occurrence.
         """
         areas: Dict[str, list] = {}
         directions: Dict[str, Dict[str, int]] = {}
@@ -2400,32 +2386,6 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
     def _index_elements(self, elements):
         by_area = {}
         by_name = {}
-
-        # Optimized metadata lookup if it's a lazy dict
-        if hasattr(elements, "get_metadata"):
-            for name in elements.keys():
-                is_loaded = getattr(elements, "is_loaded", lambda n: True)(name)
-                if is_loaded:
-                    elem = elements[name]
-                    if elem is None:
-                        continue
-                    area = getattr(elem, "machine_area", None)
-                    item_name = elem.name
-                else:
-                    meta = elements.get_metadata(name)
-                    if meta is None:
-                        continue
-                    elem = meta
-                    area = meta.get("machine_area")
-                    item_name = meta.get("name")
-
-                if item_name:
-                    by_name[item_name] = elem
-                if area:
-                    by_area.setdefault(area, []).append(elem)
-            return by_area, by_name
-
-        # Standard indexing for other collections
         for elem in elements.values():
             if elem is None:
                 continue
@@ -2598,14 +2558,9 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
     def _expand_layout_repeats(self) -> None:
         """Give a section listed more than once in one layout its own copy.
 
-        A layout's entry list is the beam path, so a section named twice is
-        entered twice.  ``MachineLayout.sections`` is keyed by name and
-        ``_build_layout_objects`` fills it with a dict comprehension.
-
-        Repetition is N devices at N positions. That is what a section listed
-        twice means, and the section level already reads a line listed twice
-        exactly that way (:func:`expand_section_order`). Each occurrence
-        becomes its own section, ``ARC.1``/``ARC.2``, holding its own numbered
+        ``MachineLayout.sections`` is keyed by name, so a repeated section (N
+        devices at N positions, as in :func:`expand_section_order`) becomes one
+        section per occurrence, ``ARC.1``/``ARC.2``, each with its own numbered
         element copies.
         """
         self._layout_passes = {}
@@ -2934,12 +2889,8 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
     def _compose_layout_frames(self) -> None:
         """Chain each layout's sequentially-placed sections into one frame.
 
-        A section resolves in its own frame, starting at the world origin.
-        A sequentially-placed section has no stated position at all,
-        so two of them in the same layout would both begin at
-        the origin and occupy the same space. This walks each layout in order
-        and moves every such section onto the exit frame of what precedes it.
-        Nothing outside a layout is touched
+        Sequentially-placed sections each resolve from the world origin, so
+        each is moved onto the exit frame of what precedes it in its layout.
 
         * **A section that states its positions is never moved.**  A surveyed
           machine's coordinates are already global and composing them would
@@ -3014,21 +2965,19 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
     def resolve_positions(self) -> None:
         """Re-resolve all positioning modes and rebuild section trajectories.
 
-        Equivalent to :meth:`resolve_reference_placements` but with a more
-        descriptive name.  Handles ``reference_placement``, ``s``-coordinates,
-        and global-xyz elements in one pass.
+        Same as :meth:`resolve_reference_placements`.
         """
         self._resolve_all_positions()
 
     def get_element(self, name: str) -> BaseElement:
         """
-        Return the LatticeElement object corresponding to a given machine element
+        Return the element with a given name.
 
         An occurrence selector is accepted and ignored: the passes of a
         multipass element are one device.
 
         :param str name: Name of the element to look up
-        :returns: LatticeElement instance for that element
+        :returns: :class:`~laura.models.element.BaseElement` instance for that element
         """
         base = name if name in self.elements else split_occurrence(name)[0]
         if base in self.elements:
@@ -3094,10 +3043,12 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
             Filter by element type; if list, gather multiple types; if None, gather all.
         element_model: str | list | None
             Filter by element model; if list, gather multiple models; if None, gather all.
-        element_class
+        element_class: str | list | None
             Filter by element hardware class; if list, gather multiple classes; if None, gather all.
         path: str
-            Optional beam path, i.e. name of :class:`~laura.models.elementList.MachineLayout`.
+            Optional beam path, i.e. name of :class:`~laura.models.element_list.MachineLayout`.
+        section_type: str | list | None
+            Filter by section type; if list, gather multiple types; if None, gather all.
 
         Returns
         -------
@@ -3171,9 +3122,6 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
         machine_name: str = "machine",
     ) -> list[dict]:
         """Execute a SPARQL SELECT query over this machine model.
-
-        Builds an in-memory RDF graph from :attr:`elements` (lazily, on first
-        call) and runs the given SPARQL SELECT query against it using rdflib.
 
         Standard PREFIX declarations for ``laura:``, ``schema:``, ``qudt:``,
         ``rdf:``, ``rdfs:``, and ``xsd:`` are automatically prepended.

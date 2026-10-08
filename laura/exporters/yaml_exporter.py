@@ -207,15 +207,12 @@ def _collapse_dump_controls(
     schema_root: Union[str, None],
     embedded: Optional[dict] = None,
 ) -> None:
-    """
-    If ``dump['controls']`` names a ``schema`` and that schema can be found,
-    replace its fully-expanded ``variables`` with the minimal override form
-    (see :func:`laura.importers.yaml_loader.collapse_controls_schema`),
-    mutating ``dump`` in place. If the schema can't be located, the `variables`
-    dump is already fully expanded (nothing to collapse), so the dangling
-    `schema`/`identifier_pattern` reference is dropped instead of left in
-    place -- otherwise reloading the export would try (and fail) to resolve
-    it again despite `variables` already being complete.
+    """Collapse ``dump['controls']`` in place to its schema's override form.
+
+    See :func:`laura.importers.yaml_loader.collapse_controls_schema`. If the
+    schema can't be found, ``variables`` is already complete, so the dangling
+    ``schema``/``identifier_pattern`` is dropped rather than left for the
+    reload to fail on.
 
     With ``embedded`` each schema is looked up once and kept there under its
     path relative to a combined file, and the collapsed ``controls`` name that
@@ -340,7 +337,7 @@ def _restore_overrides(dump: dict, full: dict, parent: dict, excluded) -> None:
 def _collapse_dump_inheritance(dump: dict, ele, namespace) -> Optional[str]:
     """Write the element as ``inherits_from`` plus only what differs.
 
-    The inverse of :func:`~laura.Importers.YAML_Loader.resolve_inheritance`.
+    The inverse of :func:`~laura.importers.yaml_loader.resolve_inheritance`.
 
     Returns the name of the parent it collapsed against, so a caller writing a
     self-contained file knows which definitions it has to carry with it, or
@@ -399,8 +396,7 @@ def _copy_controls_schema(
 ) -> None:
     """Copy the schema file `ele.controls` references into `destination_dir`
     (once per destination path), so an exported tree using `collapse_schema`
-    is loadable on its own without depending on the original lattice's schema
-    files still being where they were."""
+    is loadable on its own."""
     controls = getattr(ele, "controls", None)
     schema_ref = getattr(controls, "schema_", None) if controls is not None else None
     if not schema_ref:
@@ -427,9 +423,8 @@ def _copy_templates(
 ) -> None:
     """Write the definitions ``dump`` now inherits from into the exported tree.
 
-    Written to the export root as
-    ``_<name>.yaml``, which is what makes the loader treat it as a definition
-    to inherit from rather than as a machine element.
+    Written to the export root as ``_<name>.yaml``, so the loader treats them
+    as definitions to inherit from rather than as machine elements.
     """
     parent_name = next(
         (dump[key] for key in INHERIT_KEYS if dump.get(key) is not None), None
@@ -452,12 +447,9 @@ _INHERITABLE = object()
 def _sequential_position(dump: dict, phys_dict: dict, ele, prev_ele, name: str) -> dict:
     """Drop the position entirely, leaving order and length to carry it.
 
-    The inverse of sequential (drift-based) placement: an element that abuts
-    its predecessor needs no position written at all.
-    Only correct where the elements really do abut — a gap with no ``Drift``
-    element in it is spacing that exists nowhere else in the file, so an element
-    that does not abut keeps an explicit ``s`` and anchors the rest of the line
-    from there.
+    Only correct where the elements abut: a gap with no ``Drift`` in it exists
+    nowhere else in the file, so an element that does not abut keeps an
+    explicit ``s`` and anchors the rest of the line from there.
     """
     phys = ele.physical
     if phys.s is None:
@@ -564,12 +556,9 @@ def _repeat_signature(elem) -> dict:
 def _machine_view(machine) -> tuple:
     """``(sections, elements)`` as plain dicts, whatever ``machine`` is.
 
-    The exporters are handed a :class:`MachineModel`, a
-    :class:`~laura.models.elementList.MachineLayout` or a single
-    :class:`~laura.models.elementList.SectionLattice`.
-    A layout's ``elements`` is a list of *names* and a
-    section has no ``sections`` at all.
-
+    ``machine`` may be a :class:`MachineModel`, a
+    :class:`~laura.models.element_list.MachineLayout` (whose ``elements`` are
+    names) or a :class:`~laura.models.element_list.SectionLattice`.
     ``isinstance`` rather than ``hasattr``, because
     :meth:`ElementList.__getattr__` answers to every name.
     """
@@ -588,12 +577,9 @@ def _machine_view(machine) -> tuple:
 def _repeat_aliases(machine: MachineModel, position_mode: PositionMode) -> dict:
     """``{numbered name: the name to write instead}`` for collapsible repeats.
 
-    The inverse of :meth:`SectionLattice.number_repeated_elements`: a name
-    written three times in a sequential order becomes three elements on load,
-    and writing them back as one keeps the repetition in the file.
-
-    Only in sequential mode, where the position lives in the order rather than
-    on the elements.
+    The inverse of :meth:`SectionLattice.number_repeated_elements`. Only in
+    sequential mode, where the position lives in the order rather than on the
+    elements.
     """
     if position_mode != "sequential":
         return {}
@@ -665,7 +651,7 @@ def _add_nested_lines(entries, authored: dict, definitions: dict, out: dict) -> 
 
 def _authored_sections(machine: MachineModel, flat: dict) -> dict:
     """Put authored ``repeat`` counts and nested lines back into ``flat``;
-    the inverse of :func:`~laura.models.elementList.expand_section_order`.
+    the inverse of :func:`~laura.models.element_list.expand_section_order`.
     """
     definitions = (
         machine._section_definitions if isinstance(machine, MachineModel) else {}
@@ -712,15 +698,10 @@ def export_machine_sections(
 ) -> None:
     """Write the section orders out beside the exported elements.
 
-    Sequential placement keeps the geometry in the section order rather than on
-    the elements, so an export in ``"sequential"`` mode is only reloadable
-    alongside the orders that produced it.
-
+    A ``"sequential"`` export is only reloadable alongside these orders.
     *aliases* (from :func:`_repeat_aliases`) puts a repeated name back where the
-    loader numbered it.
-
-    The ``_`` prefix keeps the file out of the element list when the
-    export directory is loaded back.
+    loader numbered it. The ``_`` prefix keeps the file out of the element list
+    on reload.
     """
     os.makedirs(path, exist_ok=True)
     aliases = aliases or {}
@@ -783,9 +764,8 @@ def export_as_yaml(
             ``"s"`` mode.
         ``"sequential"``
             No position at all: the section order and the element lengths
-            carry it. Only elements that abut their predecessor can drop their position;
-            one that does not is written with an explicit ``s`` anchoring
-            what follows it, and warns.
+            carry it. An element that does not abut its predecessor is
+            written with an explicit ``s`` instead, and warns.
     prev_name:
         Name of the preceding element in section order (used by
         ``"reference"`` mode).
@@ -794,30 +774,24 @@ def export_as_yaml(
     collapse_schema:
         If True and `ele.controls` names a schema (see
         `laura.models.control.ControlsInformation.schema_`), write
-        `controls` back out as `{schema, identifier_pattern, variables}`
-        with only the per-element overrides -- the same compact form the
-        lattice may have been loaded from -- instead of the fully
-        expanded `variables` dict. Disabled by default; falls back to the
-        full expansion (with a warning) if the schema can't be found.
+        `controls` as `{schema, identifier_pattern, variables}` with only
+        the per-element overrides. Falls back to the full expansion (with a
+        warning) if the schema can't be found.
     schema_root:
-        The YAML root the schema path in `controls.schema` is
-        relative to (typically the directory the lattice was loaded
-        from); required for `collapse_schema` to find anything to diff
-        against.
+        The YAML root the schema path in `controls.schema` is relative to
+        (typically the directory the lattice was loaded from); required for
+        `collapse_schema`.
     field_directory:
         Where to write any field the element holds as samples rather than as a
         file name. Defaults to *filename*'s own directory.
     collapse_inheritance:
-        If True and the element declares `inherits_from`, write it back out
-        as that declaration plus only the keys that differ from the
-        resolved parent instead of the fully expanded element.
-        Disabled by default; falls back to the full expansion
-        if the parent cannot be found.
+        If True and the element declares `inherits_from`, write that
+        declaration plus only the keys that differ from the resolved parent.
+        Falls back to the full expansion if the parent cannot be found.
     template_root:
         The combined file or element directory the parent named by
         `inherits_from` is defined in (typically the lattice the element was
-        loaded from); required for `collapse_inheritance` to have anything
-        to diff against.
+        loaded from); required for `collapse_inheritance`.
     namespace:
         An already-built ``name -> raw element dict`` namespace to use in
         place of reading `template_root`.
@@ -847,7 +821,6 @@ def export_as_yaml(
     dump = _prune_empty(dump)
     if filename is not None:
         with open(filename, "w") as yaml_file:
-            yaml.default_flow_style = False
             yaml.dump(dump, yaml_file)
     else:
         return dump
@@ -877,14 +850,11 @@ def export_machine_combined_file(
         or ``"sequential"`` (no position at all, carried by the section
         order and the lengths). See `export_as_yaml`.
     collapse_schema:
-        If True, elements referencing a controls schema are
-        written in collapsed form (see `export_as_yaml`), and the schemas
-        they use are embedded in the combined file itself under the
-        reserved `laura.Importers.YAML_Loader.COMBINED_SCHEMAS_KEY` key,
-        so the file is self-contained -- loadable via
-        `read_YAML_Combined_File` with no companion `_schema.yaml` files
-        needed. Falls back to full expansion (with a warning) for any
-        element whose schema can't be found.
+        If True, elements referencing a controls schema are written in
+        collapsed form (see `export_as_yaml`) and the schemas embedded under
+        `laura.importers.yaml_loader.COMBINED_SCHEMAS_KEY`, so the file is
+        loadable via `read_yaml_combined_file` on its own. Falls back to full
+        expansion (with a warning) for any element whose schema can't be found.
     schema_root:
         As `export_as_yaml`; defaults to `machine.element_list`
         when that is a directory path.
@@ -936,7 +906,6 @@ def export_machine_combined_file(
         combined_yaml[COMBINED_TEMPLATES_KEY] = embedded_templates
 
     with open(filename, "w") as yaml_file:
-        yaml.default_flow_style = True
         yaml.dump(combined_yaml, yaml_file)
 
     if position_mode == "sequential" and write_sections:

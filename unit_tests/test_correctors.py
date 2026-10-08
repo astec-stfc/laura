@@ -1,13 +1,4 @@
-"""Tests for the corrector (HorizontalCorrector/VerticalCorrector/CombinedCorrector)
-translation across codes.
-
-Correctors use :class:`~laura.models.magnetic.CorrectorMagnet` (explicit
-``horizontal_kick``/``vertical_kick`` fields, independent of each other) and
-:class:`~laura.translator.converters.magnet.CorrectorTranslator`. These tests cover
-the codes that need corrector-specific handling: Ocelot and Cheetah (whose native
-elements are single-plane, requiring a split or a dedicated combined class) and
-Xsuite (symbolic/functional kick passthrough, and the vertical-plane roll).
-"""
+"""Corrector models and translation; Ocelot/Cheetah correctors are single-plane."""
 
 import pytest
 
@@ -24,15 +15,6 @@ from laura.models.element import (  # noqa: E402
     CombinedCorrector,
 )
 from laura.translator.converters.converter import translate_elements  # noqa: E402
-
-
-@pytest.fixture(autouse=True)
-def _reset_defs():
-    set_functional_definitions({}, merge=False)
-    set_resolve_functional(False)
-    yield
-    set_functional_definitions({}, merge=False)
-    set_resolve_functional(False)
 
 
 def _hc(kick=0.02, length=0.1):
@@ -58,8 +40,11 @@ def _cc(hkick=0.04, vkick=0.05, length=0.2):
 
 
 class TestOcelot:
-    def test_horizontal_and_vertical_correctors(self):
+    @pytest.fixture(autouse=True)
+    def _requires_ocelot(self):
         pytest.importorskip("ocelot")
+
+    def test_horizontal_and_vertical_correctors(self):
         from ocelot.cpbd.elements import Hcor, Vcor
 
         h = _hc().to_ocelot()
@@ -70,7 +55,6 @@ class TestOcelot:
         assert v.element.angle == pytest.approx(0.03)
 
     def test_combined_corrector_splits_into_hcor_and_vcor_pair(self):
-        pytest.importorskip("ocelot")
         from ocelot.cpbd.elements import Hcor, Vcor
 
         objs = _cc(hkick=0.04, vkick=0.05, length=0.2).to_ocelot()
@@ -85,7 +69,6 @@ class TestOcelot:
         assert vcor.element.angle == pytest.approx(0.05)
 
     def test_section_translator_expands_combined_corrector(self):
-        pytest.importorskip("ocelot")
         from laura.models.physical import PhysicalElement, Position
         from laura.models.element_list import SectionLattice
         from laura.translator.converters.section import SectionLatticeTranslator
@@ -102,7 +85,6 @@ class TestOcelot:
         assert "CC1_V" in names
 
     def test_functional_kick_is_resolved_numerically(self):
-        pytest.importorskip("ocelot")
         set_functional_definitions({"hc_kick": 0.06})
         hc = HorizontalCorrector(
             name="hc1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": "hc_kick"}
@@ -113,8 +95,11 @@ class TestOcelot:
 
 
 class TestCheetah:
-    def test_horizontal_and_vertical_correctors(self):
+    @pytest.fixture(autouse=True)
+    def _requires_cheetah(self):
         pytest.importorskip("cheetah")
+
+    def test_horizontal_and_vertical_correctors(self):
         from cheetah.accelerator import HorizontalCorrector, VerticalCorrector
 
         h = _hc().to_cheetah()
@@ -125,7 +110,6 @@ class TestCheetah:
         assert float(v.angle) == pytest.approx(0.03)
 
     def test_combined_corrector_uses_combined_corrector_class(self):
-        pytest.importorskip("cheetah")
         from cheetah.accelerator import CombinedCorrector
 
         obj = _cc(hkick=0.04, vkick=0.05).to_cheetah()
@@ -135,37 +119,28 @@ class TestCheetah:
 
 
 class TestXsuite:
-    def _magnitudes(self, obj):
-        name, cls, properties = obj
-        return cls, properties
-
-    def test_horizontal_corrector_knl(self):
+    @pytest.fixture(autouse=True)
+    def _requires_xtrack(self):
         pytest.importorskip("xtrack")
-        cls, properties = self._magnitudes(_hc(kick=0.05).to_xsuite(beam_length=1))
-        # knl is negated relative to the LAURA/MAD-X/Ocelot/Cheetah kick sign
-        # convention, verified against those codes by direct particle tracking.
-        assert properties["knl"] == pytest.approx([-0.05])
-        assert properties["ksl"] == pytest.approx([0.0])
 
-    def test_vertical_corrector_ksl(self):
-        pytest.importorskip("xtrack")
-        cls, properties = self._magnitudes(_vc(kick=0.07).to_xsuite(beam_length=1))
-        assert properties["knl"] == pytest.approx([-0.0])
-        assert properties["ksl"] == pytest.approx([0.07])
-
-    def test_combined_corrector_carries_both_planes(self):
-        pytest.importorskip("xtrack")
-        cls, properties = self._magnitudes(_cc(hkick=0.04, vkick=0.06).to_xsuite(beam_length=1))
-        assert properties["knl"] == pytest.approx([-0.04])
-        assert properties["ksl"] == pytest.approx([0.06])
+    # knl is negated relative to the LAURA/MAD-X/Ocelot/Cheetah kick sign (checked by tracking).
+    @pytest.mark.parametrize(
+        "build, kicks, knl, ksl",
+        [
+            (_hc, {"kick": 0.05}, -0.05, 0.0),
+            (_vc, {"kick": 0.07}, -0.0, 0.07),
+            (_cc, {"hkick": 0.04, "vkick": 0.06}, -0.04, 0.06),
+        ],
+        ids=["horizontal", "vertical", "combined"],
+    )
+    def test_kick_planes_map_to_knl_and_ksl(self, build, kicks, knl, ksl):
+        _, _, properties = build(**kicks).to_xsuite(beam_length=1)
+        assert properties["knl"] == pytest.approx([knl])
+        assert properties["ksl"] == pytest.approx([ksl])
 
     def test_tracking_matches_madx_ocelot_cheetah_sign_convention(self):
-        pytest.importorskip("xtrack")
         import xtrack as xt
 
-        # A positive kick deflects toward positive px/py, matching MAD-X's
-        # HKICKER/VKICKER, Ocelot's Hcor/Vcor, and Cheetah's
-        # Horizontal/VerticalCorrector (all verified directly).
         name, cls, properties = _cc(hkick=0.05, vkick=0.07, length=0.001).to_xsuite(beam_length=1)
         m = cls(**properties)
         p = xt.Particles(x=0, y=0, px=0, py=0, p0c=1e9)
@@ -174,7 +149,6 @@ class TestXsuite:
         assert p.py[0] == pytest.approx(0.07, abs=1e-9)
 
     def test_symbolic_kick_is_deferred_and_live(self):
-        pytest.importorskip("xtrack")
         import xtrack as xt
 
         set_functional_definitions({"hc_kick": 0.02})
@@ -193,7 +167,6 @@ class TestXsuite:
         assert line[name].knl[0] == pytest.approx(-0.09)
 
     def test_combined_corrector_both_planes_symbolic_and_live(self):
-        pytest.importorskip("xtrack")
         import xtrack as xt
 
         set_functional_definitions({"h_kick": 0.04, "v_kick": 0.06})
@@ -213,7 +186,6 @@ class TestXsuite:
         assert line[name].ksl[0] == pytest.approx(0.5)
 
     def test_resolved_mode_bakes_numbers(self):
-        pytest.importorskip("xtrack")
         set_functional_definitions({"hc_kick": 0.02})
         set_resolve_functional(True)
         hc = HorizontalCorrector(
@@ -224,9 +196,7 @@ class TestXsuite:
 
 
 class TestCorrectorMagnetIsADipoleMagnet:
-    """``CorrectorMagnet`` inherits ``DipoleMagnet``: the two kicks are the
-    normal/skew components of the same ``K0L``, so the whole ``MagneticElement``
-    toolkit (calibration, gradient, rho) applies to a corrector."""
+    """The two kicks are the normal/skew parts of one ``K0L``."""
 
     def test_inherits_magnetic_element_toolkit(self):
         from laura.models.magnetic import CorrectorMagnet, DipoleMagnet, MagneticElement
@@ -276,9 +246,7 @@ class TestCorrectorMagnetIsADipoleMagnet:
         assert m.resolved_kicks() == pytest.approx((0.011, -0.004))
 
     def test_legacy_lattice_magnetic_block_round_trips(self):
-        """A corrector YAML written before this change carries a dipole-shaped
-        ``magnetic`` block and no kick keys; it must still load, and must now
-        keep the calibration data that ``IgnoreExtra`` used to silently drop."""
+        """Older corrector YAML has a dipole-shaped ``magnetic`` block and no kick keys."""
         from laura.models.element import HorizontalCorrector
 
         legacy = {
@@ -296,32 +264,33 @@ class TestCorrectorMagnetIsADipoleMagnet:
         assert hc.magnetic.horizontal_kick == pytest.approx(0.0)
         assert hc.magnetic.settle_time == pytest.approx(45.0)
         assert hc.magnetic.linear_saturation_coefficients.m == pytest.approx(0.142)
-        # Correctors take MagneticElement's conversions, NOT DipoleMagnet's
-        # extra 1/1000 -- see TestCorrectorCurrentConversion for the check
-        # against the CLARA magnet table that settles the scaling.
         converted = hc.magnetic.current_to_k(current=1.0, momentum=35.0)
         assert converted["int_strength"] == pytest.approx(0.142)
-        # dumps by field name, not by the magnetic_length alias
         dumped = hc.model_dump()["magnetic"]
         assert "length" in dumped and "magnetic_length" not in dumped
         assert dumped["horizontal_kick"] == pytest.approx(0.0)
 
 
-# The CLARA magnet table is the source of truth for magnet calibration; these
-# tests pin corrector behaviour against it rather than against a hand-picked
-# expected number. pandas/openpyxl only ship with the [test] extra.
+# The CLARA magnet table is the calibration source of truth; openpyxl ships only with [test].
 _MAGNET_TABLE = "laura/importers/CLARA Magnet Table v6.xlsx"
 
 
-def _corrector_table_rows():
-    pd = pytest.importorskip("pandas")
-    pytest.importorskip("openpyxl")
+def _magnet_table():
+    """Blanks read as 0; a repeated header gets ``.1`` (``current [A].1`` is the operating current)."""
+    openpyxl = pytest.importorskip("openpyxl")
     import os
     if not os.path.exists(_MAGNET_TABLE):
         pytest.skip("CLARA magnet table not available")
-    df = pd.read_excel(_MAGNET_TABLE, sheet_name="Table", skiprows=2).fillna(0)
-    cor = df[df["type"].astype(str).str.upper().isin(["HCOR", "VCOR", "HVCOR"])]
-    return cor[(cor["K or angle"] != 0) & (cor["current [A].1"] != 0)]
+    sheet = openpyxl.load_workbook(_MAGNET_TABLE, read_only=True, data_only=True)["Table"]
+    rows = list(sheet.iter_rows(values_only=True))
+    header = [f"{h}.1" if h in rows[2][:i] else h for i, h in enumerate(rows[2])]
+    return [{k: 0 if v is None else v for k, v in zip(header, r)} for r in rows[3:]]
+
+
+def _corrector_table_rows():
+    return [r for r in _magnet_table()
+            if str(r["type"]).upper() in ("HCOR", "VCOR", "HVCOR")
+            and r["K or angle"] != 0 and r["current [A].1"] != 0]
 
 
 def _magnet_from_row(row):
@@ -339,18 +308,12 @@ def _magnet_from_row(row):
 
 
 class TestCorrectorCurrentConversion:
-    """Current->angle for a corrector, checked against the magnet table.
-
-    The table's own "K or angle" column is reproduced by
-    ``angle[rad] = (c/1e9) * slope[T.mm/A] * I[A] / p[MeV/c]`` -- which is
-    MagneticElement.current_to_k at order 0. DipoleMagnet rescales that by a
-    further 1/1000, so a corrector must NOT inherit the dipole version.
-    """
+    """The table's "K or angle" is ``(c/1e9) * slope[T.mm/A] * I[A] / p[MeV/c]`` rad."""
 
     def test_matches_the_magnet_table_for_every_corrector(self):
         rows = _corrector_table_rows()
         assert len(rows) > 20, "magnet table gave suspiciously few corrector rows"
-        for _, row in rows.iterrows():
+        for row in rows:
             mag = _magnet_from_row(row)
             angle_mrad = mag.current_to_angle(row["current [A].1"], row["momentum [MeV/c]"]) * 1000
             assert angle_mrad == pytest.approx(row["K or angle"], rel=1e-6), (
@@ -358,7 +321,7 @@ class TestCorrectorCurrentConversion:
             )
 
     def test_angle_to_current_is_the_inverse(self):
-        for _, row in _corrector_table_rows().iterrows():
+        for row in _corrector_table_rows():
             mag = _magnet_from_row(row)
             angle = mag.current_to_angle(row["current [A].1"], row["momentum [MeV/c]"])
             assert mag.angle_to_current(angle, row["momentum [MeV/c]"]) == pytest.approx(
@@ -366,9 +329,7 @@ class TestCorrectorCurrentConversion:
             )
 
     def test_dipole_and_corrector_agree_on_the_same_fit(self):
-        """Both are order-0, so the same coefficients must give the same KL --
-        the workbook's DIP and HCOR branches are the same number in radians.
-        They differ only in the reporting unit each adds on top."""
+        """Both are order 0: same KL, differing only in reporting unit."""
         import math
         from laura.models.magnetic import CorrectorMagnet, DipoleMagnet
 
@@ -383,13 +344,9 @@ class TestCorrectorCurrentConversion:
 
 
 class TestCombinedCorrectorHasTwoMagnets:
-    """The two planes are separate magnets with separate windings; the magnet
-    table gives them different slopes and lengths, so they must not share a
-    calibration."""
+    """The magnet table gives the two planes different slopes and lengths."""
 
     def test_planes_are_independent_objects(self):
-        # A shared flat block is copied to both planes; writing one plane's
-        # calibration must not touch the other's.
         cc = CombinedCorrector(
             name="cc", machine_area="S",
             magnetic={"linear_saturation_coefficients": {"m": 0.024493, "I_max": 0, "f": 0,
@@ -420,9 +377,7 @@ class TestCombinedCorrectorHasTwoMagnets:
         assert h != v
 
     def test_legacy_flat_magnetic_block_still_loads(self):
-        """All 137 combined-corrector files predate the split and carry one flat
-        magnetic block; it must load, copying the shared calibration to both
-        planes while each plane keeps only its own kick."""
+        """Older files carry one flat block: calibration goes to both planes, each keeps its own kick."""
         cc = CombinedCorrector(
             name="cc", machine_area="S",
             magnetic={"length": 0.21, "order": 0, "horizontal_kick": 0.004,
@@ -436,7 +391,6 @@ class TestCombinedCorrectorHasTwoMagnets:
         assert cc.magnetic.settle_time == pytest.approx(45.0)   # __getattr__ fallback
         for plane in (cc.magnetic.horizontal, cc.magnetic.vertical):
             assert plane.linear_saturation_coefficients.m == pytest.approx(0.142)
-        # each plane holds only its own kick, so neither deflects in both planes
         assert cc.magnetic.horizontal.vertical_kick == pytest.approx(0.0)
         assert cc.magnetic.vertical.horizontal_kick == pytest.approx(0.0)
 
@@ -466,16 +420,8 @@ class TestCombinedCorrectorHasTwoMagnets:
 
 
 class TestAgainstMagnetTableFormulas:
-    """LAURA's excitation-curve maths, checked against the workbook's own
-    formulas rather than against hand-picked numbers.
-
-    Column AC is ``SWITCH(type, "DIP", 360/(2000*PI()), "QUAD", 1000/Y,
-    "HCOR", 1, "VCOR", 1) * c_ * AA / A`` with ``c_ = 299.792458`` and AA the
-    integrated strength. Both order-0 branches reduce to the *same* thing in
-    radians -- ``angle[rad] = (c/1e9) * AA / p`` -- because 360/(2000*pi) is
-    exactly (180/pi)/1000. That is `LinearSaturationFit.current_to_k`'s order-0
-    ``KL``, for dipoles and correctors alike.
-    """
+    """Workbook column AC is ``SWITCH(type, "DIP", 360/(2000*PI()), "HCOR", 1, ...) * c_ * AA / A``;
+    both order-0 branches are ``(c/1e9) * AA / p`` in radians."""
 
     def test_dipole_and_corrector_angle_branches_agree_in_radians(self):
         import math
@@ -487,9 +433,8 @@ class TestAgainstMagnetTableFormulas:
         assert dip_to_rad * c_ == pytest.approx(speed_of_light / 1e9, rel=1e-12)
 
     def test_forward_conversions_match_every_row(self):
-        import math
         rows = _corrector_table_rows()
-        for _, row in rows.iterrows():
+        for row in rows:
             mag = _magnet_from_row(row)
             out = mag.linear_saturation_coefficients.current_to_k(
                 current=row["current [A].1"], momentum=row["momentum [MeV/c]"])
@@ -498,25 +443,15 @@ class TestAgainstMagnetTableFormulas:
             assert out["KL"] * 1000 == pytest.approx(row["K or angle"], rel=1e-7)
 
     def test_saturating_reverse_branch_is_real_and_correct(self):
-        """The trigonometric cubic needs sqrt(-(p/3)**3) with a positive cube
-        root. Both signs were wrong, so a fit with f < 0 (real quadrupole fits
-        have it) drove Sqrt negative and returned a complex current ~40% low."""
+        """The trigonometric cubic needs sqrt(-(p/3)**3) and a positive cube root when f < 0."""
         from laura.models.magnetic import LinearSaturationFit
 
-        pd = pytest.importorskip("pandas")
-        pytest.importorskip("openpyxl")
-        import os
-        if not os.path.exists(_MAGNET_TABLE):
-            pytest.skip("CLARA magnet table not available")
-        df = pd.read_excel(_MAGNET_TABLE, sheet_name="Table", skiprows=2).fillna(0)
-        # A real quadrupole fit with f < 0, driven above its threshold current.
-        sat = df[(df["type"].astype(str).str.upper() == "QUAD")
-                 & (df["f [units/A³]"] < 0)
-                 & (df["max current [A]"] > 0)
-                 & (df["current [A].1"].abs() >= df["max current [A]"])]
-        if not len(sat):
+        sat = [r for r in _magnet_table()
+               if str(r["type"]).upper() == "QUAD" and r["f [units/A³]"] < 0
+               and r["max current [A]"] > 0 and abs(r["current [A].1"]) >= r["max current [A]"]]
+        if not sat:
             pytest.skip("no saturating quadrupole row in the magnet table")
-        row = sat.iloc[0]
+        row = sat[0]
         lsf = LinearSaturationFit(
             m=row["slope [units/A]"], I_max=row["max current [A]"],
             f=row["f [units/A³]"], a=row["a [units/A²]"], I0=row["I0 [A]"],
@@ -529,10 +464,7 @@ class TestAgainstMagnetTableFormulas:
         assert float(back) == pytest.approx(current, rel=1e-6)
 
     def test_dipole_current_to_angle_has_no_extra_thousandth(self):
-        """CLA-SP3-MAG-DIP-01 is a 30 deg spectrometer dipole with a 240 MeV/c
-        nominal momentum. 300 A over a 30 deg bend must give ~238 MeV/c, not
-        0.238: `DipoleMagnet` used to rescale `LinearSaturationFit`'s already
-        correct order-0 KL by a further 1/1000."""
+        """CLA-SP3-MAG-DIP-01: 300 A over its 30 deg bend is ~238 MeV/c."""
         import math
         from laura.models.magnetic import DipoleMagnet
 
@@ -542,27 +474,20 @@ class TestAgainstMagnetTableFormulas:
             d=598.7346914311352, L=400.0))
         kl_per_mev = dip.current_to_k(300.0, momentum=1.0)["KL"]
         assert kl_per_mev / math.radians(30.0) == pytest.approx(238.2, rel=1e-3)
-        # and the reported angle is degrees, round-tripping back to the current
+        # the reported angle is in degrees
         out = dip.current_to_k(300.0, momentum=238.209)
         assert out["degrees"] == pytest.approx(30.0, rel=1e-4)
         assert dip.current_to_angle(300.0, 238.209) == pytest.approx(30.0, rel=1e-4)
         assert float(dip.kl_to_current(out["KL"], 238.209)) == pytest.approx(300.0, rel=1e-6)
 
     def test_every_dipole_row_matches_the_table(self):
-        import math
-        pd = pytest.importorskip("pandas")
-        pytest.importorskip("openpyxl")
-        import os
-        if not os.path.exists(_MAGNET_TABLE):
-            pytest.skip("CLARA magnet table not available")
         from laura.models.magnetic import DipoleMagnet
 
-        df = pd.read_excel(_MAGNET_TABLE, sheet_name="Table", skiprows=2).fillna(0)
-        rows = df[(df["type"].astype(str).str.upper() == "DIP")
-                  & (df["K or angle"] != 0) & (df["current [A].1"] != 0)
-                  & (df["magnetic length [mm]"] != 0)]
+        rows = [r for r in _magnet_table()
+                if str(r["type"]).upper() == "DIP" and r["K or angle"] != 0
+                and r["current [A].1"] != 0 and r["magnetic length [mm]"] != 0]
         assert len(rows) >= 2, "no usable DIP rows in the in-repo magnet table"
-        for _, row in rows.iterrows():
+        for row in rows:
             dip = DipoleMagnet(
                 length=row["magnetic length [mm]"] / 1000,
                 linear_saturation_coefficients={

@@ -1,18 +1,12 @@
-"""Layout ``settings``: values one beam path runs a shared device at.
-
-Two paths share a section, and one of them runs its quadrupole differently.
-The element keeps one value; each path's settings reach its exports and
-``element_on_pass``, and never the shared element.
-"""
-
-import warnings
+"""Layout ``settings``: per-path values for a shared device, never written onto it."""
 
 import pytest
 import yaml
 
-from laura.models.element import Quadrupole, RFCavity
+from laura.models.element import RFCavity
 from laura.models.element_list import MachineModel
 from laura.translator.converters.layout import MachineLayoutTranslator
+from unit_tests.helpers import quad, quiet
 
 SECTIONS = {
     "INJ_A": ["QA"],
@@ -24,16 +18,7 @@ B_SETTINGS = {"Q5": {"magnetic.k1l": 0.2}, "CAV": {"cavity.phase": 10.0}}
 
 
 def elements():
-    built = {
-        name: Quadrupole(
-            name=name,
-            hardware_class="Magnet",
-            machine_area="A",
-            magnetic={"magnetic_length": 0.2, "k1l": 0.5},
-            physical={"length": 0.2},
-        )
-        for name in ("QA", "QB", "Q5")
-    }
+    built = {name: quad(name, 0.2, machine_area="A") for name in ("QA", "QB", "Q5")}
     built["CAV"] = RFCavity(
         name="CAV", machine_area="A", physical={"length": 0.6}, cavity={"phase": 0.0}
     )
@@ -41,8 +26,7 @@ def elements():
 
 
 def machine(settings=B_SETTINGS, layouts=LAYOUTS, master_lattice=None):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         return MachineModel(
             elements=elements(),
             section={"sections": SECTIONS},
@@ -56,7 +40,6 @@ def machine(settings=B_SETTINGS, layouts=LAYOUTS, master_lattice=None):
 
 
 def exported(layout):
-    """``{name: element}`` over every section *layout* exports."""
     translator = MachineLayoutTranslator.from_layout(layout)
     return {
         name: element
@@ -107,7 +90,6 @@ def test_element_on_pass_gives_the_path_value():
     element = model.lattices["PATH_B"].element_on_pass("Q5")
     assert element.magnetic.k1l == pytest.approx(0.2)
     assert element is not model.elements["Q5"]
-    # Nothing set here, or on this path: the caller falls back to the device.
     assert model.lattices["PATH_B"].element_on_pass("QB") is None
     assert model.lattices["PATH_A"].element_on_pass("Q5") is None
 
@@ -125,7 +107,7 @@ def test_settings_apply_under_passes():
     layout = model.lattices["PATH_B"]
     first, second = layout.element_on_pass("Q5#1"), layout.element_on_pass("Q5#2")
     assert first.magnetic.k1l == second.magnetic.k1l == pytest.approx(0.2)
-    # A pass's overrides are more particular than the path's settings.
+    # pass overrides beat path settings
     assert layout.element_on_pass("CAV#1").cavity.phase == 10.0
     assert layout.element_on_pass("CAV#2").cavity.phase == 180
     flat = exported(layout)
@@ -152,8 +134,7 @@ def test_a_settings_file_is_found_beside_the_layouts_file(tmp_path, monkeypatch)
         )
     )
     monkeypatch.chdir(tmp_path.parent)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         model = MachineModel(
             elements=elements(),
             section={"sections": SECTIONS},
@@ -162,16 +143,21 @@ def test_a_settings_file_is_found_beside_the_layouts_file(tmp_path, monkeypatch)
     assert model.lattices["PATH_B"].settings == B_SETTINGS
 
 
-def test_an_element_not_on_the_path_is_refused():
-    with pytest.raises(ValueError, match="QA"):
-        machine(settings={"QA": {"magnetic.k1l": 0.2}})
-
-
-def test_an_attribute_the_element_lacks_is_refused():
-    with pytest.raises(ValueError, match="no such attribute"):
-        machine(settings={"Q5": {"magnetic.nonsense": 0.2}})
-
-
-def test_a_malformed_mapping_is_refused():
-    with pytest.raises(TypeError, match="must map an element name"):
-        machine(settings={"Q5": 0.2})
+@pytest.mark.parametrize(
+    "settings, error, match",
+    [
+        pytest.param({"QA": {"magnetic.k1l": 0.2}}, ValueError, "QA", id="not-on-path"),
+        pytest.param(
+            {"Q5": {"magnetic.nonsense": 0.2}},
+            ValueError,
+            "no such attribute",
+            id="unknown-attribute",
+        ),
+        pytest.param(
+            {"Q5": 0.2}, TypeError, "must map an element name", id="malformed"
+        ),
+    ],
+)
+def test_bad_settings_are_refused(settings, error, match):
+    with pytest.raises(error, match=match):
+        machine(settings=settings)

@@ -85,7 +85,7 @@ in the order the header states them."""
 
 class SectionLatticeTranslator(SectionLattice):
     """
-    Translator class for converting a :class:`~laura.models.elementList.SectionLattice` instance into a string or
+    Translator class for converting a :class:`~laura.models.element_list.SectionLattice` instance into a string or
     object that can be understood by various simulation codes.
     """
 
@@ -98,15 +98,15 @@ class SectionLatticeTranslator(SectionLattice):
 
     csrtrack_headers: Dict = {}
     """Headers for CSRTrack input file; see :class:`~laura.translator.converters.codes.csrtrack.CsrTrackElement`
-    and its child classes.."""
+    and its child classes."""
 
     gpt_headers: Dict = {}
-    """Headers for GPT input file; see :class:`~laura.translator.converters.codes.astra.GptElement`
-    and its child classes.."""
+    """Headers for GPT input file; see :class:`~laura.translator.converters.codes.gpt.GptElement`
+    and its child classes."""
 
     opal_headers: Dict = {}
     """Headers for OPAL input file; see :class:`~laura.translator.converters.codes.opal.OpalHeader`
-    and its child classes..
+    and its child classes.
     
     WARNING: OPAL not fully benchmarked / tested.
     """
@@ -144,12 +144,12 @@ class SectionLatticeTranslator(SectionLattice):
     def from_section(cls, section: SectionLattice) -> "SectionLatticeTranslator":
         """
         Method for creating an instance of this class based on an existing
-        :class:`~laura.models.elementList.SectionLattice`.
+        :class:`~laura.models.element_list.SectionLattice`.
 
         Parameters
         ----------
         section: SectionLattice
-            The existing :class:`~laura.models.elementList.SectionLattice`
+            The existing :class:`~laura.models.element_list.SectionLattice`
 
         Returns
         -------
@@ -777,7 +777,7 @@ class SectionLatticeTranslator(SectionLattice):
             stnew = d.to_opal(sval=sval, designenergy=energy)
             if len(stnew) > 0:
                 written.append(d.name)
-                fulltext += d.to_opal(sval=sval, designenergy=energy)
+                fulltext += stnew
             zstops.append(d.physical.end.z)
         zstop = max(zstops)
         self.opal_headers["track"].ZSTOP = zstop
@@ -1032,30 +1032,22 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         P_Q: float
             Beam reference momentum-over-charge [MV/c], forwarded to every
-            element's ``to_rftrack(P_Q=...)`` — required for correct dipole
-            (``SBend``) bending; see ``BaseElementTranslator.to_rftrack``.
-            Mirrors ``to_gpt(Brho=...)``.
+            element; required for correct dipole bending (see
+            :meth:`BaseElementTranslator.to_rftrack <laura.translator.converters.base.BaseElementTranslator.to_rftrack>`).
         save: bool
             If ``True``, also write a standalone Python script reconstructing
-            this lattice to ``{self.directory}/{self.name}.py`` -- mirrors
-            ``to_ocelot(save=True)``'s ``MagneticLattice.save_as_py_file()``,
-            which RF-Track has no built-in equivalent of (see
+            this lattice to ``{self.directory}/{self.name}.py`` (see
             :func:`_save_rftrack_py_file`).
         sc_nsteps: int
             If ``> 0``, apply this many evenly-spaced space-charge kicks per
-            element via ``Element.set_sc_nsteps`` (manual §5.1.2) -- how space
-            charge is enabled in the ``Lattice`` (space-integration)
-            environment. The space-charge engine/grid and cathode mirror
-            charges are configured separately by the tracking driver
-            (``rftrackLattice._setup_space_charge``); see
+            element via ``Element.set_sc_nsteps``. The space-charge engine is
+            configured separately by the tracking driver; see
             :func:`~laura.translator.conversion_rules.codes.rftrack_conversion.space_charge_engine`.
 
         Returns
         -------
         RF_Track.Lattice
-            An RF-Track ``Lattice`` object, built by appending each translated
-            element in section order (elements are added by value, per RF-Track's
-            default ``append()`` semantics).
+            An RF-Track ``Lattice`` object, with elements appended in section order.
         """
         from ..conversion_rules.codes.rftrack_conversion import get_rftrack
 
@@ -1076,18 +1068,12 @@ class SectionLatticeTranslator(SectionLattice):
         self, P_Q: float = float("nan"), save: bool = False
     ) -> object:
         """
-        Create an RF-Track ``Volume`` (time-integration environment) for this
-        section by wrapping the ``Lattice`` from :func:`to_rftrack` and adding it
-        at the origin (``V.add(lattice, 0, 0, 0)``, manual §3.3.2 -- a whole
-        Lattice may be embedded in a Volume). This is the environment RF-Track
-        recommends for space-charge-dominated / cathode regimes (manual §5.1.1),
-        tracked with a ``Bunch6dT``.
+        Create an RF-Track ``Volume`` (time-integration environment) wrapping the
+        ``Lattice`` from :func:`to_rftrack` at the origin, for space-charge-dominated
+        and cathode regimes.
 
-        Space charge in a Volume is driven by the ``sc_dt_mm`` tracking option,
-        **not** per-element ``set_sc_nsteps`` (that is the Lattice mechanism), so
-        no ``sc_nsteps`` is applied here; the driver
-        (``rftrackLattice._setup_space_charge``) sets ``sc_dt_mm`` and the
-        emission options on the returned Volume.
+        No ``sc_nsteps`` is applied: Volume space charge is driven by the
+        ``sc_dt_mm`` tracking option, set by the tracking driver.
 
         Parameters
         ----------
@@ -1114,9 +1100,7 @@ class SectionLatticeTranslator(SectionLattice):
     ) -> None:
         """
         Write a standalone Python script to ``{self.directory}/{self.name}.py``
-        that reconstructs this lattice using only ``RF_Track``/``numpy`` --
-        no LAURA/SIMBA import required to reload it, matching the
-        self-contained nature of Ocelot's ``save_as_py_file()`` output.
+        that reconstructs this lattice using only ``RF_Track``/``numpy``.
 
         Parameters
         ----------
@@ -1211,7 +1195,7 @@ class SectionLatticeTranslator(SectionLattice):
 
         Returns
         -------
-        Segment
+        Line
             A Xsuite `Line` object.
         """
         import xtrack as xt
@@ -1357,7 +1341,7 @@ class SectionLatticeTranslator(SectionLattice):
 
         Returns
         -------
-        Segment
+        Beamline
             A Wake-T `Beamline` object.
         """
         from wake_t import Beamline

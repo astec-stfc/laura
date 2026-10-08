@@ -1,29 +1,16 @@
-"""Per-pass strength resolution: one magnet, one field, N normalised strengths.
-
-A multipass magnet is one magnet at one current, so what it holds across the
-passes is its **field**. LAURA stores the normalised strength instead --
-``k_n = q*B^(n)/p`` -- which is a different number at every energy, so a single
-stored ``KnL`` cannot be right on more than one pass.
-
-``MachineLayout.pass_strengths(N)`` resolves it, either from an explicit
-``gradient`` (the pass-invariant field) or by scaling pass 1's stored value by
-``Brho(1)/Brho(N)``. Both are the inverse of ``MagneticElement.get_gradient``.
-
-The oracle throughout is the rigidity relation itself rather than numbers
-chosen by hand: doubling the momentum halves every normalised strength, and a
-resolved strength put back through ``get_gradient`` at that pass's momentum
-must return the field the magnet actually holds.
+"""Per-pass strength resolution: a multipass magnet holds one field, so its
+normalised ``k_n = q*B^(n)/p`` differs on every pass.
 """
 
 import math
-import warnings
 
 import pytest
 
-from laura.models.element import Quadrupole, RFCavity
+from laura.models.element import RFCavity
 from laura.models.elementList import MachineModel
 from laura.models.exceptions import LatticeError
-from laura.models.magnetic import brho
+from laura.models.magnetic import Dipole_Magnet, brho
+from unit_tests.helpers import quad, quiet
 
 SECTIONS = {
     "INJECTOR": ["INJ_Q"],
@@ -35,24 +22,24 @@ SECTIONS = {
 P1 = 100e6  # eV/c on the accelerating pass
 P2 = 200e6  # eV/c on the return pass -- twice the energy, half the k
 
-ERL = [
-    "INJECTOR",
-    {"LINAC": {"multipass": 1, "momentum": P1}},
-    "ARC",
-    {"LINAC": {"multipass": 2, "momentum": P2}},
-    "DUMP",
-]
+
+def two_passes(first, second):
+    """The ERL path, with *first* and *second* added to the two LINAC entries."""
+    return [
+        "INJECTOR",
+        {"LINAC": {"multipass": 1, **first}},
+        "ARC",
+        {"LINAC": {"multipass": 2, **second}},
+        "DUMP",
+    ]
+
+
+ERL = two_passes({"momentum": P1}, {"momentum": P2})
 
 
 def elements(gradient=None):
     built = {
-        name: Quadrupole(
-            name=name,
-            hardware_class="Magnet",
-            machine_area="A",
-            magnetic={"magnetic_length": length, "k1l": 1.0},
-            physical={"length": length},
-        )
+        name: quad(name, length, 1.0, "A")
         for name, length in (
             ("INJ_Q", 0.2),
             ("LIN_Q", 0.4),
@@ -73,8 +60,7 @@ def elements(gradient=None):
 
 
 def machine(layout, gradient=None):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         return MachineModel(
             elements=elements(gradient),
             section={"sections": SECTIONS},
@@ -87,11 +73,7 @@ def erl():
     return machine(ERL)
 
 
-# --- the relation -------------------------------------------------------
-
-
 def test_pass_one_is_the_reference(erl):
-    """Pass 1 gets the stored value back, unscaled."""
     assert erl.lattices["ERL"].pass_strengths(1) == {"LIN_Q": pytest.approx(1.0)}
 
 
@@ -108,7 +90,6 @@ def test_the_scaling_is_the_rigidity_ratio(erl):
 
 
 def test_the_field_is_what_stays_fixed(erl):
-    """The point of the whole exercise: one magnet holds one field."""
     layout = erl.lattices["ERL"]
     magnet = erl["LIN_Q"].magnetic
     field_1 = layout.pass_strengths(1)["LIN_Q"] * brho(P1) / magnet.length
@@ -117,16 +98,15 @@ def test_the_field_is_what_stays_fixed(erl):
 
 
 def test_resolved_strength_inverts_get_gradient(erl):
-    """Put a resolved strength back through get_gradient and the field returns."""
     layout = erl.lattices["ERL"]
     magnet = erl["LIN_Q"].magnetic
-    expected = magnet.get_gradient(P1)  # the field, from the stored value
+    expected = magnet.get_gradient(P1)
     magnet.kl = layout.pass_strengths(2)["LIN_Q"]
     assert magnet.get_gradient(P2) == pytest.approx(expected)
 
 
 def test_an_explicit_gradient_is_used_directly():
-    """A stated field is the pass-invariant quantity, so it needs no reference."""
+    """A stated field is pass-invariant, so it needs no reference."""
     layout = machine(ERL, gradient=0.35).lattices["ERL"]
     for number, momentum in ((1, P1), (2, P2)):
         assert layout.pass_strengths(number)["LIN_Q"] == pytest.approx(
@@ -145,11 +125,7 @@ def test_a_stated_gradient_still_holds_one_field():
     assert fields[0] == pytest.approx(fields[1]) == pytest.approx(0.35)
 
 
-# --- what is and is not included ---------------------------------------
-
-
 def test_only_the_traversed_section_is_reported(erl):
-    """A pass is one section, so nothing outside it appears."""
     assert set(erl.lattices["ERL"].pass_strengths(2)) == {"LIN_Q"}
 
 
@@ -160,9 +136,6 @@ def test_non_magnetic_elements_are_skipped(erl):
 def test_names_are_bare(erl):
     """A pass is already one traversal; there is nothing to disambiguate."""
     assert not any("#" in name for name in erl.lattices["ERL"].pass_strengths(2))
-
-
-# --- refused ------------------------------------------------------------
 
 
 def test_a_single_pass_path_is_refused():
@@ -178,87 +151,57 @@ def test_an_unknown_pass_number_is_refused(erl):
 
 def test_multipass_without_momentum_is_refused():
     """Returning the stored value would quietly claim the passes are identical."""
-    layout = machine(
-        [
-            "INJECTOR",
-            {"LINAC": {"multipass": 1}},
-            "ARC",
-            {"LINAC": {"multipass": 2}},
-            "DUMP",
-        ]
-    ).lattices["ERL"]
+    layout = machine(two_passes({}, {})).lattices["ERL"]
     with pytest.raises(LatticeError, match="states no 'momentum'"):
         layout.pass_strengths(2)
 
 
 def test_momentum_on_only_some_passes_is_refused():
     with pytest.raises(ValueError, match="every pass, or on none"):
-        machine(
-            [
-                "INJECTOR",
-                {"LINAC": {"multipass": 1, "momentum": P1}},
-                "ARC",
-                {"LINAC": {"multipass": 2}},
-                "DUMP",
-            ]
-        )
+        machine(two_passes({"momentum": P1}, {}))
 
 
-def test_momentum_without_multipass_is_refused():
-    with pytest.raises(ValueError, match="does not mark it 'multipass'"):
-        machine(["INJECTOR", {"LINAC": {"momentum": P1}}, "ARC", "DUMP"])
-
-
-def test_momentum_on_a_repetition_occurrence_is_refused():
-    with pytest.raises(ValueError, match="does not mark it 'multipass'"):
-        machine(
+@pytest.mark.parametrize(
+    "layout",
+    [
+        pytest.param(
+            ["INJECTOR", {"LINAC": {"momentum": P1}}, "ARC", "DUMP"],
+            id="without-multipass",
+        ),
+        pytest.param(
             [
                 "INJECTOR",
                 {"LINAC": {"momentum": P1}},
                 "ARC",
                 {"LINAC": {"momentum": P2}},
                 "DUMP",
-            ]
-        )
+            ],
+            id="on-a-repetition-occurrence",
+        ),
+    ],
+)
+def test_momentum_off_a_multipass_pass_is_refused(layout):
+    with pytest.raises(ValueError, match="does not mark it 'multipass'"):
+        machine(layout)
 
 
 @pytest.mark.parametrize("momentum", [0, -100e6, "abc", True, [100e6]])
 def test_a_non_positive_or_non_numeric_momentum_is_refused(momentum):
     with pytest.raises(ValueError, match="momentum"):
-        machine(
-            [
-                "INJECTOR",
-                {"LINAC": {"multipass": 1, "momentum": momentum}},
-                "ARC",
-                {"LINAC": {"multipass": 2, "momentum": P2}},
-                "DUMP",
-            ]
-        )
+        machine(two_passes({"momentum": momentum}, {"momentum": P2}))
 
 
 @pytest.mark.parametrize("momentum", ["100e6", "1.0e+8", 100_000_000])
 def test_a_numeric_momentum_is_coerced(momentum):
-    """PyYAML hands over ``100.0e6`` as a string, and every other numeric
-    field in LAURA is coerced by Pydantic rather than type-checked."""
-    layout = machine(
-        [
-            "INJECTOR",
-            {"LINAC": {"multipass": 1, "momentum": momentum}},
-            "ARC",
-            {"LINAC": {"multipass": 2, "momentum": P2}},
-            "DUMP",
-        ]
-    ).lattices["ERL"]
+    """PyYAML hands over ``100.0e6`` as a string."""
+    layout = machine(two_passes({"momentum": momentum}, {"momentum": P2})).lattices[
+        "ERL"
+    ]
     assert layout.passes[1].momentum == pytest.approx(P1)
     assert layout.pass_strengths(2)["LIN_Q"] == pytest.approx(0.5)
 
 
-# --- more than one multipass section: the multi-turn ERL ----------------
-#
-# A multi-turn ERL accelerates and decelerates through the same linac several
-# times, returning through the same arc at a different energy each time. So
-# the arc is multipass too, and LINAC and ARC both have a pass 2 -- a pass
-# number alone no longer identifies a traversal.
+# Multi-turn ERL: LINAC and ARC both have a pass 2, so a pass number can be ambiguous.
 
 TURNS = [
     "INJECTOR",
@@ -276,14 +219,15 @@ def multi_turn():
     return machine(TURNS).lattices["ERL"]
 
 
-def test_an_ambiguous_pass_number_is_refused(multi_turn):
-    """Answering for whichever section came first is the failure to avoid."""
-    with pytest.raises(LatticeError, match="Name the section as well"):
-        multi_turn.pass_strengths(2)
-
-
-def test_the_refusal_names_both_sections(multi_turn):
-    with pytest.raises(LatticeError, match=r"\['ARC', 'LINAC'\]"):
+@pytest.mark.parametrize(
+    "match",
+    [
+        pytest.param("Name the section as well", id="refused"),
+        pytest.param(r"\['ARC', 'LINAC'\]", id="names-both-sections"),
+    ],
+)
+def test_an_ambiguous_pass_number_is_refused(multi_turn, match):
+    with pytest.raises(LatticeError, match=match):
         multi_turn.pass_strengths(2)
 
 
@@ -293,7 +237,6 @@ def test_naming_the_section_resolves_it(multi_turn):
 
 
 def test_each_section_scales_against_its_own_first_pass(multi_turn):
-    """LINAC and ARC have independent references; they must not cross."""
     assert multi_turn.pass_strengths(1, "LINAC") == {"LIN_Q": pytest.approx(1.0)}
     assert multi_turn.pass_strengths(1, "ARC") == {"ARC_B": pytest.approx(1.0)}
 
@@ -316,25 +259,12 @@ def test_a_pass_number_that_section_does_not_make_is_refused(multi_turn):
         multi_turn.pass_strengths(3, "ARC")
 
 
-# --- a reversed pass ----------------------------------------------------
-#
-# Traversing an element backwards is equivalent to traversing it forwards
-# with the opposite-sign particle, so every normal multipole's effect changes
-# sign in the beam frame. `pass_strengths` reports what a pass *sees*, so a
-# reversed pass has to carry that -- and it uses `reverse_element` to do it
-# rather than restating the rule.
+# A reversed pass sees every normal multipole sign-flipped (via `reverse_element`).
 
 
 def reversed_second_pass(momentum=P1):
-    return machine(
-        [
-            "INJECTOR",
-            {"LINAC": {"multipass": 1, "momentum": P1}},
-            "ARC",
-            {"LINAC": {"multipass": 2, "momentum": momentum, "direction": -1}},
-            "DUMP",
-        ]
-    ).lattices["ERL"]
+    second = {"momentum": momentum, "direction": -1}
+    return machine(two_passes({"momentum": P1}, second)).lattices["ERL"]
 
 
 def test_a_reversed_pass_flips_a_normal_multipole():
@@ -342,7 +272,7 @@ def test_a_reversed_pass_flips_a_normal_multipole():
 
 
 def test_a_forward_pass_at_the_same_momentum_does_not():
-    """Isolates the sign from the scaling: same energy, opposite direction."""
+    """Isolates the sign from the scaling."""
     assert reversed_second_pass().pass_strengths(1) == {"LIN_Q": pytest.approx(1.0)}
 
 
@@ -353,7 +283,7 @@ def test_reversal_and_rigidity_scaling_compose():
 
 
 def test_a_reversed_pass_still_holds_one_field_magnitude():
-    """The magnet has not changed; only the frame the beam reads it in has."""
+    """Only the frame the beam reads it in has changed."""
     layout = reversed_second_pass(P2)
     magnitudes = [
         abs(layout.pass_strengths(n)["LIN_Q"]) * brho(p) / 0.4
@@ -362,11 +292,7 @@ def test_a_reversed_pass_still_holds_one_field_magnitude():
     assert magnitudes[0] == pytest.approx(magnitudes[1])
 
 
-# --- one element, resolved for one pass ---------------------------------
-#
-# `get_element` deliberately returns the shared device for any selector --
-# both passes are one magnet. A caller that has to hand one pass its own
-# values (simba builds a line per pass) needs a copy instead.
+# `get_element` returns the shared device; simba needs a per-pass copy.
 
 
 def test_element_on_pass_applies_that_passs_strength(erl):
@@ -376,22 +302,8 @@ def test_element_on_pass_applies_that_passs_strength(erl):
 
 
 def test_element_on_pass_applies_overrides():
-    model = machine(
-        [
-            "INJECTOR",
-            {"LINAC": {"multipass": 1, "momentum": P1}},
-            "ARC",
-            {
-                "LINAC": {
-                    "multipass": 2,
-                    "momentum": P2,
-                    "overrides": {"CAV_01": {"cavity.phase": 180.0}},
-                }
-            },
-            "DUMP",
-        ]
-    )
-    layout = model.lattices["ERL"]
+    second = {"momentum": P2, "overrides": {"CAV_01": {"cavity.phase": 180.0}}}
+    layout = machine(two_passes({"momentum": P1}, second)).lattices["ERL"]
     assert layout.element_on_pass("CAV_01#1").cavity.phase == pytest.approx(0.0)
     assert layout.element_on_pass("CAV_01#2").cavity.phase == pytest.approx(180.0)
 
@@ -419,9 +331,6 @@ def test_element_on_pass_returns_none_when_it_cannot_answer(erl, name):
     assert erl.lattices["ERL"].element_on_pass(name) is None
 
 
-# --- the booster, which needs none of this ------------------------------
-
-
 def test_a_ring_needs_no_momentum_and_is_untouched():
     """A booster ramps B and p together, so its stored k is already invariant."""
     model = machine(["INJECTOR", "LINAC", "ARC", "DUMP"])
@@ -430,17 +339,8 @@ def test_a_ring_needs_no_momentum_and_is_untouched():
     assert all(entry.momentum is None for entry in layout.passes)
 
 
-# --- the dipole relation this rests on ----------------------------------
-
-
 def test_dipole_field_strength_is_brho_over_rho():
-    """``field_strength`` is the dipole's ``get_gradient``: B = Brho/rho.
-
-    It used to read ``rho * Brho / length``, which is ``Brho/theta`` -- wrong
-    by ``1/theta**2``, and 3.6x too large for a 30 degree bend.
-    """
-    from laura.models.magnetic import Dipole_Magnet
-
+    """``field_strength`` is the dipole's ``get_gradient``: B = Brho/rho."""
     angle, length, momentum = math.radians(30), 1.0, 240e6
     dipole = Dipole_Magnet(length=length, magnet_type="dipole", k0l=angle)
     assert dipole.field_strength(momentum) == pytest.approx(
@@ -453,7 +353,5 @@ def test_dipole_field_strength_is_brho_over_rho():
 
 
 def test_dipole_field_strength_handles_a_zero_angle():
-    from laura.models.magnetic import Dipole_Magnet
-
     straight = Dipole_Magnet(length=1.0, magnet_type="dipole", k0l=0.0)
     assert straight.field_strength(240e6) == 0.0

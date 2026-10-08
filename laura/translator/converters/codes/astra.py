@@ -264,12 +264,7 @@ class AstraOutput(AstraHeader):
 
     def write_astra(self) -> str:
         """
-        Write the text for the ASTRA namelist based on its :attr:`~framework_dict`.
-
-        Parameters
-        ----------
-        n: int
-            Index of the ASTRA element
+        Write the &OUTPUT namelist, with one ``Screen(i)`` entry per screen.
 
         Returns
         -------
@@ -379,12 +374,7 @@ class AstraCharge(AstraHeader):
 
     def write_astra(self) -> str:
         """
-        Write the text for the ASTRA namelist based on its :attr:`~framework_dict`.
-
-        Parameters
-        ----------
-        n: int
-            Index of the ASTRA element
+        Write the &CHARGE namelist, adding grid sizes for the active solver.
 
         Returns
         -------

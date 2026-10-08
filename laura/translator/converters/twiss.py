@@ -106,7 +106,6 @@ class TwissMatchTranslator(BaseElementTranslator):
         self.start_write()
         obj = type_conversion_rules_xsuite["MatrixTransform"]
         properties = {
-            "name": self.name,
             "length": self.length,
             "R": self.simulation.r_matrix,
         }
@@ -137,7 +136,7 @@ class TwissMatchTranslator(BaseElementTranslator):
         Returns
         -------
         object
-            An Cheetah object representing the element, initialized with its properties.
+            A Cheetah object representing the element, initialized with its properties.
         """
         from ..conversion_rules.codes import cheetah_conversion
 

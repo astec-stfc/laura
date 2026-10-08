@@ -6,8 +6,6 @@ import pytest
 from laura.utils.rotation_matrix import (
     euler_angles_to_rotation_matrix,
     position_rotated,
-    element_start_position,
-    element_end_position,
     rotation_matrix_to_euler,
 )
 from laura.utils.vector_math import (
@@ -60,22 +58,10 @@ class TestPositionRotated:
         assert p.z == pytest.approx(0.0, abs=1e-9)
 
 
-class TestElementStartEndPosition:
-    def test_start_end_no_rotation(self):
-        middle = Position(x=0, y=0, z=5)
-        rot = Rotation(phi=0, psi=0, theta=0)
-        start = element_start_position(middle, rot, 2.0)
-        end = element_end_position(middle, rot, 2.0)
-        assert start.z == pytest.approx(4.0)
-        assert end.z == pytest.approx(6.0)
-
-
 class TestVectorMath:
-    def test_vector_length_2d(self):
-        assert vector_length(3, 4) == pytest.approx(5.0)
-
-    def test_vector_length_3d(self):
-        assert vector_length(1, 2, 2) == pytest.approx(3.0)
+    @pytest.mark.parametrize("args, expected", [((3, 4), 5.0), ((1, 2, 2), 3.0)], ids=["2d", "3d"])
+    def test_vector_length(self, args, expected):
+        assert vector_length(*args) == pytest.approx(expected)
 
     def test_vector_angle_perpendicular(self):
         angle = vector_angle(1, 0, 0, 1)
@@ -112,21 +98,19 @@ class TestMagnetConversions:
         k = current_to_k(k_to_current(0.5, magnet_type, momentum=100.0), magnet_type, momentum=100.0)
         assert k == pytest.approx(0.5)
 
-    def test_k_to_current_bad_momentum(self):
+    @pytest.mark.parametrize(
+        "convert, magnet_type, momentum",
+        [
+            (k_to_current, "Dipole", 0),
+            (current_to_k, "Dipole", -1),
+            (k_to_current, "Unobtainium", 100.0),
+            (current_to_k, "Unobtainium", 100.0),
+        ],
+        ids=["k_to_current-momentum", "current_to_k-momentum", "k_to_current-type", "current_to_k-type"],
+    )
+    def test_invalid_input_raises(self, convert, magnet_type, momentum):
         with pytest.raises(ValueError):
-            k_to_current(0.5, "Dipole", momentum=0)
-
-    def test_current_to_k_bad_momentum(self):
-        with pytest.raises(ValueError):
-            current_to_k(0.5, "Dipole", momentum=-1)
-
-    def test_k_to_current_unknown_type(self):
-        with pytest.raises(ValueError):
-            k_to_current(0.5, "Unobtainium", momentum=100.0)
-
-    def test_current_to_k_unknown_type(self):
-        with pytest.raises(ValueError):
-            current_to_k(0.5, "Unobtainium", momentum=100.0)
+            convert(0.5, magnet_type, momentum=momentum)
 
     def test_scale_order_passthrough(self):
         assert scale_order(2, 1.23) == 1.23

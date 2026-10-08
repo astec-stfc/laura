@@ -1,22 +1,17 @@
 """
-LAURA Fields Module
-
-This module defines the base class and utilities for representing electromagnetic fields,
-including RF structures, wakefields and magnets.
-
-Functions are provided to read in existing files, and to write them in the format
-required for specific codes.
+Electromagnetic field maps (RF structures, wakefields and magnets), with readers
+for existing files and writers for code-specific formats.
 
 Classes:
     - :class:`~laura.translator.utils.fields.FieldMap`: Generic field definition.
-    - :class:`~laura.translator.utils.fields.FieldParameter.FieldParameter`: Field parameter with a
+    - :class:`~laura.translator.utils.fields.field_parameter.FieldParameter`: Field parameter with a
       name and a :class:`~laura.translator.utils.units.UnitValue` associated with it.
 """
 
 import os
 import warnings
 import numpy as np
-from .field_parameter import FieldParameter
+from .field_parameter import FieldParameter, FIELD_NAMES
 from laura.models.constants import speed_of_light
 from pydantic import (
     BaseModel,
@@ -58,15 +53,8 @@ cavitytype = Literal[
 
 class FieldMap(BaseModel):
     """
-    Base class for representing electromagnetic fields, including RF structures, wakefields,
-    and magnets.
-    This class provides methods to read and write field files in various formats,
-    including ASTRA, SDDS, GDF, and OPAL.
-    It also includes properties for accessing field parameters such as position, electric and
-    magnetic fields, and wakefields.
-    The class supports validation of field types and parameters, and allows for the
-    initialization of field objects with specific attributes such as filename, field type,
-    frequency, and cavity type.
+    Electromagnetic field map (RF structure, wakefield or magnet), read from and
+    written to ASTRA, SDDS, GDF, OPAL, HDF5 and Bmad formats.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -229,18 +217,8 @@ class FieldMap(BaseModel):
         self.origin_code = None
         self.field_type = None
         self.norm = 1.0
-        setattr(self, "t", FieldParameter(name="t"))
-        for par in [
-            "x",
-            "y",
-            "z",
-            "r",
-        ]:
+        for par in FIELD_NAMES:
             setattr(self, par, FieldParameter(name=par))
-            setattr(self, f"E{par}", FieldParameter(name=f"E{par}"))
-            setattr(self, f"B{par}", FieldParameter(name=f"B{par}"))
-            setattr(self, f"W{par}", FieldParameter(name=f"W{par}"))
-        setattr(self, "G", FieldParameter(name="G"))
         self.read = False
 
     @property
@@ -289,8 +267,8 @@ class FieldMap(BaseModel):
         **kwargs,
     ) -> None:
         """
-        Read a field file and populate the field parameters based on the file type.
-        This method supports various file formats including HDF5, ASTRA, SDDS, GDF, and OPAL.
+        Read a field file, dispatching on its extension (HDF5, ASTRA, SDDS,
+        GDF or OPAL).
 
         Parameters
         ----------
@@ -311,7 +289,8 @@ class FieldMap(BaseModel):
             ``wz_column="W"`` and ``t_column="T"`` for non-standard names.
             SDDS supports coordinates, electric and magnetic components,
             wake components, and gradient; see
-            :func:`~laura.translator.utils.fields.sdds.read_SDDS_field_file`.
+            :func:`~laura.translator.utils.fields.sdds.read_sdds_field_file`.
+
         Returns
         -------
         None:
@@ -354,10 +333,8 @@ class FieldMap(BaseModel):
         self, extension: str = ".hdf5", location: str | None = None
     ) -> str:
         """
-        Generate an output filename based on the current field file's name and the specified extension.
-        If a location is provided, it uses that as the base directory;
-        otherwise, it defaults to the directory of the current field file.
-        The base filename is derived from the current field file's name, and the extension is appended to it.
+        Return the output path ``<field-file stem><extension>`` in the
+        directory of `location`, or else the default output directory.
 
         Parameters
         ----------
@@ -389,15 +366,14 @@ class FieldMap(BaseModel):
 
     def get_field_data(self, code: str) -> np.ndarray | None:
         """
-        Generate field data in a format suitable for the specified code.
-        This method supports generating field data for ASTRA and Ocelot.
-        If the field file has not been read in, it raises a warning and returns None.
+        Generate field data for `code` ('astra' or 'ocelot'); warn and
+        return None if the field file has not been read.
 
         Parameters
         ----------
         code: str:
             The code for which the field data is to be generated.
-            Supported codes include 'astra' and 'ocelot'.
+            Supported codes are 'astra' and 'ocelot'.
 
         Returns
         -------
@@ -418,19 +394,19 @@ class FieldMap(BaseModel):
         self, code: str, location: str | None = None, **kwargs
     ) -> str | None:
         """
-        Write the field data to a file in the format required by the specified code.
-        This method supports writing field data for ASTRA, SDDS, GDF, and OPAL.
-        If the field file has not been read in, it raises a warning and returns None.
-        If a location is provided, it uses that as the base directory;
-        otherwise, it defaults to the directory of the current field file.
+        Write the field data in the format of `code`; warn and return None if
+        the field file has not been read.
 
         Parameters
         ----------
         code: str:
             The code for which the field data is to be written.
-            Supported codes include 'astra', 'sdds', 'opal', and 'gdf'.
+            Supported codes are 'astra'/'ocelot', 'sdds'/'elegant',
+            'gdf'/'gpt', 'opal', 'hdf5' and 'bmad'.
         location: str | None:
             Optional; if provided, it specifies the directory where the output file will be saved.
+        **kwargs
+            Passed to :func:`~laura.translator.utils.fields.bmad.write_bmad_field_file`.
 
         Returns
         -------

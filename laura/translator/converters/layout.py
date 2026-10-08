@@ -26,7 +26,7 @@ written this way. That needs ``field_master``.
 
 class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
     """
-    Translator for a :class:`~laura.models.elementList.MachineLayout`.
+    Translator for a :class:`~laura.models.element_list.MachineLayout`.
 
     Its children are its sections, so every ``to_CODE`` method inherited from
     :class:`~laura.translator.converters.fanout.ContainerTranslator` returns
@@ -54,7 +54,7 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         Parameters
         ----------
         layout: MachineLayout
-            The :class:`~laura.models.elementList.MachineLayout` to translate.
+            The :class:`~laura.models.element_list.MachineLayout` to translate.
         multipass: bool
             Keep the passes as passes, rather than flattening them to one
             section each. Only :meth:`to_bmad_multipass` can use the result --
@@ -233,8 +233,8 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
             line = f"{section.name}: LINE = ("
             if charge:
                 line += f"{section.name}_Q, "
-            line += ", ".join(elem_dict.keys()) + ")"
-            lines += "\n" + wrap_lattice_line(line) + "\n\n\n"
+            line += f"{', '.join(elem_dict.keys())})"
+            lines += f"\n{wrap_lattice_line(line)}\n\n\n"
         return definitions, lines
 
     def to_bmad_multipass(
@@ -248,7 +248,7 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         Create one Bmad lattice file for this whole beam path, with a multipass
         section written as a Bmad multipass lord and one slave per traversal.
 
-        :meth:`to_bmad` flattensm, while this keeps the identity Bmad can hold: the
+        :meth:`to_bmad` flattens, while this keeps the identity Bmad can hold: the
         hardware is defined once, and ``NAME\\1``, ``NAME\\2`` are the beam's
         visits to it.
 
@@ -384,5 +384,5 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
                 body += d.to_genesis(index=i)
 
             names = ", ".join(f"{i}{elem}" for i, elem in enumerate(elem_dict))
-            body += f"\n{section.name}: LINE = " + "{" + names + "};\n\n\n"
+            body += f"\n{section.name}: LINE = {{{names}}};\n\n\n"
         return body

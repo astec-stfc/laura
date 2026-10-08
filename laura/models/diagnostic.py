@@ -130,7 +130,7 @@ def _build_camera_sensor(**kwargs) -> CameraSensor:
 
 def pco_camera_sensor():
     """
-    A specific instantiation of `~laura.models.diagnostic.Camera_Sensor` for PCO cameras.
+    A specific instantiation of `~laura.models.diagnostic.CameraSensor` for PCO cameras.
     """
 
     return _build_camera_sensor(
@@ -151,7 +151,7 @@ def pco_camera_sensor():
 
 def manta_camera_sensor():
     """
-    A specific instantiation of `~laura.models.diagnostic.Camera_Sensor` for Manta cameras.
+    A specific instantiation of `~laura.models.diagnostic.CameraSensor` for Manta cameras.
     """
 
     return _build_camera_sensor(

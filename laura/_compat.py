@@ -68,7 +68,7 @@ def deprecated_aliases(
 class DeprecatedMethodAliases:
     """
     Mixin serving renamed *methods* under their old names.
-    Done *before* pydantic's ``BaseModel`` so this ``__getattr__`` wins, and
+    List it *before* pydantic's ``BaseModel`` so this ``__getattr__`` wins, and
     set the mapping on each class::
 
         class AstraHeader(DeprecatedMethodAliases, BaseModel):

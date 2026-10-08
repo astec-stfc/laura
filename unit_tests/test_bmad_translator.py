@@ -9,10 +9,7 @@ import pytest
 pytest.importorskip("easygdf")
 h5py = pytest.importorskip("h5py")
 
-from laura.models.baseModels import (  # noqa: E402
-    set_functional_definitions,
-    set_resolve_functional,
-)
+from laura.models.baseModels import set_functional_definitions  # noqa: E402
 from laura.models.element import (  # noqa: E402
     ELEMENT_REGISTRY,
     Aperture,
@@ -57,21 +54,24 @@ from laura.translator.converters.section import (  # noqa: E402
     SectionLatticeTranslator,
 )
 from laura.translator.utils.bmad import bmad_survey_frame  # noqa: E402
-
-
-@pytest.fixture(autouse=True)
-def _reset_functionals():
-    set_functional_definitions({}, merge=False)
-    set_resolve_functional(False)
-    yield
-    set_functional_definitions({}, merge=False)
-    set_resolve_functional(False)
+from unit_tests.helpers import quad  # noqa: E402
 
 
 def _bmad(element, directory="."):
     return next(
         iter(translate_elements([element], directory=str(directory)).values())
     ).to_bmad()
+
+
+def _export(section, **kwargs):
+    return SectionLatticeTranslator.from_section(section).to_bmad(**kwargs)
+
+
+def _assert_terms(text, present, absent=()):
+    for term in present:
+        assert term in text
+    for term in absent:
+        assert term not in text
 
 
 def _write_field(path, field_type, **datasets):
@@ -163,195 +163,218 @@ def test_bmad_transverse_only_wake_is_reported_and_omitted(tmp_path):
     assert "sr_wake" not in text
 
 
-def test_bmad_quadrupole_generalized_gradient_sidecar(tmp_path):
-    field_path = tmp_path / "quadrupole.hdf5"
+@pytest.mark.parametrize(
+    "cls, magnetic, stem, present, absent, sidecar_present",
+    [
+        pytest.param(
+            Quadrupole,
+            {"magnetic_length": 0.2, "gradient": 4, "k1l": 0.3},
+            "quadrupole",
+            ["field_calc = fieldmap", "gen_gradients = call::quadrupole.bmad"],
+            "k1 =",
+            [
+                "field_scale = 4",
+                "ele_anchor_pt = center",
+                "curve = { kind = b, n = 2",
+                "0: 1",
+            ],
+            id="quadrupole",
+        ),
+        pytest.param(
+            Solenoid,
+            {"magnetic_length": 0.2, "fields": {"S0L": 0.8}},
+            "solenoid",
+            ["field_calc = fieldmap", "gen_gradients = call::solenoid.bmad"],
+            "ks =",
+            ["field_scale = 4", "curve = { kind = bs, n = 0"],
+            id="solenoid-zero-harmonic",
+        ),
+    ],
+)
+def test_bmad_generalized_gradient_sidecar(
+    tmp_path, cls, magnetic, stem, present, absent, sidecar_present
+):
+    field_path = tmp_path / f"{stem}.hdf5"
     _write_field(
         field_path,
         "1DMagnetoStatic",
         z=[-0.1, 0, 0.1],
         Bz=[0, 1, 0],
     )
-    quadrupole = Quadrupole(
-        name="Q",
+    element = cls(
+        name="X",
         machine_area="S",
-        magnetic={"magnetic_length": 0.2, "gradient": 4, "k1l": 0.3},
+        magnetic=magnetic,
         simulation={"field_definition": str(field_path)},
     )
-    text = _bmad(quadrupole, tmp_path)
-    assert "field_calc = fieldmap" in text
-    assert "gen_gradients = call::quadrupole.bmad" in text
-    assert "k1 =" not in text
-    sidecar = (tmp_path / "quadrupole.bmad").read_text()
-    assert "field_scale = 4" in sidecar
-    assert "ele_anchor_pt = center" in sidecar
-    assert "curve = { kind = b, n = 2" in sidecar
-    assert "0: 1" in sidecar
+    text = _bmad(element, tmp_path)
+    _assert_terms(text, present, [absent])
+    _assert_terms((tmp_path / f"{stem}.bmad").read_text(), sidecar_present)
 
 
-def test_bmad_solenoid_generalized_gradient_uses_zero_harmonic(tmp_path):
-    field_path = tmp_path / "solenoid.hdf5"
-    _write_field(
-        field_path,
-        "1DMagnetoStatic",
-        z=[-0.1, 0, 0.1],
-        Bz=[0, 1, 0],
-    )
-    solenoid = Solenoid(
-        name="S",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.2, "fields": {"S0L": 0.8}},
-        simulation={"field_definition": str(field_path)},
-    )
-    text = _bmad(solenoid, tmp_path)
-    assert "field_calc = fieldmap" in text
-    assert "gen_gradients = call::solenoid.bmad" in text
-    assert "ks =" not in text
-    sidecar = (tmp_path / "solenoid.bmad").read_text()
-    assert "field_scale = 4" in sidecar
-    assert "curve = { kind = bs, n = 0" in sidecar
+_STANDING_WAVE = {
+    "frequency": 1e9,
+    "n_cells": 1,
+    "cell_length": 1,
+    "structure_Type": "StandingWave",
+}
 
 
-def test_bmad_special_element_conversions():
+@pytest.mark.parametrize(
+    "cls, fields, present, absent",
+    [
+        # A string is the exact expected output; a list, substrings of it.
+        pytest.param(Marker, {"name": "M1"}, "M1: marker\n", (), id="marker"),
+        pytest.param(
+            Quadrupole,
+            {"name": "Q-1", "magnetic": {"magnetic_length": 0.5, "k1l": "kq"}},
+            ["Q_1: quadrupole, l = 0.5", "k1 = kq / 0.5"],
+            (),
+            id="quadrupole-functional",
+        ),
+        pytest.param(
+            Dipole,
+            {
+                "name": "B1",
+                "magnetic": {
+                    "magnetic_length": 1.0,
+                    "k0l": 0.2,
+                    "gap": 0.04,
+                    "edge_field_integral": 0.3,
+                    "tilt": 0.1,
+                },
+            },
+            ["angle = 0.2", "hgap = 0.02", "fint = 0.3", "ref_tilt = 0.1"],
+            [", gap =", ", tilt ="],
+            id="dipole",
+        ),
+        # Bmad's `ks` is normalised like LAURA's S0L; `bs_field` is in tesla.
+        pytest.param(
+            Solenoid,
+            {
+                "name": "S1",
+                "magnetic": {"magnetic_length": 2.0, "fields": {"S0L": 0.8}},
+            },
+            ["ks = 0.4"],
+            (),
+            id="solenoid",
+        ),
+        pytest.param(
+            CombinedSolenoidQuadrupole,
+            {
+                "name": "SQ",
+                "magnetic": {
+                    "magnetic_length": 2.0,
+                    "k1l": 0.6,
+                    "solenoid_fields": {"S0L": 0.8},
+                },
+            },
+            ["SQ: sol_quad, l = 2.0, k1 = 0.3, ks = 0.4"],
+            (),
+            id="sol_quad",
+        ),
+        pytest.param(
+            RFCavity,
+            {
+                "name": "C1",
+                "cavity": {"phase": 90, **_STANDING_WAVE},
+                "simulation": {"field_amplitude": 2e6},
+            },
+            [
+                "C1: lcavity",
+                "n_cell = 1",
+                "phi0 = -0.25",
+                "cavity_type = standing_wave",
+            ],
+            (),
+            id="lcavity",
+        ),
+        pytest.param(
+            RFDeflectingCavity,
+            {
+                "name": "CR1",
+                "cavity": {"phase": 180, **_STANDING_WAVE},
+                "simulation": {"field_amplitude": 1e6},
+            },
+            ["CR1: crab_cavity", "phi0 = -0.5"],
+            (),
+            id="crab_cavity",
+        ),
+        pytest.param(
+            Aperture,
+            {
+                "name": "A1",
+                "physical": {"length": 0.2},
+                "aperture": {"shape": "circular", "radius": 0.01},
+            },
+            "A1: ecollimator, l = 0.2, x1_limit = 0.01, "
+            "x2_limit = 0.01, y1_limit = 0.01, y2_limit = 0.01\n",
+            (),
+            id="ecollimator",
+        ),
+        # LAURA sizes are full apertures, Bmad limits half widths; ``radius`` is
+        # already a half width.
+        pytest.param(
+            Aperture,
+            {
+                "name": "A2",
+                "physical": {"length": 0.0},
+                "aperture": {
+                    "shape": "rectangular",
+                    "horizontal_size": 0.017,
+                    "vertical_size": 0.0085,
+                },
+            },
+            "A2: rcollimator, l = 0.0, x1_limit = 0.0085, "
+            "x2_limit = 0.0085, y1_limit = 0.00425, y2_limit = 0.00425\n",
+            (),
+            id="rcollimator",
+        ),
+        pytest.param(
+            ElectrostaticSeparator,
+            {"name": "ES", "simulation": {"horizontal_field": 3, "vertical_field": 4}},
+            ["e_field = 5.0", "tilt = 0.6435011087932844"],
+            (),
+            id="separator",
+        ),
+        pytest.param(
+            BeamBeam,
+            {
+                "name": "BB",
+                "simulation": {
+                    "charge": 1,
+                    "n_particles": 1e10,
+                    "horizontal_sigma": 1e-3,
+                },
+            },
+            ["BB: beambeam, charge = 1.0, n_particle = 10000000000.0"],
+            [", l ="],
+            id="beambeam",
+        ),
+        pytest.param(
+            Wiggler,
+            {
+                "name": "W1",
+                "magnetic": {
+                    "magnetic_length": 2,
+                    "peak_magnetic_field": 1.2,
+                    "period": 0.2,
+                    "num_periods": 10,
+                },
+            },
+            ["b_max = 1.2"],
+            (),
+            id="wiggler",
+        ),
+    ],
+)
+def test_bmad_special_element_conversions(cls, fields, present, absent):
     set_functional_definitions({"kq": 0.3})
-    marker = Marker(name="M1", machine_area="S")
-    assert _bmad(marker) == "M1: marker\n"
-
-    quadrupole = Quadrupole(
-        name="Q-1",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.5, "k1l": "kq"},
-    )
-    assert "Q_1: quadrupole, l = 0.5" in _bmad(quadrupole)
-    assert "k1 = kq / 0.5" in _bmad(quadrupole)
-
-    dipole = Dipole(
-        name="B1",
-        machine_area="S",
-        magnetic={
-            "magnetic_length": 1.0,
-            "k0l": 0.2,
-            "gap": 0.04,
-            "edge_field_integral": 0.3,
-            "tilt": 0.1,
-        },
-    )
-    bend = _bmad(dipole)
-    assert "angle = 0.2" in bend
-    assert "hgap = 0.02" in bend
-    assert "fint = 0.3" in bend
-    assert "ref_tilt = 0.1" in bend
-    assert ", gap =" not in bend
-    assert ", tilt =" not in bend
-
-    solenoid = Solenoid(
-        name="S1",
-        machine_area="S",
-        magnetic={"magnetic_length": 2.0, "fields": {"S0L": 0.8}},
-    )
-    sol_quad = CombinedSolenoidQuadrupole(
-        name="SQ",
-        machine_area="S",
-        magnetic={
-            "magnetic_length": 2.0,
-            "k1l": 0.6,
-            "solenoid_fields": {"S0L": 0.8},
-        },
-    )
-    # `ks`, Bmad's normalised strength, and not the tesla-valued `bs_field`:
-    # LAURA's S0L is normalised, so the two differ by the rigidity.
-    assert "ks = 0.4" in _bmad(solenoid)
-    assert "SQ: sol_quad, l = 2.0, k1 = 0.3, ks = 0.4" in _bmad(sol_quad)
-
-    cavity = RFCavity(
-        name="C1",
-        machine_area="S",
-        cavity={
-            "phase": 90,
-            "frequency": 1e9,
-            "n_cells": 1,
-            "cell_length": 1,
-            "structure_Type": "StandingWave",
-        },
-        simulation={"field_amplitude": 2e6},
-    )
-    crab = RFDeflectingCavity(
-        name="CR1",
-        machine_area="S",
-        cavity={
-            "phase": 180,
-            "frequency": 1e9,
-            "n_cells": 1,
-            "cell_length": 1,
-            "structure_Type": "StandingWave",
-        },
-        simulation={"field_amplitude": 1e6},
-    )
-    rf = _bmad(cavity)
-    assert "C1: lcavity" in rf
-    assert "n_cell = 1" in rf
-    assert "phi0 = -0.25" in rf
-    assert "cavity_type = standing_wave" in rf
-    assert "CR1: crab_cavity" in _bmad(crab)
-    assert "phi0 = -0.5" in _bmad(crab)
-
-    aperture = Aperture(
-        name="A1",
-        machine_area="S",
-        physical={"length": 0.2},
-        aperture={"shape": "circular", "radius": 0.01},
-    )
-    assert (
-        _bmad(aperture) == "A1: ecollimator, l = 0.2, x1_limit = 0.01, "
-        "x2_limit = 0.01, y1_limit = 0.01, y2_limit = 0.01\n"
-    )
-
-    rect = Aperture(
-        name="A2",
-        machine_area="S",
-        physical={"length": 0.0},
-        aperture={
-            "shape": "rectangular",
-            "horizontal_size": 0.017,
-            "vertical_size": 0.0085,
-        },
-    )
-    # ``horizontal_size``/``vertical_size`` are full apertures and Bmad's
-    # limits are half widths, so these are halved on the way out; ``radius``
-    # above is already a half width and is not. Writing the full width into
-    # the limit doubled the collimator on every round trip.
-    assert (
-        _bmad(rect) == "A2: rcollimator, l = 0.0, x1_limit = 0.0085, "
-        "x2_limit = 0.0085, y1_limit = 0.00425, y2_limit = 0.00425\n"
-    )
-
-    separator = ElectrostaticSeparator(
-        name="ES",
-        machine_area="S",
-        simulation={"horizontal_field": 3, "vertical_field": 4},
-    )
-    assert "e_field = 5.0" in _bmad(separator)
-    assert "tilt = 0.6435011087932844" in _bmad(separator)
-
-    beambeam = BeamBeam(
-        name="BB",
-        machine_area="S",
-        simulation={"charge": 1, "n_particles": 1e10, "horizontal_sigma": 1e-3},
-    )
-    beambeam_text = _bmad(beambeam)
-    assert "BB: beambeam, charge = 1.0, n_particle = 10000000000.0" in beambeam_text
-    assert ", l =" not in beambeam_text
-
-    wiggler = Wiggler(
-        name="W1",
-        machine_area="S",
-        magnetic={
-            "magnetic_length": 2,
-            "peak_magnetic_field": 1.2,
-            "period": 0.2,
-            "num_periods": 10,
-        },
-    )
-    assert "b_max = 1.2" in _bmad(wiggler)
+    text = _bmad(cls(machine_area="S", **fields))
+    if isinstance(present, str):
+        assert text == present
+    else:
+        _assert_terms(text, present, absent)
 
 
 def test_bmad_optional_tracking_controls_and_aliases():
@@ -447,16 +470,13 @@ def test_bmad_taylor_and_match_syntax():
     assert "TW: fixer, beta_a_stored = 2.0, beta_b_stored = 3.0" in text
     assert "alpha_a_stored = -0.5" in text
     assert "is_on = T" in text
-    # A fixer declares the Twiss; it is not a matching element and has no length.
     assert "match_twiss" not in text
     assert "l = " not in text
 
 
 def test_bmad_leading_twiss_match_becomes_beginning_not_a_match_element():
-    """A TwissMatch declares the design Twiss at a point; it does not touch the
-    beam. At the head of a section that is Bmad's ``beginning[...]``, and
-    anywhere else it is a ``fixer``. Either way a ``match`` element would be the
-    wrong thing, because it puts a real transfer matrix in the line.
+    """A TwissMatch is ``beginning[...]`` at a section head and a ``fixer`` elsewhere;
+    a ``match`` would put a real transfer matrix in the line.
     """
     seed = TwissMatch(
         name="BEGINNING",
@@ -471,19 +491,14 @@ def test_bmad_leading_twiss_match_becomes_beginning_not_a_match_element():
         },
         physical=PhysicalElement(length=0, middle=Position(z=0)),
     )
-    quadrupole = Quadrupole(
-        name="Q-1",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.5, "k1l": 0.3},
-        physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
-    )
+    quadrupole = quad("Q-1", 0.5, 0.3, middle=Position(z=0.25))
     section = SectionLattice(
         name="S-1",
         order=["BEGINNING", "Q-1"],
         elements=[seed, quadrupole],
         geometry="open",
     )
-    text = SectionLatticeTranslator.from_section(section).to_bmad()
+    text = _export(section)
 
     assert "beginning[beta_a] = 2.0" in text
     assert "beginning[alpha_a] = -0.5" in text
@@ -497,18 +512,16 @@ def test_bmad_leading_twiss_match_becomes_beginning_not_a_match_element():
     assert "BEGINNING:" not in text
     assert "S_1: line = (Q_1)" in text
 
-    # An explicit initial_twiss overrides the seed rather than doubling up.
-    override = SectionLatticeTranslator.from_section(section).to_bmad(
+    override = _export(
+        section,
         initial_twiss=TwissMatchSimulationElement(
             beta_x=7, alpha_x=0.0, beta_y=8, alpha_y=0.0
-        )
+        ),
     )
     assert "beginning[beta_a] = 7.0" in override
     assert "beginning[beta_a] = 2.0" not in override
     assert "matrix = match_twiss" not in override
 
-    # A TwissMatch anywhere else is a fixer: the same declaration, made at a
-    # point Bmad cannot put in its header.
     interior = SectionLattice(
         name="S-2",
         order=["Q-1", "BEGINNING"],
@@ -520,8 +533,8 @@ def test_bmad_leading_twiss_match_becomes_beginning_not_a_match_element():
         ],
         geometry="open",
     )
-    interior_text = SectionLatticeTranslator.from_section(interior).to_bmad()
-    # ``BEGINNING`` is reserved, so the name is the one bmad_safe_names gave it.
+    interior_text = _export(interior)
+    # ``BEGINNING`` is reserved in Bmad, hence the bmad_safe_names rename.
     assert "BEGINNING_ELEMENT: fixer, beta_a_stored = 2.0" in interior_text
     assert "eta_x_stored = 0.4" in interior_text
     assert "is_on = T" in interior_text
@@ -530,12 +543,7 @@ def test_bmad_leading_twiss_match_becomes_beginning_not_a_match_element():
 
 
 def test_bmad_section_layout_and_model_export():
-    quadrupole = Quadrupole(
-        name="Q-1",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.5, "k1l": 0.3},
-        physical=PhysicalElement(length=0.5, middle=Position(z=1)),
-    )
+    quadrupole = quad("Q-1", 0.5, 0.3, middle=Position(z=1))
     cavity = RFCavity(
         name="C1",
         machine_area="S",
@@ -612,38 +620,28 @@ def test_bmad_section_layout_and_model_export():
 
 
 def test_bmad_header_states_radiation_the_way_the_elements_asked():
-    """Radiation is a ``bmad_com`` global in Bmad and a per-element flag in
-    LAURA, and the header is where the two meet.
-    """
-    radiating = Quadrupole(
-        name="Q-RAD",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.5, "k1l": 0.3},
-        physical=PhysicalElement(length=0.5, middle=Position(z=1)),
-    )
+    """Radiation is a ``bmad_com`` global in Bmad but a per-element flag in LAURA."""
+    radiating = quad("Q-RAD", 0.5, 0.3, middle=Position(z=1))
     section = SectionLattice(
         name="S-1",
         order=["Q-RAD"],
         elements=[radiating],
         geometry="open",
     )
-    translator = SectionLatticeTranslator.from_section(section)
-    # LAURA's own defaults, which elegant already honours as `synch_rad = 1`.
-    text = translator.to_bmad()
+    # LAURA's defaults radiate, as elegant's `synch_rad = 1` does.
+    text = _export(section)
     assert "bmad_com[radiation_damping_on] = T" in text
     assert "bmad_com[radiation_fluctuations_on] = T" in text
 
     radiating.simulation.sr_enable = False
     radiating.simulation.isr_enable = False
-    text = SectionLatticeTranslator.from_section(section).to_bmad()
+    text = _export(section)
     assert "bmad_com[radiation_damping_on] = F" in text
     assert "bmad_com[radiation_fluctuations_on] = F" in text
 
 
 def test_bmad_cavity_carries_its_rf_step_count():
-    """``n_rf_steps`` is Bmad's RF-only stepping control, and LAURA's
-    code-agnostic name for it is ``n_kicks``.
-    """
+    """Bmad's ``n_rf_steps`` is LAURA's ``n_kicks``."""
     cavity = RFCavity(
         name="C-STEPPED",
         machine_area="S",
@@ -659,8 +657,7 @@ def test_bmad_cavity_carries_its_rf_step_count():
     )
     assert "n_rf_steps = 1000" in _bmad(cavity)
 
-    # `n_rf_steps = 0` is Bmad's older lcavity model (LCLS's sc_sfts), so it
-    # is written; left unset, Bmad chooses its own.
+    # `n_rf_steps = 0` is Bmad's older lcavity model, so it is written.
     old_model = cavity.model_copy(deep=True)
     old_model.simulation.n_kicks = 0
     assert "n_rf_steps = 0" in _bmad(old_model)
@@ -670,11 +667,7 @@ def test_bmad_cavity_carries_its_rf_step_count():
 
 
 def test_bmad_fringe_model_reaches_bmad_and_nowhere_it_would_be_misread():
-    """LAURA names the fringe model in Bmad's vocabulary, which is why it is
-    called ``fringe_model`` and not ``fringe_type``: elegant has a quadrupole
-    attribute of the latter name that chooses where the fringe acts rather
-    than which model runs, and the words for the two do not overlap.
-    """
+    """Not ``fringe_type``: elegant's ``fringe_type`` means something else."""
     dipole = Dipole(
         name="B-FRINGED",
         machine_area="S",
@@ -703,14 +696,7 @@ def test_bmad_fringe_model_reaches_bmad_and_nowhere_it_would_be_misread():
 
 
 def test_bmad_element_aperture_is_written_without_a_collimator_standing_in():
-    """An ordinary element states its own aperture in Bmad, so a magnet that
-    knows its bore does not need a collimator inserted beside it to say so.
-
-    LAURA gives a full width and Bmad a distance from the axis to either side,
-    hence the halving -- the same convention ``ApertureTranslator`` follows for
-    the ``Collimator`` class itself. Only a shape Bmad would not assume gets
-    named: rectangular is its default everywhere outside an ecollimator.
-    """
+    """LAURA widths are full, Bmad limits half; rectangular is Bmad's default shape."""
     bore = {"horizontal_size": 0.032, "vertical_size": 0.032}
     quadrupole = Quadrupole(
         name="QA01",
@@ -734,23 +720,10 @@ def test_bmad_element_aperture_is_written_without_a_collimator_standing_in():
 
 
 def test_bmad_section_states_its_space_charge_resolution():
-    """Turning CSR on is not enough to make it run. Bmad's ``space_charge_com``
-    starts at ``n_bin = 0`` and ``ds_track_step = 0``, and reads those not as
-    defaults but as "nobody configured this": it marks the whole bunch lost and
-    says so. So a lattice with ``csr_and_space_charge_on = T`` and no
-    ``space_charge_com`` is worse than one with neither.
-
-    The settings sit on the section because that is the scale the choice is
-    made at -- a bunch compressor gets one binning and the linac around it
-    another -- and a caller running the section itself still wins, which is how
-    SIMBA sets the mode for a section it is about to track.
+    """Bmad reads ``n_bin = 0``/``ds_track_step = 0`` as unconfigured and loses the
+    bunch, so CSR without ``space_charge_com`` is worse than neither.
     """
-    quadrupole = Quadrupole(
-        name="Q-1",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.5, "k1l": 0.1},
-        physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
-    )
+    quadrupole = quad("Q-1", 0.5, 0.1, middle=Position(z=0.25))
     section = SectionLattice(
         name="S-1",
         order=["Q-1"],
@@ -764,44 +737,28 @@ def test_bmad_section_states_its_space_charge_resolution():
             "sigma_cutoff": 0.1,
         },
     )
-    text = SectionLatticeTranslator.from_section(section).to_bmad()
+    text = _export(section)
     assert "space_charge_com[n_bin] = 40" in text
     assert "space_charge_com[ds_track_step] = 0.01" in text
     assert "space_charge_com[beam_chamber_height] = 0.024" in text
-    # An integer in Bmad, so an integer here: its parser will not take `2.0`.
+    # Bmad's parser will not take `2.0` for an integer.
     assert "space_charge_com[particle_bin_span] = 2\n" in text
     assert "space_charge_com[lsc_sigma_cutoff] = 0.1" in text
-    # Left unset, so left to Bmad. Zero images is an unshielded calculation,
-    # which is what saying nothing already means.
+    # Unset (zero images, unshielded) is left to Bmad.
     assert "n_shield_images" not in text
 
-    # The caller running this section owns the mode for it.
-    overridden = SectionLatticeTranslator.from_section(section).to_bmad(
-        space_charge_n_bin=64
-    )
+    overridden = _export(section, space_charge_n_bin=64)
     assert "space_charge_com[n_bin] = 64" in overridden
     assert "space_charge_com[n_bin] = 40" not in overridden
 
     quiet = section.model_copy(deep=True)
     quiet.space_charge = None
-    assert "space_charge_com" not in SectionLatticeTranslator.from_section(
-        quiet
-    ).to_bmad()
+    assert "space_charge_com" not in _export(quiet)
 
 
 def test_bmad_section_superimposes_overlapping_elements():
-    base = Quadrupole(
-        name="Q-BASE",
-        machine_area="S",
-        magnetic={"magnetic_length": 4, "k1l": 0.4},
-        physical=PhysicalElement(length=4, middle=Position(z=2)),
-    )
-    overlap = Quadrupole(
-        name="Q-OVER",
-        machine_area="S",
-        magnetic={"magnetic_length": 2, "k1l": 0.2},
-        physical=PhysicalElement(length=2, middle=Position(z=3)),
-    )
+    base = quad("Q-BASE", 4, 0.4, middle=Position(z=2))
+    overlap = quad("Q-OVER", 2, 0.2, middle=Position(z=3))
     embedded = Solenoid(
         name="S-EMBED",
         machine_area="S",
@@ -809,12 +766,7 @@ def test_bmad_section_superimposes_overlapping_elements():
         magnetic={"magnetic_length": 4, "fields": {"S0L": 0.8}},
         physical=PhysicalElement(length=4, middle=Position(z=2)),
     )
-    downstream = Quadrupole(
-        name="Q-NEXT",
-        machine_area="S",
-        magnetic={"magnetic_length": 2, "k1l": 0.2},
-        physical=PhysicalElement(length=2, middle=Position(z=7)),
-    )
+    downstream = quad("Q-NEXT", 2, 0.2, middle=Position(z=7))
     section = SectionLattice(
         name="OVERLAP",
         order=["Q-BASE", "Q-OVER", "Q-NEXT"],
@@ -826,7 +778,7 @@ def test_bmad_section_superimposes_overlapping_elements():
         ),
     )
 
-    text = SectionLatticeTranslator.from_section(section).to_bmad()
+    text = _export(section)
 
     assert "parameter[geometry] = open" in text
     assert "Q_OVER: quadrupole" in text
@@ -861,14 +813,13 @@ def test_bmad_section_uses_thin_kicker_inside_bend():
         elements=ElementList(elements={"B": bend, "K": corrector}),
     )
 
-    text = SectionLatticeTranslator.from_section(section).to_bmad()
+    text = _export(section)
 
     assert "K: kicker, l = 0.0, hkick = 0.01, vkick = -0.02" in text
     assert ("superimpose, element = K, offset = 0.5, ele_origin = beginning") in text
 
 
 def _cavity_ring(geometry):
-    """A one-cavity, one-quadrupole section in the given geometry."""
     cavity = RFCavity(
         name="RF",
         machine_area="S",
@@ -882,12 +833,7 @@ def _cavity_ring(geometry):
         simulation={"field_amplitude": 1e6},
         physical=PhysicalElement(length=1.2, middle=Position(z=0.6)),
     )
-    quadrupole = Quadrupole(
-        name="Q",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.5, "k1l": 0.3},
-        physical=PhysicalElement(length=0.5, middle=Position(z=2.0)),
-    )
+    quadrupole = quad("Q", 0.5, 0.3, middle=Position(z=2.0))
     return SectionLattice(
         name="R",
         order=["RF", "Q"],
@@ -897,83 +843,56 @@ def _cavity_ring(geometry):
 
 
 def test_bmad_closed_geometry_exports_a_cavity_as_rfcavity():
-    """Bmad refuses an lcavity in a closed branch outright, so a ring with any
-    cavity used to export to a file that would not parse at all. rfcavity takes
-    the same attributes, and the swap must still go through the cavity's own
-    to_bmad so cavity_type keeps its Bmad spelling.
-    """
-    closed = SectionLatticeTranslator.from_section(_cavity_ring("closed")).to_bmad()
+    """Bmad refuses an lcavity in a closed branch."""
+    closed = _export(_cavity_ring("closed"))
     assert "RF: rfcavity" in closed
     assert "lcavity" not in closed
     # Bmad's switch is Standing_Wave -- LAURA's own "StandingWave" is rejected.
     assert "cavity_type = standing_wave" in closed
 
-    # An open line still accelerates, so it keeps the lcavity.
-    open_line = SectionLatticeTranslator.from_section(_cavity_ring("open")).to_bmad()
+    open_line = _export(_cavity_ring("open"))
     assert "RF: lcavity" in open_line
     assert "rfcavity" not in open_line
     assert "cavity_type = standing_wave" in open_line
 
 
 def test_bmad_export_writes_the_global_datum_when_the_line_is_placed():
-    """Without beginning[..._position] Bmad starts every line at the origin
-    along +Z, so a machine that sits anywhere else loses its placement -- and
-    the run-up to the first element goes with it.
-    """
-    quadrupole = Quadrupole(
-        name="Q",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.5, "k1l": 0.3},
-        physical=PhysicalElement(
-            length=0.5,
-            middle=Position(x=3.0, z=10.0),
-            global_rotation={"phi": 0.0, "psi": 0.0, "theta": 0.25},
-        ),
+    """Without beginning[..._position] Bmad starts every line at the origin along +Z."""
+    quadrupole = quad(
+        "Q",
+        0.5,
+        0.3,
+        middle=Position(x=3.0, z=10.0),
+        global_rotation={"phi": 0.0, "psi": 0.0, "theta": 0.25},
     )
     section = SectionLattice(
         name="S", order=["Q"], elements=[quadrupole], geometry="open"
     )
-    text = SectionLatticeTranslator.from_section(section).to_bmad()
+    text = _export(section)
 
-    # The datum is the *entrance* of the first element, not its centre, and the
-    # angle is Bmad's floor convention rather than LAURA's.
+    # The datum is the first element's entrance, in Bmad's floor angle convention.
     assert "beginning[x_position] = 3.06185098" in text
     assert "beginning[z_position] = 9.75777189" in text
     assert "beginning[theta_position] = -0.25" in text
-    # y is zero here and Bmad defaults it, so it is left out.
+    # y is zero, Bmad's default.
     assert "beginning[y_position]" not in text
     assert "beginning[phi_position]" not in text
 
 
 def test_bmad_export_omits_the_datum_for_a_line_starting_at_the_origin():
-    """A section with no global placement to record -- which includes every
-    position_mode="s" import, whose world coordinates are integrated from the
-    origin -- must not be given a surveyed-looking datum it never had.
-    """
-    quadrupole = Quadrupole(
-        name="Q",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.5, "k1l": 0.3},
-        physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
-    )
+    """Includes every position_mode="s" import, whose world frame starts at 0."""
+    quadrupole = quad("Q", 0.5, 0.3, middle=Position(z=0.25))
     section = SectionLattice(
         name="S", order=["Q"], elements=[quadrupole], geometry="open"
     )
-    text = SectionLatticeTranslator.from_section(section).to_bmad()
+    text = _export(section)
 
     assert "_position" not in text
 
 
 def _lead_section(with_origin):
     """A section whose first magnet sits 2.5 m downstream of its own start."""
-    elements = [
-        Quadrupole(
-            name="Q",
-            machine_area="S",
-            magnetic={"magnetic_length": 0.5, "k1l": 0.3},
-            physical=PhysicalElement(length=0.5, middle=Position(z=2.75)),
-        )
-    ]
+    elements = [quad("Q", 0.5, 0.3, middle=Position(z=2.75))]
     order = ["Q"]
     if with_origin:
         elements.insert(
@@ -995,39 +914,24 @@ def _lead_section(with_origin):
 
 
 def test_bmad_export_restores_the_run_up_to_the_first_element():
-    """createDrifts() only fills the gaps *between* elements, so the stretch
-    from a section's own start to its first element used to vanish -- the
-    exported lattice came out physically shorter than the one it was read from.
-    Bmad's Dragt_PSR_small_ring opens with a 2.286 m drift, and losing it
-    shortened the whole ring by exactly that.
-    """
-    text = SectionLatticeTranslator.from_section(_lead_section(True)).to_bmad()
+    """createDrifts() only fills gaps between elements, not the run-up to the first."""
+    text = _export(_lead_section(True))
 
     assert "S_lead_drift: drift, l = 2.5" in text
     assert "S: line = (S_lead_drift, Q)" in text
 
 
 def test_bmad_export_invents_no_run_up_without_a_declared_start():
-    """A leading TwissMatch is what declares where a section begins -- it is
-    what a Bmad Beginning_Ele imports as. Without one there is no origin to
-    measure a run-up from, and an element that merely sits away from the world
-    origin must not be handed a drift it never had.
-    """
-    text = SectionLatticeTranslator.from_section(_lead_section(False)).to_bmad()
+    """Only a leading TwissMatch (Bmad's Beginning_Ele) declares the section start."""
+    text = _export(_lead_section(False))
 
     assert "lead_drift" not in text
     assert "S: line = (Q)" in text
 
 
 def _reserved_name_section(extra=()):
-    """A section whose markers carry names Bmad keeps for itself."""
     elements = [
-        Quadrupole(
-            name="Q",
-            machine_area="S",
-            magnetic={"magnetic_length": 0.5, "k1l": 0.3},
-            physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
-        ),
+        quad("Q", 0.5, 0.3, middle=Position(z=0.25)),
         Marker(
             name="BEGINNING",
             machine_area="S",
@@ -1053,32 +957,23 @@ def _reserved_name_section(extra=()):
 
 
 def test_bmad_export_renames_the_names_bmad_keeps_for_itself():
-    """Bmad refuses a lattice outright if an element is called BEGINNING --
-    ``RESERVED WORD`` from the parser -- and silently confuses one called END
-    with the end-of-branch element it makes itself. Neither is hypothetical:
-    the LCLS cu_hxr lattice ends on a marker named END, and importing it and
-    writing it back produced a file Bmad could not round-trip.
-    """
+    """Bmad rejects an element named BEGINNING and confuses END with its own."""
     with pytest.warns(UserWarning, match="END -> END_ELEMENT"):
-        text = SectionLatticeTranslator.from_section(_reserved_name_section()).to_bmad()
+        text = _export(_reserved_name_section())
 
     assert "END_ELEMENT: marker" in text
     assert "BEGINNING_ELEMENT: marker" in text
     assert "END_ELEMENT, " in text or "END_ELEMENT)" in text
     assert "BEGINNING_ELEMENT," in text
-    # The definitions and the line have to agree, or the line names an element
-    # that was never defined.
     line = next(line for line in text.splitlines() if line.startswith("S: line"))
     assert "END_ELEMENT" in line and "BEGINNING_ELEMENT" in line
 
 
 def test_bmad_export_leaves_unreserved_names_exactly_as_they_were():
-    """The rename must be surgical. ENDGUN, ENDL0 and ENDDMPH all sit in the
-    same lattice as END and none of them are reserved.
-    """
+    """ENDGUN, ENDL0 and ENDDMPH sit beside END in LCLS cu_hxr and are not reserved."""
     section = _reserved_name_section(extra=("ENDGUN", "ENDL0"))
     with pytest.warns(UserWarning, match="reserves"):
-        text = SectionLatticeTranslator.from_section(section).to_bmad()
+        text = _export(section)
 
     assert "ENDGUN: marker" in text
     assert "ENDL0: marker" in text
@@ -1087,25 +982,19 @@ def test_bmad_export_leaves_unreserved_names_exactly_as_they_were():
 
 
 def test_bmad_export_does_not_collide_a_rename_with_itself():
-    """The exporter offers every name twice -- once as a definition, once as a
-    line member. Renaming on the second sighting used to walk into the
-    replacement the first sighting had just claimed, so cu_hxr's END came out
-    as END_ELEMENT_2 with nothing called END_ELEMENT anywhere in the file.
-    """
+    """Every name is offered twice (definition, then line); renames must agree."""
     with pytest.warns(UserWarning, match="reserves"):
-        text = SectionLatticeTranslator.from_section(_reserved_name_section()).to_bmad()
+        text = _export(_reserved_name_section())
 
     assert "END_ELEMENT_2" not in text
     assert "BEGINNING_ELEMENT_2" not in text
 
 
 def test_bmad_rename_steps_over_a_name_already_in_the_lattice():
-    """Only if the obvious replacement is taken does the counter come out."""
     section = _reserved_name_section(extra=("END_ELEMENT",))
     with pytest.warns(UserWarning, match="END -> END_ELEMENT_2"):
-        text = SectionLatticeTranslator.from_section(section).to_bmad()
+        text = _export(section)
 
-    # The pre-existing element keeps its name; the reserved one steps past it.
     assert text.count("END_ELEMENT: marker") == 1
     assert "END_ELEMENT_2: marker" in text
 
@@ -1114,68 +1003,42 @@ def test_bmad_export_of_an_unreserved_lattice_warns_about_nothing():
     section = SectionLattice(
         name="S",
         order=["Q"],
-        elements=[
-            Quadrupole(
-                name="Q",
-                machine_area="S",
-                magnetic={"magnetic_length": 0.5, "k1l": 0.3},
-                physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
-            )
-        ],
+        elements=[quad("Q", 0.5, 0.3, middle=Position(z=0.25))],
         geometry="open",
     )
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)
-        text = SectionLatticeTranslator.from_section(section).to_bmad()
+        text = _export(section)
 
     assert "_ELEMENT" not in text
 
 
 def _thick_diagnostic_section():
-    """A screen that genuinely occupies 0.3 m, between two quadrupoles."""
     return SectionLattice(
         name="S",
         order=["Q1", "SCR", "Q2"],
         elements=[
-            Quadrupole(
-                name="Q1",
-                machine_area="S",
-                magnetic={"magnetic_length": 0.5, "k1l": 0.3},
-                physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
-            ),
+            quad("Q1", 0.5, 0.3, middle=Position(z=0.25)),
             Screen(
                 name="SCR",
                 machine_area="S",
                 physical=PhysicalElement(length=0.3, middle=Position(z=1.15)),
             ),
-            Quadrupole(
-                name="Q2",
-                machine_area="S",
-                magnetic={"magnetic_length": 0.5, "k1l": -0.3},
-                physical=PhysicalElement(length=0.5, middle=Position(z=2.05)),
-            ),
+            quad("Q2", 0.5, -0.3, middle=Position(z=2.05)),
         ],
         geometry="open",
     )
 
 
 def test_bmad_export_keeps_a_thick_diagnostic_thick():
-    """createDrifts() collapses a Diagnostic to a point because not every code
-    can express a marker that occupies space. Bmad's monitor and instrument
-    both take an ``l``, so collapsing it there moves the recorded position half
-    an element-length upstream of where the diagnostic really sits -- worth
-    150 mm on an LCLS screen.
-    """
-    text = SectionLatticeTranslator.from_section(_thick_diagnostic_section()).to_bmad()
+    """Bmad monitors take ``l``; collapsing one moves it half a length upstream."""
+    text = _export(_thick_diagnostic_section())
 
     assert "SCR: instrument, l = 0.3" in text
 
 
 def test_bmad_export_does_not_shorten_the_lattice_it_was_given():
-    """Whether the diagnostic keeps its length or the drifts either side
-    absorb it, the section has to come out the same length.
-    """
-    text = SectionLatticeTranslator.from_section(_thick_diagnostic_section()).to_bmad()
+    text = _export(_thick_diagnostic_section())
 
     total = 0.0
     for line in text.splitlines():
@@ -1187,76 +1050,61 @@ def test_bmad_export_does_not_shorten_the_lattice_it_was_given():
 
 
 def test_bmad_export_leaves_the_model_it_exported_alone():
-    """The collapse used to be an assignment straight into the caller's model,
-    so one export permanently zeroed every diagnostic length in it -- and
-    every later export, to any code or back to YAML, inherited the loss.
-    """
     section = _thick_diagnostic_section()
-    SectionLatticeTranslator.from_section(section).to_bmad()
-    SectionLatticeTranslator.from_section(section).to_bmad()
+    _export(section)
+    _export(section)
 
     assert section.elements["SCR"].physical.length == 0.3
 
 
-def test_bmad_bend_writes_fintx_only_when_the_exit_face_differs():
-    """``fintx``/``hgapx`` are Bmad's exit-face fringe attributes, and Bmad
-    defaults each to its entrance twin.
-
-    Both halves matter. A symmetric bend must export exactly as it did before
-    -- silence on the exit face is what makes the change safe for every lattice
-    already written -- and an asymmetric one must say so explicitly.
-    """
-    symmetric = Dipole(
-        name="B-SYM",
-        machine_area="S",
-        magnetic={
-            "magnetic_length": 1.0,
-            "k0l": 0.2,
-            "gap": 0.04,
-            "edge_field_integral": 0.3,
-        },
-    )
-    bend = _bmad(symmetric)
-    assert "hgap = 0.02" in bend
-    assert "fint = 0.3" in bend
-    assert "fintx" not in bend
-    assert "hgapx" not in bend
-
-    entrance_half = Dipole(
-        name="B-1",
-        machine_area="S",
-        magnetic={
-            "magnetic_length": 0.5,
-            "k0l": 0.1,
-            "gap": 0.03,
-            "edge_field_integral": 0.45,
-            "exit_gap": 0.0,
-            "edge_field_integral_exit":0.0,
-        },
-    )
-    bend = _bmad(entrance_half)
-    assert "fint = 0.45" in bend
-    assert "hgap = 0.015" in bend
-    assert "fintx = 0" in bend
-    assert "hgapx = 0" in bend
-
-    exit_half = Dipole(
-        name="B-2",
-        machine_area="S",
-        magnetic={
-            "magnetic_length": 0.5,
-            "k0l": 0.1,
-            "gap": 0.0,
-            "edge_field_integral": 0.0,
-            "exit_gap": 0.03,
-            "edge_field_integral_exit":0.45,
-        },
-    )
-    bend = _bmad(exit_half)
-    assert "fint = 0" in bend
-    assert "hgap = 0" in bend
-    assert "fintx = 0.45" in bend
-    assert "hgapx = 0.015" in bend
+@pytest.mark.parametrize(
+    "magnetic, present, absent",
+    [
+        pytest.param(
+            {
+                "magnetic_length": 1.0,
+                "k0l": 0.2,
+                "gap": 0.04,
+                "edge_field_integral": 0.3,
+            },
+            ["hgap = 0.02", "fint = 0.3"],
+            ["fintx", "hgapx"],
+            id="symmetric",
+        ),
+        pytest.param(
+            {
+                "magnetic_length": 0.5,
+                "k0l": 0.1,
+                "gap": 0.03,
+                "edge_field_integral": 0.45,
+                "exit_gap": 0.0,
+                "edge_field_integral_exit": 0.0,
+            },
+            ["fint = 0.45", "hgap = 0.015", "fintx = 0", "hgapx = 0"],
+            [],
+            id="entrance-half",
+        ),
+        pytest.param(
+            {
+                "magnetic_length": 0.5,
+                "k0l": 0.1,
+                "gap": 0.0,
+                "edge_field_integral": 0.0,
+                "exit_gap": 0.03,
+                "edge_field_integral_exit": 0.45,
+            },
+            ["fint = 0", "hgap = 0", "fintx = 0.45", "hgapx = 0.015"],
+            [],
+            id="exit-half",
+        ),
+    ],
+)
+def test_bmad_bend_writes_fintx_only_when_the_exit_face_differs(
+    magnetic, present, absent
+):
+    """Bmad defaults ``fintx``/``hgapx`` to their entrance twins."""
+    bend = _bmad(Dipole(name="B-1", machine_area="S", magnetic=magnetic))
+    _assert_terms(bend, present, absent)
 
 
 def test_bmad_bend_leaves_an_unset_fringe_integral_to_bmad():
@@ -1293,11 +1141,9 @@ def test_bmad_bend_leaves_an_unset_fringe_integral_to_bmad():
     ],
 )
 def test_bmad_thin_dipole_is_a_multipole_that_bends_the_reference(k0l, tilt, written):
-    """A zero-length Dipole bends the reference orbit, as Bmad's ``multipole,
-    k0l, K0L_status = bends_reference`` does (DIAG0's DYQDG001).
-
-    Bmad refuses a zero-length ``sbend`` that bends, and one that does not
-    loses the floor frame the thin bend turns and the dispersion it gives."""
+    """A zero-length Dipole is Bmad's ``multipole, k0l_status = bends_reference``;
+    Bmad refuses a zero-length ``sbend`` that bends.
+    """
     thin = Dipole(
         name="DY-THIN",
         machine_area="S",
@@ -1310,79 +1156,63 @@ def test_bmad_thin_dipole_is_a_multipole_that_bends_the_reference(k0l, tilt, wri
     assert "angle" not in text and "a0" not in text
 
 
-def test_bmad_writes_the_multipole_content_the_main_attributes_cannot_hold():
-    """A Bmad element definition carries one component of one order -- ``k3`` on
-    an octupole -- so a magnet with a skew component of that same order, or with
-    any content at another order, used to lose it silently.
-    """
-    octupole = Octupole(
-        name="OCT-1",
-        machine_area="S",
-        magnetic={
-            "magnetic_length": 0.5,
-            "order": 3,
-            "multipoles": {"K3L": {"order": 3, "normal": 7.5, "skew": 1.0}},
-        },
-    )
-    text = _bmad(octupole)
-    # k3 = KnL / length; a3 = Ks3L / 3!, integrated and unscaled by the length.
-    assert "k3 = 15.0" in text
-    assert "a3 = 0.16666666666666666" in text
-    assert "scale_multipoles = F" in text
-
-    # An off-order term is dropped just as silently, and lands in `bn`.
-    quadrupole = Quadrupole(
-        name="Q-1",
-        machine_area="S",
-        magnetic={
-            "magnetic_length": 0.5,
-            "order": 1,
-            "multipoles": {
-                "K1L": {"order": 1, "normal": 2.0, "skew": 0.4},
-                "K2L": {"order": 2, "normal": 0.9},
+@pytest.mark.parametrize(
+    "cls, magnetic, present, absent",
+    [
+        # k3 = KnL / length; a3 = Ks3L / 3!, integrated and unscaled by the length.
+        pytest.param(
+            Octupole,
+            {
+                "magnetic_length": 0.5,
+                "order": 3,
+                "multipoles": {"K3L": {"order": 3, "normal": 7.5, "skew": 1.0}},
             },
-        },
-    )
-    text = _bmad(quadrupole)
-    assert "k1 = 4.0" in text
-    assert "a1 = 0.4" in text
-    assert "b2 = 0.45" in text
-    assert "scale_multipoles = F" in text
-
-    # A plain magnet with nothing to add exports exactly as it did before.
-    plain = Quadrupole(
-        name="Q-2",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.5, "k1l": 1.0},
-    )
-    text = _bmad(plain)
-    assert "k1 = 2.0" in text
-    assert "scale_multipoles" not in text
-    assert ", a1 =" not in text
-    assert ", b1 =" not in text
+            ["k3 = 15.0", "a3 = 0.16666666666666666", "scale_multipoles = F"],
+            [],
+            id="same-order-skew",
+        ),
+        # An off-order term is dropped just as silently, and lands in `bn`.
+        pytest.param(
+            Quadrupole,
+            {
+                "magnetic_length": 0.5,
+                "order": 1,
+                "multipoles": {
+                    "K1L": {"order": 1, "normal": 2.0, "skew": 0.4},
+                    "K2L": {"order": 2, "normal": 0.9},
+                },
+            },
+            ["k1 = 4.0", "a1 = 0.4", "b2 = 0.45", "scale_multipoles = F"],
+            [],
+            id="off-order",
+        ),
+        pytest.param(
+            Quadrupole,
+            {"magnetic_length": 0.5, "k1l": 1.0},
+            ["k1 = 2.0"],
+            ["scale_multipoles", ", a1 =", ", b1 ="],
+            id="plain",
+        ),
+    ],
+)
+def test_bmad_writes_the_multipole_content_the_main_attributes_cannot_hold(
+    cls, magnetic, present, absent
+):
+    """A Bmad element carries one component of one order (``k3`` on an octupole)."""
+    text = _bmad(cls(name="M-1", machine_area="S", magnetic=magnetic))
+    _assert_terms(text, present, absent)
 
 
 def _rolled_bend_section(order):
-    """A section carrying a bend whose plane is rolled out of the horizontal."""
     elements = {
-        "Q-1": Quadrupole(
-            name="Q-1",
-            machine_area="S",
-            magnetic={"magnetic_length": 0.5, "k1l": 0.3},
-            physical=PhysicalElement(length=0.5, s=0.5, s_point="end"),
-        ),
+        "Q-1": quad("Q-1", 0.5, 0.3, s=0.5, s_point="end"),
         "B-1": Dipole(
             name="B-1",
             machine_area="S",
             magnetic={"magnetic_length": 2.0, "angle": 0.05, "tilt": 0.1},
             physical=PhysicalElement(length=2.0, s=2.5, s_point="end"),
         ),
-        "Q-2": Quadrupole(
-            name="Q-2",
-            machine_area="S",
-            magnetic={"magnetic_length": 0.5, "k1l": 0.3},
-            physical=PhysicalElement(length=0.5, s=3.0, s_point="end"),
-        ),
+        "Q-2": quad("Q-2", 0.5, 0.3, s=3.0, s_point="end"),
     }
     chosen = [elements[name] for name in order]
     section = SectionLattice(
@@ -1393,30 +1223,21 @@ def _rolled_bend_section(order):
 
 
 def test_bmad_rolled_bend_closes_its_own_roll_without_patches():
-    """``ref_tilt`` is self-closing: Bmad rolls the reference frame at the bend's
-    entrance and un-rolls it at the exit.
-    """
-    text = SectionLatticeTranslator.from_section(
-        _rolled_bend_section(["Q-1", "B-1", "Q-2"])
-    ).to_bmad()
+    """``ref_tilt`` is self-closing: Bmad rolls at the entrance and un-rolls at exit."""
+    text = _export(_rolled_bend_section(["Q-1", "B-1", "Q-2"]))
     assert "ref_tilt = 0.1" in text
     assert "patch" not in text
     assert "S_1: line = (Q_1, B_1, Q_2)" in text
 
-    # The same bend at the end of the line: no half-applied roll left behind.
-    trailing = SectionLatticeTranslator.from_section(
-        _rolled_bend_section(["Q-1", "B-1"])
-    ).to_bmad()
+    trailing = _export(_rolled_bend_section(["Q-1", "B-1"]))
     assert "ref_tilt = 0.1" in trailing
     assert "patch" not in trailing
     assert "S_1: line = (Q_1, B_1)" in trailing
 
 
 def test_bmad_survey_frame_neutralises_only_a_roll_that_is_really_there():
-    """``ref_tilt`` is self-closing, so Tao's floor record cannot report it and
-    the importer folds it into ``global_rotation`` to keep LAURA's frame
-    faithful. It has to come back out here, or a patch gets written to close a
-    gap Bmad's own survey will not leave.
+    """Tao's floor record cannot report ``ref_tilt``, so the importer folds it into
+    ``global_rotation``; it must come back out here or a needless patch is written.
     """
     psi, angle = 0.1, 0.05
     common = {"magnetic_length": 2.0, "angle": angle, "tilt": psi}
@@ -1458,10 +1279,7 @@ def test_bmad_survey_frame_neutralises_only_a_roll_that_is_really_there():
     )
     assert np.allclose(bmad_survey_frame(arc_placed, "start"), np.eye(3))
 
-    # Both placements, both faces: how LAURA was told where the magnet is
-    # cannot change which plane it bends in. The s-placed one used to report a
-    # plain Ry(-angle) here -- a yaw, as though the roll were not there -- which
-    # is the same thing that drew a 62 degree vertical arc flat on the floor.
+    # Placement mode must not change which plane the magnet bends in.
     assert np.allclose(
         bmad_survey_frame(floor_placed, "end"), _rz(psi) @ ry_neg @ _rz(-psi)
     )
@@ -1471,11 +1289,8 @@ def test_bmad_survey_frame_neutralises_only_a_roll_that_is_really_there():
 
 
 def test_bmad_rolled_bend_in_a_rolled_line_bends_in_its_own_plane():
-    """The LCLS dump line is rolled by a patch before its ``ref_tilt = pi/2``
-    bends, so the importer's placed roll is the line's roll *plus* the tilt,
-    equal to neither. The tilt is already in it and must not be applied again,
-    or the bend is laid out a quarter turn away and every Bmad export gets a
-    patch per bend that steers the beam into the dump collimator.
+    """The LCLS dump line is patch-rolled before its ``ref_tilt = pi/2`` bends, so the
+    placed roll already includes the tilt, which must not be applied again.
     """
     line_roll, tilt, angle = 0.1745, np.pi / 2, 0.0224
     bend = Dipole(
@@ -1497,8 +1312,7 @@ def test_bmad_rolled_bend_in_a_rolled_line_bends_in_its_own_plane():
     )
     physical = bend.physical
     assert np.allclose(physical.end_rotation_matrix, physical.rotation_matrix @ ry_neg)
-    # Bmad's survey frame at the exit is the entrance frame turned by the bend
-    # alone: only the line's roll is left, as Tao reports it.
+    # Bmad's exit frame is the entrance frame turned by the bend alone.
     relative = bmad_survey_frame(bend, "start").T @ bmad_survey_frame(bend, "end")
     rz = np.array(
         [[np.cos(tilt), -np.sin(tilt), 0], [np.sin(tilt), np.cos(tilt), 0], [0, 0, 1]]
@@ -1506,56 +1320,46 @@ def test_bmad_rolled_bend_in_a_rolled_line_bends_in_its_own_plane():
     assert np.allclose(relative, rz @ ry_neg @ rz.T)
 
 
-def test_bmad_skew_magnet_writes_its_strength_into_bmads_skew_slot():
-    """``magnetic.skew`` says the magnet is rolled to produce a skew field, and
-    ``KnL()`` reads the skew slot when it is set -- so the strength landed in
-    ``k1``, which Bmad reads as *normal*, turning a skew quadrupole into an
-    upright one of the same strength.
-
-    Bmad's own skew slot is ``a1``, so that is where it goes, and ``k1`` is left
-    holding the element's real normal component.
-    """
-    skew = Quadrupole(
-        name="Q-S",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.5, "order": 1, "kl": 0.15, "skew": True},
-    )
-    text = _bmad(skew)
-    # a1 is integrated (1! = 1), so it is KsL itself and not KsL / length.
-    assert "a1 = 0.15" in text
-    assert "k1 = 0.0" in text
-    assert "scale_multipoles = F" in text
-
-    # The upright magnet of the same strength is unchanged, and is not the same
-    # lattice element -- which is the whole point.
-    upright = Quadrupole(
-        name="Q-N",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.5, "order": 1, "kl": 0.15},
-    )
-    text = _bmad(upright)
-    assert "k1 = 0.3" in text
-    assert ", a1 =" not in text
-    assert "scale_multipoles" not in text
-
-    # Higher orders carry the 1/n! that `kN` does not.
-    skew_octupole = Octupole(
-        name="O-S",
-        machine_area="S",
-        magnetic={"magnetic_length": 0.5, "order": 3, "kl": 1.0, "skew": True},
-    )
-    text = _bmad(skew_octupole)
-    assert "a3 = 0.16666666666666666" in text
-    assert "k3 = 0.0" in text
-
-    # A bend is the exception: its order-0 attribute is `angle`, the reference
-    # bending, and Bmad rolls a bend plane with `ref_tilt` rather than a dipole
-    # multipole -- so there is nowhere to move it to and `angle` keeps it.
-    skew_bend = Dipole(
-        name="B-S",
-        machine_area="S",
-        magnetic={"magnetic_length": 2.0, "angle": 0.05, "skew": True},
-    )
-    text = _bmad(skew_bend)
-    assert "angle = 0.05" in text
-    assert ", a0 =" not in text
+@pytest.mark.parametrize(
+    "cls, magnetic, present, absent",
+    [
+        # a1 is integrated (1! = 1), so it is KsL itself and not KsL / length.
+        pytest.param(
+            Quadrupole,
+            {"magnetic_length": 0.5, "order": 1, "kl": 0.15, "skew": True},
+            ["a1 = 0.15", "k1 = 0.0", "scale_multipoles = F"],
+            [],
+            id="skew-quadrupole",
+        ),
+        # The upright magnet of the same strength is a different lattice element.
+        pytest.param(
+            Quadrupole,
+            {"magnetic_length": 0.5, "order": 1, "kl": 0.15},
+            ["k1 = 0.3"],
+            [", a1 =", "scale_multipoles"],
+            id="upright-quadrupole",
+        ),
+        # Higher orders carry the 1/n! that `kN` does not.
+        pytest.param(
+            Octupole,
+            {"magnetic_length": 0.5, "order": 3, "kl": 1.0, "skew": True},
+            ["a3 = 0.16666666666666666", "k3 = 0.0"],
+            [],
+            id="skew-octupole",
+        ),
+        # A bend keeps `angle`: Bmad rolls its plane with `ref_tilt`, not a multipole.
+        pytest.param(
+            Dipole,
+            {"magnetic_length": 2.0, "angle": 0.05, "skew": True},
+            ["angle = 0.05"],
+            [", a0 ="],
+            id="skew-bend",
+        ),
+    ],
+)
+def test_bmad_skew_magnet_writes_its_strength_into_bmads_skew_slot(
+    cls, magnetic, present, absent
+):
+    """Bmad's skew slot is ``a1``; ``k1`` keeps the element's real normal component."""
+    text = _bmad(cls(name="M-S", machine_area="S", magnetic=magnetic))
+    _assert_terms(text, present, absent)

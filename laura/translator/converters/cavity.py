@@ -168,17 +168,17 @@ class RFCavityTranslator(BaseElementTranslator):
         if wakefield_file_name is None:
             return
         if all([x is not None for x in [self.wxcolumn, self.wycolumn, self.wzcolumn]]):
-            self.wakefile = '"' + wakefield_file_name + '"'
+            self.wakefile = f'"{wakefield_file_name}"'
             return
         elif self.wzcolumn is not None and all(
             [x is None for x in [self.wxcolumn, self.wycolumn]]
         ):
-            self.zwakefile = '"' + wakefield_file_name + '"'
+            self.zwakefile = f'"{wakefield_file_name}"'
             return
         elif self.wzcolumn is None and all(
             [x is not None for x in [self.wxcolumn, self.wycolumn]]
         ):
-            self.trwakefile = '"' + wakefield_file_name + '"'
+            self.trwakefile = f'"{wakefield_file_name}"'
             return
 
     def to_elegant(self) -> str:
@@ -200,7 +200,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 self.simulation.wakefield_definition, code="elegant"
             )
             self.set_wakefield_column_names(wakefield_file_name)
-        string = self.name + ": " + etype
+        string = f"{self.name}: {etype}"
         preferred = {
             "n_kicks": (
                 "simulation_n_kicks" if self.simulation.n_kicks else "cavity_n_cells"
@@ -304,9 +304,9 @@ class RFCavityTranslator(BaseElementTranslator):
                 value = 1 if value is True else value
                 value = 0 if value is False else value
                 if key not in keys:
-                    string += ", " + key + " = " + str(value)
+                    string += f", {key} = {value!s}"
                 keys.append(key)
-        wholestring += string + ";\n"
+        wholestring += f"{string};\n"
         return wholestring
 
     def to_ocelot(self) -> object:
@@ -315,7 +315,7 @@ class RFCavityTranslator(BaseElementTranslator):
 
         Returns
         -------
-        tuple
+        object
             Ocelot Cavity object
         """
         from ..conversion_rules.codes import ocelot_conversion
@@ -359,7 +359,7 @@ class RFCavityTranslator(BaseElementTranslator):
 
         Returns
         -------
-        tuple
+        object
             Cheetah Cavity object
         """
         from torch import float64, tensor
@@ -438,74 +438,52 @@ class RFCavityTranslator(BaseElementTranslator):
         field_file_name = self.generate_field_file_name(
             self.simulation.field_definition, code="astra"
         )
-        efield_def = [
-            "FILE_EFieLD",
-            {"value": "'" + field_file_name + "'", "default": ""},
-        ]
+        if field_file_name is None:
+            raise ValueError(
+                f"{self.name}: ASTRA cavities need a field map "
+                "(simulation.field_definition)."
+            )
         return self._write_astra_dictionary(
-            dict(
-                [
-                    ["C_pos", {"value": field_ref_pos[2] + self.dz, "default": 0}],
-                    efield_def,
-                    ["C_numb", {"value": self.get_cells()}],
-                    [
-                        "Nue",
-                        {
-                            "value": float(self.cavity.frequency) / 1e9,
-                            "default": 2998.5,
-                        },
-                    ],
-                    [
-                        "MaxE",
-                        {
-                            "value": float(self.field_amplitude) / 1e6,
-                            "default": 0,
-                        },
-                    ],
-                    ["Phi", {"value": crest - self.phase, "default": 0.0}],
-                    ["C_smooth", {"value": self.simulation.smooth, "default": None}],
-                    [
-                        "C_xoff",
-                        {
-                            "value": field_ref_pos[0] + self.dx,
-                            "default": None,
-                            "type": "not_zero",
-                        },
-                    ],
-                    [
-                        "C_yoff",
-                        {
-                            "value": field_ref_pos[1] + self.dy,
-                            "default": None,
-                            "type": "not_zero",
-                        },
-                    ],
-                    [
-                        "C_xrot",
-                        {
-                            "value": self._astra_rotation("x"),
-                            "default": None,
-                            "type": "not_zero",
-                        },
-                    ],
-                    [
-                        "C_yrot",
-                        {
-                            "value": self._astra_rotation("y"),
-                            "default": None,
-                            "type": "not_zero",
-                        },
-                    ],
-                    [
-                        "C_zrot",
-                        {
-                            "value": self._astra_rotation("z"),
-                            "default": None,
-                            "type": "not_zero",
-                        },
-                    ],
-                ]
-            ),
+            {
+                "C_pos": {"value": field_ref_pos[2] + self.dz, "default": 0},
+                "FILE_EFieLD": {"value": f"'{field_file_name}'", "default": ""},
+                "C_numb": {"value": self.get_cells()},
+                "Nue": {
+                    "value": float(self.cavity.frequency) / 1e9,
+                    "default": 2998.5,
+                },
+                "MaxE": {
+                    "value": float(self.field_amplitude) / 1e6,
+                    "default": 0,
+                },
+                "Phi": {"value": crest - self.phase, "default": 0.0},
+                "C_smooth": {"value": self.simulation.smooth, "default": None},
+                "C_xoff": {
+                    "value": field_ref_pos[0] + self.dx,
+                    "default": None,
+                    "type": "not_zero",
+                },
+                "C_yoff": {
+                    "value": field_ref_pos[1] + self.dy,
+                    "default": None,
+                    "type": "not_zero",
+                },
+                "C_xrot": {
+                    "value": self._astra_rotation("x"),
+                    "default": None,
+                    "type": "not_zero",
+                },
+                "C_yrot": {
+                    "value": self._astra_rotation("y"),
+                    "default": None,
+                    "type": "not_zero",
+                },
+                "C_zrot": {
+                    "value": self._astra_rotation("z"),
+                    "default": None,
+                    "type": "not_zero",
+                },
+            },
             n,
         )
 
@@ -562,7 +540,7 @@ class RFCavityTranslator(BaseElementTranslator):
         ``lag = (90 - phase) / 360`` -- the same +90 degree convention used for
         ELEGANT, expressed as a fraction of 360 degrees rather than degrees.
 
-        A travelling-wave cavity (``cavity.structure_Type == "TravellingWave"``)
+        A travelling-wave cavity (``cavity.structure_type == "TravellingWave"``)
         is written as a MAD-X ``TWCAVITY`` rather than the standing-wave
         ``RFCAVITY``.
 
@@ -579,7 +557,7 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convert_type_madx(self.hardware_type)
-        string = sanitize_string(self.name) + ": " + etype
+        string = f"{sanitize_string(self.name)}: {etype}"
         for key, value in self._dump_items(
             self._convert_keyword_madx,
             elements_madx[etype],
@@ -610,7 +588,7 @@ class RFCavityTranslator(BaseElementTranslator):
             string += f", {key} {':=' if functional else '='} {self._flag(value)}"
         if at is not None:
             string += f", at = {at}"
-        return string + ";\n"
+        return f"{string};\n"
 
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
         """
@@ -632,7 +610,7 @@ class RFCavityTranslator(BaseElementTranslator):
         etype = self._convert_type_opal(self.hardware_type)
         if self.structure_type == "TravellingWave":
             etype = "travelingwave"
-        wholestring = self.name.replace("-", "_") + ": " + etype
+        wholestring = f"{self.name.replace('-', '_')}: {etype}"
         if etype.lower() == "drift" or self.simulation.field_definition is None:
             return ""
         for key, value in self._dump_items(
@@ -644,13 +622,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 value = value / 1e6
             wholestring += f", {key} = {self._flag(value)}"
         if isinstance(self.simulation.field_definition, FieldMap):
-            wholestring += (
-                ', fmapfn = "'
-                + self.generate_field_file_name(
-                    self.simulation.field_definition, code="opal"
-                )
-                + '"'
-            )
+            wholestring += f', fmapfn = "{self.generate_field_file_name(self.simulation.field_definition, code="opal")}"'
             if self.structure_type == "TravellingWave":
                 mode = float(self.simulation.field_definition.mode_numerator) / float(
                     self.simulation.field_definition.mode_denominator
@@ -721,51 +693,16 @@ class RFCavityTranslator(BaseElementTranslator):
         output = ""
         if field_file_name is not None:
             output = (
-                "f"
-                + subname
-                + " = "
-                + str(self.cavity.frequency)
-                + ";\n"
-                + "w"
-                + subname
-                + " = 2*pi*f"
-                + subname
-                + ";\n"
-                + "phi"
-                + subname
-                + " = "
-                + str((self.cavity.crest + 90 - self.phase + 0) % 360.0)
-                + "/deg;\n"
+                f"f{subname} = {self.cavity.frequency!s};\n"
+                f"w{subname} = 2*pi*f{subname};\n"
+                f"phi{subname} = {(self.cavity.crest + 90 - self.phase + 0) % 360.0!s}/deg;\n"
             )
             if self.structure_type == "TravellingWave":
-                output += (
-                    "ffac"
-                    + subname
-                    + " = 1.007 * "
-                    + str((9.0 / (2.0 * np.pi)) * self.field_amplitude)
-                    + ";\n"
-                )
+                output += f"ffac{subname} = 1.007 * {9.0 / (2.0 * np.pi) * self.field_amplitude!s};\n"
             else:
-                output += "ffac" + subname + " = " + str(self.field_amplitude) + ";\n"
+                output += f"ffac{subname} = {self.field_amplitude!s};\n"
 
-            output += (
-                "map1D_TM"
-                + '("'
-                + self.ccs.name
-                + '", '
-                + ccs_label
-                + ", "
-                + value_text
-                + ', "'
-                + str(field_file_name)
-                + '", "z", "Ez", ffac'
-                + subname
-                + ", phi"
-                + subname
-                + ", w"
-                + subname
-                + ");\n"
-            )
+            output += f'map1D_TM("{self.ccs.name}", {ccs_label}, {value_text}, "{field_file_name!s}", "z", "Ez", ffac{subname}, phi{subname}, w{subname});\n'
         else:
             output = ""
         return output

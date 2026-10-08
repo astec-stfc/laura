@@ -1,5 +1,4 @@
-"""Tests for small/low-coverage model modules: degauss, shutter, laser, trajectory,
-plus edge cases in CascadingAccessMixin not exercised by test_element_attrs.py."""
+"""Small model modules and CascadingAccessMixin edge cases."""
 
 import numpy as np
 import pytest
@@ -80,20 +79,11 @@ class TestTrajectory:
         rots = np.array([np.eye(3)] * 3)
         return Trajectory(s, pos, rots)
 
-    def test_xyz_at_s_interpolates(self):
-        t = self._traj()
-        p = t.xyz_at_s(0.5)
-        assert p.z == pytest.approx(0.5)
-
-    def test_xyz_at_s_extrapolates_below(self):
-        t = self._traj()
-        p = t.xyz_at_s(-1.0)
-        assert p.z == pytest.approx(-1.0)
-
-    def test_xyz_at_s_extrapolates_above(self):
-        t = self._traj()
-        p = t.xyz_at_s(3.0)
-        assert p.z == pytest.approx(3.0)
+    @pytest.mark.parametrize(
+        "s", [0.5, -1.0, 3.0], ids=["interpolates", "extrapolates_below", "extrapolates_above"]
+    )
+    def test_xyz_at_s(self, s):
+        assert self._traj().xyz_at_s(s).z == pytest.approx(s)
 
     def test_rotation_at_s(self):
         t = self._traj()
@@ -135,8 +125,3 @@ class TestCascadingAccessEdgeCases:
         e = self._element()
         with pytest.raises(ValidationError):
             e.totally_unknown_attribute = 1
-
-    def test_private_attribute_access_raises(self):
-        e = self._element()
-        with pytest.raises(AttributeError):
-            e._private_thing

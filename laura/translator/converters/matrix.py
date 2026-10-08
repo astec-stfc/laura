@@ -149,7 +149,6 @@ class MatrixTransformTranslator(BaseElementTranslator):
         self.start_write()
         obj = type_conversion_rules_xsuite[self.hardware_type]
         properties = {
-            "name": self.name,
             "length": self.length,
             "k": self.simulation.c_matrix,
             "R": self.simulation.r_matrix,
@@ -184,7 +183,7 @@ class MatrixTransformTranslator(BaseElementTranslator):
         Returns
         -------
         object
-            An Cheetah object representing the element, initialized with its properties.
+            A Cheetah object representing the element, initialized with its properties.
         """
         from ..conversion_rules.codes import cheetah_conversion
 

@@ -1,12 +1,14 @@
 """
 Section/layout/model assembly shared by the importers that build one flat,
-ordered ``{name: element}`` dict (MAD-X, ELEGANT, Xsuite, Ocelot).
+ordered ``{name: element}`` dict (MAD-X, ELEGANT, Xsuite, Ocelot), plus the
+pieces Bmad shares with them.
 """
 
 import os
 import re
 from pathlib import Path
 from typing import Dict, Optional, Union
+from warnings import warn
 
 from pydantic import BaseModel
 
@@ -18,6 +20,46 @@ from laura.models.element_list import (
 )
 
 from ....exporters.yaml_exporter import PositionMode, export_machine_combined_file
+
+
+def twiss_simulation(*values: float) -> dict:
+    """A ``TwissMatch`` ``simulation`` dict from beta_x, beta_y, alpha_x,
+    alpha_y, eta_x, eta_y, eta_xp and eta_yp, in that order."""
+    fields = ("beta_x", "beta_y", "alpha_x", "alpha_y")
+    fields += ("eta_x", "eta_y", "eta_xp", "eta_yp")
+    return dict(zip(fields, values, strict=True), from_beam=False)
+
+
+def keyword_rules(rules: Dict, hardware_type: str) -> Dict:
+    """``rules["general"]`` merged over ``hardware_type``'s own rules."""
+    key = hardware_type.lower()
+    # ``in``/``[]``, not ``.get``: a LazyDict loads only through those
+    return rules[key] | rules["general"] if key in rules else rules["general"]
+
+
+def compact_expression(expression: str) -> str:
+    """``expression`` lower-cased, without spaces or parentheses."""
+    return expression.lower().replace(" ", "").replace("(", "").replace(")", "")
+
+
+def check_layouts(
+    layouts: Dict,
+    skipped: list,
+    min_section_length: int,
+    skipped_label: str,
+    empty_label: Optional[str] = None,
+) -> None:
+    """Warn about ``skipped`` sections; raise if no layout survived."""
+    if skipped:
+        warn(
+            f"Skipped {skipped_label} shorter than min_section_length="
+            f"{min_section_length}: {', '.join(skipped)}"
+        )
+    if not layouts:
+        raise ValueError(
+            f"No {empty_label or skipped_label} meet "
+            f"min_section_length={min_section_length}."
+        )
 
 
 def read_with_calls(path: Path, call: "re.Pattern", _seen: Optional[set] = None) -> str:
@@ -61,6 +103,9 @@ class LatticeImporter(BaseModel):
     def _default_sections(self) -> Dict[str, SectionLattice]:
         """The sections :meth:`create_layout` uses when none are given."""
         return self.create_section()
+
+    def create_element_dictionary(self):
+        return self.create_laura_element_dictionary()
 
     def create_section(self, section: Optional[Dict] = None) -> Dict[str, SectionLattice]:
         """Build a named :class:`SectionLattice` from imported elements.
@@ -146,6 +191,25 @@ class LatticeImporter(BaseModel):
                 "default_layout": layout.name,
             },
             functional_definitions=self.functional_definitions,
+        )
+
+    def _layouts_model(
+        self,
+        elements: Dict,
+        section_definitions: Dict,
+        layout_definitions: Dict,
+        functional_definitions: Dict,
+    ) -> MachineModel:
+        """A multi-layout :class:`MachineModel` rooted beside ``source_file``."""
+        return MachineModel(
+            elements=elements,
+            section={"sections": section_definitions},
+            layout={
+                "layouts": layout_definitions,
+                "default_layout": next(iter(layout_definitions)),
+            },
+            master_lattice=str(Path(self.source_file).resolve().parent),
+            functional_definitions=functional_definitions,
         )
 
     def export_yaml(

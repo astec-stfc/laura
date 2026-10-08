@@ -10,7 +10,6 @@ from .angles import (
     bmad_floor_angles_to_laura,
     bmad_floor_rotation_matrix,
     is_flat_roll,
-    is_half_turn,
 )
 from .geometry import (
     bmad_beginning_datum,
@@ -45,7 +44,6 @@ __all__ = [
     "bmad_safe_names",
     "bmad_survey_frame",
     "is_flat_roll",
-    "is_half_turn",
     "BMAD_SR_WAKE_SAMPLES",
     "bmad_sr_wake_function",
     "sample_bmad_sr_wake",

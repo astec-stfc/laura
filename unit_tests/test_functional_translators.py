@@ -1,12 +1,4 @@
-"""Tests for functional-parameter handling in the translators.
-
-By default every code resolves a functional parameter to its number. Codes that
-natively support symbolic parameters keep the name: ELEGANT declares them with a
-``% <value> sto <name>`` header and references them as quoted rpn variables.
-
-The translator import chain pulls in optional field-IO dependencies, so the whole
-module is skipped when they are unavailable.
-"""
+"""Functional parameters: resolved by default, symbolic where the code allows."""
 
 import pytest
 
@@ -33,15 +25,6 @@ from laura.translator.converters.converter import translate_elements  # noqa: E4
 from laura.translator.utils.functions import (  # noqa: E402
     elegant_functional_definitions,
 )
-
-
-@pytest.fixture(autouse=True)
-def _reset_defs():
-    set_functional_definitions({}, merge=False)
-    set_resolve_functional(False)
-    yield
-    set_functional_definitions({}, merge=False)
-    set_resolve_functional(False)
 
 
 def _quad(k1l):
@@ -81,8 +64,7 @@ class TestElegantSymbolic:
     def test_quad_k1_passthrough(self):
         set_functional_definitions({"quad1_k1l": -2.0})
         out = _quad("quad1_k1l").to_elegant()
-        # k1 is the normalized strength KnL/length, so the symbolic kl is
-        # carried through divided by the (0.1 m) magnetic length.
+        # k1 = KnL / length (0.1 m)
         assert 'k1 = "quad1_k1l 0.1 /"' in out
 
     def test_quad_zero_length_k1_passthrough(self):
@@ -107,7 +89,7 @@ class TestElegantSymbolic:
         assert 'volt = "V_L02.01"' in out
 
     def test_cavity_phase_rpn(self):
-        # ELEGANT phase convention is 90 - phase; symbolic -> rpn expression
+        # ELEGANT phase convention is 90 - phase
         set_functional_definitions({"cav1_phase": 30.0})
         out = _cavity(1e6, phase="cav1_phase").to_elegant()
         assert 'phase = "90 cav1_phase -"' in out
@@ -153,9 +135,9 @@ class TestElegantSymbolic:
         set_functional_definitions({"quad1_k1l": -2.0})
         set_resolve_functional(True)
         out = _quad("quad1_k1l").to_elegant()
-        assert "k1 = -20.0" in out  # -2.0 / 0.1 m, baked in
+        assert "k1 = -20.0" in out
         assert '"quad1_k1l"' not in out
-        assert "sto" not in out  # no % ... sto header
+        assert "sto" not in out
 
 
 class TestDirectReadResolution:
@@ -190,7 +172,6 @@ class TestCascadeToTranslators:
             functional_definitions=str(f),
         )
         st = SectionLatticeTranslator.from_section(mm.sections["S1"])
-        # the definitions are carried onto the translator (not just global state)
         assert st.functional_definitions == {"quad1_k1l": -2.0}
         out = st.to_elegant()
         assert "% -2.0 sto quad1_k1l" in out
@@ -242,8 +223,7 @@ class TestDipole:
 
 
 class TestXsuite:
-    """Xsuite natively supports symbolic parameters via Environment variables, so
-    functional values are passed through as deferred expressions."""
+    """Xsuite keeps functional values as deferred Environment expressions."""
 
     def _line(self, elements, defs, beam_length=1, resolve=False):
         pytest.importorskip("xtrack")
@@ -284,37 +264,19 @@ class TestXsuite:
         assert line["Q1"].k1 == pytest.approx(0.3 / 0.5)  # kq / length
         assert line["D1"].k0 == pytest.approx(0.1 / 0.5)  # bend1 / length
         assert line["C1"].voltage == pytest.approx(5e6)
-        # the reference is a live deferred expression
         line.vars["kq"] = 0.9
         assert line["Q1"].k1 == pytest.approx(0.9 / 0.5)
 
     def test_resolved_mode_bakes_numbers(self):
-        # resolve_functional set via the lattice (which cascades it globally)
         line = self._line(
             self._magnets(), {"kq": 0.3, "bend1": 0.1, "Vcav": 5e6}, resolve=True
         )
         assert line["Q1"].k1 == pytest.approx(0.3 / 0.5)
-        # not a live reference: changing the (unused) var leaves k1 unchanged
         line.vars["kq"] = 0.9
         assert line["Q1"].k1 == pytest.approx(0.3 / 0.5)
 
     def test_exported_elements_keep_their_length(self):
-        """Regression test for a real bug found doing a full MAD-X -> ELEGANT
-        -> Ocelot -> Xsuite -> MAD-X round trip on a real LEIR lattice:
-        keyword_conversion_rules_Xsuite.yaml's `general` section mapped
-        LAURA's `length` to the native keyword `l` -- correct for MAD-X/
-        ELEGANT, but xtrack classes use `length`, not `l` ('l' is not even
-        an attribute on them). `BaseElementTranslator.to_xsuite()`'s generic
-        dispatch only writes a property when the converted keyword names a
-        real attribute on the target xtrack class, so `length` silently
-        never made it into `properties` for any element relying on the
-        generic path (every magnet not overriding to_xsuite itself) --
-        `component(**properties)` then fell back to xtrack's own default of
-        0. Every thick element built this way was silently zero-length
-        after export, which only surfaced 4 hops later as a MAD-X `SEQUENCE`
-        with `l = 0.0` and hundreds of real elements placed past its
-        declared length -- a fatal MAD-X error, nothing pointing back to the
-        actual cause."""
+        """xtrack takes ``length``, not ``l``, and drops unknown keywords silently."""
         line = self._line(self._magnets(), {"kq": 0.3, "bend1": 0.1, "Vcav": 5e6})
         assert line["Q1"].length == pytest.approx(0.5)
         assert line["D1"].length == pytest.approx(0.5)
@@ -332,11 +294,9 @@ class TestSolenoid:
             magnetic={"magnetic_length": 0.2, "ks": "sol_ks"},
         )
         st = SolenoidTranslator.model_validate(sol.model_dump())
-        # symbolic (default): ks passes through as the functional name
         assert 'ks = "sol_ks"' in st.to_elegant()
         # no pydantic "expected float, got str" serialization warning
         assert not any("serialized value" in str(w.message) for w in recwarn.list)
-        # resolved mode bakes the number in
         set_resolve_functional(True)
         assert "ks = 1.5" in st.to_elegant()
 

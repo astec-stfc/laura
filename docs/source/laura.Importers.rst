@@ -9,14 +9,6 @@ laura.importers package
 Submodules
 ----------
 
-laura.Importers.Magnet\_Table module
-------------------------------------
-
-.. automodule:: laura.importers.magnet_table
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 laura.importers.yaml\_loader module
 -----------------------------------
 

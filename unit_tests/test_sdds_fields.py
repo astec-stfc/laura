@@ -50,3 +50,21 @@ def test_sdds_reader_maps_all_field_kinds(monkeypatch):
         restored = field.model_validate(result.model_dump())
     np.testing.assert_array_equal(restored.t.value.val, [6.0, 7.0])
     np.testing.assert_array_equal(restored.Wz.value.val, [8.0, 9.0])
+
+
+def test_sdds_objects_keep_their_formatting_metadata():
+    from laura.translator.utils.sdds_file import SDDSColumn, SDDSParameter
+
+    for cls in (SDDSColumn, SDDSParameter):
+        obj = cls(name="a", data=1.0, formatstring="%10.3e", fieldlength=10, description="d")
+        assert (obj.formatstring, obj.fieldlength, obj.description) == ("%10.3e", 10, "d")
+
+
+def test_astra_longitudinal_wake_keeps_units(tmp_path):
+    from laura.translator.utils.fields.astra import read_astra_field_file
+
+    path = tmp_path / "wake.dat"
+    np.savetxt(path, [[0.0, 1.0], [1e-3, 2.0]], header="z Wz")
+    result = field()
+    read_astra_field_file(result, str(path), "LongitudinalWake")
+    assert result.Wz.value.units == "V/C"

@@ -49,10 +49,10 @@ class ElementLoadError(Exception):
     """
     A single element could not be loaded from YAML.
 
-    LAURA's loader is permissive by design: an element that cannot be parsed
-    is logged and skipped, so a machine can load "successfully" while missing
-    elements (see `patterns/debug-import-loading.md`). This is the default,
-    but losses can be made visible
+    By default the loader logs and skips such an element, so a machine can load
+    "successfully" while missing elements (see
+    `patterns/debug-import-loading.md`). Pass ``strict=True`` to raise instead,
+    or an ``errors`` list to collect them.
     """
 
     REASONS = (
@@ -84,12 +84,10 @@ class ElementLoadError(Exception):
 
 class DuplicateElementError(ElementLoadError):
     """
-    Two definitions declared the same element name; only one survives,
-    later definitions win..
+    Two definitions declared the same element name; the later one wins.
 
-    Not a parse failure -- both definitions may be perfectly valid -- but
-    elements are keyed by name all the way through LAURA, so the loser is
-    simply absent from the machine.
+    Both may be valid, but elements are keyed by name throughout LAURA, so the
+    loser is absent from the machine.
     """
 
     def __init__(
@@ -159,9 +157,8 @@ def collect_unique_filenames(
     """
     Map each element file's declared name to its path, reporting collisions.
 
-    Note this catches two different data faults with one check: two files
-    genuinely declaring the same ``name:``, and a file whose ``name:`` disagrees
-    with its own filename and so collides with a *different* file's name.
+    Catches both two files declaring the same ``name:`` and a file whose
+    ``name:`` disagrees with its filename and so collides with another file.
     """
     return collect_unique_by_name(
         ((fast_get_element_metadata(fn)["name"], fn, fn) for fn in files),
@@ -198,14 +195,12 @@ def fast_get_element_metadata(filename: str) -> dict:
 def collect_template_filenames(files) -> dict:
     """Map ``name -> filename`` for the `_`-prefixed inheritable templates.
 
-    ``laura.py`` drops `_`-prefixed files from the element list, which is what
-    makes a template a definition that never becomes a machine element.
-    Files that do not declare an element at the
-    top level (controls schemas) are skipped rather than reported.
+    ``laura.py`` drops `_`-prefixed files from the element list, so a template
+    never becomes a machine element. Files that do not declare an element at
+    the top level (controls schemas) are skipped.
 
-    Deliberately does not go through :func:`collect_unique_by_name`. A name
-    clash between two templates is not an element that went missing from the
-    machine, which is what ``load_errors`` is about.
+    Not via :func:`collect_unique_by_name`: a template name clash is not a
+    missing machine element, which is what ``load_errors`` reports.
     """
     templates = {}
     for filename in files:
@@ -302,7 +297,7 @@ class LazyElementDict(dict):
         return {name: self.get_metadata(name) for name in self._filenames}
 
     def is_loaded(self, name):
-        """Check if an element has already been loaded via interpret_YAML_Element.
+        """Check if an element has already been loaded via interpret_yaml_element.
 
         NOTE: this answers about the *key*, and ``__init__`` seeds every key
         with a ``None`` placeholder, so it is True for an element that has
@@ -420,12 +415,6 @@ def validate_element_dict(elem: dict) -> None:
     jsonschema.validate(instance=elem, schema=_get_json_schema())
 
 
-def filter_top_level(elem: dict, exclude_keys: List[str] | None = None) -> dict:
-    if isinstance(exclude_keys, list):
-        return {k: v for k, v in elem.items() if k not in exclude_keys}
-    return {k: v for k, v in elem.items()}
-
-
 _CONTROLS_SCHEMA_CACHE: dict = {}
 
 
@@ -434,9 +423,8 @@ def resolve_controls_schema_path(path: str, base_dir: str | None) -> str:
     Resolve a ``controls.schema`` reference to an actual file on disk.
 
     Tried in order: as given (absolute, or relative to the current working
-    directory), then relative to ``base_dir`` -- the directory of the element
-    YAML file that referenced it, which is the common case (a schema sitting
-    alongside the element files it applies to).
+    directory), then relative to ``base_dir`` (usually the directory of the
+    element YAML file that referenced it).
     """
     if os.path.isabs(path):
         if os.path.exists(path):
@@ -471,12 +459,10 @@ def get_controls_schema_variables(
     Look up the raw (still ``{name}``-templated) ``variables`` mapping named
     by a ``controls.schema`` reference.
 
-    If ``schema_map`` is given and contains ``schema_ref``, that in-memory
-    mapping is used directly -- this is how a combined file embeds its
-    schemas (see ``read_YAML_Combined_File`` / ``export_machine_combined_file``)
-    so it can be resolved without touching disk. Otherwise ``schema_ref`` is
-    resolved to a file via :func:`resolve_controls_schema_path` and loaded
-    (and cached) from there.
+    ``schema_map`` (a combined file's embedded schemas, see
+    ``read_yaml_combined_file`` / ``export_machine_combined_file``) is checked
+    first; otherwise ``schema_ref`` is resolved via
+    :func:`resolve_controls_schema_path` and loaded (and cached).
     """
     if schema_map is not None and schema_ref in schema_map:
         return schema_map[schema_ref]
@@ -505,15 +491,12 @@ def resolve_controls_schema(
     """
     Expand a ``controls.schema`` reference into a full ``variables`` dict.
 
-    ``controls['schema']`` names a schema (looked up via
-    :func:`get_controls_schema_variables`) holding a template ``variables``
-    mapping shared by every element of a given type; any ``{name}`` in its
-    string fields (typically `identifier`) is replaced with ``element_name``,
-    or with ``controls['identifier_pattern']`` instead if given.
-    Any ``variables`` already present in ``controls`` are then layered on top
-    of the template, one field at a time per variable key, so an element can
-    override or add a single field without repeating the whole entry; a
-    variable key not present in the schema is added as-is.
+    ``controls['schema']`` names a template ``variables`` mapping (see
+    :func:`get_controls_schema_variables`); each ``{name}`` in it is replaced
+    with ``controls['identifier_pattern']`` if given, else ``element_name``.
+    Any ``variables`` in ``controls`` are then layered on top field by field,
+    so an element can override a single field; keys not in the schema are
+    added as-is.
 
     Returns ``controls`` unchanged if it has no ``schema`` key.
     """
@@ -549,21 +532,16 @@ def collapse_controls_schema(
     """
     Inverse of the merge step in :func:`resolve_controls_schema`.
 
-    Given a ``controls`` dict whose ``variables`` are fully resolved (as
-    produced by serialising a ``ControlsInformation``, e.g. via
-    ``ele.base_model_dump()``) and which still names its ``schema``, re-derive
-    the minimal per-field ``variables`` override needed to reconstruct it
-    against ``schema_variables`` (that schema's raw, still ``{name}``-templated
-    content -- see :func:`get_controls_schema_variables`).
+    Reduces the fully resolved ``variables`` of ``controls`` to the minimal
+    per-field override against ``schema_variables`` (the schema's raw,
+    still ``{name}``-templated content).
 
-    ``live_variables`` (``{key: ControlVariable}``, typically ``ele.controls.
-    variables``), if given, is used for a value-exact comparison via
+    ``live_variables`` (``{key: ControlVariable}``, typically
+    ``ele.controls.variables``), if given, gives a value-exact comparison via
     :meth:`~laura.models.control.ControlVariable.unstripped_dump` rather than
-    the already-defaults-stripped dicts in ``controls['variables']``.
+    the defaults-stripped dicts in ``controls['variables']``.
 
-    Used by exporters that want to write elements back out referencing a
-    shared schema rather than in the fully expanded form. Returns ``controls``
-    unchanged if it has no ``schema`` key.
+    Returns ``controls`` unchanged if it has no ``schema`` key.
     """
     schema_ref = controls.get("schema")
     if not schema_ref:
@@ -648,13 +626,10 @@ def _model_in(annotation) -> type | None:
 def _field_spellings(model: type) -> dict:
     """Map every YAML spelling of *model*'s fields to the canonical field name.
 
-    A field may be written under any of its ``validation_alias`` choices --
-    `middle` is also `position`/`centre`, `length` is also `magnetic_length`.
-    A parent writing ``length`` and a child overriding it as
-    ``magnetic_length`` both survive such a merge, and AliasChoices resolves
-    them in declaration order, so the parent wins and the child's override is
-    silently ignored. The canonical name is always itself an accepted
-    spelling, so the merged dict still parses.
+    Without this, a parent's ``length`` and a child's ``magnetic_length`` both
+    survive an inheritance merge and AliasChoices picks the parent's. The
+    canonical name is itself an accepted spelling, so the merged dict still
+    parses.
     """
     spellings = {}
     for field, info in model.model_fields.items():
@@ -741,7 +716,7 @@ def _warn_on_inherited_losses(
     immediate parent -- an element three deep inherits its grandparent's
     control identifiers just as directly as its parent's.
 
-    Neither condition is a load failure, only warnings are raised..
+    Neither is a load failure.
     """
     parent_name = ancestors[0]
     model = ELEMENT_REGISTRY.get(merged.get("hardware_type"))
@@ -857,13 +832,10 @@ def resolve_inheritance(
 ) -> dict:
     """Merge *elem* on top of the element it declares it inherits from.
 
-    ``elem`` names its parent under ``inherits_from```;
-    ``namespace`` is anything with a ``.get(name)`` returning
-    another raw element dict. Resolution is by name, not by file
-    order. ``memo`` caches resolved elements by name.
-
-    The ``inherits_from`` link is kept on the result rather than consumed, so
-    an exporter can later reconstruct the compact form
+    ``elem`` names its parent under ``inherits_from``; ``namespace`` is
+    anything with a ``.get(name)`` returning another raw element dict.
+    ``memo`` caches resolved elements by name. The ``inherits_from`` link is
+    kept on the result so an exporter can rebuild the compact form.
 
     A missing parent or a cycle is an :class:`ElementLoadError`.
     """
@@ -993,6 +965,10 @@ def read_yaml_element_file(
 ):
     """Read a single-element YAML file and return the parsed model.
 
+    Inheritance is resolved before :func:`interpret_yaml_element` applies the
+    controls schema, so a child can inherit its parent's ``schema`` and layer
+    its own ``variables`` on top.
+
     Parameters
     ----------
     filename:
@@ -1011,18 +987,11 @@ def read_yaml_element_file(
         caller can see what was skipped.
     namespace:
         Anything with ``.get(name)`` returning another raw element dict, used
-        to resolve ``inherits_from``.  A lone file has no namespace to resolve
-        against, so one that names a parent is reported as ``missing_parent``
-        rather than quietly losing the parent's values -- pass the directory's
-        namespace (as :class:`LazyElementDict` does) to resolve it.
+        to resolve ``inherits_from``. Without it, a file naming a parent is
+        reported as ``missing_parent``.
     memo:
         Resolved-element cache shared across a directory, so a template is
         resolved once rather than once per child.
-
-    Note the ordering: inheritance is resolved *before*
-    ``resolve_controls_schema`` runs inside :func:`interpret_YAML_Element`, so
-    a child can inherit its parent's ``schema`` and layer its own ``variables``
-    on top -- one mechanism feeding the other.
     """
     exclude_set = set(exclude_keys) if exclude_keys else None
     with open(filename, "r") as stream:

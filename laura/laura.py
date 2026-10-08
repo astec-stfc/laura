@@ -35,12 +35,10 @@ from .models.element_list import MachineModel, insert_drifts
 
 
 NON_ELEMENT_FILENAMES = {"summary.yaml", "summary.yml"}
-"""Files to ignore when scanning an ``element_list`` directory. ``summary.yaml`` is an
-aggregate of every element in the machine, not a single-element file, so treating it as
-one invents a bogus element -- and it cannot be recognised by content, because
-:func:`~laura.importers.yaml_loader.fast_get_element_metadata` reads only the first 2000
-characters and most real element files declare ``name:`` after that (falling back to the
-filename), so a summary would simply be named after its file."""
+"""Files to ignore when scanning an ``element_list`` directory. ``summary.yaml``
+aggregates every element and cannot be recognised by content
+(:func:`~laura.importers.yaml_loader.fast_get_element_metadata` reads only the first
+2000 characters), so it is excluded by name."""
 
 
 
@@ -166,7 +164,7 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
 
     strict: bool = False
     """Whether an element that fails to load raises
-    :class:`~laura.Importers.YAML_Loader.ElementLoadError` (True) or is skipped
+    :class:`~laura.importers.yaml_loader.ElementLoadError` (True) or is skipped
     (False, default). Errors can be inspected via :attr:`load_errors`."""
 
     _load_errors: List[ElementLoadError] = PrivateAttr(default_factory=list)
@@ -175,7 +173,7 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
     def load_errors(self) -> List[ElementLoadError]:
         """
         Elements the files describe that are not in this machine, as
-        :class:`~laura.Importers.YAML_Loader.ElementLoadError` records.
+        :class:`~laura.importers.yaml_loader.ElementLoadError` records.
         """
         return self._load_errors
 
@@ -208,8 +206,6 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
                 "with 'layout', 'section', and 'element_list' attributes"
             )
         return data
-
-    """List of top-level keys to exclude when reading YAML files"""
 
     @field_validator("element_list", mode="before")
     @classmethod

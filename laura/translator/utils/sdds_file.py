@@ -179,7 +179,16 @@ class SDDSColumn(SDDSObject):
         fieldlength=0,
         description="",
     ):
-        super().__init__(name=name, data=None, unit=unit, type=type, symbol=symbol)
+        super().__init__(
+            name=name,
+            data=None,
+            unit=unit,
+            type=type,
+            symbol=symbol,
+            formatstring=formatstring,
+            fieldlength=fieldlength,
+            description=description,
+        )
         self.objectType = "Column"
         self.data = data
 
@@ -215,7 +224,16 @@ class SDDSParameter(SDDSObject):
         fieldlength=0,
         description="",
     ):
-        super().__init__(name=name, data=None, unit=unit, type=type, symbol=symbol)
+        super().__init__(
+            name=name,
+            data=None,
+            unit=unit,
+            type=type,
+            symbol=symbol,
+            formatstring=formatstring,
+            fieldlength=fieldlength,
+            description=description,
+        )
         self.objectType = "Parameter"
         self.data = data
 
@@ -283,23 +301,6 @@ class SDDSFile(object):
     def description(self) -> str:
         """The file-level SDDS description string (empty if not set/read)."""
         return self.file_description[0]
-
-    def _new_sdds_object(self, cleared: bool):
-        if self._indexed:
-            slot = self.index % 20
-            try:
-                return sdds.SDDS(slot)
-            except Exception:
-                return sdds.sdds.SDDS(slot)
-        if cleared:
-            try:
-                return sdds.SDDS(None)
-            except Exception:
-                return sdds.sdds.SDDS(None)
-        try:
-            return sdds.SDDS(0)
-        except Exception:
-            return sdds.sdds.SDDS()
 
     def _new_sdds_object(self, cleared: bool):
         if self._indexed:

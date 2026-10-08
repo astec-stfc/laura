@@ -1,10 +1,10 @@
 """How an element looks to a beam traversing it backwards.
 
 This is the *physics* half of path reversal.  The geometry half is
-:meth:`MachineLayout.arc_lengths <laura.models.elementList.MachineLayout.arc_lengths>`,
+:meth:`MachineLayout.arc_lengths <laura.models.element_list.MachineLayout.arc_lengths>`,
 and the two are independent: one moves elements, this one changes what they do.
 
-Neither is :func:`~laura.models.elementList.expand_section_order`'s negative
+Neither is :func:`~laura.models.element_list.expand_section_order`'s negative
 ``repeat``.  That reverses the *order* of a line, leaving every element entered
 at its own entrance face, and changes no physics at all.
 
@@ -313,7 +313,7 @@ def reverse_section(section, element_registry, *, strict: bool = True, name=None
 
     The source section and its elements are not touched.
     """
-    from .elementList import SectionLattice
+    from .element_list import SectionLattice
 
     order = list(reversed(section.order))
 

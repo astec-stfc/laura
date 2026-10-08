@@ -1,20 +1,17 @@
 import numpy as np
 import re
 from warnings import warn
-from .field_parameter import FieldParameter
-from ..units import UnitValue
+from .field_parameter import require_rf, set_field
 
 d = ",!?/&-:;@'\n \t"
 
 
 def generate_astra_field_data(self) -> np.ndarray:
     """
-    Generate the field data in a format that is suitable for ASTRA, based on the
-    :class:`~laura.translator.utils.fields.FieldMap` object provided.
-    The `field_type` parameter determines the format of the file.
-    See the `ASTRA manual`_ for more details.
-
-    A warning is raised if the field type is not supported (perhaps elevate to a `NotImplementedError`?
+    Generate ASTRA-format field data from a
+    :class:`~laura.translator.utils.fields.FieldMap`, in a format set by
+    `field_type` (see the `ASTRA manual`_). Unsupported field types raise a
+    warning.
 
     .. _ASTRA manual: https://www.desy.de/~mpyflo/Astra_manual/Astra-Manual_V3.2.pdf
 
@@ -150,14 +147,13 @@ def generate_astra_field_data(self) -> np.ndarray:
 
 def write_astra_field_file(self) -> str:
     """
-    Write the field data in an ASTRA-compatible format, based on the
-    :class:`~SimulationFramework.Modules.Fields.FieldMap` object provided.
-    The absolute location of the file to be written is generated using
-    :func:`~SimulationFramework.Modules.Fields.field._output_filename`, which is parsed from the Master Lattice.
+    Write the field data of a :class:`~laura.translator.utils.fields.FieldMap`
+    to an ASTRA-format file at the path given by
+    :meth:`~laura.translator.utils.fields.FieldMap._output_filename`.
 
     Parameters
     ----------
-    self: :class:`~SimulationFramework.Modules.Fields.FieldMap`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object
 
     Returns
@@ -182,9 +178,9 @@ def read_astra_field_file(
     frequency: float | None = None,
 ):
     """
-    Read a field file from ASTRA format and convert it into a
-    :class:`~SimulationFramework.Modules.Fields.FieldMap` object (self).
-    Certain parameters must be included, particularly for RF cavities.
+    Read an ASTRA field file into a
+    :class:`~laura.translator.utils.fields.FieldMap` object (self). RF
+    cavities need `cavity_type` and `frequency`.
 
     See the `ASTRA manual`_ for more details.
 
@@ -192,14 +188,14 @@ def read_astra_field_file(
 
     Parameters
     ----------
-    self: :class:`~SimulationFramework.Modules.Fields.FieldMap`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object to be updated.
     filename: str
         The path to the ASTRA field file
     field_type: str
-        The name of the field, see :attr:`~SimulationFramework.Modules.Fields.allowed_fields`
+        The name of the field, see :attr:`~laura.translator.utils.fields.allowed_fields`
     cavity_type: str, optional
-        The type of RF cavity, see :attr:`~SimulationFramework.Modules.Fields.allowed_cavities`
+        The type of RF cavity, see :attr:`~laura.translator.utils.fields.hdf5.allowed_cavities`
     frequency: float, optional
         The frequency of the RF cavity.
 
@@ -219,149 +215,51 @@ def read_astra_field_file(
     self.reset_dicts()
     setattr(self, "field_type", field_type)
     try:
-        if "Electro" in field_type:
-            if cavity_type is None:
-                raise ValueError(f"cavity_type must be provided for {field_type}")
-            else:
-                setattr(self, "cavity_type", cavity_type)
-            if frequency is None:
-                raise ValueError(f"frequency must be provided for {field_type}")
-            else:
-                setattr(self, "frequency", frequency)
+        require_rf(self, field_type, cavity_type, frequency)
     except Exception:
         raise ValueError(
             f"Fields read_astra_field_file error: {filename}, {field_type}, {cavity_type}, {frequency}"
         )
     if field_type == "1DMagnetoStatic":
         fdat = np.loadtxt(filename)
-        setattr(
-            self, "z", FieldParameter(name="z", value=UnitValue(fdat[::, 0], units="m"))
-        )
-        setattr(
-            self,
-            "Bz",
-            FieldParameter(
-                name="Bz", value=UnitValue(fdat[::, 1] / np.max(fdat[::, 1]), units="T")
-            ),
-        )
+        set_field(self, "z", fdat[::, 0], "m")
+        set_field(self, "Bz", fdat[::, 1] / np.max(fdat[::, 1]), "T")
     elif field_type == "1DElectroDynamic":
-        if cavity_type == "StandingWave":
-            fdat = np.loadtxt(filename)
-            setattr(
-                self,
-                "z",
-                FieldParameter(name="z", value=UnitValue(fdat[::, 0], units="m")),
-            )
-            setattr(
-                self,
-                "Ez",
-                FieldParameter(
-                    name="Ez",
-                    value=UnitValue(fdat[::, 1] / np.max(fdat[::, 1]), units="V/m"),
-                ),
-            )
-        elif cavity_type == "TravellingWave":
-            with open(filename) as f:
-                rl = f.readlines()[0]
-                twdat = re.split("[" + "\\".join(d) + "]", rl)
-                setattr(self, "start_cell_z", float(twdat[0]))
-                setattr(self, "end_cell_z", float(twdat[1]))
-                setattr(self, "mode_numerator", float(twdat[2]))
-                setattr(self, "mode_denominator", float(twdat[3]))
-            fdat = np.loadtxt(filename, skiprows=1)
-            setattr(
-                self,
-                "z",
-                FieldParameter(name="z", value=UnitValue(fdat[::, 0], units="m")),
-            )
-            setattr(
-                self,
-                "Ez",
-                FieldParameter(
-                    name="Ez",
-                    value=UnitValue(fdat[::, 1] / np.max(fdat[::, 1]), units="V/m"),
-                ),
-            )
+        if cavity_type in ("StandingWave", "TravellingWave"):
+            skiprows = 0
+            if cavity_type == "TravellingWave":
+                with open(filename) as f:
+                    rl = f.readlines()[0]
+                    twdat = re.split("[" + "\\".join(d) + "]", rl)
+                    setattr(self, "start_cell_z", float(twdat[0]))
+                    setattr(self, "end_cell_z", float(twdat[1]))
+                    setattr(self, "mode_numerator", float(twdat[2]))
+                    setattr(self, "mode_denominator", float(twdat[3]))
+                skiprows = 1
+            fdat = np.loadtxt(filename, skiprows=skiprows)
+            set_field(self, "z", fdat[::, 0], "m")
+            set_field(self, "Ez", fdat[::, 1] / np.max(fdat[::, 1]), "V/m")
     elif field_type == "LongitudinalWake":
         try:
             fdat = np.loadtxt(filename)
             numrows = int(fdat[1, 0])
-            setattr(
-                self,
-                "z",
-                FieldParameter(
-                    name="z", value=UnitValue(fdat[4 : 4 + numrows][::, 0], units="m")
-                ),
-            )
-            setattr(
-                self,
-                "Wz",
-                FieldParameter(
-                    name="Wz",
-                    value=UnitValue(fdat[4 : 4 + numrows][::, 1]),
-                    units="V/C",
-                ),
-            )
+            set_field(self, "z", fdat[4 : 4 + numrows][::, 0], "m")
+            set_field(self, "Wz", fdat[4 : 4 + numrows][::, 1], "V/C")
         except Exception:
             fdat = np.loadtxt(filename, skiprows=1)
-            setattr(
-                self,
-                "z",
-                FieldParameter(name="z", value=UnitValue(fdat[::, 0], units="m")),
-            )
-            setattr(
-                self,
-                "Wz",
-                FieldParameter(name="Wz", value=UnitValue(fdat[::, 1]), units="V/C"),
-            )
+            set_field(self, "z", fdat[::, 0], "m")
+            set_field(self, "Wz", fdat[::, 1], "V/C")
     elif field_type == "3DWake":
         fdat = np.loadtxt(filename)
         numrows = int(fdat[1, 0])
-        setattr(
-            self,
-            "z",
-            FieldParameter(
-                name="z", value=UnitValue(fdat[4 : 4 + numrows][::, 0], units="m")
-            ),
-        )
-        setattr(
-            self,
-            "Wz",
-            FieldParameter(
-                name="Wz", value=UnitValue(fdat[4 : 4 + numrows][::, 1]), units="V/C"
-            ),
-        )
-        setattr(
-            self,
-            "Wx",
-            FieldParameter(
-                name="Wx",
-                value=UnitValue(fdat[numrows + 7 : (2 * numrows) + 7][::, 1]),
-                units="V/C/m",
-            ),
-        )
-        setattr(
-            self,
-            "Wy",
-            FieldParameter(
-                name="Wy",
-                value=UnitValue(fdat[(2 * numrows) + 10 :][::, 1]),
-                units="V/C/m",
-            ),
-        )
+        set_field(self, "z", fdat[4 : 4 + numrows][::, 0], "m")
+        set_field(self, "Wz", fdat[4 : 4 + numrows][::, 1], "V/C")
+        set_field(self, "Wx", fdat[numrows + 7 : (2 * numrows) + 7][::, 1], "V/C/m")
+        set_field(self, "Wy", fdat[(2 * numrows) + 10 :][::, 1], "V/C/m")
     elif field_type == "1DQuadrupole":
         fdat = np.loadtxt(filename)
-        setattr(
-            self, "z", FieldParameter(name="z", value=UnitValue(fdat[::, 0], units="m"))
-        )
-        setattr(
-            self,
-            "G",
-            FieldParameter(
-                name="G",
-                value=UnitValue(fdat[::, 1] / np.max(fdat[::, 1]), units="T/m"),
-            ),
-        )
+        set_field(self, "z", fdat[::, 0], "m")
+        set_field(self, "G", fdat[::, 1] / np.max(fdat[::, 1]), "T/m")
     else:
         raise NotImplementedError(
             f"{field_type} loading not implemented for ASTRA files"

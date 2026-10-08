@@ -18,7 +18,7 @@ from ...utils.functions import (
 )
 from .. import keyword_conversion_rules_ocelot as keyword_conversion_rules
 from . import magnetic_orders
-from .importer import LatticeImporter
+from .importer import LatticeImporter, keyword_rules, twiss_simulation
 
 
 def _switch_dict(type_rules: Dict[str, type]) -> Dict[str, str]:
@@ -87,9 +87,6 @@ class OcelotLatticeImporter(LatticeImporter):
     def _element_map(self) -> Dict:
         return self.laura_elements
 
-    def create_element_dictionary(self):
-        return self.create_laura_element_dictionary()
-
     def create_laura_element_dictionary(self):
         from ...conversion_rules.codes.ocelot_conversion import (
             ocelot_conversion_rules,
@@ -109,17 +106,13 @@ class OcelotLatticeImporter(LatticeImporter):
                 name=twiss_name,
                 machine_area=self.machine_area,
                 physical={"s": 0.0, "s_point": "end", "length": 0.0},
-                simulation={
-                    "beta_x": self.initial_twiss.beta_x,
-                    "beta_y": self.initial_twiss.beta_y,
-                    "alpha_x": self.initial_twiss.alpha_x,
-                    "alpha_y": self.initial_twiss.alpha_y,
-                    "eta_x": self.initial_twiss.Dx,
-                    "eta_y": self.initial_twiss.Dy,
-                    "eta_xp": self.initial_twiss.Dxp,
-                    "eta_yp": self.initial_twiss.Dyp,
-                    "from_beam": False,
-                },
+                simulation=twiss_simulation(
+                    *(
+                        getattr(self.initial_twiss, key)
+                        for key in ("beta_x", "beta_y", "alpha_x", "alpha_y")
+                        + ("Dx", "Dy", "Dxp", "Dyp")
+                    )
+                ),
             )
 
         sequence = list(self.magnetic_lattice.sequence)
@@ -147,13 +140,7 @@ class OcelotLatticeImporter(LatticeImporter):
             }
             if sftype == "Drift":
                 newobj["hardware_class"] = "Drift"
-            try:
-                merged = (
-                    keyword_conversion_rules[sftype.lower()]
-                    | keyword_conversion_rules["general"]
-                )
-            except KeyError:
-                merged = keyword_conversion_rules["general"]
+            merged = keyword_rules(keyword_conversion_rules, sftype)
             for sfparam, oceparam in merged.items():
                 if hasattr(elem, oceparam):
                     newobj.update({sfparam: getattr(elem, oceparam)})

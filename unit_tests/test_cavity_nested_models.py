@@ -1,23 +1,4 @@
-"""Each cavity element carries the cavity model it declares.
-
-``RFDeflectingCavity`` and ``CrabCavity`` subclass ``RFCavity``, so
-``RFCavity.model_post_init`` runs first through ``super()``. It used to fill
-``cavity`` with a hardcoded ``RFCavityElement``, and the subclass's own
-nested default then found the slot occupied and did nothing. That
-broke both subclasses, differently:
-
-* ``RFDeflectingCavity`` silently carried an ``RFCavityElement`` -- including a
-  ``structure_type`` and ``attenuation_constant`` that mean nothing for a
-  deflector -- because it did not redeclare the field, so ``RFCavity``'s
-  annotation won on the MRO.
-* ``CrabCavity`` *did* redeclare it, so the parent's assignment failed
-  validation outright and **the class could not be constructed at all**.
-
-The parent now takes the model from a ``_cavity_model`` class attribute that
-each subclass overrides, and every one of them declares the concrete model
-rather than the generated ``_...Base``, so an authored mapping and an omitted
-one land in the same class.
-"""
+"""Each cavity subclass carries its own ``_cavity_model``, not ``RFCavity``'s."""
 
 import pytest
 
@@ -47,17 +28,10 @@ def test_an_omitted_cavity_defaults_to_the_declared_model(cls, model):
 
 @pytest.mark.parametrize("cls,model", EXPECTED, ids=lambda v: getattr(v, "__name__", v))
 def test_an_authored_cavity_validates_into_the_same_model(cls, model):
-    """The two disagreed: a dict landed in the generated base class instead."""
     assert type(build(cls, cavity={"n_cells": 9}).cavity) is model
 
 
-def test_a_crab_cavity_can_be_constructed():
-    """It raised ValidationError on every construction before."""
-    assert build(CrabCavity).cavity is not None
-
-
 def test_a_deflector_has_no_accelerating_structure_fields():
-    """The point of giving it its own model: these mean nothing for a kicker."""
     deflector = build(RFDeflectingCavity).cavity
     assert not hasattr(deflector, "structure_type")
     assert not hasattr(deflector, "attenuation_constant")
@@ -74,9 +48,7 @@ def test_authored_values_survive():
 
 
 def test_export_still_reports_a_structure_type_for_a_deflector():
-    """`RFCavityTranslator` serves all three, and branches on this. A deflector
-    has no such field, and reported ``StandingWave`` before it was given the
-    right cavity model -- so backends see no change."""
+    """``RFCavityTranslator`` branches on this for all three classes."""
     from laura.translator.converters.converter import translate_elements
 
     for cls in (RFCavity, RFDeflectingCavity, CrabCavity):

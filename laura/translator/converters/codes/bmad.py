@@ -4,7 +4,7 @@ import re
 import tempfile
 from itertools import permutations
 from pathlib import Path
-from typing import Any, Dict, List, Literal, NamedTuple, Optional, Union, get_args
+from typing import Any, Dict, List, Literal, NamedTuple, Optional, get_args
 from warnings import warn
 
 import numpy as np
@@ -25,7 +25,6 @@ from laura.models.element_list import (
     SectionLattice,
 )
 
-from ....exporters.yaml_exporter import PositionMode, export_machine_combined_file
 from ...utils.bmad import (
     BMAD_SR_WAKE_SAMPLES,
     bmad_floor_angles_to_laura,
@@ -38,7 +37,14 @@ from ...utils.functions import merge_layout_elements, number_repeated_names
 from ...utils.units import UnitValue
 from .. import keyword_conversion_rules_bmad, type_conversion_rules_bmad
 from . import magnetic_orders
-from .importer import read_with_calls
+from .importer import (
+    LatticeImporter,
+    check_layouts,
+    compact_expression,
+    keyword_rules,
+    read_with_calls,
+    twiss_simulation,
+)
 
 _DRIFT_TYPES = ("Drift", "Pipe")
 """Bmad types with no physics of their own."""
@@ -176,7 +182,7 @@ def _layout_entries(
 
     A section entered once is its bare name; a multipass section carries
     ``multipass`` and whatever that pass overrides, which is the only form
-    :class:`~laura.models.elementList.LayoutPass` can be rebuilt from.
+    :class:`~laura.models.element_list.LayoutPass` can be rebuilt from.
     """
     if not any(entry.number for entry in layout.passes):
         return sections
@@ -240,19 +246,13 @@ def _floor_to_physical(
 ) -> Dict[str, Dict[str, float]]:
     """
     Convert a Tao ``ele_floor`` record to LAURA ``datum``/``global_rotation``.
-    The three floor angles are re-expressed by
-    :func:`bmad_floor_angles_to_laura`, which goes through the rotation matrix
-    rather than renaming axes -- see there for why a rename cannot work.
 
-    ``position_key`` selects where the position lands. ``"datum"`` is the
-    section's reference point, used for the ``Beginning_Ele``. ``"middle"`` is
-    the element centre and is what actually *places* an element.
-
-    ``orientation`` supplies the angles from a *different* record than the
-    position, and floor mode passes the ``where="beginning"`` one.
-
-    ``roll`` is a bend's ``REF_TILT``, which has to be added here rather than
-    read off the floor record.
+    Angles go through :func:`bmad_floor_angles_to_laura` (a rotation-matrix
+    conversion; an axis rename cannot work). ``position_key`` is ``"datum"``
+    for the ``Beginning_Ele`` or ``"middle"`` to place an element;
+    ``orientation`` takes the angles from another record (floor mode passes
+    ``where="beginning"``); ``roll`` is a bend's ``REF_TILT``, absent from the
+    floor record.
     """
     reference = floor.get("Reference")
     if reference is None or len(reference) < 6:
@@ -288,22 +288,12 @@ def _misalignment(parameters: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
     Convert an element's Bmad misalignment attributes to LAURA's
     ``physical.error``.
 
-    Neither code names these for the axis the rotation turns about. Bmad's
-    ``x_pitch`` is a rotation about **y** and ``y_pitch`` is about x; LAURA's
-    ``Rotation`` is read through
-    :func:`~laura.utils.rotation_matrix.euler_angles_to_rotation_matrix`, where
-    ``theta`` is the ``Ry`` factor, ``phi`` the ``Rx`` and ``psi`` the ``Rz``.
-    So ``x_pitch`` pairs with ``theta`` and ``y_pitch`` with ``phi``.
-
-    ``psi`` does not cross over -- the roll is the one angle LAURA and Bmad
-    already agree on.
-
-    The roll, ``psi``, comes from ``ROLL``, which only a bend has: a bend keeps
-    its design plane in ``REF_TILT`` and its roll error in ``ROLL``, so the two
-    are separable. Every other type has just ``TILT``, which Bmad defines as the
-    design tilt and the roll error added together and offers no way to take
-    apart; it is read as ``magnetic.tilt`` in full, and ``psi`` stays zero
-    rather than counting the same angle twice.
+    Bmad's ``x_pitch`` rotates about y, so it maps to LAURA's ``theta`` (the
+    ``Ry`` factor of
+    :func:`~laura.utils.rotation_matrix.euler_angles_to_rotation_matrix`);
+    ``y_pitch`` maps to ``phi``. ``psi`` comes from ``ROLL``, which only bends
+    have; other types' ``TILT`` mixes design tilt and roll error, so it is read
+    as ``magnetic.tilt`` and ``psi`` stays zero.
     """
     position = {
         axis: float(parameters.get(f"{axis.upper()}_OFFSET", 0.0) or 0.0)
@@ -344,16 +334,10 @@ def _aperture(parameters: Dict[str, Any], etype: str = "") -> Dict[str, Dict[str
 def _an_bn_multipoles(parameters: Dict[str, Any]) -> Dict[int, Dict[str, float]]:
     """The ``an``/``bn`` content of an ordinary magnet, as integrated strengths.
 
-    Bmad's ``an``/``bn`` are defined with a ``1/n!``, so the factorial goes back
-    in here -- the same scaling the multipole-element branch applies, and the
-    inverse of what :meth:`BaseElementTranslator._add_bmad_multipoles` writes.
-
-    The ``An``/``Bn`` columns are the right ones to read. Tao has already folded
-    ``scale_multipoles`` into them, so a lattice that leaves it at Bmad's default
-    ``T`` reports the effective strength rather than the written coefficient. The
-    ``(w/Tilt)`` columns are deliberately *not* used: they rotate the components
-    by the element's ``tilt``, which LAURA stores separately and re-applies on
-    export, so reading those would apply the roll twice.
+    Bmad's ``an``/``bn`` carry a ``1/n!``, so the factorial goes back in here
+    (the inverse of :meth:`BaseElementTranslator._add_bmad_multipoles`). The
+    ``An``/``Bn`` columns already include ``scale_multipoles``; the
+    ``(w/Tilt)`` columns are not used, since LAURA re-applies ``tilt`` on export.
     """
     components: Dict[int, Dict[str, float]] = {}
     for row in (parameters.get("_MULTIPOLES") or {}).get("data", []):
@@ -396,10 +380,7 @@ def _declared_multipole_terms(text: str) -> Dict[str, Dict[int, bool]]:
 
 def _native_keyword(hardware_type: str, laura_field: str) -> str:
     """Return the Tao/Bmad spelling for a LAURA field."""
-    rules = keyword_conversion_rules_bmad["general"]
-    key = hardware_type.lower()
-    if key in keyword_conversion_rules_bmad:
-        rules = keyword_conversion_rules_bmad[key] | rules
+    rules = keyword_rules(keyword_conversion_rules_bmad, hardware_type)
     return rules.get(laura_field, laura_field).upper()
 
 
@@ -435,12 +416,9 @@ def _bmad_cavity_cells(
 def _wake_tables(tao, element_id: str) -> Dict[str, Any] | None:
     """Read one element's short-range wake, or ``None`` if it has none.
 
-    ``ele_wake`` is the only wake accessor pytao offers, and it *errors* rather
-    than returning empty for an element without a wake, so the exception is the
-    test. Read the scalars from here rather than from the ``call::`` file the
-    lattice names: the file's values may be expressions the lattice evaluates
-    (``z_scale = 1/0.0017``) and the lattice may override them per element
-    (``RWWAKE3H[sr_wake%amp_scale] = 182``).
+    pytao's ``ele_wake`` errors on an element without a wake, so the exception
+    is the test. Scalars come from Tao, not the ``call::`` file, because the
+    lattice may evaluate or override them per element.
     """
     try:
         base = tao.ele_wake(element_id, who="base")
@@ -474,11 +452,9 @@ def _wake_tables(tao, element_id: str) -> Dict[str, Any] | None:
 def _lord_wakes(tao, universe: int, branch_index: int) -> Dict[int, Dict[str, Any]]:
     """Wakes that live on a super-lord, keyed by the tracking index they act on.
 
-    ``lat_list`` returns the tracking elements only. A structure Bmad has split
-    -- ``K30_6A`` into ``K30_6A#1`` .. ``#6`` -- keeps its wake on the lord, and
-    ``ele_wake`` on a slave errors. In LCLS ``cu_hxr`` that is 84 of the 300
-    elements carrying a wake, all of them accelerating structures, so skipping
-    the lord region loses most of the linac's longitudinal wake.
+    ``lat_list`` returns tracking elements only, and a split structure
+    (``K30_6A#1`` .. ``#6``) keeps its wake on the lord; in LCLS ``cu_hxr``
+    that is most of the linac's longitudinal wake.
     """
     found: Dict[int, Dict[str, Any]] = {}
     try:
@@ -753,11 +729,11 @@ class BmadTaoInit(BaseModel):
         return path
 
 
-class BmadLatticeImporter(BaseModel):
+class BmadLatticeImporter(LatticeImporter):
     machine_area: str = "Lattice"
 
     tao_init: Optional[str] = None
-    """Name of Tao init file which produces."""
+    """Tao init file to load; give this or ``lattice_file``."""
 
     lattice_file: Optional[str] = None
     """Original BMAD lattice file, used instead of ``tao_init``."""
@@ -779,19 +755,13 @@ class BmadLatticeImporter(BaseModel):
     position_mode: Literal["floor", "s"] = "floor"
     """How element placement is taken from Tao.
 
-    ``"floor"`` (default) reads Tao's surveyed floor coordinates for every
-    element and places it in absolute world coordinates, so LAURA inherits the
-    machine geometry rather than re-deriving it.
-
-    ``"s"`` instead hands Bmad's cumulative arc-length to LAURA as
-    ``physical.s``. The resulting ``s`` is exact, but the *world*
-    coordinates are not; use with caution.
+    ``"floor"`` (default) places elements at Tao's surveyed world coordinates.
+    ``"s"`` passes Bmad's arc-length as ``physical.s``: ``s`` is exact, but
+    world coordinates are not.
     """
 
     elements: Dict = {}
     """Dictionary containing converted LAURA element objects"""
-
-    functional_definitions: Dict[str, Union[int, float]] = {}
 
     _unscaled_definitions: Dict[str, float] = PrivateAttr(default_factory=dict)
     _unscalable_symbols: set = PrivateAttr(default_factory=set)
@@ -833,7 +803,7 @@ class BmadLatticeImporter(BaseModel):
 
     multipass_passes: Dict[int, Dict[str, List[Dict[str, Any]]]] = {}
     """Beam order for a branch :meth:`_split_multipass` had to break up, as
-    :class:`~laura.models.elementList.LayoutPass` keyword arguments. Empty for
+    :class:`~laura.models.element_list.LayoutPass` keyword arguments. Empty for
     a branch with no Bmad multipass in it, which is one section and one pass."""
 
     _generated_tao_init: Any = PrivateAttr(default=None)
@@ -946,12 +916,7 @@ class BmadLatticeImporter(BaseModel):
                     nam.split(".", 1)[0].lower(), {}
                 )
                 for attribute, expression in deferred.items():
-                    compact = (
-                        expression.lower()
-                        .replace(" ", "")
-                        .replace("(", "")
-                        .replace(")", "")
-                    )
+                    compact = compact_expression(expression)
                     symbol = lower.get(compact)
                     if symbol and attribute in _PER_METRE_STRENGTHS and length:
                         unscaled = (
@@ -977,7 +942,7 @@ class BmadLatticeImporter(BaseModel):
         expression = self.deferred_parameters.get(element.lower(), {}).get(attribute)
         if not expression:
             return None
-        compact = expression.lower().replace(" ", "").replace("(", "").replace(")", "")
+        compact = compact_expression(expression)
         for name in self.functional_definitions:
             if compact == name.lower():
                 if attribute in _PER_METRE_STRENGTHS and name in getattr(
@@ -1132,17 +1097,10 @@ class BmadLatticeImporter(BaseModel):
     ) -> Dict[int, int]:
         """Put super-lords back in place of the slices Bmad cut them into.
 
-        Superimposing anything on an element makes Bmad replace it with a
-        lord plus numbered super-slaves; for an
-        ``lcavity``:
-
-        * every slave reports the *lord's* ``l_active``, the whole-cell length
-          the RF actually fills. .
-        * the entrance and exit focusing kicks belong to the lord's ends.
-
-        Slices are merged back into
-        the lord and the elements that split it become its ``subelement``
-        children. These become ``superimpose`` statements on export.
+        Slicing breaks an ``lcavity``: every slave reports the lord's
+        ``l_active``, and the edge focusing belongs to the lord's ends. The
+        superimposed elements become ``subelement`` children, exported as
+        ``superimpose`` statements.
 
         The lists are rewritten in place. Returns ``{child index: lord index}``
         into the rewritten lists, for the superimposed elements.
@@ -1412,17 +1370,13 @@ class BmadLatticeImporter(BaseModel):
                     simulation=_collective_settings(
                         parameters, getattr(self, "bmad_com", {}), "TwissMatch"
                     )
-                    | {
-                        "beta_x": twiss["beta_a"],
-                        "beta_y": twiss["beta_b"],
-                        "alpha_x": twiss["alpha_a"],
-                        "alpha_y": twiss["alpha_b"],
-                        "eta_x": twiss["eta_x"],
-                        "eta_y": twiss["eta_y"],
-                        "eta_xp": twiss["etap_x"],
-                        "eta_yp": twiss["etap_y"],
-                        "from_beam": False,
-                    },
+                    | twiss_simulation(
+                        *(
+                            twiss[key]
+                            for key in ("beta_a", "beta_b", "alpha_a", "alpha_b")
+                            + ("eta_x", "eta_y", "etap_x", "etap_y")
+                        )
+                    ),
                 )
             }
         )
@@ -1859,13 +1813,9 @@ class BmadLatticeImporter(BaseModel):
     def _build_patch(self, e: "_NativeElement") -> Optional[dict]:
         """Keep the part of a patch LAURA can hold; warn about the rest.
 
-        A patch that does nothing but roll the reference frame about the beam
-        axis is a linear map and nothing else, so it comes through as a
-        zero-length matrix and every code downstream gets it.
-
-        A patch that moves the frame sideways or changes the reference energy
-        is still dropped: ``position_mode='s'`` has nowhere to put the one and
-        LAURA has no element for the other.
+        A pure roll becomes a zero-length ``MatrixTransform``. Offsets and
+        pitches are lost under ``position_mode='s'``, and reference-energy
+        changes are always dropped.
         """
         transform = {
             key: e.parameters[key]
@@ -2005,17 +1955,10 @@ class BmadLatticeImporter(BaseModel):
     ) -> Dict[str, SectionLattice]:
         """One section per multipass traversal, or ``{}`` if the branch has none.
 
-        Bmad's multipass unit is a *line*, LAURA's is a *section*, and
-        ``lat_list`` gives back neither -- only a flat run of elements with the
-        slaves called ``NAME\\N``. So the line is recovered as the run of
-        consecutive slaves sharing a pass number, and the free elements between
-        two of those runs become ordinary sections. Pass 1 supplies the
-        hardware, under its unnumbered name; the later passes are read for what
-        they change and then dropped, since they are the same device.
-
-        Two *different* multipass lines with nothing between them come back as
-        one section. That is coarser than the original but not wrong: the same
-        run recurs on every pass, so it still round-trips.
+        ``lat_list`` loses Bmad's multipass lines, so each is recovered as a run
+        of consecutive ``NAME\\N`` slaves sharing a pass number. Pass 1 supplies
+        the hardware; later passes keep only their overrides. Adjacent multipass
+        lines merge into one section, which still round-trips.
         """
         slaves = self._multipass_numbers(universe, branch)
         if not slaves:
@@ -2156,14 +2099,15 @@ class BmadLatticeImporter(BaseModel):
 
     def create_machine_model(self, min_section_length: int = 5) -> MachineModel:
         """Build a model with one layout per Tao universe.
-        Branches become sections. Elements with the same name are given a
-        ``name__layout`` copy when shared between branches because
-        :class:`MachineModel` stores one placement per name.
+
+        Branches become sections. A name shared between branches gets a
+        ``name__layout`` copy, since :class:`MachineModel` stores one placement
+        per name.
 
         Parameters
         ----------
         min_section_length: int
-            Sections are only created if they are longer than this value.
+            Minimum number of elements a section needs to be kept.
 
         Returns
         -------
@@ -2237,15 +2181,13 @@ class BmadLatticeImporter(BaseModel):
                 )
                 layout_particles[layout_name] = layout.particle
 
-        if skipped_sections:
-            warn(
-                "Skipped BMAD branches shorter than min_section_length="
-                f"{min_section_length}: {', '.join(skipped_sections)}"
-            )
-        if not layout_definitions:
-            raise ValueError(
-                f"No BMAD layouts meet min_section_length={min_section_length}."
-            )
+        check_layouts(
+            layout_definitions,
+            skipped_sections,
+            min_section_length,
+            "BMAD branches",
+            "BMAD layouts",
+        )
 
         source = self.tao_init or self.lattice_file
         particles = {p for p in layout_particles.values() if p}
@@ -2266,11 +2208,3 @@ class BmadLatticeImporter(BaseModel):
             particle=particles.pop() if len(particles) == 1 else None,
         )
         return model
-
-    def export_yaml(
-        self,
-        path: str,
-        source: Union[SectionLattice, MachineLayout, MachineModel],
-        position_mode: PositionMode = "s",
-    ) -> None:
-        export_machine_combined_file(path, source, position_mode=position_mode)

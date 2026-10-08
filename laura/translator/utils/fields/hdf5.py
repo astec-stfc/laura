@@ -3,8 +3,7 @@ from warnings import warn
 
 import h5py
 
-from ..units import UnitValue
-from .field_parameter import FieldParameter
+from .field_parameter import FIELD_NAMES, FieldParameter, set_field
 
 allowed_cavities = [
     "StandingWave",
@@ -21,7 +20,7 @@ tw_required_attrs = [
 
 def read_hdf5_field_file(self, filename: str) -> str:
     """
-    Read an HDF5 field file and convert it into a :class:`laura.translator.utils.fields.FieldMap` object
+    Read an HDF5 field file into a :class:`~laura.translator.utils.fields.FieldMap` object.
 
     Parameters
     ----------
@@ -86,14 +85,7 @@ def read_hdf5_field_file(self, filename: str) -> str:
         for key in h5file:
             if not length_set:
                 self.length = len(h5file[key][()])
-            setattr(
-                self,
-                key,
-                FieldParameter(
-                    name=key,
-                    value=UnitValue(h5file[key][()], units=h5file[key].attrs["units"]),
-                ),
-            )
+            set_field(self, key, h5file[key][()], h5file[key].attrs["units"])
         for param in ["Ex", "Ey", "Ez", "Er", "Bx", "By", "Bz", "Br", "G"]:
             if getattr(self, param).value is not None:
                 lessthancond = 0.99 > round(max(abs(getattr(self, param).value.val)), 4)
@@ -110,9 +102,8 @@ def read_hdf5_field_file(self, filename: str) -> str:
 
 def write_hdf5_field_file(self):
     """
-    Write the :class:`laura.translator.utils.fields.FieldMap` object to an HDF5 file.
-    All of the attributes of the class are read, and if they are defined and in the correct format,
-    they are written to the file.
+    Write the :class:`~laura.translator.utils.fields.FieldMap` object to an HDF5 file,
+    including every attribute that is defined and in the correct format.
 
     Parameters
     ----------
@@ -143,25 +134,7 @@ def write_hdf5_field_file(self):
             if hasattr(self, att):
                 if getattr(self, att) is not None:
                     h5file.attrs[att] = getattr(self, att)
-        dsets = [
-            "x",
-            "y",
-            "z",
-            "r",
-            "Ex",
-            "Ey",
-            "Ez",
-            "Er",
-            "Bx",
-            "By",
-            "Bz",
-            "Br",
-            "Wx",
-            "Wy",
-            "Wz",
-            "Wr",
-            "G",
-        ]
+        dsets = [n for n in FIELD_NAMES if n != "t"]
         for dset in dsets:
             if isinstance(getattr(self, dset), FieldParameter):
                 if getattr(self, dset).value is not None:

@@ -3,32 +3,23 @@ Second cleanup pass over a lattice already using `controls->schema` (see
 `laura.utils.controls_schema_extract`): collapse per-variable `identifier`
 overrides into a single `controls->identifier_pattern` wherever that's safe.
 
-Some elements have `identifier`s that aren't actually prefixed with their own
-name -- e.g. a diagnostic whose PVs are multiplexed through another unit's
-electronics. After `controls_schema_extract`, that shows up as an explicit
-`identifier` override on every affected variable. `identifier_pattern` (see
-`laura.models.control.ControlsInformation.identifier_pattern`) lets a single
-line substitute for all of them: whatever string it's set to replaces every
-`{name}` in the schema, instead of the element's own name.
+An element whose PVs are not named after itself (e.g. multiplexed through
+another unit) ends up with an `identifier` override on every variable;
+`identifier_pattern` (see
+`laura.models.control.ControlsInformation.identifier_pattern`) replaces every
+`{name}` in the schema with one string instead.
 
-Safety rule -- `identifier_pattern` applies to the *whole* controls block,
-not a single variable, so it is only introduced for an element if every
-schema variable whose template contains `{name}` anywhere in a string field
-is *already* overridden in that element, with values all consistent with one
-substitution string. If even one such variable is left un-overridden (i.e.
-still relying on the default own-name substitution), or the overrides imply
-more than one distinct substitution, the element is left untouched --
-otherwise turning on `identifier_pattern` would silently change a variable
-that currently (correctly) resolves against the element's own name. This is
-exactly why a BPM whose PVs are *partly* multiplexed through another unit and
-*partly* its own (a mixed case) is correctly left with its per-variable
-overrides rather than collapsed.
+Safety rule: `identifier_pattern` applies to the whole controls block, so it
+is only introduced if every `{name}`-dependent schema variable is already
+overridden, all consistent with one substitution string. Otherwise (e.g. a BPM
+only partly multiplexed) the element is left untouched, since the pattern
+would silently change a variable that currently resolves against its own name.
 
 Usage:
     python -m laura.utils.controls_identifier_pattern <lattice_yaml_root> [--apply]
 
-Without `--apply`, only prints what would change. Run once without `--apply`
-and read the list before committing to `--apply` on real lattice data.
+Without `--apply`, only prints what would change; read it before using
+`--apply` on real lattice data.
 """
 
 import argparse

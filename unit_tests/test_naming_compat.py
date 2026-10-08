@@ -1,18 +1,6 @@
-"""
-Backwards-compatibility guards for the PEP 8 naming migration.
+"""PEP 8 rename guards: class names change, on-disk ``hardware_type`` values don't.
 
-Python class names are migrating to CapWords (``Beam_Position_Monitor`` ->
-``BeamPositionMonitor``). The ``hardware_type`` values those classes carry are
-*not* migrating: they are written into every saved lattice YAML and they key
-:data:`ELEMENT_REGISTRY`, so changing them would invalidate existing files and
-break consumers reading them.
-
-These tests pin that separation, so a future rename cannot quietly change
-on-disk layout or the wire format.
-
-Warnings are FutureWarning rather than DeprecationWarning: Python only displays
-a DeprecationWarning raised from ``__main__``, so simba calling a legacy name
-from its own library code would have seen nothing.
+FutureWarning, not DeprecationWarning: the latter is hidden outside ``__main__``.
 """
 
 import pytest
@@ -21,49 +9,61 @@ from laura.models.element import ELEMENT_REGISTRY, _identifies_same_type
 
 
 def _pep8(name: str) -> str:
-    """The CapWords form a legacy underscored class name migrates to."""
     return name.replace("_", "")
 
 
+def _subclasses(cls):
+    for sub in cls.__subclasses__():
+        yield sub
+        yield from _subclasses(sub)
+
+
+def _import_translators():
+    """``__subclasses__()`` only reports imported classes."""
+    import importlib
+
+    for mod in ("aperture", "cavity", "diagnostic", "drift", "laser",
+                "magnet", "plasma", "twiss", "wake"):
+        importlib.import_module(f"laura.translator.converters.{mod}")
+
+
 class TestIdentifiesSameType:
-    def test_exact_match(self):
-        assert _identifies_same_type("Quadrupole", "Quadrupole")
+    @pytest.mark.parametrize(
+        "a, b",
+        [
+            ("Quadrupole", "Quadrupole"),
+            ("BeamPositionMonitor", "Beam_Position_Monitor"),
+            ("Beam_Position_Monitor", "Beam_Position_Monitor"),
+        ],
+        ids=["exact", "renamed", "before-rename"],
+    )
+    def test_match(self, a, b):
+        assert _identifies_same_type(a, b)
 
-    def test_underscored_legacy_value_matches_renamed_class(self):
-        assert _identifies_same_type("BeamPositionMonitor", "Beam_Position_Monitor")
-
-    def test_still_matches_before_the_rename(self):
-        assert _identifies_same_type("Beam_Position_Monitor", "Beam_Position_Monitor")
-
-    def test_genuinely_different_types_do_not_match(self):
-        assert not _identifies_same_type("Quadrupole", "Sextupole")
-        assert not _identifies_same_type("BeamPositionMonitor", "BeamArrivalMonitor")
-
-    def test_comparison_is_case_sensitive(self):
-        # Loosening to case-insensitive would collapse genuinely distinct
-        # names; underscores are the only difference the rename introduces.
-        assert not _identifies_same_type("beampositionmonitor", "Beam_Position_Monitor")
+    # Only underscores may differ; case-insensitive would collapse distinct names.
+    @pytest.mark.parametrize(
+        "a, b",
+        [
+            ("Quadrupole", "Sextupole"),
+            ("BeamPositionMonitor", "BeamArrivalMonitor"),
+            ("beampositionmonitor", "Beam_Position_Monitor"),
+        ],
+        ids=["different", "different-monitor", "case-sensitive"],
+    )
+    def test_no_match(self, a, b):
+        assert not _identifies_same_type(a, b)
 
 
 @pytest.mark.parametrize("hardware_type", sorted(ELEMENT_REGISTRY))
 def test_registry_key_is_the_wire_value_not_the_class_name(hardware_type):
-    """
-    ELEMENT_REGISTRY must stay keyed by ``hardware_type``.
-
-    Saved YAML dispatches through this mapping, so it has to keep resolving the
-    legacy value regardless of what the Python class is called.
-    """
+    """Saved YAML dispatches through ELEMENT_REGISTRY by ``hardware_type``."""
     cls = ELEMENT_REGISTRY[hardware_type]
     assert cls.model_fields["hardware_type"].default == hardware_type
 
 
 @pytest.mark.parametrize("hardware_type", sorted(ELEMENT_REGISTRY))
 def test_rename_would_not_change_subdirectory(hardware_type):
-    """
-    ``subdirectory`` branches on class name vs ``hardware_type``. Renaming the
-    class must not flip that branch, which would insert an extra path segment
-    and move every element's file on disk.
-    """
+    """Flipping the class-name branch in ``subdirectory`` would move files."""
     cls = ELEMENT_REGISTRY[hardware_type]
     assert _identifies_same_type(cls.__name__, hardware_type), (
         f"{cls.__name__} does not currently identify as '{hardware_type}'"
@@ -75,10 +75,6 @@ def test_rename_would_not_change_subdirectory(hardware_type):
 
 
 def test_underscored_class_names_are_the_expected_set():
-    """
-    Tracks which classes the rename still has to cover. Shrink this set as
-    classes are renamed; it should never grow.
-    """
     remaining = {
         cls.__name__ for cls in ELEMENT_REGISTRY.values() if "_" in cls.__name__
     }
@@ -88,16 +84,10 @@ def test_underscored_class_names_are_the_expected_set():
 
 
 class TestDeprecatedAliases:
-    """
-    Every legacy name must still resolve, and must warn.
-
-    simba (astec-stfc/simba) imports laura internals directly and has not been
-    migrated yet, so these aliases are load-bearing, not decorative.
-    """
+    """simba imports laura internals directly, so these aliases are load-bearing."""
 
     @staticmethod
     def _import_all():
-        """Import the modules that register aliases, so LAURA_RENAMES is full."""
         import importlib
 
         for mod in (
@@ -117,7 +107,6 @@ class TestDeprecatedAliases:
 
     def test_every_registered_alias_resolves(self):
         import importlib
-        import warnings
         from laura._compat import LAURA_RENAMES
 
         self._import_all()
@@ -127,15 +116,11 @@ class TestDeprecatedAliases:
         for module_name, aliases in LAURA_RENAMES.items():
             module = importlib.import_module(module_name)
             for legacy, current in aliases.items():
-                with warnings.catch_warnings(record=True) as caught:
-                    warnings.simplefilter("always")
+                with pytest.warns(FutureWarning):
                     obj = getattr(module, legacy)
                 assert obj is getattr(module, current), (
                     f"{module_name}.{legacy} does not resolve to {current}"
                 )
-                assert any(
-                    issubclass(c.category, FutureWarning) for c in caught
-                ), f"{module_name}.{legacy} resolved without a FutureWarning"
                 checked += 1
         assert checked >= 44, f"expected the full alias surface, checked {checked}"
 
@@ -146,7 +131,6 @@ class TestDeprecatedAliases:
             astra.definitely_not_a_real_name
 
     def test_simba_facing_field_imports(self):
-        """simba imports laura.translator.utils.fields; pin that surface."""
         import warnings
         from laura.translator.utils import fields
 
@@ -157,21 +141,15 @@ class TestDeprecatedAliases:
             assert fields.sdds.write_SDDS_field_file is fields.sdds.write_sdds_field_file
 
     def test_renamed_methods_still_reachable(self):
-        import warnings
         from laura.translator.converters.codes.astra import AstraHeader
 
         h = AstraHeader(name="n", type="t", header="&NEWRUN")
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
+        with pytest.warns(FutureWarning):
             assert h.write_ASTRA.__name__ == "write_astra"
-        assert any(issubclass(c.category, FutureWarning) for c in caught)
 
 
 class TestConverterAliases:
-    """Round 2: laura/translator/converters/ private methods and re-exports."""
-
     def test_converter_reexports_still_resolve(self):
-        import warnings
         from laura.translator import converters
 
         legacy = {
@@ -181,37 +159,18 @@ class TestConverterAliases:
             "type_conversion_rules_Names": "type_conversion_rules_names",
         }
         for old, new in legacy.items():
-            with warnings.catch_warnings(record=True) as caught:
-                warnings.simplefilter("always")
+            with pytest.warns(FutureWarning):
                 assert getattr(converters, old) is getattr(converters, new)
-            assert any(issubclass(c.category, FutureWarning) for c in caught)
 
     def test_private_methods_reachable_under_old_names(self):
-        import warnings
         from laura.translator.converters.base import BaseElementTranslator
 
         aliases = BaseElementTranslator._DEPRECATED_METHOD_ALIASES
         assert "_write_ASTRA_dictionary" in aliases
         assert "_convertKeyword_Elegant" in aliases
 
-        # The alias map lives on the shared root, but the methods themselves are
-        # spread across subclasses -- `_write_astra` is WakefieldTranslator's,
-        # `_write_astra_dipole` is MagnetTranslator's. Resolution happens per
-        # instance via getattr(self, current), so the target only has to exist
-        # somewhere in the translator hierarchy.
-        #
-        # __subclasses__() only reports classes that have been imported, so the
-        # modules defining them have to be loaded first or this passes vacuously.
-        import importlib
-
-        for mod in ("aperture", "cavity", "diagnostic", "drift", "laser",
-                    "magnet", "plasma", "twiss", "wake"):
-            importlib.import_module(f"laura.translator.converters.{mod}")
-
-        def _subclasses(cls):
-            for sub in cls.__subclasses__():
-                yield sub
-                yield from _subclasses(sub)
+        # targets resolve per instance, so any class in the hierarchy may own them
+        _import_translators()
 
         owners = [BaseElementTranslator, *_subclasses(BaseElementTranslator)]
         for legacy, current in aliases.items():
@@ -220,11 +179,7 @@ class TestConverterAliases:
             )
 
     def test_subclass_overriding_a_legacy_name_is_warned_about(self):
-        """
-        An alias cannot save a downstream override: laura calls the new name, so
-        a subclass still defining the old one is silently skipped. The base class
-        warns instead.
-        """
+        """laura calls the new name, so an old-name override is silently skipped."""
         import warnings
         from laura.translator.converters.base import BaseElementTranslator
 
@@ -232,7 +187,6 @@ class TestConverterAliases:
             warnings.simplefilter("always")
 
             class LegacyOverride(BaseElementTranslator):
-                # Deliberately the OLD name -- this is the trap being detected.
                 def _write_ASTRA_dictionary(self, *args, **kwargs):
                     return "never called"
 
@@ -261,30 +215,14 @@ class TestConverterAliases:
         ]
 
     def test_namelist_keyword_maps_still_name_real_fields(self):
-        """
-        ASTRA's ``astradict`` and OPAL's ``opaldict`` map a model field name to
-        its native attribute name. A key left behind by a field rename does not
-        raise -- the writer just falls through and emits the *python* name,
-        which ASTRA and OPAL both reject, killing the whole deck. That is how
-        ``space_charge_2D`` survived long enough to break &CHARGE.
-        """
+        """A stale key emits the python name, which ASTRA and OPAL reject."""
         import ast
         import inspect
         import textwrap
         from laura.translator.converters.codes import astra, opal
 
-        def subclasses(cls):
-            for sub in cls.__subclasses__():
-                yield sub
-                yield from subclasses(sub)
-
         def mapped_keys(cls, attr):
-            """Keys of the ``self.<attr> = {...}`` literal in model_post_init.
-
-            Read from source rather than an instance: several of these
-            post-inits go on to size a mesh from fields a bare instance has
-            not got.
-            """
+            """Read from source: some post-inits need fields a bare instance lacks."""
             src = textwrap.dedent(inspect.getsource(cls.model_post_init))
             return [
                 key.value
@@ -298,7 +236,7 @@ class TestConverterAliases:
         checked = 0
         for base, attr in ((astra.AstraHeader, "astradict"),
                            (opal.OpalHeader, "opaldict")):
-            for cls in [base, *subclasses(base)]:
+            for cls in [base, *_subclasses(base)]:
                 if attr not in inspect.getsource(cls.model_post_init):
                     continue
                 stale = sorted(set(mapped_keys(cls, attr)) - set(cls.model_fields))
@@ -307,10 +245,7 @@ class TestConverterAliases:
         assert checked > 4, f"only {checked} namelist maps found -- did they move?"
 
     def test_notation_arguments_were_not_renamed(self):
-        """
-        Brho and P_Q are notation *and* public keyword arguments. Renaming them
-        would break every `to_rftrack(P_Q=...)` call site.
-        """
+        """Brho and P_Q are public keyword arguments, not just notation."""
         import inspect
         from laura.translator.converters.model import MachineModelTranslator
 
@@ -318,21 +253,9 @@ class TestConverterAliases:
 
 
 class TestLegacyModulePaths:
-    """
-    Round 4: module and package paths moved to lower_snake_case.
-
-    Served by a meta-path finder rather than shim files, because the old and new
-    names differ only in case -- `laura/models/RF.py` and `laura/models/rf.py`
-    are the same file on macOS and Windows, so a shim would overwrite what it
-    shims. See laura/_legacy.py.
-    """
+    """Meta-path finder, not shims: case-only renames collide on macOS/Windows."""
 
     def test_no_two_source_files_differ_only_by_case(self):
-        """
-        The property that made shim files impossible. Guards against anyone
-        reintroducing a case-only pair, which would be silently broken on a
-        case-insensitive filesystem.
-        """
         import collections
         import pathlib
 
@@ -371,26 +294,18 @@ class TestLegacyModulePaths:
             warnings.simplefilter("ignore", FutureWarning)
             old_mod = importlib.import_module(legacy)
             new_mod = importlib.import_module(current)
-        # Identity, not just equality: isinstance/issubclass against classes
-        # reached through either path must agree.
+        # identity, so isinstance agrees through either path
         assert old_mod is new_mod
 
     def test_legacy_import_warns(self):
         import importlib
         import sys
-        import warnings
 
-        # force a fresh resolution so the finder actually runs
         sys.modules.pop("laura.models.elementList", None)
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
+        with pytest.warns(FutureWarning):
             importlib.import_module("laura.models.elementList")
-        assert any(issubclass(c.category, FutureWarning) for c in caught), [
-            str(c.message) for c in caught
-        ]
 
     def test_importing_laura_alone_warns_about_nothing(self):
-        """The finder must be lazy: no legacy path used, no warning."""
         import subprocess
         import sys
 
@@ -409,12 +324,7 @@ class TestLegacyModulePaths:
 
 
 class TestLauraDoesNotUseItsOwnLegacyNames:
-    """
-    The aliases exist for *downstream* callers. laura calling them itself is a
-    bug: a legacy module path warns on every import, and a legacy method name
-    only fails when that branch is finally exercised (an unexercised
-    `self._write_CSRTrack_quadrupole` call survived a merge undetected).
-    """
+    """The aliases are for downstream callers only."""
 
     def test_no_module_imports_a_legacy_path(self):
         import importlib
@@ -439,20 +349,12 @@ class TestLauraDoesNotUseItsOwnLegacyNames:
         assert not offenders, "laura imports its own legacy paths:\n" + "\n".join(offenders)
 
     def test_no_source_file_calls_a_legacy_method(self):
-        import importlib
         import pathlib
         import re
 
         from laura._compat import DeprecatedMethodAliases
 
-        for mod in ("aperture", "cavity", "diagnostic", "drift", "laser",
-                    "magnet", "plasma", "twiss", "wake"):
-            importlib.import_module(f"laura.translator.converters.{mod}")
-
-        def _subclasses(cls):
-            for sub in cls.__subclasses__():
-                yield sub
-                yield from _subclasses(sub)
+        _import_translators()
 
         legacy = set()
         for cls in [DeprecatedMethodAliases, *_subclasses(DeprecatedMethodAliases)]:

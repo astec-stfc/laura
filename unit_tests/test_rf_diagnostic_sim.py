@@ -7,27 +7,19 @@ from laura.models.rf import (
     RFCavityElement,
     WakefieldElement,
     RFDeflectingCavityElement,
-    PIDElement,
-    LowLevelRFElement,
-    RFModulatorElement,
-    RFProtectionElement,
-    RFHeartbeatElement,
 )
 from laura.models.diagnostic import (
-    DiagnosticElement,
     BeamPositionMonitorDiagnostic,
     BeamArrivalMonitorDiagnostic,
     BunchLengthMonitorDiagnostic,
     CameraMask,
     CameraPixelResultsIndices,
     CameraPixelResultsNames,
-    ChargeDiagnosticElement,
 )
 from laura.models.simulation import (
     SimulationElement,
     MagnetSimulationElement,
     DriftSimulationElement,
-    DiagnosticSimulationElement,
     RFCavitySimulationElement,
     ApertureElement,
     TwissMatchSimulationElement,
@@ -39,47 +31,36 @@ from laura.models.control import ControlVariable, ControlsInformation
 from laura.models.base_models import set_functional_definitions
 
 
-# ---------------------------------------------------------------------------
-# Functional parameters (RF / simulation)
-# ---------------------------------------------------------------------------
-
 class TestFunctionalParametersRF:
     @pytest.fixture(autouse=True)
     def _defs(self):
         set_functional_definitions(
             {"cav1_phase": 90.0, "famp": 5e6}, merge=False
         )
-        yield
-        set_functional_definitions({}, merge=False)
 
-    def test_cavity_phase_string(self):
-        cav = RFCavityElement(phase="cav1_phase")
-        assert cav.phase == "cav1_phase"
-        assert cav.resolved("phase") == pytest.approx(90.0)
+    @pytest.mark.parametrize(
+        "cls, field, name, expected",
+        [
+            (RFCavityElement, "phase", "cav1_phase", 90.0),
+            (RFDeflectingCavityElement, "phase", "cav1_phase", 90.0),
+            (RFCavitySimulationElement, "field_amplitude", "famp", 5e6),
+        ],
+        ids=["cavity-phase", "deflecting-phase", "sim-field-amplitude"],
+    )
+    def test_string_is_kept_and_resolves(self, cls, field, name, expected):
+        obj = cls(**{field: name})
+        assert getattr(obj, field) == name
+        assert obj.resolved(field) == pytest.approx(expected)
 
     def test_cavity_phase_float_still_works(self):
         cav = RFCavityElement(phase=12.5)
         assert cav.resolved("phase") == pytest.approx(12.5)
-
-    def test_deflecting_cavity_phase_string(self):
-        cav = RFDeflectingCavityElement(phase="cav1_phase")
-        assert cav.phase == "cav1_phase"
-        assert cav.resolved("phase") == pytest.approx(90.0)
-
-    def test_sim_field_amplitude_string(self):
-        sim = RFCavitySimulationElement(field_amplitude="famp")
-        assert sim.field_amplitude == "famp"
-        assert sim.resolved("field_amplitude") == pytest.approx(5e6)
 
     def test_undefined_raises(self):
         cav = RFCavityElement(phase="missing")
         with pytest.raises(KeyError):
             cav.resolved("phase")
 
-
-# ---------------------------------------------------------------------------
-# RF Models
-# ---------------------------------------------------------------------------
 
 class TestRFCavityElement:
     def test_defaults(self):
@@ -88,6 +69,7 @@ class TestRFCavityElement:
         assert cav.frequency == pytest.approx(2998500000.0)
         assert cav.phase == pytest.approx(0.0)
         assert cav.n_cells == 1
+        assert cav.crest == 0
 
     def test_custom_values(self):
         cav = RFCavityElement(
@@ -98,10 +80,6 @@ class TestRFCavityElement:
         )
         assert cav.frequency == pytest.approx(1.3e9)
         assert cav.n_cells == 9
-
-    def test_crest_default(self):
-        cav = RFCavityElement()
-        assert cav.crest == 0
 
     def test_design_power(self):
         cav = RFCavityElement(design_power=1e7)
@@ -121,26 +99,19 @@ class TestRFDeflectingCavityElement:
         assert rfd.coupling_cell_length == 0.0
 
 
-# ---------------------------------------------------------------------------
-# Diagnostic Models
-# ---------------------------------------------------------------------------
-
 class TestDiagnosticModels:
-    def test_bpm_diagnostic(self):
-        bpm = BeamPositionMonitorDiagnostic()
-        assert bpm.type == "Stripline"
-
-    def test_bpm_custom_type(self):
-        bpm = BeamPositionMonitorDiagnostic(bpm_type="Cavity")
-        assert bpm.type == "Cavity"
-
-    def test_bam_diagnostic(self):
-        bam = BeamArrivalMonitorDiagnostic()
-        assert bam.type == "DESY"
-
-    def test_blm_diagnostic(self):
-        blm = BunchLengthMonitorDiagnostic()
-        assert blm.type == "CDR"
+    @pytest.mark.parametrize(
+        "cls, kwargs, expected",
+        [
+            (BeamPositionMonitorDiagnostic, {}, "Stripline"),
+            (BeamPositionMonitorDiagnostic, {"bpm_type": "Cavity"}, "Cavity"),
+            (BeamArrivalMonitorDiagnostic, {}, "DESY"),
+            (BunchLengthMonitorDiagnostic, {}, "CDR"),
+        ],
+        ids=["bpm", "bpm-custom", "bam", "blm"],
+    )
+    def test_diagnostic_type(self, cls, kwargs, expected):
+        assert cls(**kwargs).type == expected
 
     def test_camera_mask_defaults(self):
         mask = CameraMask()
@@ -157,10 +128,6 @@ class TestDiagnosticModels:
         assert cpn.x == "X"
         assert cpn.y == "Y"
 
-
-# ---------------------------------------------------------------------------
-# Simulation Models
-# ---------------------------------------------------------------------------
 
 class TestSimulationModels:
     def test_simulation_element_defaults(self):
@@ -194,20 +161,12 @@ class TestSimulationModels:
             TwissMatchSimulationElement(beta_x=0)
 
 
-# ---------------------------------------------------------------------------
-# Electrical
-# ---------------------------------------------------------------------------
-
 class TestElectricalElement:
     def test_defaults(self):
         ee = ElectricalElement()
         assert ee.min_i is not None or ee.min_i == 0
         assert ee.max_i is not None or ee.max_i == 0
 
-
-# ---------------------------------------------------------------------------
-# Laser
-# ---------------------------------------------------------------------------
 
 class TestLaserElement:
     def test_defaults(self):
@@ -218,10 +177,6 @@ class TestLaserElement:
         assert le.pulse_duration_fwhm == pytest.approx(30e-15)
 
 
-# ---------------------------------------------------------------------------
-# Plasma
-# ---------------------------------------------------------------------------
-
 class TestPlasmaElement:
     def test_defaults(self):
         # PlasmaElement requires density (gt=0)
@@ -229,10 +184,6 @@ class TestPlasmaElement:
         assert pe.density == pytest.approx(1e16)
         assert pe.species == "electron"
 
-
-# ---------------------------------------------------------------------------
-# Control Variables
-# ---------------------------------------------------------------------------
 
 class TestControlVariable:
     def test_basic_creation(self):

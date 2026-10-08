@@ -18,12 +18,9 @@ class TFSFile:
     """Minimal reader for MAD-X TFS-format tables (e.g. ``TWISS``/``SURVEY``
     output produced via ``SELECT`` + the corresponding command).
 
-    TFS mirrors SDDS's own header/column/data shape closely enough that this
-    follows the same pattern as
-    :class:`~laura.translator.utils.SDDSFile.SDDSFile`, just for MAD-X's
-    plain-text table format (``@`` header lines, a ``*`` column-name line, a
-    ``$`` column-type line, then one whitespace-separated data row per
-    element) instead of SDDS's binary one.
+    Follows :class:`~laura.translator.utils.sdds_file.SDDSFile`, for MAD-X's
+    plain-text format: ``@`` header lines, a ``*`` column-name line, a ``$``
+    column-type line, then one whitespace-separated data row per element.
     """
 
     def __init__(self):

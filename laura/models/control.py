@@ -233,14 +233,8 @@ class ControlVariable(_ControlVariableBase):
     @classmethod
     def validate_update(cls, v: Any, info: ValidationInfo) -> Dict | None:
         """Checks that the `update` function resolves to a signal dataclass and that the
-        keyword arguments supplied for it match that class' fields.
-
-        Accepts a signal class, a signal instance, or a dict of the form
-        ``{"function": <name>, **kwargs}``; all are normalised to the dict form,
-        with "function" rewritten to a fully qualified import path
-        (``laura.utils.signals.Sinusoid``) so that a serialised definition can be
-        resolved without LAURA. Anything invalid warns and returns None, leaving
-        the variable without an update function.
+        keyword arguments supplied for it match that class' fields; see
+        :func:`validate_callable_spec`.
         """
         # `identifier` is declared before `update`, so it is already validated here.
         return validate_callable_spec(
@@ -303,7 +297,7 @@ class ControlVariable(_ControlVariableBase):
     def validate_shape(cls, v: list | str | None, info: ValidationInfo) -> list | None:
         """Check that every `shape` entry is a positive integer, a dotted attribute
         path on the owning element, or a ``*``-separated product of those.
-        Only the spelling is checked here; see :func:~`resolve_shape`.
+        Only the spelling is checked here; see :meth:`resolve_shape`.
         """
         who = info.data.get("identifier", "<unknown>")
         if isinstance(v, str):
@@ -408,20 +402,13 @@ class ControlsInformation(_ControlsInformationBase):
     Model representing a collection of control variables.
 
     A ``schema`` may be given instead of writing out ``variables`` in full: it
-    names a YAML file (see :func:`laura.Importers.YAML_Loader.resolve_controls_schema`)
-    defining a shared template of variables for elements of a given type (e.g.
-    all Quadrupoles). Templated variables have their ``identifier`` (and any
-    other string field) filled in wherever the file uses the ``{name}``
-    placeholder; set ``identifier_pattern``
-    to substitute a different string for every ``{name}`` in the template
-    instead. Any ``variables`` given alongside ``schema`` are layered on top,
-    field by field, so a single entry can be added or overridden without
-    repeating the rest of the template.
+    names a YAML template of variables shared by elements of a type (see
+    :func:`laura.importers.yaml_loader.resolve_controls_schema`), with ``{name}``
+    replaced by the element name (or ``identifier_pattern``). Any ``variables``
+    given alongside are layered on top, field by field.
 
-    This expansion happens while an element YAML file is loaded (before this
-    model is constructed), so ``variables`` here is always the fully resolved
-    dict; ``schema``/``identifier_pattern`` are retained only as a record of
-    where it came from.
+    The expansion happens at YAML load time, so ``variables`` is always fully
+    resolved; ``schema``/``identifier_pattern`` only record where it came from.
     """
 
     # Narrowed from the generated base's `_ControlVariableBase` values so the
