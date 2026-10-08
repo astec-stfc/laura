@@ -8,9 +8,12 @@ This mixin enables transparent access to nested model attributes:
 This is a convenience layer that searches nested models for matching attribute names.
 """
 
-from typing import Type, List, Tuple, Union, Any, get_args, get_origin
-from pydantic import BaseModel
 import types
+from typing import Any, List, Tuple, Type, Union, get_args, get_origin
+
+from pydantic import BaseModel
+
+_PATHS: dict = {}
 
 
 class CascadingAccessMixin:
@@ -39,7 +42,10 @@ class CascadingAccessMixin:
         Raises:
             AttributeError if attribute not found or is ambiguous.
         """
-        return self._find_field_paths(attr_name, self.__class__)
+        key = (self.__class__, attr_name)
+        if key not in _PATHS:
+            _PATHS[key] = tuple(self._find_field_paths(attr_name, self.__class__))
+        return list(_PATHS[key])
 
     @classmethod
     def _find_field_paths(

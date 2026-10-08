@@ -96,7 +96,9 @@ class LatticeImporter(BaseModel):
         section's ``reference_energy``; None where the format has none."""
         return None
 
-    def create_section(self, section: Optional[Dict] = None) -> Dict[str, SectionLattice]:
+    def create_section(
+        self, section: Optional[Dict] = None
+    ) -> Dict[str, SectionLattice]:
         """Build a named :class:`SectionLattice` from imported elements.
 
         Parameters
@@ -118,7 +120,9 @@ class LatticeImporter(BaseModel):
             raise ValueError("A section definition must contain exactly one section.")
         name, bounds = next(iter(section.items()))
         if len(bounds) != 2:
-            raise ValueError("A section definition must contain first and last elements.")
+            raise ValueError(
+                "A section definition must contain first and last elements."
+            )
         try:
             first, last = names.index(bounds[0]), names.index(bounds[1])
         except ValueError as exc:

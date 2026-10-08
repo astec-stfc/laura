@@ -54,6 +54,25 @@ _BMAD_MAIN_MULTIPOLE_ORDERS = {
 _BMAD_NO_APERTURE = ("match", "fixer", "ecollimator", "rcollimator")
 """Bmad classes that get no aperture limits written onto them."""
 
+_MERGED_RULES: Dict[Tuple[str, str], dict] = {}
+"""(code, hardware type) -> that type's keyword rules over the general ones.
+Built once and shared by every element of the type."""
+
+_KEYWORD_MEMO: Dict[int, dict] = {}
+"""id of a shared rules dict -> elegant type -> keyword -> converted keyword."""
+
+_OCELOT_ATTRIBUTES: Dict[type, frozenset] = {}
+"""Ocelot element class -> the attributes a default one has."""
+
+
+def ocelot_attributes(cls: type) -> frozenset:
+    """The attributes an Ocelot element of class `cls` takes; see
+    :data:`_OCELOT_ATTRIBUTES`."""
+    if cls not in _OCELOT_ATTRIBUTES:
+        _OCELOT_ATTRIBUTES[cls] = frozenset(cls().element.__dict__)
+    return _OCELOT_ATTRIBUTES[cls]
+
+
 BMAD_EXACT_METHOD = "runge_kutta"
 """Bmad tracking method for the thick :data:`BMAD_EXACT_TYPES` whose lattice chose
 none. Not symplectic; ``symp_lie_ptc`` is, and agreed as well, if long-term tracking drifts."""
@@ -155,11 +174,15 @@ class BaseElementTranslator(PhysicalBaseElement):
             "madx": keyword_conversion_rules_madx,
         }
         for code, rules in rules_by_code.items():
-            self.conversion_rules[code] = (
-                rules[hardware_type] | rules["general"]
-                if hardware_type in rules
-                else rules["general"]
-            )
+            if (code, hardware_type) not in _MERGED_RULES:
+                merged = (
+                    rules[hardware_type] | rules["general"]
+                    if hardware_type in rules
+                    else rules["general"]
+                )
+                _MERGED_RULES[code, hardware_type] = merged
+                _KEYWORD_MEMO.setdefault(id(merged), {})
+            self.conversion_rules[code] = _MERGED_RULES[code, hardware_type]
         self.ccs = GptCcs(name="wcs", position=[0, 0, 0], rotation=[0, 0, 0])
         super().model_post_init(__context)
 
@@ -329,7 +352,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                     return raw, True
             return self._angle_token(value), False
         if key in ("k1", "k2", "k3", "k4", "k5", "k6"):
-            expr = self._functional_strength_expr(int(key[1]), code) if symbolic else None
+            expr = (
+                self._functional_strength_expr(int(key[1]), code) if symbolic else None
+            )
             return (expr, True) if expr is not None else (getattr(self, key), False)
         if key == "angle" and symbolic:
             raw = self._raw_multipole_strength(0)
@@ -376,7 +401,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             )
         terms = []
         for key, value in self._dump_items(
-            self._convert_keyword_elegant,
+            self._keyword_converter_elegant(etype),
             elements_elegant[etype],
             resolve=self._resolve_functional,
         ):
@@ -402,21 +427,21 @@ class BaseElementTranslator(PhysicalBaseElement):
         type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
         self.start_write()
         obj = type_conversion_rules_ocelot[self.hardware_type](eid=self.name)
+        attributes = ocelot_attributes(type(obj))
+        convert = self._keyword_converter("ocelot")
         for key, value in self.full_dump().items():
             if (key not in ["name", "type", "commandtype"]) and (
-                not type(obj) in [Aperture, Marker]
-                and self._convert_keyword_ocelot(key)
-                in obj.__class__().element.__dict__
+                not type(obj) in [Aperture, Marker] and convert(key) in attributes
             ):
                 if value is not None:
-                    key = self._convert_keyword_ocelot(key)
+                    key = convert(key)
                     if value == "angle":
                         value = self.magnetic.KnL(0)
                     if key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
                         value = getattr(self, f"{key}l") / self.magnetic.length
                     if key == "gap":
                         value = 2 * value
-                    setattr(obj, self._convert_keyword_ocelot(key), value)
+                    setattr(obj, convert(key), value)
         return obj
 
     @staticmethod
@@ -544,12 +569,12 @@ class BaseElementTranslator(PhysicalBaseElement):
                 "stop_at_turn": 1,
             }
             return self.name, obj, properties
+        convert = self._keyword_converter("xsuite")
+        attributes = obj.__dict__.keys()
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
-            xkey = self._convert_keyword_xsuite(key)
-            if (key not in ["name", "type", "commandtype"]) and (
-                xkey in list(obj.__dict__.keys())
-            ):
-                key = self._convert_keyword_xsuite(key)
+            xkey = convert(key)
+            if (key not in ["name", "type", "commandtype"]) and xkey in attributes:
+                key = xkey
                 if (
                     key in ["k1", "k2", "k3", "k4", "k5", "k6"]
                     and not self._resolve_functional
@@ -938,7 +963,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         fringe = self._madx_fringe(etype)
         written = set()
         for key, value in self._dump_items(
-            self._convert_keyword_madx,
+            self._keyword_converter_madx(),
             elements_madx[etype],
             resolve=self._resolve_functional,
         ):
@@ -1007,11 +1032,31 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def _convert_keyword_elegant(self, keyword: str) -> str:
         """Converts a keyword to its corresponding Elegant keyword using predefined rules."""
-        element = elements_elegant.get(
-            self._convert_type_elegant(self.hardware_type).lower(),
-            elements_elegant["drift"],
-        )
-        return self._convert_keyword(keyword, self.conversion_rules["elegant"], element)
+        etype = self._convert_type_elegant(self.hardware_type)
+        return self._keyword_converter_elegant(etype)(keyword)
+
+    def _keyword_converter_elegant(self, etype: str):
+        """:meth:`_convert_keyword_elegant` for an element of Elegant type ``etype``."""
+        etype = etype.lower()
+        element = elements_elegant.get(etype, elements_elegant["drift"])
+        return self._keyword_converter("elegant", etype, element)
+
+    def _keyword_converter(self, code: str, etype: str | None = None, element=None):
+        """:meth:`_convert_keyword` against ``code``'s rules and ``element``,
+        the definition of ``code``'s type ``etype``, as a function of the
+        keyword alone."""
+        rules = self.conversion_rules[code]
+        memo = _KEYWORD_MEMO.get(id(rules))
+        if memo is None:
+            return lambda keyword: self._convert_keyword(keyword, rules, element)
+        memo = memo.setdefault(etype, {})
+
+        def convert(keyword: str) -> str:
+            if keyword not in memo:
+                memo[keyword] = self._convert_keyword(keyword, rules, element)
+            return memo[keyword]
+
+        return convert
 
     def _convert_type_genesis(self, etype: str) -> str:
         """Converts the element type to the corresponding Genesis type using predefined rules."""
@@ -1036,7 +1081,7 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def _convert_keyword_ocelot(self, keyword: str) -> str:
         """Converts a keyword to its corresponding Ocelot keyword using predefined rules."""
-        return self._convert_keyword(keyword, self.conversion_rules["ocelot"])
+        return self._keyword_converter("ocelot")(keyword)
 
     def _convert_type_cheetah(self, etype: str) -> object:
         """Converts the element type to the corresponding Cheetah type using predefined rules."""
@@ -1054,7 +1099,7 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def _convert_keyword_xsuite(self, keyword: str) -> str:
         """Converts a keyword to its corresponding Xsuite keyword using predefined rules."""
-        return self._convert_keyword(keyword, self.conversion_rules["xsuite"])
+        return self._keyword_converter("xsuite")(keyword)
 
     def _convert_keyword_wake_t(self, keyword: str) -> str:
         """Converts a keyword to its corresponding Wake-T keyword using predefined rules."""
@@ -1079,8 +1124,12 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def _convert_keyword_madx(self, keyword: str) -> str:
         """Converts a keyword to its corresponding MAD-X keyword using predefined rules."""
-        element = elements_madx[self._convert_type_madx(self.hardware_type).lower()]
-        return self._convert_keyword(keyword, self.conversion_rules["madx"], element)
+        return self._keyword_converter_madx()(keyword)
+
+    def _keyword_converter_madx(self):
+        """:meth:`_convert_keyword_madx` for this element's MAD-X type."""
+        etype = self._convert_type_madx(self.hardware_type).lower()
+        return self._keyword_converter("madx", etype, elements_madx[etype])
 
     def _convert_type_bmad(self, etype: str) -> str:
         """

@@ -12,6 +12,9 @@ from ..utils.dict_utils import (
 # Create a generic variable that can be 'Parent', or any subclass.
 T = TypeVar("T", bound="BaseModel")
 
+_FUNCTIONAL_FIELDS: Dict[type, tuple] = {}
+"""Model class -> its fields' ``(name, functional, reserved_contains)``.."""
+
 
 def resolve_functional_parameter(
     value: Any,
@@ -124,19 +127,29 @@ def functional_references(model: Any) -> set:
     refs: set = set()
     if not isinstance(model, BaseModel):
         return refs
-    for name, field_info in type(model).model_fields.items():
+    for name, functional, reserved in _functional_fields(type(model)):
         try:
             value = getattr(model, name)
         except Exception:
             continue
-        meta = functional_annotations(field_info)
-        if meta.get("functional") and isinstance(value, str):
-            reserved = meta.get("reserved_contains")
+        if functional and isinstance(value, str):
             if not (reserved and reserved in value):
                 refs.add(value)
         if isinstance(value, BaseModel):
             refs |= functional_references(value)
     return refs
+
+
+def _functional_fields(cls: type) -> tuple:
+    if cls not in _FUNCTIONAL_FIELDS:
+        fields = []
+        for name, field_info in cls.model_fields.items():
+            meta = functional_annotations(field_info)
+            fields.append(
+                (name, bool(meta.get("functional")), meta.get("reserved_contains"))
+            )
+        _FUNCTIONAL_FIELDS[cls] = tuple(fields)
+    return _FUNCTIONAL_FIELDS[cls]
 
 
 def validate_functional_references(

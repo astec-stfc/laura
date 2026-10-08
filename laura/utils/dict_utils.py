@@ -4,7 +4,9 @@ Dictionary and YAML utilities for LAURA models.
 Provides helpers for flattening nested dicts, YAML representation, and serialization.
 """
 
-from typing import Dict, MutableMapping
+from collections.abc import MutableMapping
+from typing import Dict
+
 import numpy as np
 import yaml
 
@@ -27,15 +29,15 @@ def flatten_dict(dictionary: Dict, parent_key: str = "", separator: str = "_") -
     Returns:
         Flattened dictionary
     """
-    items = []
+    flat = {}
     for key, value in dictionary.items():
         if isinstance(key, str):
             new_key = parent_key + separator + key if parent_key else key
             if isinstance(value, MutableMapping):
-                items.extend(flatten_dict(value, new_key, separator=separator).items())
+                flat.update(flatten_dict(value, new_key, separator=separator))
             else:
-                items.append((new_key, value))
-    return dict(items)
+                flat[new_key] = value
+    return flat
 
 
 def numpy_scalar_to_python(v):

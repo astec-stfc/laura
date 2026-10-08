@@ -31,7 +31,7 @@ from .importers.yaml_loader import (
 )
 from ._compat import DeprecatedMethodAliases
 from .models.element import BaseElement
-from .models.element_list import MachineModel, insert_drifts
+from .models.element_list import MachineModel, drift_lengths, insert_drifts
 
 
 NON_ELEMENT_FILENAMES = {"summary.yaml", "summary.yml"}
@@ -307,7 +307,10 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
         super().model_post_init(__context)
 
     def create_drifts(
-        self, end: str = None, start: str = None, path: str = None
+            self,
+            end: str | None = None,
+            start: str | None = None,
+            path: str | None = None,
     ) -> Dict:
         """
         Insert drifts into a sequence of 'elements'
@@ -317,36 +320,54 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
         :param path: Name of the lattice path to use
         :return: Dictionary of elements with drifts inserted
         """
+        return insert_drifts(
+            self._beamline(start=start, end=end, path=path), "drift", min_length=1e-12
+        )
+
+    def _beamline(
+            self,
+            end: str | None = None,
+            start: str | None = None,
+            path: str | None = None
+    ) -> Dict:
+        """The elements :meth:`create_drifts` fills the gaps between.
+
+        :param end: Name of the last element in the sequence (last if `None`)
+        :param start: Name of the first element in the sequence (first if `None`)
+        :param path: Name of the lattice path to use (`default_layout` if `None`)
+        :return: Dictionary of elements with drifts inserted
+        """
         elements = {}
         for name in self.elements_between(
             start=start, end=end, element_class=None, path=path
         ):
             if not self.elements[name].is_subelement():
                 elements[name] = self.elements[name]
-        return insert_drifts(elements, "drift", min_length=1e-12)
+        return elements
 
     def _drift_length(self, start: list[float], end: list[float]):
         return np.linalg.norm(end - start)
 
     def get_elements_s_pos(
-        self, end: str = None, start: str = None, path: str = None
+            self,
+            end: str | None = None,
+            start: str | None = None,
+            path: str | None = None
     ) -> Dict[str, float]:
         """
         Get s positions of all elements between start and end
 
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
+        :param end: Name of the last element in the sequence (last if `None`)
+        :param start: Name of the first element in the sequence (first if `None`)
+        :param path: Name of the lattice path to use (`default_layout` if `None`)
         :return: Dictionary of element names and their s positions
         """
-        elements = self.create_drifts(start=start, end=end, path=path)
-        start_and_end = [
-            [name, elem.physical.length, elem.hardware_type == "Drift"]
-            for name, elem in elements.items()
-        ]
+        lengths = drift_lengths(
+            self._beamline(start=start, end=end, path=path), "drift", min_length=1e-12
+        )
         elem_s = {}
         s_pos = 0
-        for elem, l, drift in start_and_end:
+        for elem, (l, drift) in lengths.items():
             s_pos += l
             if not drift:
                 elem_s[elem] = round(s_pos, 6)

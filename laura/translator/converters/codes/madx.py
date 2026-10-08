@@ -214,9 +214,9 @@ class MadxLatticeImporter(LatticeImporter):
                     row[name] = parameter.value
                 # inform is 2 for a definition, 1 for a later `elem, k1:=x;` update
                 if parameter.inform and isinstance(parameter.expr, str):
-                    self.deferred_parameters.setdefault(row["name"], {})[name] = (
-                        parameter.expr
-                    )
+                    self.deferred_parameters.setdefault(row["name"], {})[
+                        name
+                    ] = parameter.expr
                     used.update(re.findall(r"[A-Za-z_][\w.]*", parameter.expr))
             if (
                 row["keyword"] == "rfcavity"

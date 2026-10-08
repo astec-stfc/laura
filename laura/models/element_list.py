@@ -4,7 +4,7 @@ import os
 import warnings
 from copy import deepcopy
 from functools import cmp_to_key
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from warnings import warn
 
 import numpy as np
@@ -257,28 +257,32 @@ def insert_drifts(
     Return ``elements`` (name -> element, in beam order) with a :class:`Drift`
     filling each gap between one element's end and the next one's start.
 
-    A gap gets a drift when its length, rounded to ``digits`` decimals, exceeds
-    ``min_length``. Drifts are named ``<prefix><n>`` and given a copy of
-    ``drift_fields``.
+    Parameters
+    ----------
+    elements: dict[str, Any]
+        Dictionary of elements
+    prefix: str
+        Prefix for drift name
+    digits: int
+        Number of decimal places for rounding
+    min_length: float, optional
+        Minimum drift length to insert
+    drift_fields: dict, optional
+        Additional fields to copy
+
+    Returns
+    -------
+    dict[str, Drift]
+        Dictionary of new drift elements
     """
-    items = list(elements.items())
     newelements = {}
-    count = 0
-    for (name, elem), (_, following) in zip(items, items[1:] + items[-1:]):
+    for name, elem, gap in _drift_gaps(elements, prefix, digits, min_length):
         newelements[name] = elem
-        if following is elem:
-            continue
-        (x1, y1, z1), (x2, y2, z2) = elem.physical.end.array, following.physical.start.array
-        try:
-            length = round(np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2), digits)
-        except Exception as exc:
-            _log.error("Drift calculation error near element '%s': %s", name, exc)
-            raise
-        if length > min_length:
-            count += 1
+        if gap is not None:
+            drift_name, length, (x1, y1, z1), (x2, y2, z2) = gap
             middle = dict(x=(x1 + x2) / 2.0, y=(y1 + y2) / 2.0, z=(z1 + z2) / 2.0)
-            newelements[f"{prefix}{count}"] = Drift(
-                name=f"{prefix}{count}",
+            newelements[drift_name] = Drift(
+                name=drift_name,
                 hardware_class="Drift",
                 machine_area=elem.machine_area,
                 physical=PhysicalElement(
@@ -289,6 +293,87 @@ def insert_drifts(
                 **deepcopy(drift_fields),
             )
     return newelements
+
+
+def drift_lengths(
+    elements: Dict[str, Any],
+    prefix: str,
+    digits: int = 16,
+    min_length: float = 0.0,
+) -> Dict[str, Tuple[float, bool]]:
+    """
+    The names and lengths :func:`insert_drifts` would give, in the same order,
+    without building the drifts: name -> (length, whether it is a drift, made
+    here or already in ``elements``).
+
+    Parameters
+    ----------
+    elements: dict[str, Any]
+        Dictionary of elements
+    prefix: str
+        Prefix for drift name
+    digits: int
+        Number of decimal places for rounding
+    min_length: float, optional
+        Minimum drift length to insert
+
+    Returns
+    -------
+    dict[str, Drift]
+        Dictionary of drift lengths
+    """
+    lengths = {}
+    for name, elem, gap in _drift_gaps(elements, prefix, digits, min_length):
+        lengths[name] = (elem.physical.length, elem.hardware_type == "Drift")
+        if gap is not None:
+            lengths[gap[0]] = (gap[1], True)
+    return lengths
+
+
+def _drift_gaps(
+    elements: Dict[str, Any], prefix: str, digits: int, min_length: float
+) -> tuple:
+    """
+    Yield ``(name, element, gap)`` for each of ``elements`` in beam order,
+    where ``gap`` is ``(drift name, length, end of the element, start of the
+    next)`` for a gap :func:`insert_drifts` fills, and None otherwise.
+
+    Parameters
+    ----------
+    elements: dict[str, Any]
+        Dictionary of elements
+    prefix: str
+        Prefix for drift name
+    digits: int
+        Number of decimal places for rounding
+    min_length: float
+        Minimum drift length to insert
+
+    Returns
+    -------
+    tuple
+        Gaps filled by :func:`insert_drifts`
+    """
+    items = list(elements.items())
+    count = 0
+    for (name, elem), (_, following) in zip(items, items[1:] + items[-1:]):
+        if following is elem:
+            yield name, elem, None
+            continue
+        end, start = elem.physical.end.array, following.physical.start.array
+        (x1, y1, z1), (x2, y2, z2) = end, start
+        try:
+            length = round(
+                np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2), digits
+            )
+        except Exception as exc:
+            _log.error("Drift calculation error near element '%s': %s", name, exc)
+            raise
+        if length > min_length:
+            count += 1
+            yield name, elem, (f"{prefix}{count}", length, end, start)
+        else:
+            yield name, elem, None
 
 
 class _ElementQueries:
@@ -572,7 +657,10 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
         List
             Ordered list of elements.
         """
-        return [self.elements[e] for e in self.order if e in self.elements.names]
+        # against the dict's keys, which are what `self.elements[e]` looks up:
+        # `names` builds a fresh list per call, quadratic over a ring's order
+        elements = self.elements.elements
+        return [elements[e] for e in self.order if e in elements]
 
     def _collective_default(self, flag: str) -> bool:
         """Whether synthesised drifts should carry ``flag``: only if some real
@@ -595,23 +683,40 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
             csr_enable = self._collective_default("csr_enable")
         if lsc_enable is None:
             lsc_enable = self._collective_default("lsc_enable")
-        elements = {}
-        for elem in self._get_all_elements():
-            if elem.subelement:
-                continue
-            if isinstance(elem, Diagnostic) and not keep_diagnostic_length:
-                elem = elem.model_copy(
-                    update={"physical": elem.physical.model_copy(update={"length": 0.0})}
-                )
-            elements[elem.name] = elem
         return insert_drifts(
-            elements,
+            self._beamline(keep_diagnostic_length),
             self.name + "_drift_",
             min_length=1e-12,
             simulation=DriftSimulationElement(
                 csr_enable=csr_enable, lsc_enable=lsc_enable, lsc_bins=lsc_bins
             ),
         )
+
+    def drift_lengths(self, keep_diagnostic_length: bool = False) -> Dict[str, float]:
+        """:meth:`create_drifts`' names and lengths, in order, without building
+        the drifts."""
+        lengths = drift_lengths(
+            self._beamline(keep_diagnostic_length),
+            self.name + "_drift_",
+            min_length=1e-12,
+        )
+        return {name: length for name, (length, _) in lengths.items()}
+
+    def _beamline(self, keep_diagnostic_length: bool = False) -> Dict[str, Any]:
+        """The elements :meth:`create_drifts` fills the gaps between: no
+        subelements, and diagnostics at zero length unless asked otherwise."""
+        elements = {}
+        for elem in self._get_all_elements():
+            if elem.subelement:
+                continue
+            if isinstance(elem, Diagnostic) and not keep_diagnostic_length:
+                elem = elem.model_copy(
+                    update={
+                        "physical": elem.physical.model_copy(update={"length": 0.0})
+                    }
+                )
+            elements[elem.name] = elem
+        return elements
 
     def get_s_values(
         self, as_dict: bool = False, at_entrance: bool = False, starting_s: float = 0
@@ -639,13 +744,13 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
             If `as_dict` is True, returns a dictionary with element names as keys and their S values as values.
             If `as_dict` is False, returns a list of S values.
         """
-        elems = self.create_drifts()
+        lengths = self.drift_lengths()
         s = [starting_s]
-        for e in list(elems.values()):
-            s.append(s[-1] + e.physical.length)
+        for length in lengths.values():
+            s.append(s[-1] + length)
         s = s[:-1] if at_entrance else s[1:]
         if as_dict:
-            return dict(zip([e.name for e in elems.values()], s))
+            return dict(zip(lengths, s))
         return list(s)
 
     def get_resolved_s_values(
@@ -2823,9 +2928,7 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
                         f"'{entry.section}' contains no such element. It "
                         f"contains: {sorted(set(section.order))}"
                     )
-                self._check_attribute_paths(
-                    path, "overrides", element_name, values
-                )
+                self._check_attribute_paths(path, "overrides", element_name, values)
 
     def _check_attribute_paths(
         self, path: str, what: str, element_name: str, values: dict

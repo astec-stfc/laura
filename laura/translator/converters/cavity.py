@@ -12,7 +12,7 @@ from ..converters import (
     elements_opal,
 )
 from ..utils.functions import sanitize_string
-from .base import BaseElementTranslator
+from .base import BaseElementTranslator, ocelot_attributes
 
 
 class RFCavityTranslator(BaseElementTranslator):
@@ -328,16 +328,17 @@ class RFCavityTranslator(BaseElementTranslator):
             self.simulation.wakefield_definition, code="astra"
         )
         obj = type_conversion_rules_ocelot[self.hardware_type](eid=self.name)
+        attributes = ocelot_attributes(type(obj))
+        convert = self._keyword_converter("ocelot")
         for key, value in self.full_dump().items():
             if (
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
                 and (value.size > 0 if isinstance(value, np.ndarray) else value)
-                and self._convert_keyword_ocelot(key)
-                in obj.__class__().element.__dict__
+                and convert(key) in attributes
             ):
-                key = self._convert_keyword_ocelot(key).lower()
+                key = convert(key).lower()
                 if self.hardware_type in ["RFCavity", "RFDeflectingCavity"]:
                     if key == "v":
                         if self.structure_type == "TravellingWave":

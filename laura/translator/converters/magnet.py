@@ -31,10 +31,11 @@ GPT_HARD_EDGE_B1 = 300.0
 
 BEND_ANGLE_PER_KICK = 0.01
 """Largest angle [rad] one integration step of a bend may turn through when
-``n_kicks`` is left unset. ELEGANT's 4th-order ``CSBEND`` misses its own
-reference by ~0.3 θ (θ/N)⁴ in angle; every bend errs the same way, so round a
-ring that is a momentum offset of ~0.3 (θ/N)⁴ whatever the bend count --
-3e-9 here, against 4.5e-4 for 45-degree bends at the default four."""
+``n_kicks`` is left unset. """
+
+BEND_PATH_ERROR = 1e-10
+"""Largest relative on-axis path error a gradient bend may carry when
+``n_kicks`` is left unset. """
 
 
 def add(x, y):
@@ -515,16 +516,24 @@ class DipoleTranslator(MultipoleStrengthTranslator):
     @property
     def kick_count(self) -> int:
         """``simulation.n_kicks`` if the lattice set it; otherwise enough
-        steps that none turns through more than :data:`BEND_ANGLE_PER_KICK`,
-        and never fewer than the schema default."""
+        steps that none turns through more than :data:`BEND_ANGLE_PER_KICK`
+        and a gradient bend's path is within :data:`BEND_PATH_ERROR`, and
+        never fewer than the schema default."""
         default = self.simulation.n_kicks
         if "n_kicks" in self.simulation.model_fields_set:
             return default
         try:
             angle = abs(float(self.resolve(self.angle)))
+            length = abs(float(self.resolve(self.magnetic.length)))
+            k1l = abs(float(self.resolve(self.magnetic.KnL(1))))
         except (TypeError, ValueError):
             return default
-        return max(default, int(np.ceil(angle / BEND_ANGLE_PER_KICK)))
+        path_steps = (0.1 * k1l * length * angle**2 / BEND_PATH_ERROR) ** 0.25
+        return max(
+            default,
+            int(np.ceil(angle / BEND_ANGLE_PER_KICK)),
+            int(np.ceil(path_steps)),
+        )
 
     def full_dump(self, resolve: bool = True) -> dict:
         """Write :attr:`fringe_order` and :attr:`kick_count` explicitly, so no
