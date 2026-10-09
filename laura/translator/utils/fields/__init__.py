@@ -196,7 +196,7 @@ class FieldMap(BaseModel):
             reader_options = {
                 name: value
                 for name, value in kwargs.items()
-                if name == "column_map" or name.lower().endswith("_column")
+                if name in ("column_map", "normalize_b") or name.lower().endswith("_column")
             }
             self.read_field_file(
                 filename,

@@ -416,10 +416,8 @@ class UnitValue(np.ndarray):
     def in_units_of(self, prefix):
         from beamphysics.units import PREFIX_FACTOR, SHORT_PREFIX_FACTOR
 
-        prefix = f"{prefix}-" if prefix[-1] != "-" else prefix
-        f = 1
         if prefix in SHORT_PREFIX_FACTOR:
             f = SHORT_PREFIX_FACTOR[prefix]
-        elif prefix in PREFIX_FACTOR:
-            f = PREFIX_FACTOR[prefix]
+        else:
+            f = PREFIX_FACTOR.get(prefix.rstrip("-") + "-", 1)
         return self.val / f
