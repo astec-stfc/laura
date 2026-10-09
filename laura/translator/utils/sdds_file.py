@@ -517,7 +517,8 @@ class SDDSFile(object):
             symbol, unit, description, formatstring, type, fieldlength = (
                 sddsref.columnDefinition[col]
             )
-            column_data = np.array(sddsref.columnData[col][page])
+            # a list, as `SDDSColumn.data` returns; copied so callers can't alter the loaded file
+            column_data = list(sddsref.columnData[col][page])
             self.add_column(
                 sddsref.columnName[col],
                 column_data,

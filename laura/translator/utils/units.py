@@ -6,6 +6,8 @@ Unit symbols, dimensions and SI prefixes come from
 imported lazily as it pulls in matplotlib.
 """
 
+from functools import cache
+
 import numpy as np
 
 
@@ -177,6 +179,8 @@ def unit_powers(string, power_factor=1):
     )
 
 
+# cached: every UnitValue * and / re-parses both unit strings
+@cache
 def unit_multiply(string1, string2=False, divide=False):
     """multiply/divide two unit strings"""
     if divide:
@@ -208,6 +212,7 @@ def get_base_units(string):
     )
 
 
+@cache  # as unit_multiply, for every + and -
 def are_units_equal(string1, string2):
     return (get_base_units(string1) == get_base_units(string2)).all()
 
