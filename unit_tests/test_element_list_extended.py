@@ -624,3 +624,26 @@ class TestFunctionalDefinitionsLoading:
             functional_definitions=str(f),
         )
         assert sl.functional_definitions == {"quad1_k1l": -2.0}
+
+    def test_sections_validate_again_after_a_machine_build(self, elements):
+        MachineModel(elements={e.name: e for e in elements})
+        qbad = Quadrupole(
+            name="QBAD", machine_area="S1",
+            magnetic={"length": 0.3, "k1l": "missing_k1l"},
+        )
+        with pytest.raises(ValueError, match="missing_k1l"):
+            SectionLattice(name="S1", order=["QBAD"], elements=[qbad])
+
+
+def test_section_members_adds_subelements_by_generation_in_list_order():
+    by_name = {
+        "GRANDCHILD": {"subelement": "CHILD_B"},
+        "CHILD_A": {"subelement": "A"},
+        "A": {"name": "A"},
+        "OTHER": {"subelement": "ELSEWHERE"},
+        "CHILD_B": {"subelement": "B"},
+        "B": {"name": "B"},
+    }
+    children = MachineModel._subelement_index(by_name)
+    members = MachineModel._section_members(["B", "A", "MISSING"], by_name, children)
+    assert members == [by_name[n] for n in ["B", "A", "CHILD_A", "CHILD_B", "GRANDCHILD"]]

@@ -3,7 +3,7 @@ import math
 import operator
 import re
 from dataclasses import fields, is_dataclass
-from typing import Any, Callable, Dict, Mapping, Type
+from typing import Any, Callable, ClassVar, Dict, Mapping, Type
 from warnings import warn
 
 from pydantic import (
@@ -356,8 +356,9 @@ class ControlVariable(_ControlVariableBase):
         return value
 
     # Default values that should be omitted from serialised output to keep
-    # YAML exports clean.  Only exact matches are suppressed.
-    _SERIALIZE_DEFAULTS: dict = {
+    # YAML exports clean.  Only exact matches are suppressed.  ClassVar, or
+    # pydantic makes it a private attribute and deep-copies it per instance.
+    _SERIALIZE_DEFAULTS: ClassVar[dict] = {
         "units": "Arb. Units",
         "read_only": True,
         "control_type": "statistical",

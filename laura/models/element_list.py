@@ -2,6 +2,7 @@ import logging
 import math
 import os
 import warnings
+from contextvars import ContextVar
 from copy import deepcopy
 from functools import cmp_to_key
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
@@ -52,6 +53,10 @@ _log = logging.getLogger("laura.model")
 
 LatticeType = Literal["beam", "rf", "laser"]
 ALLOWED_LATTICE_TYPES = {"beam", "rf", "laser"}
+
+_FUNCTIONALS_VALIDATED = ContextVar("_FUNCTIONALS_VALIDATED", default=False)
+"""True while a `MachineModel` builds sections and layouts from elements it has
+already checked, so they skip `validate_functional_references`."""
 
 _SECTION_METADATA = ("geometry", "reference_energy")
 """Optional section keys in a sections file, each a `SectionLattice` field."""
@@ -477,7 +482,7 @@ class BaseLatticeModel(ModelBase):
         set_functional_definitions(self.functional_definitions)
         set_resolve_functional(self.resolve_functional)
         elements = getattr(self, "elements", None)
-        if isinstance(elements, ElementList):
+        if isinstance(elements, ElementList) and not _FUNCTIONALS_VALIDATED.get():
             validate_functional_references(
                 [e for e in elements.list() if isinstance(e, BaseElement)],
                 self.functional_definitions,
@@ -2458,19 +2463,24 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
             )
         self._expand_layout_repeats()
         if len(self.elements) > 0:
-            if not hasattr(self.elements, "get_metadata"):
+            validated = not hasattr(self.elements, "get_metadata")
+            if validated:
                 validate_functional_references(
                     [e for e in self.elements.values() if isinstance(e, BaseElement)],
                     self.functional_definitions,
                     self._functional_source,
                 )
-            if self.section:
-                self._build_layouts(self.elements)
-            else:
-                self._build_sections_from_elements(self.elements)
-            self._resolve_all_positions()
-            if self.section:
-                self._build_layout_objects()
+            token = _FUNCTIONALS_VALIDATED.set(validated)
+            try:
+                if self.section:
+                    self._build_layouts(self.elements)
+                else:
+                    self._build_sections_from_elements(self.elements)
+                self._resolve_all_positions()
+                if self.section:
+                    self._build_layout_objects()
+            finally:
+                _FUNCTIONALS_VALIDATED.reset(token)
 
     def __add__(self, other) -> dict:
         copy = self.elements.copy()
@@ -2567,34 +2577,38 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
         self._build_sections_phase(elements)
 
     @staticmethod
-    def _section_members(elem_names, by_name):
-        """A section's elements: the ones it orders, plus their subelements."""
-        members = [by_name[name] for name in elem_names if name in by_name]
-
-        def parent_of(element):
+    def _subelement_index(by_name):
+        """Map each parent name to its subelements, as ``(position in by_name, name)``."""
+        children = {}
+        for position, (name, element) in enumerate(by_name.items()):
             if isinstance(element, dict):
-                return element.get("subelement")
-            return getattr(element, "subelement", None)
+                parent = element.get("subelement")
+            else:
+                parent = getattr(element, "subelement", None)
+            if parent is not None:
+                children.setdefault(parent, []).append((position, name))
+        return children
 
-        ordered = set(elem_names)
+    @staticmethod
+    def _section_members(elem_names, by_name, children):
+        """A section's elements: the ones it orders, plus their subelements
+        (from :meth:`_subelement_index`), one generation at a time in ``by_name`` order."""
+        members = [by_name[name] for name in elem_names if name in by_name]
         seen = {name for name in elem_names if name in by_name}
-        while True:
-            found = [
-                (name, element)
-                for name, element in by_name.items()
-                if name not in seen and parent_of(element) in ordered
-            ]
-            if not found:
-                break
-            for name, element in found:
-                members.append(element)
-                seen.add(name)
-                ordered.add(name)
+        parents = set(elem_names)
+        while parents:
+            found = sorted(
+                {c for p in parents for c in children.get(p, ()) if c[1] not in seen}
+            )
+            members.extend(by_name[name] for _, name in found)
+            seen.update(name for _, name in found)
+            parents = {name for _, name in found}
         return members
 
     def _build_sections_phase(self, elements):
         """Create all SectionLattice objects without yet creating MachineLayout objects."""
         by_area, by_name = self._index_elements(elements)
+        children = self._subelement_index(by_name)
 
         if self._section_definitions and not self._layouts:
             # Sections only — no layout wrapper needed
@@ -2605,7 +2619,7 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
                     area,
                     section_definition,
                 )
-                new_elements = self._section_members(elem_names, by_name)
+                new_elements = self._section_members(elem_names, by_name, children)
                 _log.debug(
                     "Section %s elements=(%s)",
                     area,
@@ -2634,7 +2648,7 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
                             area,
                             self._section_definitions[area],
                         )
-                        new_elements = self._section_members(elem_names, by_name)
+                        new_elements = self._section_members(elem_names, by_name, children)
                         _log.debug(
                             "Section %s elements=(%s)",
                             area,

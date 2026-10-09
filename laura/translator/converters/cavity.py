@@ -219,10 +219,14 @@ class RFCavityTranslator(BaseElementTranslator):
         ):
             preferred[output] = direct if getattr(self, direct) is not None else nested
         emitted = set()
+        # `_convert_keyword_elegant`, built once rather than per key
+        convert = self._keyword_converter_elegant(
+            self._convert_type_elegant(self.hardware_type)
+        )
         for source_key, value in self.full_dump(
             resolve=self._resolve_functional
         ).items():
-            converted_key = self._convert_keyword_elegant(source_key).lower()
+            converted_key = convert(source_key).lower()
             if preferred.get(converted_key, source_key) != source_key:
                 continue
             if converted_key in emitted:
