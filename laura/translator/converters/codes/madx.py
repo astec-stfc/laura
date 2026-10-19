@@ -20,6 +20,7 @@ from .. import keyword_conversion_rules_madx, type_conversion_rules_madx
 from . import magnetic_orders
 from .importer import (
     LatticeImporter,
+    apply_misalignment,
     check_layouts,
     compact_expression,
     keyword_rules,
@@ -36,6 +37,41 @@ _CALL_RE = re.compile(r"(?i)\bcall\s*,\s*file\s*=\s*([^;]+);")
 _BEAM_RE = re.compile(r"(?im)^\s*beam\s*,([^;]*);")
 
 _BEAM_SEQUENCE_RE = re.compile(r"(?i)\bsequence\s*=\s*([\w.]+)")
+
+
+def _align_errors(madx, sequence: str) -> Dict:
+    """``EALIGN`` errors keyed by numbered element name; read before any
+    ``flatten`` or ``USE``, which wipe them."""
+    try:
+        expanded = list(madx.sequence[sequence].expanded_elements)
+    except RuntimeError:  # never USEd, so no errors either
+        return {}
+    names = number_repeated_names([element.name for element in expanded])
+    return {
+        name: element.align_errors
+        for name, element in zip(names, expanded)
+        if element.align_errors is not None
+    }
+
+
+def madx_misalignment(align, length: float, angle: float) -> Dict[str, float]:
+    """Invert :meth:`~laura.translator.converters.base.BaseElementTranslator.madx_alignment`:
+    MAD-X ``EALIGN`` terms as LAURA alignment errors."""
+    h = angle / 2
+    lever = length / angle * np.sin(h) if angle else length / 2
+    sagitta = length / angle * (1 - np.cos(h)) if angle else 0.0
+    dx_rot = -align.dtheta
+    dy_rot = -align.dphi / np.cos(h)
+    a = align.dx - dx_rot * lever
+    b = align.ds - dx_rot * sagitta
+    return dict(
+        dx=a * np.cos(h) + b * np.sin(h),
+        dy=align.dy - dy_rot * lever,
+        dz=-a * np.sin(h) + b * np.cos(h),
+        dx_rot=dx_rot,
+        dy_rot=dy_rot,
+        dz_rot=align.dpsi - dy_rot * np.sin(h),
+    )
 
 
 def _switch_dict() -> Dict[str, str]:
@@ -108,6 +144,16 @@ class MadxLatticeImporter(LatticeImporter):
     _beam_energy: Optional[float] = PrivateAttr(default=None)
     """The current sequence's ``BEAM`` energy [eV]; see :meth:`_reference_energy`."""
 
+    _beam_rigidity: Optional[float] = PrivateAttr(default=None)
+    """Its ``p / q`` [T*m], which un-normalises solenoid ``ks``."""
+
+    def _set_beam(self, energy, pc, charge) -> None:
+        """Take the beam's energy and momentum [GeV] and charge [e]."""
+        self._beam_energy = float(energy) * 1e9 if energy else None
+        self._beam_rigidity = (
+            float(pc) * 1e9 / (299792458.0 * float(charge)) if pc and charge else None
+        )
+
     def _reference_energy(self) -> Optional[float]:
         """The ``BEAM`` energy of the sequence being imported, or the TWISS
         file's ``ENERGY`` header."""
@@ -171,10 +217,10 @@ class MadxLatticeImporter(LatticeImporter):
         return madx
 
     @staticmethod
-    def _sequence_beam_energy(madx, sequence: str, source: str) -> Optional[float]:
+    def _sequence_beam(madx, sequence: str, source: str):
         """
-        Total energy [eV] of the ``BEAM`` that applies to ``sequence``, or
-        None when the source gives it none.
+        The ``BEAM`` that applies to ``sequence``, or None when the source
+        gives it none.
         """
         applies = False
         for arguments in _BEAM_RE.findall(source):
@@ -184,15 +230,17 @@ class MadxLatticeImporter(LatticeImporter):
         if not applies:
             return None
         madx.use(sequence=sequence)
-        return float(madx.sequence[sequence].beam.energy) * 1e9
+        return madx.sequence[sequence].beam
 
     def _rows_for_sequence(self, madx, sequence: str) -> list:
         """Extract element rows for one already-loaded MAD-X sequence."""
         self.lattice_name = sequence
+        alignments = _align_errors(madx, sequence)
         madx.input(f"seqedit, sequence={sequence}; flatten; endedit;")
-        self._beam_energy = self._sequence_beam_energy(
+        beam = self._sequence_beam(
             madx, sequence, read_with_calls(Path(self.source_file), _CALL_RE)
         )
+        self._set_beam(beam and beam.energy, beam and beam.pc, beam and beam.charge)
 
         self.deferred_parameters = {}
         rows = []
@@ -215,15 +263,16 @@ class MadxLatticeImporter(LatticeImporter):
                 "keyword": element.base_type.name,
                 "l": length,
                 "s": float(element.position) + length,
+                "_align": alignments.get(numbered_name),
             }
             for name, parameter in element.cmdpar.items():
                 if parameter.inform:
                     row[name] = parameter.value
                 # inform is 2 for a definition, 1 for a later `elem, k1:=x;` update
                 if parameter.inform and isinstance(parameter.expr, str):
-                    self.deferred_parameters.setdefault(row["name"], {})[
-                        name
-                    ] = parameter.expr
+                    self.deferred_parameters.setdefault(row["name"], {})[name] = (
+                        parameter.expr
+                    )
                     used.update(re.findall(r"[A-Za-z_][\w.]*", parameter.expr))
             if (
                 row["keyword"] == "rfcavity"
@@ -319,8 +368,7 @@ class MadxLatticeImporter(LatticeImporter):
             tfs = TFSFile()
             tfs.read_file(self.twiss_file)
             self.lattice_name = tfs.headers.get("sequence")
-            energy = tfs.headers.get("energy")  # GeV
-            self._beam_energy = float(energy) * 1e9 if energy else None
+            self._set_beam(*(tfs.headers.get(k) for k in ("energy", "pc", "charge")))
             rows = tfs.rows()
             numbered = number_repeated_names([str(row["name"]) for row in rows])
             for row, name in zip(rows, numbered):
@@ -450,8 +498,17 @@ class MadxLatticeImporter(LatticeImporter):
             kwele = {y: x for x, y in merged.items()}
             kwele["fint"] = "edge_field_integral"
 
+            if row.get("_align"):
+                entry.setdefault("physical", {})
+                angle = row.get("angle", 0.0) if elemtype in ("sbend", "rbend") else 0.0
+                apply_misalignment(
+                    entry,
+                    getattr(laura_elements, sftype),
+                    roll=0.0,
+                    **madx_misalignment(row["_align"], row.get("l", 0.0), angle),
+                )
             for param, val in row.items():
-                if param in ("name", "keyword", "s"):
+                if param in ("name", "keyword", "s", "_align"):
                     continue
                 if param == "hgap" and "magnetic" in entry:
                     entry["magnetic"]["gap"] = 2 * float(val)
@@ -512,8 +569,7 @@ class MadxLatticeImporter(LatticeImporter):
             self.madx_data[name] = entry
         return self.madx_data
 
-    @staticmethod
-    def _convert_raw_fields(v: dict) -> dict:
+    def _convert_raw_fields(self, v: dict) -> dict:
         """Turn TWISS's raw per-length/per-element attributes into LAURA's
         integrated-strength and plane-specific fields.
         """
@@ -548,9 +604,20 @@ class MadxLatticeImporter(LatticeImporter):
             elif htype == "Vertical_Corrector":
                 v["magnetic"]["vertical_kick"] = v.get("kick", 0.0)
             if htype == "Solenoid" and "ks" in v:
-                v["magnetic"].setdefault("fields", {})["S0L"] = (
-                    v["ks"] if isinstance(v["ks"], str) else float(v["ks"]) * length
-                )
+                scale = length * (self._beam_rigidity or 0.0)
+                if not scale:
+                    warn(
+                        f"No BEAM to convert solenoid {v.get('name')!r} ks "
+                        "to tesla; dropped."
+                    )
+                elif isinstance(v["ks"], str):
+                    v["magnetic"].setdefault("fields", {})["S0L"] = (
+                        f"({v['ks']}) * {scale}"
+                    )
+                else:
+                    v["magnetic"].setdefault("fields", {})["S0L"] = (
+                        float(v["ks"]) * scale
+                    )
 
         if "cavity" in v and "phase" in v["cavity"]:
             if not isinstance(v["cavity"]["phase"], str):

@@ -124,7 +124,10 @@ class ContainerTranslator:
         return self._fan_out("to_rftrack", P_Q=P_Q, save=save)
 
     def to_madx(
-        self, beam: Dict[str, Any] | None = None, refer: str = "entry"
+        self,
+        beam: Dict[str, Any] | None = None,
+        refer: str = "entry",
+        Brho: float = 0.0,
     ) -> Dict[str, Any]:
         """
         Create one MAD-X ``SEQUENCE`` per section, keyed by
@@ -142,6 +145,8 @@ class ContainerTranslator:
             :meth:`~laura.translator.converters.section.SectionLatticeTranslator.to_madx`.
         refer: str
             Element reference position, forwarded to every section.
+        Brho: float
+            Rigidity ``p / q`` [T*m], forwarded to every section.
         """
         return self._fan_out(
             "to_madx",
@@ -150,6 +155,7 @@ class ContainerTranslator:
                 "beam": beam.get(name) if isinstance(beam, dict) else None
             },
             refer=refer,
+            Brho=Brho,
         )
 
     def _elegant_body(

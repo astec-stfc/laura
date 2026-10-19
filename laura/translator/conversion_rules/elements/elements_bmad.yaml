@@ -118,6 +118,7 @@ wiggler:
 solenoid:
   l: double
   ks: double
+  bs_field: double
   field_calc: string
   gen_gradients: string
   fringe_type: string
@@ -125,6 +126,7 @@ sol_quad:
   l: double
   k1: double
   ks: double
+  bs_field: double
   fringe_type: string
 elseparator:
   l: double

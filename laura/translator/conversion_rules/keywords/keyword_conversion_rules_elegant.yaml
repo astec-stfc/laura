@@ -36,22 +36,28 @@ dipole:
   n_kicks: n_slices
   half_gap: hgap
   angle: angle
+  dx_rot: eyaw
+  dy_rot: epitch
+  dz_rot: etilt
 quadrupole:
   isr_enable: isr
   sr_enable: synch_rad
   n_kicks: n_slices
   dx_rot: yaw
   dy_rot: pitch
-  dz_rot: tilt
   order: multipole_order
 sextupole:
   isr_enable: isr
   sr_enable: synch_rad
   n_kicks: n_slices
+  dx_rot: yaw
+  dy_rot: pitch
 octupole:
   isr_enable: isr
   sr_enable: synch_rad
   n_kicks: n_slices
+  dx_rot: yaw
+  dy_rot: pitch
 rfcavity:
   frequency: freq
   field_amplitude: volt
@@ -71,7 +77,7 @@ crabcavity:
 rftmez0:
   field_amplitude: ez_peak
 solenoid:
-  field_amplitude: B
+  field_amplitude: b
 scatter:
   horizontal_scatter: x
   vertical_scatter: y

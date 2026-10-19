@@ -123,8 +123,9 @@ class GptCcs(DeprecatedMethodAliases, BaseModel):
         finalpos = np.array([0, 0, abs(self.intersect) + length])
         return finalpos, finalrot
 
-    def ccs_text(self, position, rotation):
+    def ccs_text(self, position, rotation, offset=(0.0, 0.0, 0.0)):
         finalpos, finalrot = self.relative_position(position, rotation)
+        finalpos = finalpos + np.asarray(offset)
         x, y, z = finalpos
         psi, phi, theta = finalrot
         ccs_label = ""

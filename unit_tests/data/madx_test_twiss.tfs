@@ -2,6 +2,8 @@
 @ TYPE             %05s "TWISS"
 @ SEQUENCE         %s "TESTLINE"
 @ PARTICLE         %s "ELECTRON"
+@ PC               %le 1.0
+@ CHARGE           %le -1.0
 * NAME KEYWORD S L K1 K2 ANGLE E1 E2 KICK HKICK VKICK VOLT FREQ LAG KS XSIZE YSIZE
 $ %s %s %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le
 "BEG" "MARKER" 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0

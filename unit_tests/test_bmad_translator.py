@@ -249,15 +249,15 @@ _STANDING_WAVE = {
             [", gap =", ", tilt ="],
             id="dipole",
         ),
-        # Bmad's `ks` is normalised like LAURA's S0L; `bs_field` is in tesla.
+        # LAURA's S0L is in T*m, so Bmad gets the tesla `bs_field`, not `ks`.
         pytest.param(
             Solenoid,
             {
                 "name": "S1",
                 "magnetic": {"magnetic_length": 2.0, "fields": {"S0L": 0.8}},
             },
-            ["ks = 0.4"],
-            (),
+            ["bs_field = 0.4"],
+            ("ks =",),
             id="solenoid",
         ),
         pytest.param(
@@ -270,8 +270,8 @@ _STANDING_WAVE = {
                     "solenoid_fields": {"S0L": 0.8},
                 },
             },
-            ["SQ: sol_quad, l = 2.0, k1 = 0.3, ks = 0.4"],
-            (),
+            ["SQ: sol_quad, bs_field = 0.4, l = 2.0, k1 = 0.3"],
+            ("ks =",),
             id="sol_quad",
         ),
         pytest.param(
@@ -297,7 +297,7 @@ _STANDING_WAVE = {
                 "cavity": {"phase": 180, **_STANDING_WAVE},
                 "simulation": {"field_amplitude": 1e6},
             },
-            ["CR1: crab_cavity", "phi0 = -0.5"],
+            ["CR1: crab_cavity", "phi0 = 0.75"],
             (),
             id="crab_cavity",
         ),

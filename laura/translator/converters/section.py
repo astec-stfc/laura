@@ -39,6 +39,7 @@ from ..utils.functions import (
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
+from .magnet import MagnetTranslator, SolenoidTranslator
 from .codes import (
     astra_unsupported,
     bmad_unsupported,
@@ -672,6 +673,8 @@ class SectionLatticeTranslator(SectionLattice):
                 )
             element.ccs = ccs
             fulltext += element.to_gpt(Brho, **kwargs)
+            if not isinstance(element, MagnetTranslator):
+                element._warn_dropped_misalignment("gpt", set())
             if (
                 element.hardware_type.lower() == "rfcavity"
                 and isinstance(element.simulation.wakefield_definition, FieldMap)
@@ -1022,6 +1025,14 @@ class SectionLatticeTranslator(SectionLattice):
         for d in elem_dict.values():
             obj = d.to_ocelot()
             objs = list(obj) if isinstance(obj, (list, tuple)) else [obj]
+            # an OCELOT bend's tilt rolls its frame, so it cannot take a roll error
+            roll = d.roll - d.dz_rot * d._curved
+            for o in objs:
+                o.dx, o.dy = d.dx, d.dy
+                o.tilt += roll
+            d._warn_dropped_misalignment("ocelot", {"dx", "dy"}, tilt=True)
+            if (d.dx or d.dy) and roll:
+                warn(f"OCELOT offsets {d.name!r} before rolling it, unlike LAURA.")
             if symbolic and objs:
                 objs[0].laura_functional_fields = functional_fields(d)
             elements.extend(objs)
@@ -1076,6 +1087,7 @@ class SectionLatticeTranslator(SectionLattice):
         lattice = rft.Lattice()
         for d in elem_dict.values():
             elem = d.to_rftrack(P_Q=P_Q)
+            d._warn_dropped_misalignment("RF-Track", set())
             for e in elem if isinstance(elem, list) else [elem]:
                 if sc_nsteps > 0:
                     e.set_sc_nsteps(sc_nsteps)
@@ -1152,6 +1164,21 @@ class SectionLatticeTranslator(SectionLattice):
         with open(f"{self.directory}/{self.name}.py", "w") as f:
             f.write("\n".join(lines) + "\n")
 
+    @staticmethod
+    def _cheetah_misalignment(element, obj) -> None:
+        """Write ``element``'s offsets and roll onto the Cheetah ``obj``; a
+        Cheetah bend's ``tilt`` rolls its frame, so it takes no roll error."""
+        from torch import float64, tensor
+
+        written = set()
+        if hasattr(obj, "misalignment"):
+            obj.misalignment = tensor([element.dx, element.dy], dtype=float64)
+            written = {"dx", "dy"}
+        roll = element.roll - element.dz_rot * element._curved
+        if hasattr(obj, "tilt") and roll:
+            obj.tilt = obj.tilt + roll
+        element._warn_dropped_misalignment("cheetah", written, hasattr(obj, "tilt"))
+
     def to_cheetah(self, save=False) -> "Segment":
         """
         Create a Cheetah-compatible lattice segment object based on the lattice information.
@@ -1177,6 +1204,7 @@ class SectionLatticeTranslator(SectionLattice):
             if not element.subelement:
                 elem = element.to_cheetah()
                 if elem is not None:
+                    self._cheetah_misalignment(element, elem)
                     segment.append(elem)
                     segments = True
         if segments:
@@ -1238,6 +1266,11 @@ class SectionLatticeTranslator(SectionLattice):
                 return any(_is_symbolic(v) for v in val)
             return False
 
+        Brho = (
+            float(particle_ref.p0c[0] / (299792458.0 * particle_ref.q0))
+            if isinstance(particle_ref, xt.Particles)
+            else 0.0
+        )
         line = env.new_line()
         element_types = {}
         for i, element in enumerate(list(elem_dict.values())):
@@ -1247,12 +1280,33 @@ class SectionLatticeTranslator(SectionLattice):
                         beam_length=beam_length,
                         revolution_frequency=self.revolution_frequency,
                     )
+                elif isinstance(element, SolenoidTranslator):
+                    name, component, properties = element.to_xsuite(
+                        beam_length=beam_length, Brho=Brho
+                    )
                 else:
                     name, component, properties = element.to_xsuite(
                         beam_length=beam_length
                     )
                 if turns > 1 and "stop_at_turn" in properties:
                     properties["stop_at_turn"] = int(turns)
+                if "shift_x" in getattr(component, "_xofields", ()):
+                    # rot_s_rad rolls a bend's frame (design tilt); the error rolls the field only
+                    curved = component in (xt.Bend, xt.RBend)
+                    misalignment = {
+                        "shift_x": element.dx,
+                        "shift_y": element.dy,
+                        "shift_s": element.dz,
+                        "rot_x_rad": -element.dy_rot,
+                        "rot_y_rad": -element.dx_rot,
+                        "rot_s_rad": element.roll - element.dz_rot * curved,
+                        "rot_s_rad_no_frame": element.dz_rot * curved,
+                    }
+                    misalignment = {k: v for k, v in misalignment.items() if v}
+                    if misalignment:
+                        # Bmad pivots about the centre; xtrack defaults to the entrance
+                        misalignment["rot_shift_anchor"] = element.physical.length / 2
+                    properties.update(misalignment)
                 if any(_is_symbolic(v) for v in properties.values()):
                     env.new(element.name, component, **properties)
                     line.append(element.name)
@@ -1288,6 +1342,7 @@ class SectionLatticeTranslator(SectionLattice):
             key = e.hardware_type.lower()
             if key in counter:
                 csrtrackstr += e.to_csrtrack(n=counter[key])
+                e._warn_dropped_misalignment("CSRTrack", set())
                 counter[key] += 1
             elif e.hardware_class != "Diagnostic":
                 warn(f"Element of type {e.hardware_type} not supported for CSRTrack")
@@ -1306,7 +1361,12 @@ class SectionLatticeTranslator(SectionLattice):
             csrtrackstr += h.write_csrtrack()
         return csrtrackstr
 
-    def to_madx(self, beam: Dict[str, Any] | None = None, refer: str = "entry") -> str:
+    def to_madx(
+        self,
+        beam: Dict[str, Any] | None = None,
+        refer: str = "entry",
+        Brho: float = 0.0,
+    ) -> str:
         """
         Create a MAD-X-compatible ``SEQUENCE`` definition based on the lattice
         information, suitable for :meth:`cpymad.madx.Madx.input` (see the
@@ -1319,11 +1379,16 @@ class SectionLatticeTranslator(SectionLattice):
             `Beam Section of the MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html#Ch7.S1>`_
         refer: str
             Gives a reference position for element placement, related to the ``at=`` parameter.
+        Brho: float
+            Rigidity ``p / q`` [T*m], negative for electrons, to normalise
+            solenoid strengths.
 
         Returns
         -------
         str
-            A MAD-X-compatible ``SEQUENCE`` definition.
+            A MAD-X-compatible ``SEQUENCE`` definition. Alignment errors go
+            into a ``<name>_errors`` macro, to ``exec`` after each ``USE``
+            (done here when ``beam`` is given).
         """
         elem_dict = self._translate(self.create_drifts().values())
         svals = self.get_s_values(as_dict=True, at_entrance=True)
@@ -1332,11 +1397,23 @@ class SectionLatticeTranslator(SectionLattice):
         centre = str(refer).lower() in ("centre", "center")
         refer = "centre" if centre else "entry"
         fulltext = ""
+        errors = ""
         for d in elem_dict.values():
             at = d.physical.start.z if d.subelement else svals[d.name]
             if centre:
                 at += d.physical.length / 2
-            fulltext += d.to_madx(at=at)
+            if isinstance(d, SolenoidTranslator):
+                fulltext += d.to_madx(at=at, Brho=Brho)
+            else:
+                fulltext += d.to_madx(at=at)
+            alignment = d.madx_alignment()
+            if alignment:
+                terms = ", ".join(f"{k} = {v}" for k, v in alignment.items())
+                errors += (
+                    f"select, flag=error, clear;\n"
+                    f"select, flag=error, range={sanitize_string(d.name)};\n"
+                    f"ealign, {terms};\n"
+                )
 
         seqstring = madx_functional_definitions(self.functional_definitions)
         has_beam = isinstance(beam, Dict)
@@ -1351,8 +1428,15 @@ class SectionLatticeTranslator(SectionLattice):
         )
         seqstring += fulltext
         seqstring += "ENDSEQUENCE;\n"
+        macro = f"{sanitize_string(self.name)}_errors"
+        if errors:
+            # EALIGN needs a USEd sequence, and every USE wipes it: re-run with ``exec``
+            errors += "select, flag=error, clear;\n"
+            seqstring += f"{macro}: macro = {{\n{errors}}};\n"
         if has_beam:
             seqstring += f"USE, PERIOD={sanitize_string(self.name)};"
+            if errors:
+                seqstring += f"\nexec, {macro};"
         return seqstring
 
     def to_wake_t(self) -> "Beamline":
@@ -1374,4 +1458,5 @@ class SectionLatticeTranslator(SectionLattice):
             if not element.subelement:
                 if element.length > 0:
                     beamline.append(element.to_wake_t())
+                    element._warn_dropped_misalignment("Wake-T", set())
         return Beamline(beamline)
