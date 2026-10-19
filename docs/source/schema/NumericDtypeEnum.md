@@ -3,7 +3,7 @@
 
 
 
-_Numeric storage type of a control variable's value, or of an individual element of a waveform's array. Not every protocol carries every type -- Channel Access has no native unsigned integer channels, for instance -- so a consumer is expected to reject the combinations it cannot represent._
+_Numeric storage type of a control variable's value, or of an individual element of a waveform's array._
 
 
 
@@ -65,9 +65,7 @@ URI: [laura:NumericDtypeEnum](https://w3id.org/laura/NumericDtypeEnum)
 ```yaml
 name: NumericDtypeEnum
 description: Numeric storage type of a control variable's value, or of an individual
-  element of a waveform's array. Not every protocol carries every type -- Channel
-  Access has no native unsigned integer channels, for instance -- so a consumer is
-  expected to reject the combinations it cannot represent.
+  element of a waveform's array.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 permissible_values:

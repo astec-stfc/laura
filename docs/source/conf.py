@@ -187,7 +187,6 @@ autodoc_pydantic_field_doc_policy = "both"  # shows docstrings and Field descrip
 # autodoc_typehints = "none"
 
 autodoc_mock_imports = [
-    "IPython",          # optional dependency for SimFrame_Loader
     "ocelot",           # optional accelerator-code dependency
     "xsuite",           # optional accelerator-code dependency
     "xtrack",           # optional accelerator-code dependency (used by xsuite converters)

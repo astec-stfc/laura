@@ -1,27 +1,21 @@
-"""Tests for laura.exporters.SQL — SQLAlchemy persistence of MachineModel.
-
-Phase 4 verification: apply DDL to SQLite, insert a machine model, query it back.
-"""
-import tempfile
+"""SQLAlchemy persistence of MachineModel, round-tripped through SQLite."""
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
+pytest.importorskip("sqlalchemy")
+
 from laura import LAURA
-from laura.models.element import Marker, Quadrupole, Dipole, Solenoid
-from laura.models.element_list import MachineModel, SectionLattice
+from laura.exporters import sql_exporter as sql_mod
+from laura.exporters.sql_exporter import export_machine, load_machine_elements, load_machine_sections
+from laura.models.element import Marker, Quadrupole, Dipole
+from laura.models.element_list import MachineModel
 
 pytestmark = pytest.mark.slow
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
 @pytest.fixture
 def small_machine():
-    """Minimal 3-element machine: Marker + Quadrupole + Dipole."""
     m1 = Marker(
         name="M1",
         machine_area="S01",
@@ -51,7 +45,6 @@ def small_machine():
 
 @pytest.fixture
 def bare_machine():
-    """Machine with no physical data (pure AcceleratorElement fields only)."""
     m = Marker(name="X1", machine_area="BA1", hardware_class="Marker")
     q = Quadrupole(name="Q2", machine_area="BA1")
     return MachineModel(
@@ -61,51 +54,28 @@ def bare_machine():
     )
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _import_sql():
-    """Import SQL exporter; skip test if sqlalchemy is not installed."""
-    pytest.importorskip("sqlalchemy")
-    from laura.exporters.sql_exporter import (
-        export_machine,
-        load_machine_elements,
-        load_machine_sections,
-    )
-    return export_machine, load_machine_elements, load_machine_sections
+def _export(machine, tmp_path, name="machine.db"):
+    db_url = f"sqlite:///{tmp_path / name}"
+    return db_url, export_machine(machine, db_url=db_url)
 
 
-# ---------------------------------------------------------------------------
-# Tests
-# ---------------------------------------------------------------------------
+def _empty_machine():
+    return MachineModel(elements={}, sections={}, lattices={})
+
+
+def _single(element):
+    return MachineModel(elements={element.name: element}, sections={}, lattices={})
+
 
 class TestSQLExporterBasic:
-    """Phase 4: DDL creation, insert, and round-trip queries."""
-
     def test_export_returns_integer_id(self, small_machine):
-        export_machine, _, _ = _import_sql()
         machine_id = export_machine(small_machine, db_url="sqlite:///:memory:")
         assert isinstance(machine_id, int)
         assert machine_id >= 1
 
-    def test_load_elements_count(self, small_machine):
-        """Export to file DB, load back, confirm element count matches."""
-        export_machine, load_machine_elements, _ = _import_sql()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'count.db'}"
-            mid = export_machine(small_machine, db_url=db_url)
-            rows = load_machine_elements(db_url=db_url, machine_id=mid)
-        assert len(rows) == 3
-
-    def test_full_round_trip_elements(self, small_machine):
-        """Export to SQLite file, load back, verify element metadata."""
-        export_machine, load_machine_elements, _ = _import_sql()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_path = Path(tmpdir) / "machine.db"
-            db_url = f"sqlite:///{db_path}"
-            machine_id = export_machine(small_machine, db_url=db_url)
-            rows = load_machine_elements(db_url=db_url, machine_id=machine_id)
+    def test_full_round_trip_elements(self, small_machine, tmp_path):
+        db_url, machine_id = _export(small_machine, tmp_path)
+        rows = load_machine_elements(db_url=db_url, machine_id=machine_id)
 
         assert len(rows) == 3
         names = {r["name"] for r in rows}
@@ -118,134 +88,76 @@ class TestSQLExporterBasic:
         assert by_name["D1"]["hardware_type"] == "Dipole"
         assert by_name["M1"]["hardware_type"] == "Marker"
 
-    def test_full_round_trip_sections(self, small_machine):
-        """Export to SQLite file, load back, verify section structure."""
-        export_machine, _, load_machine_sections = _import_sql()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'machine.db'}"
-            machine_id = export_machine(small_machine, db_url=db_url)
-            sections = load_machine_sections(db_url=db_url, machine_id=machine_id)
+    def test_full_round_trip_sections(self, small_machine, tmp_path):
+        db_url, machine_id = _export(small_machine, tmp_path)
+        sections = load_machine_sections(db_url=db_url, machine_id=machine_id)
 
         assert "S01" in sections
-        # The junction table stores element names but has no position column,
-        # so retrieval order is not guaranteed — compare as a set.
+        # The junction table has no position column, so order is not guaranteed.
         assert set(sections["S01"]) == {"M1", "Q1", "D1"}
 
-    def test_multiple_snapshots_independent_ids(self, small_machine):
-        """Two exports to the same DB produce distinct machine IDs."""
-        export_machine, load_machine_elements, _ = _import_sql()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'multi.db'}"
-            id1 = export_machine(small_machine, db_url=db_url)
-            id2 = export_machine(small_machine, db_url=db_url)
+    def test_multiple_snapshots_share_elements(self, small_machine, tmp_path):
+        db_url, id1 = _export(small_machine, tmp_path)
+        id2 = export_machine(small_machine, db_url=db_url)
         assert id1 != id2
+        rows1 = load_machine_elements(db_url=db_url, machine_id=id1)
+        rows2 = load_machine_elements(db_url=db_url, machine_id=id2)
+        assert {r["name"] for r in rows1} == {r["name"] for r in rows2}
 
-    def test_load_unknown_id_raises(self, small_machine):
-        """load_machine_elements raises KeyError for a missing ID."""
-        export_machine, load_machine_elements, _ = _import_sql()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'test.db'}"
-            export_machine(small_machine, db_url=db_url)
-            with pytest.raises(KeyError, match="99"):
-                load_machine_elements(db_url=db_url, machine_id=99)
+    @pytest.mark.parametrize(
+        "loader, missing",
+        [(load_machine_elements, 99), (load_machine_sections, 42)],
+        ids=["elements", "sections"],
+    )
+    def test_load_unknown_id_raises(self, small_machine, tmp_path, loader, missing):
+        db_url, _ = _export(small_machine, tmp_path)
+        with pytest.raises(KeyError, match=str(missing)):
+            loader(db_url=db_url, machine_id=missing)
 
-    def test_bare_machine_no_physical(self, bare_machine):
-        """Elements without physical data export and reload cleanly."""
-        export_machine, load_machine_elements, _ = _import_sql()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'bare.db'}"
-            mid = export_machine(bare_machine, db_url=db_url)
-            rows = load_machine_elements(db_url=db_url, machine_id=mid)
+    def test_bare_machine_no_physical(self, bare_machine, tmp_path):
+        db_url, mid = _export(bare_machine, tmp_path)
+        rows = load_machine_elements(db_url=db_url, machine_id=mid)
 
         assert len(rows) == 2
         names = {r["name"] for r in rows}
         assert names == {"X1", "Q2"}
 
-    def test_invalid_hardware_class_coerced_to_generic(self):
-        """An element with an unrecognised hardware_class is stored as 'Generic'."""
-        export_machine, load_machine_elements, _ = _import_sql()
-        # Create element via dict to bypass Pydantic enum validation
+    @pytest.mark.parametrize("bad_class", ["UnknownClass", None], ids=["unknown", "none"])
+    def test_invalid_hardware_class_coerced_to_generic(self, tmp_path, bad_class):
         m = Marker(name="ODD", machine_area="X01", hardware_class="Marker")
-        # Monkey-patch to an invalid class after construction
-        object.__setattr__(m, "hardware_class", "UnknownClass")
-        machine = MachineModel(elements={"ODD": m}, sections={}, lattices={})
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'coerce.db'}"
-            mid = export_machine(machine, db_url=db_url)
-            rows = load_machine_elements(db_url=db_url, machine_id=mid)
+        # Set after construction to bypass Pydantic enum validation
+        object.__setattr__(m, "hardware_class", bad_class)
+        db_url, mid = _export(_single(m), tmp_path)
+        rows = load_machine_elements(db_url=db_url, machine_id=mid)
         assert rows[0]["hardware_class"] == "Generic"
 
-    def test_empty_machine(self):
-        """An empty MachineModel exports without error."""
-        export_machine, load_machine_elements, _ = _import_sql()
-        machine = MachineModel(elements={}, sections={}, lattices={})
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'empty.db'}"
-            mid = export_machine(machine, db_url=db_url)
-            rows = load_machine_elements(db_url=db_url, machine_id=mid)
-        assert rows == []
+    def test_empty_machine(self, tmp_path):
+        db_url, mid = _export(_empty_machine(), tmp_path)
+        assert load_machine_elements(db_url=db_url, machine_id=mid) == []
+        assert load_machine_sections(db_url=db_url, machine_id=mid) == {}
 
-
-# ---------------------------------------------------------------------------
-# Internal helpers — unit tests for _coerce_hardware_class and _load_orm
-# ---------------------------------------------------------------------------
 
 class TestSQLInternalHelpers:
-    """Direct unit tests for the private helper functions in SQL.py."""
-
-    def _get_coerce(self):
-        pytest.importorskip("sqlalchemy")
-        from laura.exporters.sql_exporter import _coerce_hardware_class
-        return _coerce_hardware_class
-
     def test_valid_hardware_class_passes_through(self):
-        coerce = self._get_coerce()
-        for cls in ("Magnet", "Diagnostic", "RF", "Marker", "Generic", "Monitor"):
-            assert coerce(cls) == cls
+        for cls in set(sql_mod._VALID_HARDWARE_CLASSES) | {
+            "Magnet", "Diagnostic", "RF", "Marker", "Generic", "Monitor",
+            "ACDipole", "Wire", "BeamBeam", "RFMultipole", "Simulation",
+        }:
+            assert sql_mod._coerce_hardware_class(cls) == cls
 
-    def test_all_schema_enum_members_valid(self):
-        coerce = self._get_coerce()
-        from laura.exporters.sql_exporter import _VALID_HARDWARE_CLASSES
-        for cls in _VALID_HARDWARE_CLASSES:
-            assert coerce(cls) == cls
+    # Enum is case-sensitive; 'magnet' != 'Magnet'
+    @pytest.mark.parametrize("cls", ["UnknownWidget", None, "", "magnet"])
+    def test_invalid_returns_generic(self, cls):
+        assert sql_mod._coerce_hardware_class(cls) == "Generic"
 
-    def test_invalid_string_returns_generic(self):
-        coerce = self._get_coerce()
-        assert coerce("UnknownWidget") == "Generic"
+    def test_load_orm_missing_file_raises(self, monkeypatch):
+        monkeypatch.setattr(sql_mod, "_ORM_PATH", Path("/nonexistent/path/laura_orm.py"))
+        with pytest.raises(FileNotFoundError, match="Generated ORM not found"):
+            sql_mod._load_orm()
 
-    def test_none_returns_generic(self):
-        coerce = self._get_coerce()
-        assert coerce(None) == "Generic"
-
-    def test_empty_string_returns_generic(self):
-        coerce = self._get_coerce()
-        assert coerce("") == "Generic"
-
-    def test_case_sensitive_mismatch_returns_generic(self):
-        coerce = self._get_coerce()
-        # Enum is case-sensitive; 'magnet' != 'Magnet'
-        assert coerce("magnet") == "Generic"
-
-    def test_load_orm_missing_file_raises(self):
-        """_load_orm raises FileNotFoundError when the ORM file does not exist."""
-        pytest.importorskip("sqlalchemy")
-        from laura.exporters import sql_exporter as sql_mod
-        original = sql_mod._ORM_PATH
-        try:
-            sql_mod._ORM_PATH = Path("/nonexistent/path/laura_orm.py")
-            with pytest.raises(FileNotFoundError, match="Generated ORM not found"):
-                sql_mod._load_orm()
-        finally:
-            sql_mod._ORM_PATH = original
-
-
-# ---------------------------------------------------------------------------
-# Edge cases — physical sub-models, optional fields, multi-section machines
-# ---------------------------------------------------------------------------
 
 @pytest.fixture
 def element_with_datum_and_rotation():
-    """Quadrupole with datum and rotation in addition to middle."""
     return Quadrupole(
         name="QR",
         machine_area="S02",
@@ -261,7 +173,6 @@ def element_with_datum_and_rotation():
 
 @pytest.fixture
 def multi_section_machine():
-    """Machine with 2 sections and 2 layouts."""
     m1 = Marker(
         name="MS1", machine_area="A01", hardware_class="Marker",
         physical={"middle": {"x": 0, "y": 0, "z": 0}},
@@ -289,50 +200,16 @@ def multi_section_machine():
 
 
 class TestSQLExporterEdgeCases:
-    """Test edge cases and less-common code paths in the SQL exporter."""
-
-    def test_load_sections_unknown_id_raises(self, small_machine):
-        """load_machine_sections also raises KeyError for a missing machine ID."""
-        export_machine, _, load_machine_sections = _import_sql()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'sec.db'}"
-            export_machine(small_machine, db_url=db_url)
-            with pytest.raises(KeyError, match="42"):
-                load_machine_sections(db_url=db_url, machine_id=42)
-
-    def test_load_sections_empty_machine(self):
-        """Empty machine has no sections; load_machine_sections returns {}."""
-        export_machine, _, load_machine_sections = _import_sql()
-        machine = MachineModel(elements={}, sections={}, lattices={})
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'empty_sec.db'}"
-            mid = export_machine(machine, db_url=db_url)
-            sections = load_machine_sections(db_url=db_url, machine_id=mid)
-        assert sections == {}
-
-    def test_element_with_datum_and_rotation(self, element_with_datum_and_rotation):
-        """Elements whose physical sub-model has datum and rotation export cleanly."""
-        export_machine, load_machine_elements, _ = _import_sql()
-        machine = MachineModel(
-            elements={"QR": element_with_datum_and_rotation},
-            sections={},
-            lattices={},
-        )
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'rot.db'}"
-            mid = export_machine(machine, db_url=db_url)
-            rows = load_machine_elements(db_url=db_url, machine_id=mid)
+    def test_element_with_datum_and_rotation(self, element_with_datum_and_rotation, tmp_path):
+        db_url, mid = _export(_single(element_with_datum_and_rotation), tmp_path)
+        rows = load_machine_elements(db_url=db_url, machine_id=mid)
         assert len(rows) == 1
         assert rows[0]["name"] == "QR"
 
-    def test_multi_section_multi_layout_machine(self, multi_section_machine):
-        """Machines with 2 sections and 2 layouts store and reload correctly."""
-        export_machine, load_machine_elements, load_machine_sections = _import_sql()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'multi.db'}"
-            mid = export_machine(multi_section_machine, db_url=db_url)
-            rows = load_machine_elements(db_url=db_url, machine_id=mid)
-            sections = load_machine_sections(db_url=db_url, machine_id=mid)
+    def test_multi_section_multi_layout_machine(self, multi_section_machine, tmp_path):
+        db_url, mid = _export(multi_section_machine, tmp_path)
+        rows = load_machine_elements(db_url=db_url, machine_id=mid)
+        sections = load_machine_sections(db_url=db_url, machine_id=mid)
 
         assert len(rows) == 4
         element_names = {r["name"] for r in rows}
@@ -342,112 +219,52 @@ class TestSQLExporterEdgeCases:
         assert set(sections["A01"]) == {"MS1", "QA"}
         assert set(sections["B01"]) == {"MS2", "DB"}
 
-    def test_element_with_none_hardware_class_stored_as_generic(self):
-        """Elements where hardware_class is None are stored as 'Generic'."""
-        export_machine, load_machine_elements, _ = _import_sql()
-        m = Marker(name="NHC", machine_area="X01", hardware_class="Marker")
-        object.__setattr__(m, "hardware_class", None)
-        machine = MachineModel(elements={"NHC": m}, sections={}, lattices={})
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'nhc.db'}"
-            mid = export_machine(machine, db_url=db_url)
-            rows = load_machine_elements(db_url=db_url, machine_id=mid)
-        assert rows[0]["hardware_class"] == "Generic"
-
-    def test_element_optional_fields_stored(self):
-        """hardware_model and machine_area are stored and retrieved."""
-        export_machine, load_machine_elements, _ = _import_sql()
+    def test_element_optional_fields_stored(self, tmp_path):
         q = Quadrupole(
             name="QM",
             machine_area="SEC99",
             hardware_model="LINAC_QUAD_V2",
             magnetic={"length": 0.3},
         )
-        machine = MachineModel(elements={"QM": q}, sections={}, lattices={})
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'fields.db'}"
-            mid = export_machine(machine, db_url=db_url)
-            rows = load_machine_elements(db_url=db_url, machine_id=mid)
-        row = rows[0]
+        db_url, mid = _export(_single(q), tmp_path)
+        row = load_machine_elements(db_url=db_url, machine_id=mid)[0]
         assert row["hardware_model"] == "LINAC_QUAD_V2"
         assert row["machine_area"] == "SEC99"
 
-    def test_second_snapshot_references_same_elements(self, small_machine):
-        """Elements are shared across snapshots; both snapshots' element sets are equal."""
-        export_machine, load_machine_elements, _ = _import_sql()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'shared.db'}"
-            id1 = export_machine(small_machine, db_url=db_url)
-            id2 = export_machine(small_machine, db_url=db_url)
-            rows1 = load_machine_elements(db_url=db_url, machine_id=id1)
-            rows2 = load_machine_elements(db_url=db_url, machine_id=id2)
-        assert {r["name"] for r in rows1} == {r["name"] for r in rows2}
-
     def test_in_memory_export_returns_correct_id_sequence(self):
-        """Back-to-back in-memory exports yield IDs 1, 2, …"""
-        export_machine, _, _ = _import_sql()
-        machine = MachineModel(elements={}, sections={}, lattices={})
-        id1 = export_machine(machine, db_url="sqlite:///:memory:")
-        id2 = export_machine(machine, db_url="sqlite:///:memory:")
+        id1 = export_machine(_empty_machine(), db_url="sqlite:///:memory:")
+        id2 = export_machine(_empty_machine(), db_url="sqlite:///:memory:")
         # Each call creates its own in-memory DB, so both start at 1
         assert id1 == 1
         assert id2 == 1
 
-    def test_machine_area_none_stored_as_none(self):
-        """Elements with no machine_area store None and retrieve None."""
-        export_machine, load_machine_elements, _ = _import_sql()
-        q = Quadrupole(name="QN", magnetic={"length": 0.2})
-        machine = MachineModel(elements={"QN": q}, sections={}, lattices={})
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_url = f"sqlite:///{Path(tmpdir) / 'none_area.db'}"
-            mid = export_machine(machine, db_url=db_url)
-            rows = load_machine_elements(db_url=db_url, machine_id=mid)
+    def test_machine_area_none_stored_as_none(self, tmp_path):
+        db_url, mid = _export(_single(Quadrupole(name="QN", magnetic={"length": 0.2})), tmp_path)
+        rows = load_machine_elements(db_url=db_url, machine_id=mid)
         assert rows[0]["machine_area"] is None
 
 
-# ---------------------------------------------------------------------------
-# Direct unit tests for the un-integrated physical helpers
-# (_export_position, _export_rotation, _export_physical)
-# These helpers are defined but not yet called by export_machine.
-# ---------------------------------------------------------------------------
-
-def _get_sql_helpers():
-    """Import SQL helpers; skip if sqlalchemy not installed."""
-    pytest.importorskip("sqlalchemy")
-    from laura.exporters.sql_exporter import (
-        _load_orm,
-        _make_session_factory,
-        _export_position,
-        _export_rotation,
-        _export_physical,
-    )
-    return _load_orm, _make_session_factory, _export_position, _export_rotation, _export_physical
-
-
-def _make_orm_session(orm):
-    """Create a fresh in-memory SQLite session backed by the generated ORM."""
-    _, Session = orm  # unpack tuple only if already called — helper handles both
-    from laura.exporters.sql_exporter import _make_session_factory
-    _, Session = _make_session_factory("sqlite:///:memory:", orm)
-    return Session()
-
-
 class TestSQLExportPhysicalHelpers:
-    """Direct unit tests for _export_position, _export_rotation, _export_physical."""
+    """These helpers are not yet called by export_machine."""
 
     @pytest.fixture(autouse=True)
     def _setup(self):
-        _load_orm, _make_session_factory, self._ep, self._er, self._eph = _get_sql_helpers()
-        from laura.exporters.sql_exporter import _load_orm as lorm, _make_session_factory as msf
-        self.orm = lorm()
-        _, Session = msf("sqlite:///:memory:", self.orm)
+        self._ep, self._er, self._eph = sql_mod._export_position, sql_mod._export_rotation, sql_mod._export_physical
+        self.orm = sql_mod._load_orm()
+        _, Session = sql_mod._make_session_factory("sqlite:///:memory:", self.orm)
         self.session = Session()
-
-    def teardown_method(self):
+        yield
         self.session.close()
 
-    def test_export_position_none_returns_none(self):
-        assert self._ep(None, self.orm, self.session) is None
+    @pytest.mark.parametrize("which", ["_ep", "_er"])
+    def test_export_none_returns_none(self, which):
+        assert getattr(self, which)(None, self.orm, self.session) is None
+
+    @pytest.mark.parametrize("which", ["_ep", "_er"])
+    def test_export_missing_attrs_returns_none(self, which):
+        class NoAttrs:
+            pass
+        assert getattr(self, which)(NoAttrs(), self.orm, self.session) is None
 
     def test_export_position_valid_object(self):
         from laura.models.physical import Position
@@ -458,28 +275,10 @@ class TestSQLExportPhysicalHelpers:
         assert float(result.y) == pytest.approx(2.0)
         assert float(result.z) == pytest.approx(3.0)
 
-    def test_export_position_bad_object_returns_none(self):
-        class BadPos:
-            x = "not_a_number"
-            y = "not_a_number"
-            z = "not_a_number"
-        # float() on a string raises ValueError; but the except catches AttributeError/TypeError
-        # If Position-like object has string coords, orm.Position constructor may raise TypeError
-        # The fallback returns None
+    def test_export_position_bad_object_does_not_raise(self):
+        # Returning None or a row are both fine; it just must not raise.
         bad = type("BadPos", (), {"x": object(), "y": object(), "z": object()})()
-        result = self._ep(bad, self.orm, self.session)
-        # Either returns a row (if ORM accepts it) or returns None (TypeError caught)
-        # We verify no exception is raised
-        assert result is None or result is not None  # must not raise
-
-    def test_export_position_missing_attrs_returns_none(self):
-        class NoXYZ:
-            pass
-        result = self._ep(NoXYZ(), self.orm, self.session)
-        assert result is None
-
-    def test_export_rotation_none_returns_none(self):
-        assert self._er(None, self.orm, self.session) is None
+        self._ep(bad, self.orm, self.session)
 
     def test_export_rotation_valid_object(self):
         from laura.models.physical import Rotation
@@ -488,21 +287,13 @@ class TestSQLExportPhysicalHelpers:
         assert result is not None
         assert float(result.theta) == pytest.approx(0.3)
 
-    def test_export_rotation_missing_attrs_returns_none(self):
-        class NoAngles:
-            pass
-        result = self._er(NoAngles(), self.orm, self.session)
-        assert result is None
-
     def test_export_physical_no_physical_returns_none(self):
-        """_export_physical returns None when element has no physical attribute."""
-        # Use a plain Python object with physical=None
         class NoPhysElem:
             physical = None
         result = self._eph(NoPhysElem(), self.orm, self.session)
         assert result is None
 
-    def test_export_physical_with_physical_returns_row(self):
+    def test_export_physical_length(self):
         q = Quadrupole(
             name="QPH",
             magnetic={"length": 0.3},
@@ -512,15 +303,7 @@ class TestSQLExportPhysicalHelpers:
         assert result is not None
         assert float(result.length) == pytest.approx(0.3)
 
-    def test_export_physical_non_numeric_length_uses_none(self):
-        q = Quadrupole(
-            name="QBAD",
-            magnetic={"length": 0.3},
-            physical={"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
-        )
-        # Monkey-patch physical.length to a non-numeric string
         object.__setattr__(q.physical, "length", "not_a_number")
         result = self._eph(q, self.orm, self.session)
-        # The ValueError path sets length=None but still creates the row
         assert result is not None
         assert result.length is None

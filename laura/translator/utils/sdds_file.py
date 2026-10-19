@@ -179,7 +179,16 @@ class SDDSColumn(SDDSObject):
         fieldlength=0,
         description="",
     ):
-        super().__init__(name=name, data=None, unit=unit, type=type, symbol=symbol)
+        super().__init__(
+            name=name,
+            data=None,
+            unit=unit,
+            type=type,
+            symbol=symbol,
+            formatstring=formatstring,
+            fieldlength=fieldlength,
+            description=description,
+        )
         self.objectType = "Column"
         self.data = data
 
@@ -215,7 +224,16 @@ class SDDSParameter(SDDSObject):
         fieldlength=0,
         description="",
     ):
-        super().__init__(name=name, data=None, unit=unit, type=type, symbol=symbol)
+        super().__init__(
+            name=name,
+            data=None,
+            unit=unit,
+            type=type,
+            symbol=symbol,
+            formatstring=formatstring,
+            fieldlength=fieldlength,
+            description=description,
+        )
         self.objectType = "Parameter"
         self.data = data
 
@@ -275,6 +293,14 @@ class SDDSFile(object):
             self._sddsObject.mode = self._sddsObject.SDDS_ASCII
         else:
             self._sddsObject.mode = self._sddsObject.SDDS_BINARY
+        # (text, contents) header pair, e.g. ("floor coordinates--input: foo.ele
+        # lattice: bar.lte", "floor coordinates") -- populated by read_file().
+        self.file_description = ("", "")
+
+    @property
+    def description(self) -> str:
+        """The file-level SDDS description string (empty if not set/read)."""
+        return self.file_description[0]
 
     def _new_sdds_object(self, cleared: bool):
         if self._indexed:
@@ -306,6 +332,7 @@ class SDDSFile(object):
         self._columns = munch.Munch()
         self._parameters = munch.Munch()
         self._sddsObject = self._new_sdds_object(cleared=True)
+        self._loaded = None
 
     def column_names(self):
         return self._columns.keys()
@@ -455,7 +482,6 @@ class SDDSFile(object):
             )
             self._sddsObject.setParameterValueList(param.name, param.data)
         for name, column in self._columns.items():
-            # print(len([list(column.data)][0]))
             self._sddsObject.defineColumn(
                 column.name,
                 column.symbol,
@@ -471,14 +497,28 @@ class SDDSFile(object):
     def load(self, *args, **kwargs):
         return self.read_file(*args, **kwargs)
 
+    def _load_once(self, filename) -> None:
+        """Load ``filename``, unless it is the file already loaded."""
+        if getattr(self, "_loaded", None) != filename:
+            self._sddsObject.load(filename)
+            self._loaded = filename
+
+    def count_pages(self, filename) -> int:
+        """How many pages ``filename`` holds."""
+        self._load_once(filename)
+        data = self._sddsObject.columnData
+        return len(data[0]) if data else 0
+
     def read_file(self, filename, page=-1):
-        self._sddsObject.load(filename)
+        self._load_once(filename)
         sddsref = self._sddsObject
+        self.file_description = tuple(getattr(sddsref, "description", ("", "")))
         for col in range(len(sddsref.columnName)):
             symbol, unit, description, formatstring, type, fieldlength = (
                 sddsref.columnDefinition[col]
             )
-            column_data = np.array(sddsref.columnData[col][page])
+            # a list, as `SDDSColumn.data` returns; copied so callers can't alter the loaded file
+            column_data = list(sddsref.columnData[col][page])
             self.add_column(
                 sddsref.columnName[col],
                 column_data,
@@ -489,9 +529,7 @@ class SDDSFile(object):
                 fieldlength=fieldlength,
                 description=description,
             )
-        # sddsobject.SDDSparameterNames = list()
         for param in range(len(sddsref.parameterName)):
-            name = sddsref.parameterName[param]
             symbol, unit, description, formatstring, type, fieldlength = (
                 sddsref.parameterDefinition[param]
             )

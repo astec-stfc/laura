@@ -32,6 +32,11 @@ URI: [laura:HardwareClassEnum](https://w3id.org/laura/HardwareClassEnum)
 | Generic | None | Generic element |
 | Monitor | None | Beam monitor element |
 | Simulation | None | Simulation element |
+| ElectrostaticSeparator | None | Electrostatic deflecting separator |
+| ACDipole | None | AC dipole / tune exciter |
+| Wire | None | Current-carrying wire for beam-beam compensation |
+| BeamBeam | None | Weak-strong beam-beam interaction |
+| RFMultipole | None | RF-driven multipole kick |
 
 
 
@@ -131,6 +136,21 @@ permissible_values:
   Simulation:
     text: Simulation
     description: Simulation element.
+  ElectrostaticSeparator:
+    text: ElectrostaticSeparator
+    description: Electrostatic deflecting separator.
+  ACDipole:
+    text: ACDipole
+    description: AC dipole / tune exciter.
+  Wire:
+    text: Wire
+    description: Current-carrying wire for beam-beam compensation.
+  BeamBeam:
+    text: BeamBeam
+    description: Weak-strong beam-beam interaction.
+  RFMultipole:
+    text: RFMultipole
+    description: RF-driven multipole kick.
 
 ```
 </details>

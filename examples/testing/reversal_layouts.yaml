@@ -1,0 +1,34 @@
+# Two beam paths through one arc, running opposite ways.
+#
+# ``direction: -1`` says *this beam path* traverses that section backwards. It
+# is a property of the path, not of the section: BEAM_1 and BEAM_2 below name
+# the same ARC, and neither one changes it. The stored model keeps one arc,
+# with one placement per magnet, which is what the hardware actually is.
+#
+# What each path sees is worked out on demand:
+#
+#   * ``layout.arc_lengths()`` gives each element's entrance along that path,
+#     so BEAM_2 meets QUAD_B first and QUAD_A last.
+#   * exporting BEAM_2 emits the reversed line, with every element's physics
+#     transformed -- BEND's angle changes sign, and so does every normal
+#     multipole, because traversing an element backwards is equivalent to
+#     traversing it forwards with the opposite-sign particle.
+#
+# That last point is the whole reason this is not just a reversed list of
+# names: a quadrupole that focuses horizontally for BEAM_1 focuses vertically
+# for BEAM_2, which is why counter-rotating beams sharing magnets have mirrored
+# optics rather than identical ones.
+#
+# Order reversal alone -- the same elements in the opposite order, each still
+# entered at its own entrance face -- is a different thing, and is written
+# ``{repeat: -1}`` in a section order instead. See ``repeats_sections.yaml``.
+
+default_layout: BEAM_1
+
+layouts:
+  BEAM_1:
+    - ARC
+
+  BEAM_2:
+    - ARC:
+        direction: -1

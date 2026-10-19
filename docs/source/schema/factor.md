@@ -20,6 +20,7 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
+| [SampledWaveform](SampledWaveform.md) | A pulse shape sampled at a sparse set of points, for a device whose strength ... |  no  |
 | [WakefieldSimulationElement](WakefieldSimulationElement.md) | Simulation attributes for passive wakefield structures |  no  |
 
 
@@ -34,7 +35,7 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 | Property | Value |
 | --- | --- |
 | Range | [Float](Float.md) |
-| Domain Of | [WakefieldSimulationElement](WakefieldSimulationElement.md) |
+| Domain Of | [SampledWaveform](SampledWaveform.md), [WakefieldSimulationElement](WakefieldSimulationElement.md) |
 
 ### Cardinality and Requirements
 
@@ -93,6 +94,7 @@ rank: 1000
 ifabsent: float(1)
 owner: WakefieldSimulationElement
 domain_of:
+- SampledWaveform
 - WakefieldSimulationElement
 range: float
 

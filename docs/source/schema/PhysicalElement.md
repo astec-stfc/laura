@@ -173,6 +173,7 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | [BunchLengthMonitor](BunchLengthMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Camera](Camera.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Screen](Screen.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [WireScanner](WireScanner.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
@@ -187,6 +188,7 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | [VerticalCorrector](VerticalCorrector.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [CombinedCorrector](CombinedCorrector.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Solenoid](Solenoid.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Wiggler](Wiggler.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [NonLinearLens](NonLinearLens.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 
@@ -313,10 +315,9 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0.0
     unit:
@@ -455,10 +456,9 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0.0
     unit:

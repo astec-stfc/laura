@@ -1,19 +1,21 @@
 """
 Dictionary and YAML utilities for LAURA models.
 
-Provides helpers for flattening nested dicts, YAML representation, and serialization.
+Flattening nested dicts, numpy scalar conversion and YAML representers.
 """
 
-from typing import Dict, MutableMapping
+from collections.abc import MutableMapping
+from typing import Dict
+
 import numpy as np
 import yaml
+
+_LEAVES = (str, int, float, list, tuple, type(None), np.ndarray)
 
 
 def flatten_dict(dictionary: Dict, parent_key: str = "", separator: str = "_") -> Dict:
     """
     Flatten a nested dictionary into a single level.
-
-    Used for expanding nested Pydantic BaseModel structures into flat dicts.
 
     Example:
         >>> flatten_dict({'a': {'b': 1, 'c': 2}})
@@ -27,15 +29,17 @@ def flatten_dict(dictionary: Dict, parent_key: str = "", separator: str = "_") -
     Returns:
         Flattened dictionary
     """
-    items = []
+    flat = {}
     for key, value in dictionary.items():
         if isinstance(key, str):
             new_key = parent_key + separator + key if parent_key else key
-            if isinstance(value, MutableMapping):
-                items.extend(flatten_dict(value, new_key, separator=separator).items())
+            if isinstance(value, dict) or (
+                not isinstance(value, _LEAVES) and isinstance(value, MutableMapping)
+            ):
+                flat.update(flatten_dict(value, new_key, separator=separator))
             else:
-                items.append((new_key, value))
-    return dict(items)
+                flat[new_key] = value
+    return flat
 
 
 def numpy_scalar_to_python(v):

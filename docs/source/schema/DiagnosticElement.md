@@ -73,6 +73,7 @@ URI: [laura:DiagnosticElement](https://w3id.org/laura/DiagnosticElement)
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [Diagnostic](Diagnostic.md) | [diagnostic](diagnostic.md) | range | [DiagnosticElement](DiagnosticElement.md) |
+| [WireScanner](WireScanner.md) | [diagnostic](diagnostic.md) | range | [DiagnosticElement](DiagnosticElement.md) |
 
 
 

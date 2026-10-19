@@ -50,6 +50,8 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
         
       AcceleratorElement : hardware_type
         
+      AcceleratorElement : inherits_from
+        
       AcceleratorElement : inputs
         
           
@@ -123,6 +125,7 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | direct |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | direct |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | direct |
+| [inherits_from](inherits_from.md) | 0..1 <br/> [String](String.md) | If set, this element's definition is merged on top of the named element's at ... | direct |
 | [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element consumes (e | direct |
 | [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element produces (e | direct |
 | [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements feeding this one, whose ``outputs`` supply its ``inputs`` | direct |
@@ -217,6 +220,8 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | [Camera](Camera.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Screen](Screen.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Screen](Screen.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [WireScanner](WireScanner.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [WireScanner](WireScanner.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
@@ -253,6 +258,8 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | [CombinedCorrector](CombinedCorrector.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Solenoid](Solenoid.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Solenoid](Solenoid.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Wiggler](Wiggler.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Wiggler](Wiggler.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [NonLinearLens](NonLinearLens.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
@@ -384,6 +391,19 @@ attributes:
     description: If set, this element is a logical sub-component of the named parent
       element.
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - AcceleratorElement
+    range: string
+  inherits_from:
+    name: inherits_from
+    description: If set, this element's definition is merged on top of the named element's
+      at load time, so it need only state what differs. Populated from ``inherit``
+      in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``,
+      which is a physical part-of relationship rather than a definitional one.
+    from_schema: https://w3id.org/laura/schema
+    aliases:
+    - inherit
     rank: 1000
     domain_of:
     - AcceleratorElement
@@ -523,6 +543,20 @@ attributes:
     description: If set, this element is a logical sub-component of the named parent
       element.
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: AcceleratorElement
+    domain_of:
+    - AcceleratorElement
+    range: string
+  inherits_from:
+    name: inherits_from
+    description: If set, this element's definition is merged on top of the named element's
+      at load time, so it need only state what differs. Populated from ``inherit``
+      in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``,
+      which is a physical part-of relationship rather than a definitional one.
+    from_schema: https://w3id.org/laura/schema
+    aliases:
+    - inherit
     rank: 1000
     owner: AcceleratorElement
     domain_of:

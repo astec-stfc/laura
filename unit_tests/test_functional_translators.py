@@ -1,12 +1,4 @@
-"""Tests for functional-parameter handling in the translators.
-
-By default every code resolves a functional parameter to its number. Codes that
-natively support symbolic parameters keep the name: ELEGANT declares them with a
-``% <value> sto <name>`` header and references them as quoted rpn variables.
-
-The translator import chain pulls in optional field-IO dependencies, so the whole
-module is skipped when they are unavailable.
-"""
+"""Functional parameters: resolved by default, symbolic where the code allows."""
 
 import pytest
 
@@ -17,24 +9,22 @@ from laura.models.base_models import (  # noqa: E402
     set_functional_definitions,
     set_resolve_functional,
 )
-from laura.models.element import Quadrupole, RFCavity, NonLinearLens  # noqa: E402
+from laura.models.element import (  # noqa: E402
+    Quadrupole,
+    RFCavity,
+    RFDeflectingCavity,
+    Screen,
+    NonLinearLens,
+)
 from laura.translator.converters.magnet import (  # noqa: E402
     MagnetTranslator,
     NonLinearLensTranslator,
 )
 from laura.translator.converters.cavity import RFCavityTranslator  # noqa: E402
+from laura.translator.converters.converter import translate_elements  # noqa: E402
 from laura.translator.utils.functions import (  # noqa: E402
     elegant_functional_definitions,
 )
-
-
-@pytest.fixture(autouse=True)
-def _reset_defs():
-    set_functional_definitions({}, merge=False)
-    set_resolve_functional(False)
-    yield
-    set_functional_definitions({}, merge=False)
-    set_resolve_functional(False)
 
 
 def _quad(k1l):
@@ -74,8 +64,7 @@ class TestElegantSymbolic:
     def test_quad_k1_passthrough(self):
         set_functional_definitions({"quad1_k1l": -2.0})
         out = _quad("quad1_k1l").to_elegant()
-        # k1 is the normalized strength KnL/length, so the symbolic kl is
-        # carried through divided by the (0.1 m) magnetic length.
+        # k1 = KnL / length (0.1 m)
         assert 'k1 = "quad1_k1l 0.1 /"' in out
 
     def test_quad_zero_length_k1_passthrough(self):
@@ -100,10 +89,38 @@ class TestElegantSymbolic:
         assert 'volt = "V_L02.01"' in out
 
     def test_cavity_phase_rpn(self):
-        # ELEGANT phase convention is 90 - phase; symbolic -> rpn expression
+        # ELEGANT phase convention is 90 - phase
         set_functional_definitions({"cav1_phase": 30.0})
         out = _cavity(1e6, phase="cav1_phase").to_elegant()
         assert 'phase = "90 cav1_phase -"' in out
+
+    def test_deflecting_cavity_keeps_type_and_quotes_voltage(self):
+        set_functional_definitions({"V_HERFX": 1e6})
+        cavity = RFDeflectingCavity(
+            name="HERFX",
+            machine_area="L04",
+            simulation={"field_amplitude": "V_HERFX"},
+        )
+        out = RFCavityTranslator.model_validate(cavity.model_dump()).to_elegant()
+        assert out.startswith("HERFX: rftm110")
+        assert 'voltage = "V_HERFX"' in out
+
+    def test_cavity_emits_n_kicks_once(self):
+        cavity = RFCavity(
+            name="C1",
+            machine_area="L04",
+            cavity={"n_cells": 7},
+            simulation={"n_kicks": 25},
+        )
+        out = RFCavityTranslator.model_validate(cavity.model_dump()).to_elegant()
+        assert out.count("n_kicks =") == 1
+        assert "n_kicks = 25" in out
+
+    def test_screen_exports_as_watch(self):
+        screen = Screen(name="SCR", machine_area="L04")
+        out = translate_elements([screen])["SCR"].to_elegant()
+        assert out.startswith("SCR: watch")
+        assert 'filename = "./SCR.SDDS"' in out
 
     def test_header_lists_all_definitions(self):
         set_functional_definitions({"a": 1, "b": 2.5})
@@ -115,13 +132,12 @@ class TestElegantSymbolic:
         assert elegant_functional_definitions() == ""
 
     def test_resolution_mode_bakes_in_numbers(self):
-        # With resolution mode on, ELEGANT gets resolved numbers and no rpn store
         set_functional_definitions({"quad1_k1l": -2.0})
         set_resolve_functional(True)
         out = _quad("quad1_k1l").to_elegant()
-        assert "k1 = -20.0" in out  # -2.0 / 0.1 m, baked in
+        assert "k1 = -20.0" in out
         assert '"quad1_k1l"' not in out
-        assert "sto" not in out  # no % ... sto header
+        assert "sto" not in out
 
 
 class TestDirectReadResolution:
@@ -156,7 +172,6 @@ class TestCascadeToTranslators:
             functional_definitions=str(f),
         )
         st = SectionLatticeTranslator.from_section(mm.sections["S1"])
-        # the definitions are carried onto the translator (not just global state)
         assert st.functional_definitions == {"quad1_k1l": -2.0}
         out = st.to_elegant()
         assert "% -2.0 sto quad1_k1l" in out
@@ -185,15 +200,30 @@ class TestDipole:
         assert 'e1 = "e1v"' in dt.to_elegant()
 
     def test_reserved_angle_edge_resolves(self):
-        # "angle/2" references the bend angle and always resolves numerically
         set_functional_definitions({"bend1": 0.1})
         dt = self._dipole(k0l="bend1", exit_edge_angle="angle/2")
         assert 'e2 = "bend1 2 /"' in dt.to_elegant()
+        set_resolve_functional(True)
+        assert "e2 = 0.05" in dt.to_elegant()
+
+    def test_fringe_integral_exports_from_the_entrance_face(self):
+        combined = self._dipole(k0l=0.1, gap=0.04, edge_field_integral=0.3)
+        faces = self._dipole(
+            k0l=0.1,
+            gap=0.04,
+            edge_field_integral_entrance=0.3,
+            edge_field_integral_exit=0.5,
+        )
+        for dt in (combined, faces):
+            assert "fint = 0.3" in dt.to_elegant()
+            assert "fint1" not in dt.to_elegant()
+        for dt in (combined, faces):
+            assert "83.33" in dt.to_gpt(1.0)
+        assert "83.33" not in self._dipole(k0l=0.1, gap=0.04).to_gpt(1.0)
 
 
 class TestXsuite:
-    """Xsuite natively supports symbolic parameters via Environment variables, so
-    functional values are passed through as deferred expressions."""
+    """Xsuite keeps functional values as deferred Environment expressions."""
 
     def _line(self, elements, defs, beam_length=1, resolve=False):
         pytest.importorskip("xtrack")
@@ -234,19 +264,23 @@ class TestXsuite:
         assert line["Q1"].k1 == pytest.approx(0.3 / 0.5)  # kq / length
         assert line["D1"].k0 == pytest.approx(0.1 / 0.5)  # bend1 / length
         assert line["C1"].voltage == pytest.approx(5e6)
-        # the reference is a live deferred expression
         line.vars["kq"] = 0.9
         assert line["Q1"].k1 == pytest.approx(0.9 / 0.5)
 
     def test_resolved_mode_bakes_numbers(self):
-        # resolve_functional set via the lattice (which cascades it globally)
         line = self._line(
             self._magnets(), {"kq": 0.3, "bend1": 0.1, "Vcav": 5e6}, resolve=True
         )
         assert line["Q1"].k1 == pytest.approx(0.3 / 0.5)
-        # not a live reference: changing the (unused) var leaves k1 unchanged
         line.vars["kq"] = 0.9
         assert line["Q1"].k1 == pytest.approx(0.3 / 0.5)
+
+    def test_exported_elements_keep_their_length(self):
+        """xtrack takes ``length``, not ``l``, and drops unknown keywords silently."""
+        line = self._line(self._magnets(), {"kq": 0.3, "bend1": 0.1, "Vcav": 5e6})
+        assert line["Q1"].length == pytest.approx(0.5)
+        assert line["D1"].length == pytest.approx(0.5)
+        assert line["C1"].length == pytest.approx(1.0)
 
 
 class TestSolenoid:
@@ -260,11 +294,9 @@ class TestSolenoid:
             magnetic={"magnetic_length": 0.2, "ks": "sol_ks"},
         )
         st = SolenoidTranslator.model_validate(sol.model_dump())
-        # symbolic (default): ks passes through as the functional name
         assert 'ks = "sol_ks"' in st.to_elegant()
         # no pydantic "expected float, got str" serialization warning
         assert not any("serialized value" in str(w.message) for w in recwarn.list)
-        # resolved mode bakes the number in
         set_resolve_functional(True)
         assert "ks = 1.5" in st.to_elegant()
 

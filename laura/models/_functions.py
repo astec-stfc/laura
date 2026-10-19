@@ -14,7 +14,6 @@ def read_yaml(fname: str) -> BaseModel:
         "DynamicModel",
         __base__=BaseModel,
         __module__=__name__,
-        # model_config=model_config,
         **fields,
     )
     return dynamic_model(**data)

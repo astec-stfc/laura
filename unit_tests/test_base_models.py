@@ -1,23 +1,24 @@
-"""Tests for laura.models.baseModels — NumpyModel, NumpyVectorModel, ModelBase, IgnoreExtra, etc."""
+"""laura.models.base_models helpers."""
 
 import pytest
 import numpy as np
+
+from pydantic import PrivateAttr
 
 from laura.models.base_models import (
     convert_numpy_types,
     FlowList,
     ModelBase,
     IgnoreExtra,
-    NumpyModel,
     NumpyVectorModel,
     DeviceList,
     Aliases,
+    functional_annotations,
+    functional_references,
 )
+from laura.models.magnetic import DipoleMagnet
+from laura.models._generated import _MagneticElementBase
 
-
-# ---------------------------------------------------------------------------
-# convert_numpy_types
-# ---------------------------------------------------------------------------
 
 class TestConvertNumpyTypes:
     def test_float64(self):
@@ -57,10 +58,6 @@ class TestConvertNumpyTypes:
         assert isinstance(result, FlowList)
 
 
-# ---------------------------------------------------------------------------
-# ModelBase
-# ---------------------------------------------------------------------------
-
 class TestModelBase:
     def test_base_model_dump_excludes_none(self):
         class M(ModelBase):
@@ -81,10 +78,6 @@ class TestModelBase:
         assert isinstance(dump["val"], float)
 
 
-# ---------------------------------------------------------------------------
-# IgnoreExtra
-# ---------------------------------------------------------------------------
-
 class TestIgnoreExtra:
     def test_extra_fields_ignored(self):
         class IE(IgnoreExtra):
@@ -103,99 +96,74 @@ class TestIgnoreExtra:
         assert obj.x == 42
 
 
-# ---------------------------------------------------------------------------
-# NumpyModel
-# ---------------------------------------------------------------------------
+class _Vec3(NumpyVectorModel):
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+
 
 class TestNumpyModel:
-    def test_array_property(self):
-        class V(NumpyModel):
-            a: float = 0.0
-            b: float = 0.0
+    def test_json_serialization_uses_array(self):
+        v = _Vec3(x=1.0, y=2.0, z=3.0)
+        dumped = v.model_dump(mode="json")
+        assert list(dumped) == [1.0, 2.0, 3.0]
 
-        v = V(a=1.0, b=2.0)
-        np.testing.assert_array_equal(v.array, np.array([1.0, 2.0]))
+    def test_python_serialization_uses_dict(self):
+        v = _Vec3(x=1.0, y=2.0, z=3.0)
+        assert v.model_dump() == {"x": 1.0, "y": 2.0, "z": 3.0}
 
     def test_from_list(self):
-        class V(NumpyModel):
-            a: float = 0.0
-            b: float = 0.0
-
-        v = V.from_list([3.0, 4.0])
-        assert v.a == 3.0
-        assert v.b == 4.0
-
-    def test_from_values(self):
-        class V(NumpyModel):
-            a: float = 0.0
-            b: float = 0.0
-
-        v = V.from_values(5.0, 6.0)
-        assert v.a == 5.0
-        assert v.b == 6.0
+        v = _Vec3.from_list([1.0, 2.0, 3.0])
+        assert (v.x, v.y, v.z) == (1.0, 2.0, 3.0)
 
     def test_from_list_wrong_length(self):
-        class V(NumpyModel):
-            a: float = 0.0
-            b: float = 0.0
-
         with pytest.raises(AssertionError):
-            V.from_list([1.0])
+            _Vec3.from_list([1.0])
 
-    def test_json_serialization(self):
-        class V(NumpyModel):
-            a: float = 1.0
-            b: float = 2.0
+    def test_from_values(self):
+        v = _Vec3.from_values(1.0, 2.0, 3.0)
+        assert (v.x, v.y, v.z) == (1.0, 2.0, 3.0)
 
-        v = V()
-        # The NumpyModel serializer returns a numpy array for JSON mode,
-        # which Pydantic cannot serialize directly. Use .array.tolist() instead.
-        assert v.array.tolist() == [1.0, 2.0]
+    def test_array_property(self):
+        v = _Vec3(x=1.0, y=2.0, z=3.0)
+        np.testing.assert_array_equal(v.array, [1.0, 2.0, 3.0])
 
-    def test_python_serialization_is_dict(self):
-        class V(NumpyModel):
-            a: float = 1.0
-            b: float = 2.0
-
-        v = V()
-        dumped = v.model_dump(mode="python")
-        assert isinstance(dumped, dict)
-        assert dumped["a"] == 1.0
-
-
-# ---------------------------------------------------------------------------
-# NumpyVectorModel
-# ---------------------------------------------------------------------------
 
 class TestNumpyVectorModel:
-    def test_iter(self):
-        class V(NumpyVectorModel):
-            x: float = 0.0
-            y: float = 0.0
+    def test_update(self):
+        v = _Vec3(x=1.0, y=2.0, z=3.0)
+        v.update(x=9.0)
+        assert v.x == 9.0
 
-        v = V(x=1.0, y=2.0)
-        assert list(v) == [1.0, 2.0]
+    def test_iter(self):
+        v = _Vec3(x=1.0, y=2.0, z=3.0)
+        assert list(v) == [1.0, 2.0, 3.0]
 
     def test_eq_with_same(self):
-        class V(NumpyVectorModel):
-            x: float = 0.0
-            y: float = 0.0
+        assert _Vec3(x=1, y=2) == _Vec3(x=1, y=2)
 
-        assert V(x=1, y=2) == V(x=1, y=2)
+    def test_eq_zero(self):
+        assert _Vec3() == 0
+        assert _Vec3() == 0.0
+        assert _Vec3() == None  # noqa: E711
 
-    def test_eq_with_zero(self):
-        class V(NumpyVectorModel):
-            x: float = 0.0
-            y: float = 0.0
+    def test_eq_zero_false_when_nonzero(self):
+        assert not (_Vec3(x=1.0) == 0)
 
-        assert V() == 0
-        assert V() == 0.0
-        assert V() == None  # noqa: E711
+    def test_eq_list(self):
+        v = _Vec3(x=1.0, y=2.0, z=3.0)
+        assert v == [1.0, 2.0, 3.0]
 
+    def test_neq_zero(self):
+        assert not (_Vec3() != 0)
 
-# ---------------------------------------------------------------------------
-# objectList / DeviceList / Aliases
-# ---------------------------------------------------------------------------
+    def test_neq_zero_true_when_nonzero(self):
+        assert _Vec3(x=1.0) != 0
+
+    def test_neq_list(self):
+        v = _Vec3(x=1.0, y=2.0, z=3.0)
+        assert v != [9.0, 9.0, 9.0]
+
 
 class TestObjectList:
     def test_device_list_iter(self):
@@ -217,3 +185,57 @@ class TestObjectList:
     def test_aliases_repr(self):
         al = Aliases(aliases=["foo"])
         assert "foo" in repr(al)
+
+
+class TestFunctionalAnnotationsBendAngle:
+    def test_flat_functional_marker_short_circuits(self):
+        # DipoleMagnet's hand-written json_schema_extra hits the early-return branch.
+        field_info = DipoleMagnet.model_fields["entrance_edge_angle"]
+        meta = functional_annotations(field_info)
+        assert meta == {"functional": True, "reserved_contains": "angle"}
+
+    def test_bend_angle_marker_derived_from_in_subset(self):
+        field_info = _MagneticElementBase.model_fields["entrance_edge_angle"]
+        meta = functional_annotations(field_info)
+        assert meta == {"functional": True, "reserved_contains": "angle"}
+
+
+class TestFunctionalReferences:
+    def test_non_model_returns_empty_set(self):
+        assert functional_references(5) == set()
+        assert functional_references(None) == set()
+
+    def test_reserved_value_is_skipped(self):
+        d = DipoleMagnet(length=1.0, entrance_edge_angle="angle")
+        assert functional_references(d) == set()
+
+    def test_non_reserved_string_is_collected(self):
+        d = DipoleMagnet(length=1.0, entrance_edge_angle="my_func")
+        assert functional_references(d) == {"my_func"}
+
+
+class TestModelBaseEqFallback:
+    class _WithNumpyPrivate(ModelBase):
+        x: int = 1
+        _arr = PrivateAttr(default_factory=lambda: np.array([1, 2, 3]))
+
+    def test_equal_dumps_are_equal_despite_numpy_private_attr(self):
+        a, b = self._WithNumpyPrivate(), self._WithNumpyPrivate()
+        assert a == b
+
+    def test_unequal_fields_are_not_equal(self):
+        a, b = self._WithNumpyPrivate(), self._WithNumpyPrivate(x=2)
+        assert a != b
+
+    def test_hash_is_stable_and_identity_based(self):
+        a = self._WithNumpyPrivate()
+        assert hash(a) == hash(a)
+        assert hash(a) == id(a)
+
+
+class TestIgnoreExtraFieldHelpers:
+    def test_create_field_collects_inputs(self):
+        ie = IgnoreExtra()
+        fields = {"a": 1, "b": 2}
+        ie._create_field(fields, "combined", ["a", "b"])
+        assert fields["combined"] == [1, 2]

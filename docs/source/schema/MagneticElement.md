@@ -27,6 +27,8 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
         click SextupoleMagnet href "../SextupoleMagnet/"
       MagneticElement <|-- OctupoleMagnet
         click OctupoleMagnet href "../OctupoleMagnet/"
+      MagneticElement <|-- CombinedSolenoidQuadrupoleMagnet
+        click CombinedSolenoidQuadrupoleMagnet href "../CombinedSolenoidQuadrupoleMagnet/"
       
       MagneticElement : angle
         
@@ -41,6 +43,8 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
       MagneticElement : entrance_edge_angle
         
       MagneticElement : exit_edge_angle
+        
+      MagneticElement : exit_gap
         
       MagneticElement : field_integral_coefficients
         
@@ -139,6 +143,7 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
     * [QuadrupoleMagnet](QuadrupoleMagnet.md)
     * [SextupoleMagnet](SextupoleMagnet.md)
     * [OctupoleMagnet](OctupoleMagnet.md)
+    * [CombinedSolenoidQuadrupoleMagnet](CombinedSolenoidQuadrupoleMagnet.md)
 
 
 ## Class Properties
@@ -171,6 +176,7 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
 | [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless), used as the single comb... | direct |
 | [edge_field_integral_entrance](edge_field_integral_entrance.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for entrance-edge focussing | direct |
 | [edge_field_integral_exit](edge_field_integral_exit.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for exit-edge focussing | direct |
+| [exit_gap](exit_gap.md) | 0..1 <br/> [Float](Float.md) | Full gap between pole faces at the exit face [m] | direct |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | 0..1 <br/> [Float](Float.md) | Coefficient controlling the fringe-field roll-off rate | direct |
 | [gradient](gradient.md) | 0..1 <br/> [Float](Float.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) | direct |
 | [angle](angle.md) | 0..1 <br/> [Float](Float.md) | Integrated bending angle [rad] | direct |
@@ -251,7 +257,6 @@ attributes:
     domain_of:
     - Multipole
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     range: integer
     minimum_value: -1
@@ -274,10 +279,9 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0.0
     unit:
@@ -418,7 +422,6 @@ attributes:
     domain_of:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
-    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad
@@ -426,14 +429,11 @@ attributes:
     name: edge_field_integral
     description: Enge fringe-field integral parameter (dimensionless), used as the
       single combined value by codes that only support one edge focussing keyword.
-      Unset (None) by default -- rather than forcing a laura default into every output,
-      an unset value is simply omitted from the written file so the target code's
-      own built-in default applies. If given, it also becomes the default for any
-      of edge_field_integral_entrance/edge_field_integral_exit that are themselves
-      not given (see MagneticElement.resolve_edge_field_integrals).
+      Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit
+      that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     domain_of:
+    - MagnetSimulationElement
     - MagneticElement
     range: float
     required: false
@@ -459,6 +459,19 @@ attributes:
     - MagneticElement
     range: float
     required: false
+  exit_gap:
+    name: exit_gap
+    description: Full gap between pole faces at the exit face [m]. Absent means the
+      same as ``gap``. See ``edge_field_integral_exit``.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
   fringe_field_coefficient:
     name: fringe_field_coefficient
     description: Coefficient controlling the fringe-field roll-off rate.
@@ -519,7 +532,6 @@ attributes:
     domain_of:
     - Multipole
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     range: integer
     minimum_value: -1
@@ -544,10 +556,9 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0.0
     unit:
@@ -703,7 +714,6 @@ attributes:
     domain_of:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
-    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad
@@ -711,15 +721,12 @@ attributes:
     name: edge_field_integral
     description: Enge fringe-field integral parameter (dimensionless), used as the
       single combined value by codes that only support one edge focussing keyword.
-      Unset (None) by default -- rather than forcing a laura default into every output,
-      an unset value is simply omitted from the written file so the target code's
-      own built-in default applies. If given, it also becomes the default for any
-      of edge_field_integral_entrance/edge_field_integral_exit that are themselves
-      not given (see MagneticElement.resolve_edge_field_integrals).
+      Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit
+      that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     owner: MagneticElement
     domain_of:
+    - MagnetSimulationElement
     - MagneticElement
     range: float
     required: false
@@ -747,6 +754,20 @@ attributes:
     - MagneticElement
     range: float
     required: false
+  exit_gap:
+    name: exit_gap
+    description: Full gap between pole faces at the exit face [m]. Absent means the
+      same as ``gap``. See ``edge_field_integral_exit``.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: MagneticElement
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
   fringe_field_coefficient:
     name: fringe_field_coefficient
     description: Coefficient controlling the fringe-field roll-off rate.
