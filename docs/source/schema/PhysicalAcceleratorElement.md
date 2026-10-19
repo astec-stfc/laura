@@ -25,6 +25,18 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
 
       PhysicalAcceleratorElement <|-- TwissMatch
         click TwissMatch href "../TwissMatch/"
+      PhysicalAcceleratorElement <|-- MatrixTransform
+        click MatrixTransform href "../MatrixTransform/"
+      PhysicalAcceleratorElement <|-- ElectrostaticSeparator
+        click ElectrostaticSeparator href "../ElectrostaticSeparator/"
+      PhysicalAcceleratorElement <|-- ACDipole
+        click ACDipole href "../ACDipole/"
+      PhysicalAcceleratorElement <|-- Wire
+        click Wire href "../Wire/"
+      PhysicalAcceleratorElement <|-- BeamBeam
+        click BeamBeam href "../BeamBeam/"
+      PhysicalAcceleratorElement <|-- RFMultipole
+        click RFMultipole href "../RFMultipole/"
       PhysicalAcceleratorElement <|-- Stage
         click Stage href "../Stage/"
       PhysicalAcceleratorElement <|-- VacuumGauge
@@ -201,6 +213,12 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
         * [Element](Element.md)
             * **PhysicalAcceleratorElement**
                 * [TwissMatch](TwissMatch.md)
+                * [MatrixTransform](MatrixTransform.md)
+                * [ElectrostaticSeparator](ElectrostaticSeparator.md)
+                * [ACDipole](ACDipole.md)
+                * [Wire](Wire.md)
+                * [BeamBeam](BeamBeam.md)
+                * [RFMultipole](RFMultipole.md)
                 * [Stage](Stage.md)
                 * [VacuumGauge](VacuumGauge.md)
                 * [Laser](Laser.md)

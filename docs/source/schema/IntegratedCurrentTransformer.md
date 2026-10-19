@@ -307,6 +307,7 @@ attributes:
     - Camera
     - Screen
     - ChargeDiagnostic
+    - PhotonMonitor
     range: ChargeDiagnosticElement
   physical:
     name: physical

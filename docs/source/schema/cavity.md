@@ -17,6 +17,7 @@ URI: [laura:cavity](https://w3id.org/laura/cavity)
 | --- | --- | --- |
 | [RFCavity](RFCavity.md) | Accelerating RF cavity |  no  |
 | [RFDeflectingCavity](RFDeflectingCavity.md) | Transverse-deflecting (streak) RF cavity |  no  |
+| [CrabCavity](CrabCavity.md) | Transverse-deflecting crab cavity for crossing-angle compensation |  no  |
 | [Wakefield](Wakefield.md) | Passive wakefield structure (dielectric, corrugated, etc |  no  |
 
 
@@ -31,7 +32,7 @@ URI: [laura:cavity](https://w3id.org/laura/cavity)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [RFCavity](RFCavity.md), [RFDeflectingCavity](RFDeflectingCavity.md), [Wakefield](Wakefield.md) |
+| Domain Of | [RFCavity](RFCavity.md), [RFDeflectingCavity](RFDeflectingCavity.md), [CrabCavity](CrabCavity.md), [Wakefield](Wakefield.md) |
 
 ### Cardinality and Requirements
 
@@ -72,6 +73,7 @@ name: cavity
 domain_of:
 - RFCavity
 - RFDeflectingCavity
+- CrabCavity
 - Wakefield
 range: string
 

@@ -9,7 +9,13 @@ from pydantic import (
 )
 from typing import List, Literal, Optional, Union, Dict, Any
 
-from ._generated import _PositionBase, _RotationBase, _ElementPositionErrorBase, _ElementSurveyBase, _PhysicalElementBase, _ReferencePlacementBase
+from ._generated import (
+    _PositionBase,
+    _RotationBase,
+    _ElementPositionErrorBase,
+    _PhysicalElementBase,
+    _ReferencePlacementBase,
+)
 from ..utils.rotation_matrix import euler_angles_to_rotation_matrix
 from .trajectory import Trajectory
 
@@ -210,7 +216,8 @@ class ElementError(_ElementPositionErrorBase):
             return v
         if isinstance(v, dict):
             return _coerce_position_mapping(
-                v, error_message="setting position as dictionary must include x, y, z as floats"
+                v,
+                error_message="setting position as dictionary must include x, y, z as floats",
             )
 
         raise ValueError("position should be a number or a list of floats")
@@ -229,7 +236,8 @@ class ElementError(_ElementPositionErrorBase):
             return v
         if isinstance(v, dict):
             return _coerce_rotation_mapping(
-                v, error_message="setting rotation as dictionary must include phi, psi, theta as floats"
+                v,
+                error_message="setting rotation as dictionary must include phi, psi, theta as floats",
             )
 
         raise ValueError("rotation should be a number or a list of floats")
@@ -258,7 +266,7 @@ class ElementError(_ElementPositionErrorBase):
             return super().__eq__(other)
 
 
-class ElementSurvey(ElementError):
+class ElementSurvey(ElementError):  # noqa: N818
     pass
 
 
@@ -318,12 +326,14 @@ class ReferencePlacement(_ReferencePlacementBase):
         raise ValueError("offset must be a list of 3 floats or {x, y, z} dict")
 
     @model_validator(mode="after")
-    def _check_offset_exclusivity(self) -> "ReferencePlacement":
-        n = sum([
-            self.offset is not None,
-            self.world_offset is not None,
-            self.s_offset is not None,
-        ])
+    def _check_offset_exclusivity(self) -> "ReferencePlacement": # noqa: N804 (pydantic after-validator takes self)
+        n = sum(
+            [
+                self.offset is not None,
+                self.world_offset is not None,
+                self.s_offset is not None,
+            ]
+        )
         if n > 1:
             raise ValueError(
                 "Specify at most one offset in reference_placement: "
@@ -357,7 +367,7 @@ class PhysicalElement(_PhysicalElementBase):
     _trajectory: Optional[Trajectory] = PrivateAttr(default=None)
 
     @model_validator(mode="after")
-    def _check_placement_exclusivity(self) -> "PhysicalElement":
+    def _check_placement_exclusivity(self) -> "PhysicalElement": # noqa: N804 (pydantic after-validator takes self)
         # Pydantic v2 re-runs model validators on every field assignment when
         # validate_assignment=True.  After construction the lattice assembly
         # legitimately sets both middle AND s on the same element, so we only
@@ -454,9 +464,24 @@ class PhysicalElement(_PhysicalElementBase):
     def __repr__(self):
         return self.__class__.__name__ + "(" + self.__str__() + ")"
 
+    def set_physical_angle(self, angle: float | None) -> None:
+        """
+        Pin the angle used to lay out :func:`start` and :func:`end`, overriding the
+        bend angle taken from the magnet. Pass ``None`` to go back to tracking it.
+
+        Needed where the transverse displacement through a magnet does not run the same
+        way as its bend: the second and third dipoles of a chicane bend back towards the
+        axis while the beam continues to move away from it, so their start/end offsets
+        take the sign of the displacement rather than of the field.
+        """
+        self._physical_angle_override = angle
+
     @computed_field
     @property
     def _physical_angle(self) -> float:
+        if self._physical_angle_override is not None:
+            self.physical_angle = self._physical_angle_override
+            return self._physical_angle_override
         if self._parent is not None:
             magnetic = getattr(self._parent, "magnetic", None)
             # Only dipoles expose an `angle`; use the resolved bend angle
@@ -474,7 +499,9 @@ class PhysicalElement(_PhysicalElementBase):
 
     @field_validator("middle", mode="before")
     @classmethod
-    def validate_middle(cls, v: Union[float, int, Dict, List, np.ndarray]) -> Optional[Position]:
+    def validate_middle(
+        cls, v: Union[float, int, Dict, List, np.ndarray]
+    ) -> Optional[Position]:
         if v is None:
             return None  # Deferred to model_post_init to respect reference_placement
         if isinstance(v, (float, int)):
@@ -488,7 +515,8 @@ class PhysicalElement(_PhysicalElementBase):
             return v
         if isinstance(v, dict):
             return _coerce_position_mapping(
-                v, error_message="setting middle as dictionary must include x, y, z as floats"
+                v,
+                error_message="setting middle as dictionary must include x, y, z as floats",
             )
         raise ValueError("middle should be a number or a list of floats")
 
@@ -508,7 +536,8 @@ class PhysicalElement(_PhysicalElementBase):
             return v
         if isinstance(v, dict):
             return _coerce_position_mapping(
-                v, error_message="setting datum as dictionary must include x, y, z as floats"
+                v,
+                error_message="setting datum as dictionary must include x, y, z as floats",
             )
         raise ValueError("datum should be a number or a list of floats")
 
@@ -528,17 +557,22 @@ class PhysicalElement(_PhysicalElementBase):
             return v
         if isinstance(v, dict):
             return _coerce_rotation_mapping(
-                v, error_message="setting rotation as dictionary must include phi, psi, theta as floats"
+                v,
+                error_message="setting rotation as dictionary must include phi, psi, theta as floats",
             )
 
         raise ValueError("rotation should be a number or a list of floats")
 
     _rotation_matrix_cache = None
 
+    _physical_angle_override = None
+    """Set via :func:`set_physical_angle` to pin the layout angle; ``None`` tracks the
+    magnet's bend angle."""
+
     @property
     def rotation_matrix(self) -> np.ndarray:
-        if self._rotation_matrix_cache is not None:
-            return self._rotation_matrix_cache
+        # if self._rotation_matrix_cache is not None:
+        #     return self._rotation_matrix_cache
         
         # Combined rotations using utility function
         # Apply yaw (Y), pitch (X), roll (Z) in that order

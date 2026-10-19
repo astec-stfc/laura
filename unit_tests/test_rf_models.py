@@ -4,11 +4,11 @@ PIDPhaseRange dunder methods, and Low_Level_RF_Element channel-model builder."""
 import pytest
 from pydantic import ValidationError
 
-from laura.models.RF import (
+from laura.models.rf import (
     RFCavityElement,
     PIDPhaseRange,
     PIDElement,
-    Low_Level_RF_Element,
+    LowLevelRFElement,
     LLRFChannelsBase,
 )
 
@@ -69,21 +69,21 @@ class TestPIDPhaseRangeDunders:
 
 class TestLowLevelRFChannelsModel:
     def test_create_llrf_channels_model_with_generic_fields(self):
-        elem = Low_Level_RF_Element(one_record=LLRFChannelsBase())
+        elem = LowLevelRFElement(one_record=LLRFChannelsBase())
         fields = {
             "ONE_RECORD_KLYSTRON_FORWARD_POWER": 1,
             "ONE_RECORD_KLYSTRON_FORWARD_PHASE": 2,
         }
-        model_cls = elem._create_LLRFChannels_Model(fields)
+        model_cls = elem._create_llrf_channels_model(fields)
         instance = model_cls(**{"KLYSTRON_FORWARD": {"power": 1, "phase": 2}})
         assert instance.KLYSTRON_FORWARD.power == 1
         assert fields["labels"] == ["KLYSTRON_FORWARD"]
 
     def test_create_llrf_channels_model_with_cavity_specific_fields(self):
-        elem = Low_Level_RF_Element(one_record=LLRFChannelsBase())
+        elem = LowLevelRFElement(one_record=LLRFChannelsBase())
         fields = {
             "ONE_RECORD_LRRG_CAVITY_PROBE_POWER": 3,
             "ONE_RECORD_LRRG_CAVITY_PROBE_PHASE": 4,
         }
-        elem._create_LLRFChannels_Model(fields)
+        elem._create_llrf_channels_model(fields)
         assert "LRRG_CAVITY_PROBE" in fields["labels"]

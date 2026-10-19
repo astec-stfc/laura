@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 
 from laura.models.element import (
-    baseElement,
+    BaseElement,
     Element,
     PhysicalBaseElement,
     Quadrupole,
@@ -17,7 +17,7 @@ from laura.models.element import (
     flatten,
 )
 from laura.models.physical import Position, Rotation, PhysicalElement
-from laura.models.magnetic import Quadrupole_Magnet, Dipole_Magnet
+from laura.models.magnetic import QuadrupoleMagnet, DipoleMagnet
 
 
 # ---------------------------------------------------------------------------
@@ -139,7 +139,7 @@ class TestFlatten:
 
 class TestBaseElement:
     def test_default_hardware_model(self):
-        be = baseElement(
+        be = BaseElement(
             name="E1",
             hardware_class="Generic",
             hardware_type="HT",
@@ -148,7 +148,7 @@ class TestBaseElement:
         assert be.hardware_model == "Generic"
 
     def test_alias_from_string(self):
-        be = baseElement(
+        be = BaseElement(
             name="E1",
             hardware_class="Generic",
             hardware_type="HT",
@@ -158,7 +158,7 @@ class TestBaseElement:
         assert list(be.alias) == ["a1", "a2"]
 
     def test_alias_from_list(self):
-        be = baseElement(
+        be = BaseElement(
             name="E1",
             hardware_class="Generic",
             hardware_type="HT",
@@ -168,7 +168,7 @@ class TestBaseElement:
         assert list(be.alias) == ["x", "y"]
 
     def test_alias_none_default(self):
-        be = baseElement(
+        be = BaseElement(
             name="E1",
             hardware_class="Generic",
             hardware_type="HT",
@@ -178,7 +178,7 @@ class TestBaseElement:
         assert be.alias == []
 
     def test_hardware_info(self):
-        be = baseElement(
+        be = BaseElement(
             name="E1",
             hardware_class="Generic",
             hardware_type="HT",
@@ -187,7 +187,7 @@ class TestBaseElement:
         assert be.hardware_info == {"class": "Generic", "type": "HT"}
 
     def test_flat(self):
-        be = baseElement(
+        be = BaseElement(
             name="E1",
             hardware_class="Generic",
             hardware_type="HT",
@@ -198,7 +198,7 @@ class TestBaseElement:
         assert flat["name"] == "E1"
 
     def test_is_subelement_false(self):
-        be = baseElement(
+        be = BaseElement(
             name="E1",
             hardware_class="Generic",
             hardware_type="HT",
@@ -208,7 +208,7 @@ class TestBaseElement:
         assert be.is_subelement() is False
 
     def test_is_subelement_true(self):
-        be = baseElement(
+        be = BaseElement(
             name="E1",
             hardware_class="Generic",
             hardware_type="HT",
@@ -218,7 +218,7 @@ class TestBaseElement:
         assert be.is_subelement() is True
 
     def test_is_subelement_string(self):
-        be = baseElement(
+        be = BaseElement(
             name="E1",
             hardware_class="Generic",
             hardware_type="HT",
@@ -228,7 +228,7 @@ class TestBaseElement:
         assert be.is_subelement() is True
 
     def test_subdirectory(self):
-        be = baseElement(
+        be = BaseElement(
             name="E1",
             hardware_class="Generic",
             hardware_type="HT",

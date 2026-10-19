@@ -28,6 +28,12 @@ URI: [laura:wakefield_enable](https://w3id.org/laura/wakefield_enable)
 | [DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation attributes for beam-diagnostic elements |  no  |
 | [PlasmaSimulationElement](PlasmaSimulationElement.md) | Simulation attributes for plasma-accelerator stages |  no  |
 | [TwissMatchSimulationElement](TwissMatchSimulationElement.md) | Simulation attributes for Twiss-matching points |  no  |
+| [MatrixTransformSimulationElement](MatrixTransformSimulationElement.md) | Zero-, first-, and second-order transfer-map coefficients for a matrix transf... |  no  |
+| [ElectrostaticSeparatorSimulationElement](ElectrostaticSeparatorSimulationElement.md) | Simulation attributes for a static electrostatic separator |  no  |
+| [ACDipoleSimulationElement](ACDipoleSimulationElement.md) | Simulation attributes for an AC dipole / tune exciter |  no  |
+| [WireSimulationElement](WireSimulationElement.md) | Simulation attributes for a compensating wire |  no  |
+| [BeamBeamSimulationElement](BeamBeamSimulationElement.md) | Simulation attributes for a weak-strong beam-beam interaction |  no  |
+| [RFMultipoleSimulationElement](RFMultipoleSimulationElement.md) | Simulation attributes for a thin RF multipole kick |  no  |
 
 
 

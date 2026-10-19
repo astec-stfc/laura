@@ -281,6 +281,7 @@ attributes:
     domain_of:
     - RFCavity
     - RFDeflectingCavity
+    - CrabCavity
     - Wakefield
     range: RFDeflectingCavityElement
 class_uri: laura:RFDeflectingCavity
@@ -311,6 +312,7 @@ attributes:
     domain_of:
     - RFCavity
     - RFDeflectingCavity
+    - CrabCavity
     - Wakefield
     range: RFDeflectingCavityElement
   physical:

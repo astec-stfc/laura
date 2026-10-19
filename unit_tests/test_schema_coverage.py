@@ -24,11 +24,13 @@ SCHEMA_DIR = pathlib.Path(__file__).resolve().parent.parent / "laura" / "schema"
 
 
 def _schema_class_names() -> dict[str, str]:
-    """Map every class defined across the schema chunk files to its filename."""
+    """Map schema classes that gen-pydantic materializes to their filename."""
     found: dict[str, str] = {}
     for path in sorted(SCHEMA_DIR.glob("*.yaml")):
         doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        for class_name in (doc.get("classes") or {}):
+        for class_name, class_def in (doc.get("classes") or {}).items():
+            if (class_def or {}).get("class_uri") == "linkml:Any":
+                continue
             found[class_name] = path.name
     return found
 

@@ -28,6 +28,10 @@ URI: [laura:OctupoleMagnet](https://w3id.org/laura/OctupoleMagnet)
         
       OctupoleMagnet : edge_field_integral
         
+      OctupoleMagnet : edge_field_integral_entrance
+        
+      OctupoleMagnet : edge_field_integral_exit
+        
       OctupoleMagnet : entrance_edge_angle
         
       OctupoleMagnet : exit_edge_angle
@@ -148,7 +152,9 @@ URI: [laura:OctupoleMagnet](https://w3id.org/laura/OctupoleMagnet)
 | [plane](plane.md) | 0..1 <br/> [BendingPlaneEnum](BendingPlaneEnum.md) | Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combin... | [MagneticElement](MagneticElement.md) |
 | [width](width.md) | 0..1 <br/> [Float](Float.md) | Physical width of the magnet in the bending plane [m] | [MagneticElement](MagneticElement.md) |
 | [tilt](tilt.md) | 0..1 <br/> [Float](Float.md) | Global tilt about the beam axis [rad] | [MagneticElement](MagneticElement.md) |
-| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless) | [MagneticElement](MagneticElement.md) |
+| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless), used as the single comb... | [MagneticElement](MagneticElement.md) |
+| [edge_field_integral_entrance](edge_field_integral_entrance.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for entrance-edge focussing | [MagneticElement](MagneticElement.md) |
+| [edge_field_integral_exit](edge_field_integral_exit.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for exit-edge focussing | [MagneticElement](MagneticElement.md) |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | 0..1 <br/> [Float](Float.md) | Coefficient controlling the fringe-field roll-off rate | [MagneticElement](MagneticElement.md) |
 | [gradient](gradient.md) | 0..1 <br/> [Float](Float.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) | [MagneticElement](MagneticElement.md) |
 | [angle](angle.md) | 0..1 <br/> [Float](Float.md) | Integrated bending angle [rad] | [MagneticElement](MagneticElement.md) |
@@ -412,10 +418,10 @@ attributes:
     name: width
     description: Physical width of the magnet in the bending plane [m].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.2)
     owner: Octupole_Magnet
     domain_of:
+    - BeamBeamSimulationElement
     - MagneticElement
     range: float
     unit:
@@ -424,10 +430,10 @@ attributes:
     name: tilt
     description: Global tilt about the beam axis [rad].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.0)
     owner: Octupole_Magnet
     domain_of:
+    - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
     range: float
@@ -435,14 +441,44 @@ attributes:
       ucum_code: rad
   edge_field_integral:
     name: edge_field_integral
-    description: Enge fringe-field integral parameter (dimensionless).
+    description: Enge fringe-field integral parameter (dimensionless), used as the
+      single combined value by codes that only support one edge focussing keyword.
+      Unset (None) by default -- rather than forcing a laura default into every output,
+      an unset value is simply omitted from the written file so the target code's
+      own built-in default applies. If given, it also becomes the default for any
+      of edge_field_integral_entrance/edge_field_integral_exit that are themselves
+      not given (see MagneticElement.resolve_edge_field_integrals).
     from_schema: https://w3id.org/laura/schema/magnetic
-    ifabsent: float(0.5)
+    rank: 1000
     owner: Octupole_Magnet
     domain_of:
-    - MagnetSimulationElement
     - MagneticElement
     range: float
+    required: false
+  edge_field_integral_entrance:
+    name: edge_field_integral_entrance
+    description: Fringe-field integral for entrance-edge focussing. Unset (None) by
+      default unless edge_field_integral is given; always overrides edge_field_integral
+      when set explicitly.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: Octupole_Magnet
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
+  edge_field_integral_exit:
+    name: edge_field_integral_exit
+    description: Fringe-field integral for exit-edge focussing. Unset (None) by default
+      unless edge_field_integral is given; always overrides edge_field_integral when
+      set explicitly.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: Octupole_Magnet
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
   fringe_field_coefficient:
     name: fringe_field_coefficient
     description: Coefficient controlling the fringe-field roll-off rate.

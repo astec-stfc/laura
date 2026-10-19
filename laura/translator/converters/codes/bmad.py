@@ -2,13 +2,13 @@ from pydantic import BaseModel
 from typing import Dict, Any, List
 from collections import Counter
 from . import magnetic_orders
-import laura.models.element as LAURA_elements
-from laura.models.elementList import SectionLattice, MachineLayout, ElementList
+import laura.models.element as laura_elements
+from laura.models.element_list import SectionLattice, MachineLayout, ElementList
 from laura.models.element import (
     Element,
-    Combined_Corrector,
-    Vertical_Corrector,
-    Horizontal_Corrector,
+    CombinedCorrector,
+    VerticalCorrector,
+    HorizontalCorrector,
 )
 import math
 
@@ -58,7 +58,6 @@ def rotation_angles(forward):
 
 
 class BmadLatticeImporter(BaseModel):
-
     floorplan_init: str
     """Name of Tao init file which produces floor coordinates"""
 
@@ -103,7 +102,7 @@ class BmadLatticeImporter(BaseModel):
                 self.branches.update(
                     {
                         self.n_universes: [
-                            f'{i["branch_name"]}_{self.n_universes}'
+                            f"{i['branch_name']}_{self.n_universes}"
                             for i in tao.lat_branch_list(ix_uni=self.n_universes)
                         ]
                     }
@@ -124,7 +123,7 @@ class BmadLatticeImporter(BaseModel):
                     }
                     names = [i for i in tao.lat_list("*", "ele.name", **kwa)]
                     names_numbered = [
-                        f"{x}.{(c := Counter(names[:i + 1]))[x]}"
+                        f"{x}.{(c := Counter(names[: i + 1]))[x]}"
                         for i, x in enumerate(names)
                     ]
                     types = [i for i in tao.lat_list("*", "ele.key", **kwa)]
@@ -149,7 +148,7 @@ class BmadLatticeImporter(BaseModel):
             except TaoCommandError:
                 break
         self.branches = {
-            k: [f'{i["branch_name"]}_{k}' for i in tao.lat_branch_list(ix_uni=k)]
+            k: [f"{i['branch_name']}_{k}" for i in tao.lat_branch_list(ix_uni=k)]
             for k in range(1, self.n_universes)
         }
 
@@ -284,7 +283,7 @@ class BmadLatticeImporter(BaseModel):
                     }
                     self.laura_elems[universe][b].update(
                         {
-                            nam: getattr(LAURA_elements, self.types[universe][b][i])(
+                            nam: getattr(laura_elements, self.types[universe][b][i])(
                                 **markelem
                             )
                         }
@@ -325,9 +324,9 @@ class BmadLatticeImporter(BaseModel):
                                 "magnetic": vcor,
                             }
                         )
-                        comb = Combined_Corrector(**elems[nam])
-                        hori = Horizontal_Corrector(**helem)
-                        vert = Vertical_Corrector(**velem)
+                        comb = CombinedCorrector(**elems[nam])
+                        hori = HorizontalCorrector(**helem)
+                        vert = VerticalCorrector(**velem)
                         self.laura_elems[universe][b].update(
                             {
                                 nam: comb,
@@ -344,9 +343,9 @@ class BmadLatticeImporter(BaseModel):
                             ]["multipoles"]["K0L"]["normal"]
                         self.laura_elems[universe][b].update(
                             {
-                                nam: getattr(LAURA_elements, self.types[universe][b][i])(
-                                    **elems[nam]
-                                )
+                                nam: getattr(
+                                    laura_elements, self.types[universe][b][i]
+                                )(**elems[nam])
                             }
                         )
 

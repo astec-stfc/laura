@@ -145,6 +145,14 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | ---  | --- | --- | --- |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [TwissMatch](TwissMatch.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [MatrixTransform](MatrixTransform.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [ElectrostaticSeparator](ElectrostaticSeparator.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [ACDipole](ACDipole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [HorizontalACDipole](HorizontalACDipole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [VerticalACDipole](VerticalACDipole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [Wire](Wire.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [BeamBeam](BeamBeam.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [RFMultipole](RFMultipole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Stage](Stage.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [VacuumGauge](VacuumGauge.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Laser](Laser.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
@@ -157,6 +165,7 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | [Magnet](Magnet.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [RFCavity](RFCavity.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [RFDeflectingCavity](RFDeflectingCavity.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [CrabCavity](CrabCavity.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Wakefield](Wakefield.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Diagnostic](Diagnostic.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [BeamPositionMonitor](BeamPositionMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |

@@ -1,10 +1,5 @@
 # Slot: shape 
 
-
-_Cross-sectional aperture shape._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -20,6 +15,7 @@ URI: [laura:shape](https://w3id.org/laura/shape)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
+| [ControlVariable](ControlVariable.md) | A single process-variable entry mapping a logical name to a control-system PV... |  no  |
 | [ApertureElement](ApertureElement.md) | Transverse aperture geometry for drift-space checks and collimators |  no  |
 
 
@@ -33,20 +29,13 @@ URI: [laura:shape](https://w3id.org/laura/shape)
 
 | Property | Value |
 | --- | --- |
-| Range | [ApertureShapeEnum](ApertureShapeEnum.md) |
-| Domain Of | [ApertureElement](ApertureElement.md) |
+| Range | [String](String.md) |
+| Domain Of | [ControlVariable](ControlVariable.md), [ApertureElement](ApertureElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| Owner | [ApertureElement](ApertureElement.md) |
-
-
 
 
 
@@ -60,13 +49,6 @@ URI: [laura:shape](https://w3id.org/laura/shape)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -86,13 +68,10 @@ URI: [laura:shape](https://w3id.org/laura/shape)
 <details>
 ```yaml
 name: shape
-description: Cross-sectional aperture shape.
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-owner: ApertureElement
 domain_of:
+- ControlVariable
 - ApertureElement
-range: ApertureShapeEnum
+range: string
 
 ```
 </details></div>

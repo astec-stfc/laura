@@ -2,17 +2,14 @@
 
 import pytest
 import numpy as np
-from pydantic import BaseModel
 
-from laura.models.baseModels import (
+from laura.models.base_models import (
     convert_numpy_types,
-    flow_list,
-    string_with_quotes,
+    FlowList,
     ModelBase,
     IgnoreExtra,
     NumpyModel,
     NumpyVectorModel,
-    objectList,
     DeviceList,
     Aliases,
 )
@@ -39,7 +36,7 @@ class TestConvertNumpyTypes:
 
     def test_ndarray(self):
         result = convert_numpy_types(np.array([1.0, 2.0, 3.0]))
-        assert isinstance(result, flow_list)
+        assert isinstance(result, FlowList)
         assert result == [1.0, 2.0, 3.0]
 
     def test_nested_dict(self):
@@ -57,7 +54,7 @@ class TestConvertNumpyTypes:
     def test_list_of_numpy(self):
         result = convert_numpy_types([np.float64(1), np.int64(2)])
         assert result == [1.0, 2]
-        assert isinstance(result, flow_list)
+        assert isinstance(result, FlowList)
 
 
 # ---------------------------------------------------------------------------

@@ -32,8 +32,6 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
         
       MagnetSimulationElement : edge2_effects
         
-      MagnetSimulationElement : edge_field_integral
-        
       MagnetSimulationElement : edge_order
         
       MagnetSimulationElement : field_amplitude
@@ -93,7 +91,6 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 | [field_amplitude](field_amplitude.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Field amplitude scaling for magnet tracking | direct |
 | [n_slices](n_slices.md) | 0..1 <br/> [Integer](Integer.md) | Number of longitudinal slices for thick-lens tracking | direct |
 | [smooth](smooth.md) | 0..1 <br/> [Integer](Integer.md) | Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smoot... | direct |
-| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for edge focussing | direct |
 | [edge1_effects](edge1_effects.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable entrance-edge focussing effects | direct |
 | [edge2_effects](edge2_effects.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable exit-edge focussing effects | direct |
 | [sr_enable](sr_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable synchrotron-radiation energy loss | direct |
@@ -217,16 +214,6 @@ attributes:
     - RFCavitySimulationElement
     - WakefieldSimulationElement
     range: integer
-  edge_field_integral:
-    name: edge_field_integral
-    description: Fringe-field integral for edge focussing.
-    from_schema: https://w3id.org/laura/schema/simulation
-    rank: 1000
-    ifabsent: float(0.5)
-    domain_of:
-    - MagnetSimulationElement
-    - MagneticElement
-    range: float
   edge1_effects:
     name: edge1_effects
     description: Enable entrance-edge focussing effects.
@@ -383,17 +370,6 @@ attributes:
     - RFCavitySimulationElement
     - WakefieldSimulationElement
     range: integer
-  edge_field_integral:
-    name: edge_field_integral
-    description: Fringe-field integral for edge focussing.
-    from_schema: https://w3id.org/laura/schema/simulation
-    rank: 1000
-    ifabsent: float(0.5)
-    owner: MagnetSimulationElement
-    domain_of:
-    - MagnetSimulationElement
-    - MagneticElement
-    range: float
   edge1_effects:
     name: edge1_effects
     description: Enable entrance-edge focussing effects.
@@ -538,6 +514,8 @@ attributes:
     domain_of:
     - MagnetSimulationElement
     - RFCavitySimulationElement
+    - ACDipoleSimulationElement
+    - RFMultipoleSimulationElement
     range: float
     any_of:
     - range: float

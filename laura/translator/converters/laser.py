@@ -1,8 +1,10 @@
 from inspect import signature
 from typing import Any, List
-from .base import BaseElementTranslator
+
 from laura.models.laser import LaserElement
 from warnings import warn
+
+from .base import BaseElementTranslator
 
 
 class LaserTranslator(BaseElementTranslator):
@@ -71,7 +73,7 @@ class LaserTranslator(BaseElementTranslator):
         )
 
         additional_dict = {
-            self._convertKeyword_WakeT(param): getattr(self.laser, param)
+            self._convert_keyword_wake_t(param): getattr(self.laser, param)
             for param in self.additional_attrs
         }
         if self.profile_type == "gaussian":

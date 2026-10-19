@@ -16,7 +16,7 @@ yaml.load()  →  Python dict
        │       Pass validate=True to any loader to enable.
        │
        ▼
-interpret_YAML_Element(dict)
+interpret_yaml_element(dict)
        │
        ├─ reads dict["hardware_type"]   (e.g. "Quadrupole")
        │
@@ -70,12 +70,12 @@ Wraps `ELEMENT_REGISTRY` with lazy `TypeAdapter` creation. The first time a
 `hardware_type` is encountered, a Pydantic `TypeAdapter` is created for that
 class and cached.
 
-#### interpret_YAML_Element
+#### interpret_yaml_element
 
 The core dispatch function:
 
 ```python
-def interpret_YAML_Element(elem: dict, exclude_set=None):
+def interpret_yaml_element(elem: dict, exclude_set=None):
     hw_type = elem.get("hardware_type")
     if not hw_type:
         _log.warning("Skipping element '%s': no hardware_type field", name)
@@ -112,9 +112,9 @@ errors instead.
 An optional pre-parse check against the generated JSON Schema:
 
 ```python
-from laura.Importers.YAML_Loader import read_YAML_Element_File
+from laura.importers.yaml_loader import read_yaml_element_file
 
-element = read_YAML_Element_File("path/to/element.yaml", validate=True)
+element = read_yaml_element_file("path/to/element.yaml", validate=True)
 ```
 
 When `validate=True` the raw dict is checked against
@@ -126,8 +126,8 @@ surfacing schema violations with explicit error messages rather than silent
 
 | Mode | Function | When Used |
 |------|----------|-----------|
-| Single YAML file | `read_YAML_Element_File(path)` | One element per file |
-| Combined file | `read_YAML_Combined_File(path)` | Summary JSON/YAML with many elements |
+| Single YAML file | `read_yaml_element_file(path)` | One element per file |
+| Combined file | `read_yaml_combined_file(path)` | Summary JSON/YAML with many elements |
 | Directory (lazy) | `LazyElementDict(filenames)` | Directory of YAML files |
 
 ### LazyElementDict

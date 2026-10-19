@@ -2,7 +2,7 @@ import pytest
 from copy import deepcopy
 
 from unit_tests.models.test_element import physical_base_element
-from laura.models.elementList import (
+from laura.models.element_list import (
     SectionLattice,
     ElementList,
     MachineLayout,
@@ -55,7 +55,7 @@ def test_section_lattice_names(section_lattice):
 
 
 def test_section_lattice_create_drifts(section_lattice):
-    drifts = section_lattice.createDrifts()
+    drifts = section_lattice.create_drifts()
     print(drifts)
     assert isinstance(drifts, dict)
 

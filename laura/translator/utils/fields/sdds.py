@@ -2,15 +2,15 @@ import numpy as np
 
 from ..units import UnitValue
 
-from .FieldParameter import FieldParameter
+from .field_parameter import FieldParameter
 from warnings import warn
-from ..SDDSFile import SDDSFile, SDDS_Types
+from ..sdds_file import SDDSFile, SddsTypes
 
 
-def write_SDDS_field_file(self, sddsindex: int = 0, ascii: bool = False) -> str:
+def write_sdds_field_file(self, sddsindex: int = 0, ascii: bool = False) -> str:
     """
     Generate the field data in a format that is suitable for SDDS, based on the
-    :class:`~laura.translatoru.utils.fields.field` object provided.
+    :class:`~laura.translatoru.utils.fields.FieldMap` object provided.
     This is then written to an SDDS file.
     The `field_type` parameter determines the format of the file.
 
@@ -18,7 +18,7 @@ def write_SDDS_field_file(self, sddsindex: int = 0, ascii: bool = False) -> str:
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object
     sddsindex: int
         Must be provided for :class:`~laura.translator.utils.SDDSFile.SddsFile` class
@@ -83,21 +83,21 @@ def write_SDDS_field_file(self, sddsindex: int = 0, ascii: bool = False) -> str:
         warn(f"Field type {self.field_type} not supported for SDDS")
         return
     if ccolumns is not None:
-        ctypes = [SDDS_Types.SDDS_DOUBLE for _ in ccolumns]
+        ctypes = [SddsTypes.SDDS_DOUBLE for _ in ccolumns]
         csymbols = ["" for _ in ccolumns]
         sddsfile.add_columns(cnames, ccolumns, ctypes, cunits, csymbols)
         sddsfile.write_file(sdds_filename)
     return sdds_filename
 
 
-def read_SDDS_field_file(self, filename: str, field_type: str):
+def read_sdds_field_file(self, filename: str, field_type: str):
     """
-    Read an SDDS field file and convert it into a :class:`laura.translator.utils.fields.field` object.
+    Read an SDDS field file and convert it into a :class:`laura.translator.utils.fields.FieldMap` object.
     Only works for wakefield files.
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object to be updated.
     filename: str
         The path to the SDDS field file
@@ -116,12 +116,12 @@ def read_SDDS_field_file(self, filename: str, field_type: str):
     self.reset_dicts()
     setattr(self, "field_type", field_type)
     try:
-        elegantObject = SDDSFile(index=1, ascii=True)
+        elegant_object = SDDSFile(index=1, ascii=True)
     except Exception:
-        elegantObject = SDDSFile(index=1, ascii=False)
-    elegantObject.read_file(filename, page=-1)
+        elegant_object = SDDSFile(index=1, ascii=False)
+    elegant_object.read_file(filename, page=-1)
     if field_type in ["LongitudinalWake", "3DWake", "TransverseWake"]:
-        for key, val in elegantObject._columns.items():
+        for key, val in elegant_object._columns.items():
             data = np.array(val.data)
             if val.unit == "m":
                 setattr(
@@ -158,3 +158,19 @@ def read_SDDS_field_file(self, filename: str, field_type: str):
         raise NotImplementedError(
             f"{field_type} loading not implemented for SDDS files"
         )
+
+
+# ---------------------------------------------------------------------------
+# Backwards compatibility: names renamed for PEP 8. Served lazily with a
+# DeprecationWarning so downstream consumers (astec-stfc/simba) keep working.
+# ---------------------------------------------------------------------------
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "read_SDDS_field_file": "read_sdds_field_file",
+        "write_SDDS_field_file": "write_sdds_field_file",
+    },
+)

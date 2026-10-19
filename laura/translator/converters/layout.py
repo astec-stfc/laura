@@ -1,9 +1,11 @@
-from typing import Dict, Any, TYPE_CHECKING
 from textwrap import wrap
-from laura.models.elementList import MachineLayout
+from typing import TYPE_CHECKING, Any, Dict
+
+from laura.models.element_list import MachineLayout
+
+from ..utils.functions import elegant_functional_definitions, sanitize_string
 from .converter import translate_elements
 from .section import SectionLatticeTranslator
-from ..utils.functions import elegant_functional_definitions, sanitize_string
 
 if TYPE_CHECKING:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
@@ -22,24 +24,34 @@ class MachineLayoutTranslator(MachineLayout):
                 "master_lattice": layout.model_copy().master_lattice,
                 "functional_definitions": layout.functional_definitions,
                 "resolve_functional": layout.resolve_functional,
+                "revolution_frequency": layout.revolution_frequency,
             }
         )
+
+    def _section_translator(self, section) -> SectionLatticeTranslator:
+        """
+        Build a :class:`SectionLatticeTranslator` for ``section``, falling back
+        to this layout's own ``revolution_frequency`` if the section does not
+        define its own.
+        """
+        translator = SectionLatticeTranslator.from_section(section)
+        if translator.revolution_frequency is None:
+            translator.revolution_frequency = self.revolution_frequency
+        return translator
 
     def to_astra(self) -> Dict[str, str]:
         lattices = {}
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_astra()
+                    section.name: self._section_translator(section).to_astra()
                 }
             )
         return lattices
 
     def to_elegant(self, string: str = "", charge: float = None) -> str:
         for section in self.sections.values():
-            section_with_drifts = section.createDrifts()
+            section_with_drifts = section.create_drifts()
             elem_dict = translate_elements(
                 section_with_drifts.values(),
                 master_lattice=self.master_lattice,
@@ -57,12 +69,18 @@ class MachineLayoutTranslator(MachineLayout):
             for elem in section_with_drifts.keys():
                 lstring += f"{elem}, "
             lstring = f"{lstring[:-2]})" + "\n\n\n"
-        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
-        return elegant_functional_definitions(self.functional_definitions) + string + lstring
+        lstring = "&\n".join(
+            wrap(lstring, 80, break_long_words=False, break_on_hyphens=False)
+        )
+        return (
+            elegant_functional_definitions(self.functional_definitions)
+            + string
+            + lstring
+        )
 
     def to_genesis(self, string: str = "") -> str:
         for section in self.sections.values():
-            section_with_drifts = section.createDrifts()
+            section_with_drifts = section.create_drifts()
             elem_dict = translate_elements(
                 section_with_drifts.values(),
                 master_lattice=self.master_lattice,
@@ -83,14 +101,14 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_ocelot(save=save)
+                    section.name: self._section_translator(section).to_ocelot(save=save)
                 }
             )
         return lattices
 
-    def to_rftrack(self, P_Q: float = float("nan"), save: bool = False) -> Dict[str, object]:
+    def to_rftrack(
+        self, P_Q: float = float("nan"), save: bool = False
+    ) -> Dict[str, object]:
         """
         Create one RF-Track ``Lattice`` per section in this layout.
 
@@ -124,9 +142,7 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_cheetah(save=save)
+                    section.name: self._section_translator(section).to_cheetah(save=save)
                 }
             )
         return lattices
@@ -138,9 +154,7 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_xsuite(
+                    section.name: self._section_translator(section).to_xsuite(
                         beam_length=beam_length,
                         env=env,
                         particle_ref=particle_ref,
@@ -153,12 +167,14 @@ class MachineLayoutTranslator(MachineLayout):
     def to_madx(self, beam: Dict[str, Dict[str, Any]] | None = None) -> Dict[str, str]:
         lattices = {}
         for section in self.sections.values():
-            b = beam[section.name] if isinstance(beam, Dict) and section.name in beam.keys() else None
+            b = (
+                beam[section.name]
+                if isinstance(beam, Dict) and section.name in beam.keys()
+                else None
+            )
             lattices.update(
                 {
-                    sanitize_string(section.name): SectionLatticeTranslator.from_section(
-                        section
-                    ).to_madx(beam=b)
+                    sanitize_string(section.name): self._section_translator(section).to_madx(beam=b)
                 }
             )
         return lattices

@@ -286,6 +286,7 @@ attributes:
     - Camera
     - Screen
     - ChargeDiagnostic
+    - PhotonMonitor
     range: BAMDiagnosticElement
 class_uri: laura:BeamArrivalMonitor
 
@@ -320,6 +321,7 @@ attributes:
     - Camera
     - Screen
     - ChargeDiagnostic
+    - PhotonMonitor
     range: BAMDiagnosticElement
   physical:
     name: physical

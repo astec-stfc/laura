@@ -41,14 +41,6 @@ URI: [DiagnosticProperties](DiagnosticProperties.md)
 
 
 
-        
-
-
-
-        
-
-        
-
 
 
         
@@ -57,85 +49,13 @@ URI: [DiagnosticProperties](DiagnosticProperties.md)
 
 
 
-
+        
 
         
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -203,6 +123,7 @@ URI: [DiagnosticProperties](DiagnosticProperties.md)
 
 
 
+        
 
 
 
@@ -305,7 +226,99 @@ URI: [DiagnosticProperties](DiagnosticProperties.md)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -586,7 +599,6 @@ URI: [DiagnosticProperties](DiagnosticProperties.md)
 | Slot | Description |
 | --- | --- |
 | [diagnostic](diagnostic.md) | Instrument-specific diagnostic parameters |
-| [intensity](intensity.md) | Instrument-specific diagnostic parameters |
 
 
 

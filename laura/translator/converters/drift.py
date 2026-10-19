@@ -1,5 +1,6 @@
-from .base import BaseElementTranslator
 from laura.models.simulation import DriftSimulationElement
+
+from .base import BaseElementTranslator
 
 
 class DriftTranslator(BaseElementTranslator):

@@ -21,6 +21,8 @@ URI: [laura:field_amplitude](https://w3id.org/laura/field_amplitude)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  yes  |
+| [ACDipoleSimulationElement](ACDipoleSimulationElement.md) | Simulation attributes for an AC dipole / tune exciter |  yes  |
+| [RFMultipoleSimulationElement](RFMultipoleSimulationElement.md) | Simulation attributes for a thin RF multipole kick |  yes  |
 | [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  no  |
 
 
@@ -35,7 +37,7 @@ URI: [laura:field_amplitude](https://w3id.org/laura/field_amplitude)
 | Property | Value |
 | --- | --- |
 | Range | [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) |
-| Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md), [RFCavitySimulationElement](RFCavitySimulationElement.md) |
+| Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md), [RFCavitySimulationElement](RFCavitySimulationElement.md), [ACDipoleSimulationElement](ACDipoleSimulationElement.md), [RFMultipoleSimulationElement](RFMultipoleSimulationElement.md) |
 
 ### Cardinality and Requirements
 
@@ -104,6 +106,8 @@ rank: 1000
 domain_of:
 - MagnetSimulationElement
 - RFCavitySimulationElement
+- ACDipoleSimulationElement
+- RFMultipoleSimulationElement
 range: float
 any_of:
 - range: float

@@ -13,10 +13,10 @@ Subpackages
 Submodules
 ----------
 
-laura.translator.utils.SDDSFile module
---------------------------------------
+laura.translator.utils.sdds_file module
+---------------------------------------
 
-.. automodule:: laura.translator.utils.SDDSFile
+.. automodule:: laura.translator.utils.sdds_file
    :members:
    :private-members:
    :show-inheritance:

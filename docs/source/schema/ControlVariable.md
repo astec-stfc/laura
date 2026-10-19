@@ -36,6 +36,17 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
         
       ControlVariable : dynamics
         
+      ControlVariable : element_dtype
+        
+          
+    
+        
+        
+        ControlVariable --> "0..1" NumericDtypeEnum : element_dtype
+        click NumericDtypeEnum href "../NumericDtypeEnum/"
+    
+
+        
       ControlVariable : expression
         
       ControlVariable : identifier
@@ -47,6 +58,8 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
       ControlVariable : readback
         
       ControlVariable : setpoint
+        
+      ControlVariable : shape
         
       ControlVariable : states
         
@@ -87,6 +100,8 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
 | [control_type](control_type.md) | 0..1 <br/> [ControlTypeEnum](ControlTypeEnum.md) | Kind of quantity this variable carries | direct |
 | [target](target.md) | 0..1 <br/> [String](String.md) | Dotted attribute path on the owning element that ``expression`` writes to (e | direct |
 | [expression](expression.md) | 0..1 <br/> [String](String.md) | Expression graph computing the value written to ``target``, as nested mapping... | direct |
+| [element_dtype](element_dtype.md) | 0..1 <br/> [NumericDtypeEnum](NumericDtypeEnum.md) | Numeric type of the value, or of one element of the array for ``control_type:... | direct |
+| [shape](shape.md) | * <br/> [String](String.md)&nbsp;or&nbsp;<br />[Integer](Integer.md) | Maximum array dimensions of a waveform, in NumPy order (``[rows, columns]`` f... | direct |
 | [states](states.md) | 0..1 <br/> [String](String.md) | Mapping of state name to underlying control-system value, for ``control_type:... | direct |
 | [readback](readback.md) | 0..1 <br/> [String](String.md) | Name of the readback variable this set-point drives | direct |
 | [setpoint](setpoint.md) | 0..1 <br/> [String](String.md) | Name of the set-point variable this readback follows | direct |
@@ -249,6 +264,33 @@ attributes:
     domain_of:
     - ControlVariable
     range: string
+  element_dtype:
+    name: element_dtype
+    description: 'Numeric type of the value, or of one element of the array for ``control_type:
+      waveform``. Distinct from ``dtype``, which names the Python container: ``dtype:
+      float`` does not say ``float32`` or ``float64``. ``shape`` is what makes a variable
+      an array, not this.'
+    from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    domain_of:
+    - ControlVariable
+    range: NumericDtypeEnum
+  shape:
+    name: shape
+    description: Maximum array dimensions of a waveform, in NumPy order (``[rows,
+      columns]`` for an image).  Each entry is a positive integer, a dotted attribute
+      path on the owning element, or a ``*``-separated product of those (i.e. ``diagnostic.sensor.y_pixels
+      * diagnostic.sensor.x_pixels``).
+    from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    domain_of:
+    - ControlVariable
+    - ApertureElement
+    range: string
+    multivalued: true
+    any_of:
+    - range: integer
+    - range: string
   states:
     name: states
     description: 'Mapping of state name to underlying control-system value, for ``control_type:
@@ -414,6 +456,35 @@ attributes:
     domain_of:
     - ControlVariable
     range: string
+  element_dtype:
+    name: element_dtype
+    description: 'Numeric type of the value, or of one element of the array for ``control_type:
+      waveform``. Distinct from ``dtype``, which names the Python container: ``dtype:
+      float`` does not say ``float32`` or ``float64``. ``shape`` is what makes a variable
+      an array, not this.'
+    from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    owner: ControlVariable
+    domain_of:
+    - ControlVariable
+    range: NumericDtypeEnum
+  shape:
+    name: shape
+    description: Maximum array dimensions of a waveform, in NumPy order (``[rows,
+      columns]`` for an image).  Each entry is a positive integer, a dotted attribute
+      path on the owning element, or a ``*``-separated product of those (i.e. ``diagnostic.sensor.y_pixels
+      * diagnostic.sensor.x_pixels``).
+    from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    owner: ControlVariable
+    domain_of:
+    - ControlVariable
+    - ApertureElement
+    range: string
+    multivalued: true
+    any_of:
+    - range: integer
+    - range: string
   states:
     name: states
     description: 'Mapping of state name to underlying control-system value, for ``control_type:

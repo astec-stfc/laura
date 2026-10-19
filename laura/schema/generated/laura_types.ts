@@ -1,4 +1,12 @@
 export type TwissMatchName = string;
+export type MatrixTransformName = string;
+export type ElectrostaticSeparatorName = string;
+export type ACDipoleName = string;
+export type HorizontalACDipoleName = string;
+export type VerticalACDipoleName = string;
+export type WireName = string;
+export type BeamBeamName = string;
+export type RFMultipoleName = string;
 export type StageName = string;
 export type VacuumGaugeName = string;
 export type LaserName = string;
@@ -15,6 +23,7 @@ export type MachineLayoutName = string;
 export type MagnetName = string;
 export type RFCavityName = string;
 export type RFDeflectingCavityName = string;
+export type CrabCavityName = string;
 export type WakefieldName = string;
 export type LowLevelRFName = string;
 export type RFModulatorName = string;
@@ -110,6 +119,32 @@ export enum ControlTypeEnum {
     statistical = "statistical",
 };
 /**
+* Numeric storage type of a control variable's value, or of an individual element of a waveform's array. Not every protocol carries every type -- Channel Access has no native unsigned integer channels, for instance -- so a consumer is expected to reject the combinations it cannot represent.
+*/
+export enum NumericDtypeEnum {
+    
+    /** Signed 8-bit integer. */
+    int8 = "int8",
+    /** Signed 16-bit integer. */
+    int16 = "int16",
+    /** Signed 32-bit integer. */
+    int32 = "int32",
+    /** Signed 64-bit integer. */
+    int64 = "int64",
+    /** Unsigned 8-bit integer. */
+    uint8 = "uint8",
+    /** Unsigned 16-bit integer. */
+    uint16 = "uint16",
+    /** Unsigned 32-bit integer. */
+    uint32 = "uint32",
+    /** Unsigned 64-bit integer. */
+    uint64 = "uint64",
+    /** Single-precision float. */
+    float32 = "float32",
+    /** Double-precision float. */
+    float64 = "float64",
+};
+/**
 * Cross-sectional shape of a beam-pipe aperture.
 */
 export enum ApertureShapeEnum {
@@ -117,6 +152,8 @@ export enum ApertureShapeEnum {
     circular = "circular",
     rectangular = "rectangular",
     elliptical = "elliptical",
+    planar = "planar",
+    scraper = "scraper",
 };
 /**
 * Bending plane enum.
@@ -313,6 +350,10 @@ export interface ControlVariable {
     target?: string,
     /** Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``. */
     expression?: string,
+    /** Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container: ``dtype: float`` does not say ``float32`` or ``float64``. ``shape`` is what makes a variable an array, not this. */
+    element_dtype?: string,
+    /** Maximum array dimensions of a waveform, in NumPy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those (i.e. ``diagnostic.sensor.y_pixels * diagnostic.sensor.x_pixels``). */
+    shape?: string[],
     /** Mapping of state name to underlying control-system value, for ``control_type: state``. */
     states?: string,
     /** Name of the readback variable this set-point drives. */
@@ -362,6 +403,62 @@ export interface LightingElement {
  * Virtual Twiss-parameter matching point -- a zero-length marker that defines the desired optical functions at a location in the lattice.
  */
 export interface TwissMatch extends PhysicalAcceleratorElement {
+}
+
+
+/**
+ * Transfer-map element with zero-, first-, and second-order coefficients.
+ */
+export interface MatrixTransform extends PhysicalAcceleratorElement {
+}
+
+
+/**
+ * Static electrostatic transverse-deflection element.
+ */
+export interface ElectrostaticSeparator extends PhysicalAcceleratorElement {
+}
+
+
+/**
+ * Base class for horizontal and vertical AC-dipole tune exciters.
+ */
+export interface ACDipole extends PhysicalAcceleratorElement {
+}
+
+
+/**
+ * Horizontally deflecting AC-dipole tune exciter.
+ */
+export interface HorizontalACDipole extends ACDipole {
+}
+
+
+/**
+ * Vertically deflecting AC-dipole tune exciter.
+ */
+export interface VerticalACDipole extends ACDipole {
+}
+
+
+/**
+ * Current-carrying wire for long-range beam-beam compensation.
+ */
+export interface Wire extends PhysicalAcceleratorElement {
+}
+
+
+/**
+ * Weak-strong beam-beam interaction element.
+ */
+export interface BeamBeam extends PhysicalAcceleratorElement {
+}
+
+
+/**
+ * Thin RF-driven multipole kick.
+ */
+export interface RFMultipole extends PhysicalAcceleratorElement {
 }
 
 
@@ -513,6 +610,13 @@ export interface MachineModel {
 
 
 /**
+ * An unconstrained serializable matrix value. The handwritten matrix model validates dense arrays and named coefficient mappings into NumPy arrays.
+ */
+export interface MatrixValue {
+}
+
+
+/**
  * Base simulation attributes: field-map files and reference positions for tracking codes.
  */
 export interface SimulationElement {
@@ -541,8 +645,6 @@ export interface MagnetSimulationElement extends SimulationElement {
     n_slices?: number,
     /** Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth). */
     smooth?: number,
-    /** Fringe-field integral for edge focussing. */
-    edge_field_integral?: number,
     /** Enable entrance-edge focussing effects. */
     edge1_effects?: boolean,
     /** Enable exit-edge focussing effects. */
@@ -783,6 +885,106 @@ export interface TwissMatchSimulationElement extends SimulationElement {
 
 
 /**
+ * Zero-, first-, and second-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+ */
+export interface MatrixTransformSimulationElement extends SimulationElement {
+    /** Whether to apply the transfer map. */
+    apply?: boolean,
+    /** C-matrix (zeroth-order transfer vector). */
+    c_matrix?: MatrixValue,
+    /** R-matrix (first-order transfer matrix). */
+    r_matrix?: MatrixValue,
+    /** T-matrix (second-order transfer tensor). */
+    t_matrix?: MatrixValue,
+}
+
+
+/**
+ * Simulation attributes for a static electrostatic separator.
+ */
+export interface ElectrostaticSeparatorSimulationElement extends SimulationElement {
+    /** Horizontal deflecting electric field [V/m]. */
+    horizontal_field?: number,
+    /** Vertical deflecting electric field [V/m]. */
+    vertical_field?: number,
+    /** Rotation about the beam axis [rad]. */
+    tilt?: number,
+}
+
+
+/**
+ * Simulation attributes for an AC dipole / tune exciter.
+ */
+export interface ACDipoleSimulationElement extends SimulationElement {
+    /** Peak kick voltage/amplitude of the exciter. */
+    field_amplitude?: number,
+    /** Drive frequency [Hz]. */
+    frequency?: number,
+    /** Phase lag [deg]. */
+    phase?: number,
+    /** Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp. */
+    ramp?: number[],
+}
+
+
+/**
+ * Simulation attributes for a compensating wire.
+ */
+export interface WireSimulationElement extends SimulationElement {
+    /** Current carried by the wire [A]. */
+    current?: number,
+    /** Effective interaction length [m]. */
+    interaction_length?: number,
+    /** Horizontal wire offset from the reference orbit [m]. */
+    horizontal_offset?: number,
+    /** Vertical wire offset from the reference orbit [m]. */
+    vertical_offset?: number,
+}
+
+
+/**
+ * Simulation attributes for a weak-strong beam-beam interaction.
+ */
+export interface BeamBeamSimulationElement extends SimulationElement {
+    /** Opposing-beam particle charge in units of the elementary charge. */
+    charge?: number,
+    /** Number of particles in the opposing bunch. */
+    n_particles?: number,
+    /** Horizontal opposing-bunch centroid offset [m]. */
+    horizontal_offset?: number,
+    /** Vertical opposing-bunch centroid offset [m]. */
+    vertical_offset?: number,
+    /** Horizontal RMS size of the opposing bunch [m]. */
+    horizontal_sigma?: number,
+    /** Vertical RMS size of the opposing bunch [m]. */
+    vertical_sigma?: number,
+    /** Opposing-bunch length for the 3-D weak-strong model [m]. */
+    width?: number,
+}
+
+
+/**
+ * Simulation attributes for a thin RF multipole kick.
+ */
+export interface RFMultipoleSimulationElement extends SimulationElement {
+    /** RF frequency [Hz]. */
+    frequency?: number,
+    /** Overall phase lag [deg]. */
+    phase?: number,
+    /** Longitudinal voltage [V]. */
+    field_amplitude?: number,
+    /** Integrated normal multipole strengths, dipole through decapole. */
+    knl?: number[],
+    /** Integrated skew multipole strengths, dipole through decapole. */
+    ksl?: number[],
+    /** Normal multipole phases [deg], dipole through decapole. */
+    pnl?: number[],
+    /** Skew multipole phases [deg], dipole through decapole. */
+    psl?: number[],
+}
+
+
+/**
  * Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseElement`` in the schema to avoid collision with the ``magnetic`` composition-model class; maps to ``Magnet`` in Python.)
  */
 export interface Magnet extends PhysicalAcceleratorElement {
@@ -891,8 +1093,12 @@ export interface MagneticElement {
     width?: number,
     /** Global tilt about the beam axis [rad]. */
     tilt?: number,
-    /** Enge fringe-field integral parameter (dimensionless). */
+    /** Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default -- rather than forcing a laura default into every output, an unset value is simply omitted from the written file so the target code's own built-in default applies. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals). */
     edge_field_integral?: number,
+    /** Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly. */
+    edge_field_integral_entrance?: number,
+    /** Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly. */
+    edge_field_integral_exit?: number,
     /** Coefficient controlling the fringe-field roll-off rate. */
     fringe_field_coefficient?: number,
     /** Peak field gradient [T/m] (quads) or peak field [T] (dipoles). */
@@ -929,6 +1135,15 @@ export interface RFCavity extends PhysicalAcceleratorElement {
  */
 export interface RFDeflectingCavity extends RFCavity {
     /** RF structure parameters. */
+    cavity?: RFDeflectingCavityElement,
+}
+
+
+/**
+ * Transverse-deflecting crab cavity for crossing-angle compensation.
+ */
+export interface CrabCavity extends RFCavity {
+    /** Crab-cavity RF structure parameters. */
     cavity?: RFDeflectingCavityElement,
 }
 
@@ -1296,7 +1511,7 @@ export interface IntegratedCurrentTransformer extends ChargeDiagnostic {
  */
 export interface PhotonMonitor extends Diagnostic {
     /** Instrument-specific diagnostic parameters. */
-    intensity?: PhotonIntensityMonitorDiagnostic,
+    diagnostic?: PhotonIntensityMonitorDiagnostic,
 }
 
 

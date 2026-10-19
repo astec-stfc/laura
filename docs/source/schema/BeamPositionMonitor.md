@@ -286,6 +286,7 @@ attributes:
     - Camera
     - Screen
     - ChargeDiagnostic
+    - PhotonMonitor
     range: BPMDiagnosticElement
 class_uri: laura:BeamPositionMonitor
 
@@ -320,6 +321,7 @@ attributes:
     - Camera
     - Screen
     - ChargeDiagnostic
+    - PhotonMonitor
     range: BPMDiagnosticElement
   physical:
     name: physical

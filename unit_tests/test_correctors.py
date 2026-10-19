@@ -1,7 +1,7 @@
 """Tests for the corrector (Horizontal_Corrector/Vertical_Corrector/Combined_Corrector)
 translation across codes.
 
-Correctors use :class:`~laura.models.magnetic.Corrector_Magnet` (explicit
+Correctors use :class:`~laura.models.magnetic.CorrectorMagnet` (explicit
 ``horizontal_kick``/``vertical_kick`` fields, independent of each other) and
 :class:`~laura.translator.converters.magnet.CorrectorTranslator`. These tests cover
 the codes that need corrector-specific handling: Ocelot and Cheetah (whose native
@@ -14,14 +14,14 @@ import pytest
 pytest.importorskip("easygdf")
 pytest.importorskip("h5py")
 
-from laura.models.baseModels import (  # noqa: E402
+from laura.models.base_models import (  # noqa: E402
     set_functional_definitions,
     set_resolve_functional,
 )
 from laura.models.element import (  # noqa: E402
-    Horizontal_Corrector,
-    Vertical_Corrector,
-    Combined_Corrector,
+    HorizontalCorrector,
+    VerticalCorrector,
+    CombinedCorrector,
 )
 from laura.translator.converters.converter import translate_elements  # noqa: E402
 
@@ -36,21 +36,21 @@ def _reset_defs():
 
 
 def _hc(kick=0.02, length=0.1):
-    hc = Horizontal_Corrector(
+    hc = HorizontalCorrector(
         name="hc1", machine_area="S", magnetic={"magnetic_length": length, "horizontal_kick": kick}
     )
     return translate_elements([hc])["hc1"]
 
 
 def _vc(kick=0.03, length=0.1):
-    vc = Vertical_Corrector(
+    vc = VerticalCorrector(
         name="vc1", machine_area="S", magnetic={"magnetic_length": length, "vertical_kick": kick}
     )
     return translate_elements([vc])["vc1"]
 
 
 def _cc(hkick=0.04, vkick=0.05, length=0.2):
-    cc = Combined_Corrector(
+    cc = CombinedCorrector(
         name="cc1", machine_area="S",
         magnetic={"magnetic_length": length, "horizontal_kick": hkick, "vertical_kick": vkick},
     )
@@ -87,10 +87,10 @@ class TestOcelot:
     def test_section_translator_expands_combined_corrector(self):
         pytest.importorskip("ocelot")
         from laura.models.physical import PhysicalElement, Position
-        from laura.models.elementList import SectionLattice
+        from laura.models.element_list import SectionLattice
         from laura.translator.converters.section import SectionLatticeTranslator
 
-        cc = Combined_Corrector(
+        cc = CombinedCorrector(
             name="CC1", machine_area="S",
             magnetic={"magnetic_length": 0.2, "horizontal_kick": 0.04, "vertical_kick": 0.05},
             physical=PhysicalElement(length=0.2, middle=Position(x=0, y=0, z=1.0)),
@@ -104,7 +104,7 @@ class TestOcelot:
     def test_functional_kick_is_resolved_numerically(self):
         pytest.importorskip("ocelot")
         set_functional_definitions({"hc_kick": 0.06})
-        hc = Horizontal_Corrector(
+        hc = HorizontalCorrector(
             name="hc1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": "hc_kick"}
         )
         obj = translate_elements([hc])["hc1"].to_ocelot()
@@ -178,7 +178,7 @@ class TestXsuite:
         import xtrack as xt
 
         set_functional_definitions({"hc_kick": 0.02})
-        hc = Horizontal_Corrector(
+        hc = HorizontalCorrector(
             name="hc1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": "hc_kick"}
         )
         name, cls, properties = translate_elements([hc])["hc1"].to_xsuite(beam_length=1)
@@ -197,7 +197,7 @@ class TestXsuite:
         import xtrack as xt
 
         set_functional_definitions({"h_kick": 0.04, "v_kick": 0.06})
-        cc = Combined_Corrector(
+        cc = CombinedCorrector(
             name="cc1", machine_area="S",
             magnetic={"magnetic_length": 0.1, "horizontal_kick": "h_kick", "vertical_kick": "v_kick"},
         )
@@ -216,7 +216,7 @@ class TestXsuite:
         pytest.importorskip("xtrack")
         set_functional_definitions({"hc_kick": 0.02})
         set_resolve_functional(True)
-        hc = Horizontal_Corrector(
+        hc = HorizontalCorrector(
             name="hc1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": "hc_kick"}
         )
         name, cls, properties = translate_elements([hc])["hc1"].to_xsuite(beam_length=1)

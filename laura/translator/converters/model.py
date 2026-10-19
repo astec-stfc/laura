@@ -1,9 +1,11 @@
-from typing import Dict, Any, TYPE_CHECKING
 from textwrap import wrap
-from laura.models.elementList import MachineModel
+from typing import TYPE_CHECKING, Any, Dict
+
+from laura.models.element_list import MachineModel
+
+from ..utils.functions import elegant_functional_definitions, sanitize_string
 from .converter import translate_elements
 from .layout import MachineLayoutTranslator
-from ..utils.functions import elegant_functional_definitions, sanitize_string
 
 if TYPE_CHECKING:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
@@ -25,16 +27,30 @@ class MachineModelTranslator(MachineModel):
                 "master_lattice": machine.model_copy().master_lattice,
                 "functional_definitions": machine.functional_definitions,
                 "resolve_functional": machine.resolve_functional,
+                "revolution_frequency": machine.revolution_frequency,
             }
         )
+
+    def _layout_translator(self, layout) -> MachineLayoutTranslator:
+        """
+        Build a :class:`MachineLayoutTranslator` for ``layout``, falling back
+        to this machine's own ``revolution_frequency`` if the layout does not
+        define its own.
+        """
+        translator = MachineLayoutTranslator.from_layout(layout)
+        if translator.revolution_frequency is None:
+            translator.revolution_frequency = self.revolution_frequency
+        return translator
 
     def to_astra(self) -> Dict[str, Dict[str, str]]:
         model = {}
         for name, latt in self.lattices.items():
-            model.update({name: MachineLayoutTranslator.from_layout(latt).to_astra()})
+            model.update({name: self._layout_translator(latt).to_astra()})
         return model
 
-    def to_rftrack(self, P_Q: float = float("nan"), save: bool = False) -> Dict[str, Dict[str, object]]:
+    def to_rftrack(
+        self, P_Q: float = float("nan"), save: bool = False
+    ) -> Dict[str, Dict[str, object]]:
         """
         Create one RF-Track ``Lattice`` per section, grouped by layout.
 
@@ -54,12 +70,18 @@ class MachineModelTranslator(MachineModel):
         """
         model = {}
         for name, latt in self.lattices.items():
-            model.update({name: MachineLayoutTranslator.from_layout(latt).to_rftrack(P_Q=P_Q, save=save)})
+            model.update(
+                {
+                    name: MachineLayoutTranslator.from_layout(latt).to_rftrack(
+                        P_Q=P_Q, save=save
+                    )
+                }
+            )
         return model
 
-    def format_string(seld, string: str):
+    def format_string(self, string: str):
         fulltext = ""
-        for s in string.split(', '):
+        for s in string.split(", "):
             if len((fulltext + s).splitlines()[-1]) > 60:
                 fulltext += "&\n"
             fulltext += s + ", "
@@ -68,7 +90,7 @@ class MachineModelTranslator(MachineModel):
     def to_elegant(self, string: str = "", charge: float = None) -> str:
         for latt in self.lattices.values():
             for section in latt.sections.values():
-                section_with_drifts = section.createDrifts()
+                section_with_drifts = section.create_drifts()
                 elem_dict = translate_elements(
                     section_with_drifts.values(),
                     master_lattice=self.master_lattice,
@@ -92,13 +114,19 @@ class MachineModelTranslator(MachineModel):
             for l in list(latt.keys()):
                 lstring += f"{l}, "
             lstring = f"{lstring[:-2]})" + "\n\n"
-        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
-        return elegant_functional_definitions(self.functional_definitions) + string + lstring
+        lstring = "&\n".join(
+            wrap(lstring, 80, break_long_words=False, break_on_hyphens=False)
+        )
+        return (
+            elegant_functional_definitions(self.functional_definitions)
+            + string
+            + lstring
+        )
 
     def to_genesis(self, string: str = "") -> str:
         for latt in self.lattices.values():
             for section in latt.sections.values():
-                section_with_drifts = section.createDrifts()
+                section_with_drifts = section.create_drifts()
                 elem_dict = translate_elements(
                     section_with_drifts.values(),
                     master_lattice=self.master_lattice,
@@ -124,7 +152,7 @@ class MachineModelTranslator(MachineModel):
         model = {}
         for name, latt in self.lattices.items():
             model.update(
-                {name: MachineLayoutTranslator.from_layout(latt).to_ocelot(save=save)}
+                {name: self._layout_translator(latt).to_ocelot(save=save)}
             )
         return model
 
@@ -132,7 +160,7 @@ class MachineModelTranslator(MachineModel):
         model = {}
         for name, latt in self.lattices.items():
             model.update(
-                {name: MachineLayoutTranslator.from_layout(latt).to_cheetah(save=save)}
+                {name: self._layout_translator(latt).to_cheetah(save=save)}
             )
         return model
 
@@ -143,7 +171,7 @@ class MachineModelTranslator(MachineModel):
         for name, latt in self.lattices.items():
             model.update(
                 {
-                    name: MachineLayoutTranslator.from_layout(latt).to_xsuite(
+                    name: self._layout_translator(latt).to_xsuite(
                         beam_length=beam_length,
                         env=env,
                         particle_ref=particle_ref,
@@ -153,9 +181,11 @@ class MachineModelTranslator(MachineModel):
             )
         return model
 
-    def to_madx(self, beam: Dict[str, Dict[str, Dict[str, Any]]]) -> Dict[str, Dict[str, str]]:
+    def to_madx(
+        self, beam: Dict[str, Dict[str, Dict[str, Any]]]
+    ) -> Dict[str, Dict[str, str]]:
         model = {}
         for name, latt in self.lattices.items():
-            b = beam[name] if name in beam else None
-            model.update({sanitize_string(name): MachineLayoutTranslator.from_layout(latt).to_madx(beam=b)})
+            b = beam.get(name, None)
+            model.update({sanitize_string(name): self._layout_translator(latt).to_madx(beam=b)})
         return model

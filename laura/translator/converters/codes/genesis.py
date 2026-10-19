@@ -1,0 +1,17 @@
+genesis_unsupported = [
+    "Dipole",
+    "Sextupole",
+    "Octupole",
+    "RCollimator",
+    "Collimator",
+    "Solenoid",
+    "RFCavity",
+    "RFDeflectingCavity",
+    "Wakefield",
+    "Aperture",
+    "Wakefield",
+    "Plasma",
+    "TwissMatch",
+    "ActivePlasmaLens",
+    "CrabCavity",
+]

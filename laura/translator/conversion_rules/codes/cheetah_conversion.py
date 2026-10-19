@@ -21,11 +21,12 @@ try:
         Undulator,
         VerticalCorrector,
     )
+
     _CHEETAH_AVAILABLE = True
 except ImportError as _err:
     raise ImportError(
         "cheetah-accelerator is not installed. "
-        "Install with: pip install \"laura-accelerator[cheetah]\""
+        'Install with: pip install "laura-accelerator[cheetah]"'
     ) from _err
 
 cheetah_conversion_rules = {
@@ -34,7 +35,8 @@ cheetah_conversion_rules = {
     "Quadrupole": Quadrupole,
     "Sextupole": Sextupole,
     "Octupole": Drift,
-    "Beam_Position_Monitor": Screen,
+    "Decapole": Drift,
+    "Beam_Position_Monitor": BPM,
     "Beam_Arrival_Monitor": Screen,
     "Bunch_Length_Monitor": Screen,
     "Screen": Screen,
@@ -46,6 +48,7 @@ cheetah_conversion_rules = {
     "Faraday_Cup_Monitor": Drift,
     "RFCavity": Cavity,
     "RFDeflectingCavity": TransverseDeflectingCavity,
+    "CrabCavity": TransverseDeflectingCavity,
     "Aperture": Aperture,
     "Shutter": Drift,
     "Valve": Drift,
@@ -54,11 +57,17 @@ cheetah_conversion_rules = {
     "lscdrift": Drift,
     "Drift": Drift,
     "csrdrift": Drift,
-    "Kicker": HorizontalCorrector,
+    "Kicker": CombinedCorrector,
     "Horizontal_Corrector": HorizontalCorrector,
     "Vertical_Corrector": VerticalCorrector,
     "Combined_Corrector": CombinedCorrector,
     "Marker": Screen,
     "Wakefield": Drift,
     "Laser": Drift,
+    "Plasma": Drift,
+    "Wiggler": Undulator,
+    "Diagnostic": Screen,
+    "Photon_Monitor": Screen,
+    "TwissMatch": Marker,
+    "MatrixTransform": CustomTransferMap,
 }

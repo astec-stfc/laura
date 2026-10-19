@@ -321,6 +321,8 @@ attributes:
     ifabsent: float(2998500000.0)
     owner: RFCavityElement
     domain_of:
+    - ACDipoleSimulationElement
+    - RFMultipoleSimulationElement
     - RFCavityElement
     - RFDeflectingCavityElement
     range: float
@@ -363,6 +365,8 @@ attributes:
     ifabsent: float(0.0)
     owner: RFCavityElement
     domain_of:
+    - ACDipoleSimulationElement
+    - RFMultipoleSimulationElement
     - RFCavityElement
     - RFDeflectingCavityElement
     range: float
