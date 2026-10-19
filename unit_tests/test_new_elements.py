@@ -415,6 +415,23 @@ class TestMadxCavityAndAperture:
         out = translate_elements([cav])["c1"].to_elegant()
         assert "body_focus_model = TW1" in out
 
+    def test_travelling_wave_cavity_tw_focusing_off_uses_standing_wave(self):
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={
+                "structure_type": "TravellingWave",
+                "phase": 0.0,
+                "mode_numerator": 2,
+                "mode_denominator": 3,
+            },
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        tr = translate_elements([cav])["c1"]
+        assert tr.to_cheetah().cavity_type == "traveling_wave"
+        tr.tw_focusing = False
+        assert "body_focus_model = SRS" in tr.to_elegant()
+        assert tr.to_cheetah().cavity_type == "standing_wave"
+
     def test_standing_wave_cavity_elegant_uses_default_body_focus_model(self):
         cav = RFCavity(
             name="c1", machine_area="S",

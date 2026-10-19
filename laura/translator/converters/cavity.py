@@ -14,8 +14,6 @@ from ..utils.functions import sanitize_string
 from .base import BaseElementTranslator
 
 
-
-
 class RFCavityTranslator(BaseElementTranslator):
     """
     Translator class for converting a :class:`~laura.models.element.RFCavity` element instance into a string or
@@ -36,6 +34,10 @@ class RFCavityTranslator(BaseElementTranslator):
 
     zwakefile: str | None = None
     """Name of longitudinal wakefile associated with the cavity."""
+
+    tw_focusing: bool = True
+    """Use travelling-wave transverse focusing for TravellingWave cavities. Set from
+    :attr:`~laura.translator.converters.section.SectionLatticeTranslator.tw_focusing`."""
 
     @computed_field
     @property
@@ -214,7 +216,11 @@ class RFCavityTranslator(BaseElementTranslator):
                 # MAD-X's tw_matrix_cavity and Ocelot's add_tw1_focusing no longer
                 # use for TravellingWave cavities, so leaving this unset makes
                 # ELEGANT disagree with both of them.
-                if key == "body_focus_model" and self.structure_type == "TravellingWave":
+                if (
+                    key == "body_focus_model"
+                    and self.structure_type == "TravellingWave"
+                    and self.tw_focusing
+                ):
                     value = "TW1"
 
                 # In CAVITY NKICK = n_cells
@@ -294,8 +300,9 @@ class RFCavityTranslator(BaseElementTranslator):
         tuple
             Cheetah Cavity object
         """
+        from torch import float64, tensor
+
         from ..conversion_rules.codes import cheetah_conversion
-        from torch import tensor, float64
 
         type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
@@ -339,7 +346,7 @@ class RFCavityTranslator(BaseElementTranslator):
                         obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
         if hasattr(obj, "cavity_type"):
-            if self.cavity.structure_type == "TravellingWave":
+            if self.cavity.structure_type == "TravellingWave" and self.tw_focusing:
                 obj.cavity_type = "traveling_wave"
             else:
                 obj.cavity_type = "standing_wave"
