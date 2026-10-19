@@ -7,6 +7,7 @@ import numpy as np
 from pydantic import PositiveInt
 
 if TYPE_CHECKING:
+    from at import Lattice
     from cheetah import Segment
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
     from wake_t import Beamline
@@ -41,6 +42,7 @@ from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
 from .codes import (
     astra_unsupported,
+    at_unsupported,
     bmad_unsupported,
     cheetah_unsupported,
     csrtrack_unsupported,
@@ -60,6 +62,7 @@ from .wake import WakefieldTranslator
 unsupported_elements = {
     "bmad": bmad_unsupported,
     "astra": astra_unsupported,
+    "at": at_unsupported,
     "cheetah": cheetah_unsupported,
     "csrtrack": csrtrack_unsupported,
     "elegant": elegant_unsupported,
@@ -581,9 +584,9 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[
-                            key
-                        ] += f"{section_header_text_astra[key]} = True\n"
+                        element_headers[key] += (
+                            f"{section_header_text_astra[key]} = True\n"
+                        )
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
@@ -609,9 +612,9 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers[
-                                "&WAKE"
-                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
+                            element_headers["&WAKE"] += (
+                                f"{section_header_text_astra['&WAKE']} = True\n"
+                            )
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += w.astra_wake_spacing[1]
@@ -1042,6 +1045,66 @@ class SectionLatticeTranslator(SectionLattice):
 
         return maglat
 
+    def to_at(
+        self,
+        energy: float | None = None,
+        particle: str | None = None,
+        save: bool = False,
+    ) -> "Lattice":
+        """
+        Create a pyAT (Accelerator Toolbox) ``Lattice`` for this section.
+
+        Parameters
+        ----------
+        energy: float, optional
+            Total energy of the design particle [eV]; defaults to
+            :attr:`reference_energy`.
+        particle: str, optional
+            An ``at.Particle`` name (``"electron"``, ``"proton"``, ...);
+        save: bool
+            Also write the lattice to ``{directory}/{name}.m``.
+
+        Returns
+        -------
+        at.Lattice
+        """
+        import at
+
+        self._check_elements_supported("at")
+        energy = self.reference_energy if energy is None else energy
+        if energy is None:
+            raise ValueError(
+                f"{self.name}: AT needs the design energy; pass energy= or set "
+                "the section's reference_energy."
+            )
+        elements = []
+        for d in self._translate(self.create_drifts().values()).values():
+            if d.subelement:
+                continue
+            obj = d.to_at()
+            elements.append(obj)
+            gap = d.physical.length - obj.Length
+            if gap > 1e-9:
+                elements.append(at.Drift(f"{d.name}_len", gap))
+        for cavity in elements:
+            if isinstance(cavity, at.RFCavity):
+                cavity.Energy = energy
+        kwargs = {"particle": particle} if particle else {}
+        ring = at.Lattice(elements, name=self.name, energy=energy, **kwargs)
+        brho = (energy**2 - ring.particle.rest_energy**2) ** 0.5 / 299792458.0
+        for ac in ring:
+            if isinstance(ac, at.VariableThinMultipole):
+                for plane in "AB":
+                    if getattr(ac, f"Amplitude{plane}", None) is not None:
+                        setattr(
+                            ac,
+                            f"Amplitude{plane}",
+                            getattr(ac, f"Amplitude{plane}") / brho,
+                        )
+        if save:
+            ring.save(f"{self.directory}/{self.name}.m")
+        return ring
+
     def to_rftrack(
         self, P_Q: float = float("nan"), save: bool = False, sc_nsteps: int = 0
     ) -> object:
@@ -1253,6 +1316,13 @@ class SectionLatticeTranslator(SectionLattice):
                     )
                 if turns > 1 and "stop_at_turn" in properties:
                     properties["stop_at_turn"] = int(turns)
+                if "shift_x" in getattr(component, "_xofields", ()):
+                    misalignment = {
+                        "shift_x": element.dx,
+                        "shift_y": element.dy,
+                        "rot_s_rad": element.roll,
+                    }
+                    properties.update({k: v for k, v in misalignment.items() if v})
                 if any(_is_symbolic(v) for v in properties.values()):
                     env.new(element.name, component, **properties)
                     line.append(element.name)

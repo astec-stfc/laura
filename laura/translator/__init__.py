@@ -1,6 +1,7 @@
 import importlib
 
 _EXPORTS = {
+    "ATLatticeImporter": ".converters.codes",
     "BmadLatticeImporter": ".converters.codes",
     "ElegantLatticeImporter": ".converters.codes",
     "MadxLatticeImporter": ".converters.codes",

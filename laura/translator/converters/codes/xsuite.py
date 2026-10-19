@@ -13,7 +13,7 @@ import laura.models.element as laura_elements
 from laura.models.element_list import MachineLayout, SectionLattice
 
 from ...utils.ac_dipole import MV_PER_VOLT
-from .importer import LatticeImporter, twiss_simulation
+from .importer import LatticeImporter, apply_misalignment, twiss_simulation
 
 xsuite_unsupported = [
     "Laser",
@@ -730,6 +730,11 @@ class XsuiteLatticeImporter(LatticeImporter):
                     absorbed_edges.get(element_name),
                 ),
             }
+            apply_misalignment(
+                data,
+                laura_type,
+                *(float(getattr(native, key, 0.0)) for key in ("shift_x", "shift_y", "rot_s_rad")),
+            )
             if laura_type is laura_elements.Drift:
                 data["hardware_class"] = "Drift"
             self.elements[element_name] = laura_type(**data)

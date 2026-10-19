@@ -55,6 +55,34 @@ class ContainerTranslator:
     def to_ocelot(self, save: bool = False) -> Dict[str, Any]:
         return self._fan_out("to_ocelot", save=save)
 
+    def to_at(
+        self,
+        energy: float | None = None,
+        particle: str | None = None,
+        save: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Create one pyAT ``Lattice`` per section; see
+        :meth:`~laura.translator.converters.section.SectionLatticeTranslator.to_at`.
+
+        Parameters
+        ----------
+        energy: float, optional
+            Beam energy [eV]
+        particle: str, optional
+            Particle species
+        save: bool, optional
+            Save lattice to file
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary of lattice objects (sections / layouts) keyed by name
+        """
+        return self._fan_out(
+            "to_at", energy=energy, particle=self.particle or particle, save=save
+        )
+
     def to_cheetah(self, save: bool = False) -> Dict[str, Any]:
         return self._fan_out("to_cheetah", save=save)
 

@@ -192,6 +192,7 @@ autodoc_mock_imports = [
     "xtrack",           # optional accelerator-code dependency (used by xsuite converters)
     "cheetah",          # optional accelerator-code dependency
     "wake_t",           # optional accelerator-code dependency
+    "at",               # optional accelerator-code dependency (pyAT)
 ]
 
 numfig = True

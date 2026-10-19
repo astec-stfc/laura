@@ -697,3 +697,33 @@ def test_the_section_takes_its_reference_energy_from_particle_ref(p0c):
         assert energy is None
     else:
         assert energy == pytest.approx(np.hypot(p0c, xt.ELECTRON_MASS_EV))
+
+
+def test_misalignments_and_tilt_survive_the_round_trip(tmp_path):
+    elements = {
+        "quad": Sextupole(
+            name="quad",
+            machine_area="test",
+            physical={"s": 0.5, "length": 0.2, "error": {"position": {"x": 1e-3, "y": -2e-3}}},
+            magnetic={"length": 0.2, "k2l": 0.3, "tilt": 0.1},
+        ),
+        "cavity": RFCavity(
+            name="cavity",
+            machine_area="test",
+            physical={"s": 1.5, "length": 0.5, "error": {"rotation": {"psi": 0.05}}},
+            cavity={"frequency": 5e8},
+            simulation={"field_amplitude": 1e6},
+        ),
+    }
+    section = SectionLattice(
+        name="line", order=list(elements), elements=ElementList(elements=elements)
+    )
+    importer = _xsuite_round_trip(section, tmp_path)
+    native = importer.line["quad"]
+    assert (native.shift_x, native.shift_y, native.rot_s_rad) == pytest.approx((1e-3, -2e-3, 0.1))
+
+    imported = importer.create_element_dictionary()
+    assert imported["quad"].physical.error.position.x == pytest.approx(1e-3)
+    assert imported["quad"].physical.error.position.y == pytest.approx(-2e-3)
+    assert imported["quad"].magnetic.tilt == pytest.approx(0.1)
+    assert imported["cavity"].physical.error.rotation.psi == pytest.approx(0.05)

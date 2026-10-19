@@ -52,7 +52,7 @@ works out of the box. Support for individual target codes is pulled in through e
 
    * - Extra
      - Provides
-   * - ``[xsuite]``, ``[ocelot]``, ``[cheetah]``, ``[wake_t]``, ``[madx]``, ``[bmad]``
+   * - ``[xsuite]``, ``[ocelot]``, ``[cheetah]``, ``[wake_t]``, ``[madx]``, ``[bmad]``, ``[at]``
      - A single simulation-code backend; see :ref:`translator`.
    * - ``[conversion]``
      - All of the above at once.

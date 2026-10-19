@@ -91,6 +91,19 @@ class RFCavityTranslator(BaseElementTranslator):
         """Cavity field amplitude, resolving a functional definition if set symbolically."""
         return self.resolve(self.simulation.field_amplitude)
 
+    @property
+    def voltage(self) -> float:
+        """Voltage [V] for codes that take one: :attr:`field_amplitude`, times
+        :meth:`voltage_factor`."""
+        return self.field_amplitude * self.voltage_factor()
+
+    def voltage_factor(self) -> float:
+        """1 for a standing-wave cavity; an effective length [m] turning a
+        travelling-wave cavity's gradient into a voltage."""
+        if self.structure_type != "TravellingWave":
+            return 1.0
+        return abs((self.get_cells() + 3.8) * self.cavity.cell_length / np.sqrt(2))
+
     @computed_field
     @property
     def tcolumn(self) -> str | None:
@@ -529,14 +542,7 @@ class RFCavityTranslator(BaseElementTranslator):
                         else np.radians(90 - value)
                     )
                 if key == "voltage" and not functional:
-                    if self.structure_type == "TravellingWave":
-                        value = value * abs(
-                            (self.get_cells() + 3.8)
-                            * self.cavity.cell_length
-                            * (1 / np.sqrt(2))
-                        )
-                    else:
-                        value = value
+                    value = value * self.voltage_factor()
                 if key == "num_kicks" and value is None and self.get_cells() > 1:
                     value = 3 * self.get_cells()
                 if value is not None:
@@ -584,14 +590,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     f"(90 - ({value})) / 360" if functional else (90 - value) / 360.0
                 )
             if key == "volt":
-                if self.structure_type == "TravellingWave":
-                    factor = abs(
-                        (self.get_cells() + 3.8)
-                        * self.cavity.cell_length
-                        * (1 / np.sqrt(2))
-                    )
-                else:
-                    factor = 1.0
+                factor = self.voltage_factor()
                 value = (
                     f"({value}) * {factor / 1e6}"
                     if functional

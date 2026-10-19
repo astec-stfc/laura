@@ -77,6 +77,17 @@ class TestMadxElements:
         assert "k1 = -20.0" in out
         assert "quad1_k1l" not in out
 
+    def test_roll_error_adds_to_tilt(self):
+        q = Quadrupole(
+            name="q1",
+            machine_area="S02",
+            physical={"error": {"rotation": {"psi": 0.02}}},
+            magnetic={"magnetic_length": 0.1, "k1l": -2.0, "tilt": 0.1},
+        )
+        translator = MagnetTranslator.model_validate(q.model_dump())
+        assert "tilt = 0.12" in translator.to_madx()
+        assert "tilt=0.12" in translator.to_elegant().replace(" ", "").lower()
+
     def test_dipole_angle_and_edges(self):
         dt = _dipole(k0l=0.2, entrance_edge_angle=0.05, exit_edge_angle=0.05)
         out = dt.to_madx()

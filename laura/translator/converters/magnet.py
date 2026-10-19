@@ -291,7 +291,11 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         field_ref_pos = self.get_field_reference_position(if_none="middle")
         astradict = {
             "Q_pos": {"value": field_ref_pos[2] + self.dz, "default": 0},
-            "Q_xoff": {"value": field_ref_pos[0], "default": 0, "type": "not_zero"},
+            "Q_xoff": {
+                "value": field_ref_pos[0] + self.dx,
+                "default": 0,
+                "type": "not_zero",
+            },
             "Q_yoff": {
                 "value": field_ref_pos[1] + self.dy,
                 "default": None,

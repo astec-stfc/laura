@@ -17,6 +17,7 @@ simulation codes including:
 * `Genesis <https://github.com/svenreiche/Genesis-1.3-Version4>`_ :cite:`Genesis`
 * `MAD-X <https://cern.ch/madx>`_ :cite:`MADX`, via `cpymad <https://hibtc.github.io/cpymad/index.html>`_
 * `RF-Track <https://gitlab.cern.ch/rf-track>`_ -- see :ref:`rftrack-translator`
+* `Accelerator Toolbox <https://github.com/atcollab/at>`_ -- see :ref:`at-translator`
 
 The translator module uses a hierarchical approach: individual elements are translated first, then combined into
 sections that can be exported as complete input files or objects for each simulation code.
@@ -506,6 +507,58 @@ Supported elements
    zero strength and is expected to be set at run time, mirroring how ASTRA and GPT correctors
    are handled. Screens are created with infinite extent and an unbounded time window;
    width, height and time window are not yet carried over from :mod:`LAURA`.
+
+.. _at-translator:
+
+Accelerator Toolbox Translator
+------------------------------
+
+`Accelerator Toolbox <https://github.com/atcollab/at>`_ (pyAT) is installed with the ``[at]`` extra.
+As for RF-Track, :py:meth:`BaseElementTranslator.to_at
+<laura.translator.converters.base.BaseElementTranslator.to_at>` dispatches on ``hardware_type``
+through :py:data:`at_conversion_rules
+<laura.translator.conversion_rules.codes.at_conversion.at_conversion_rules>`, and
+:py:meth:`SectionLatticeTranslator.to_at <laura.translator.converters.section.SectionLatticeTranslator.to_at>`
+returns an ``at.Lattice``; ``save=True`` also writes ``{directory}/{name}.m``. AT needs the design
+energy: pass ``energy=`` or set the section's ``reference_energy``. Every value is resolved, since AT
+has no deferred expressions.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - :mod:`LAURA` element
+     - AT element
+   * - ``Dipole``
+     - ``Dipole`` (``BndMPoleSymplectic4E2Pass``; ``BndMPoleSymplectic4Pass`` if an edge is switched off)
+   * - ``Quadrupole``, ``Sextupole``, ``Octupole``, ``Decapole``
+     - ``Quadrupole``, ``Sextupole``, ``Multipole``; ``ThinMultipole`` at zero length
+   * - correctors
+     - ``Corrector``
+   * - ``RFCavity``
+     - ``RFCavity``
+   * - ``CrabCavity``, ``RFDeflectingCavity``
+     - ``CrabCavity`` (no energy kick)
+   * - ``Wiggler``
+     - ``Wiggler`` (``GWigSymplecticPass``)
+   * - ``Solenoid``
+     - ``SolenoidLinearPass``
+   * - ``MatrixTransform``
+     - ``M66``, or ``MatrixTijkPass`` with a second-order map
+   * - AC dipoles
+     - sine-mode ``VariableThinMultipole``
+   * - ``Beam_Position_Monitor``
+     - ``Monitor``
+   * - diagnostics, apertures, markers
+     - ``Drift`` or ``Marker``
+
+Thick magnets take one integration step per 5 mm, and at least 10; an explicit ``n_kicks`` can
+only raise that. Offsets and the roll (``magnetic.tilt`` plus the roll error) are applied with
+``at.transform_elem``; pitch and yaw errors are not exported.
+
+:py:class:`ATLatticeImporter <laura.translator.converters.codes.at.ATLatticeImporter>` reads an
+``at.Lattice``, or any file ``at.load_lattice`` reads, back into :mod:`LAURA`, inverting the same
+conventions.
 
 .. _machine-layout-translator:
 

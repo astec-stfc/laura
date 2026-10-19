@@ -59,6 +59,22 @@ def twiss_simulation(*values: float) -> dict:
     return dict(zip(fields, values, strict=True), from_beam=False)
 
 
+def apply_misalignment(
+    data: dict, laura_type: type, dx: float, dy: float, roll: float
+) -> None:
+    """Write offsets into ``data``'s ``physical.error`` and a roll into the
+    magnet's ``tilt``, or into the roll error where the type has no ``tilt``."""
+    if dx or dy:
+        data["physical"]["error"] = {"position": {"x": dx, "y": dy}}
+    if not roll:
+        return
+    field = laura_type.model_fields.get("magnetic")
+    if "tilt" in getattr(field and field.annotation, "model_fields", ()):
+        data.setdefault("magnetic", {})["tilt"] = roll
+    else:
+        data["physical"].setdefault("error", {})["rotation"] = {"psi": roll}
+
+
 def keyword_rules(rules: Dict, hardware_type: str) -> Dict:
     """``rules["general"]`` merged over ``hardware_type``'s own rules."""
     key = hardware_type.lower()

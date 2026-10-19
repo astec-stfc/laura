@@ -71,9 +71,13 @@ gpt = [
     "easygdf",
 ]
 
+at = [
+    "accelerator-toolbox>=0.9",
+]
+
 # Full install of all supported simulation codes for conversion
 conversion = [
-    "laura-accelerator[xsuite,ocelot,cheetah,wake_t,bmad,madx,gpt]",
+    "laura-accelerator[xsuite,ocelot,cheetah,wake_t,bmad,madx,gpt,at]",
 ]
 
 # Naming-convention linting and the AST codemod used to apply renames.

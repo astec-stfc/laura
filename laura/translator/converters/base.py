@@ -334,8 +334,8 @@ class BaseElementTranslator(PhysicalBaseElement):
     def _magnet_value(self, key: str, value: Any, code: str) -> Tuple[Any, bool]:
         """
         Resolve the magnet-derived value of the ``code`` keyword ``key``: the
-        ``"angle"`` tokens, the normalised ``k<n>`` strengths and the bend
-        ``angle``.
+        ``"angle"`` tokens, the normalised ``k<n>`` strengths, the bend
+        ``angle`` and ``tilt`` plus :attr:`dz_rot`.
 
         Returns
         -------
@@ -344,6 +344,10 @@ class BaseElementTranslator(PhysicalBaseElement):
             (never when :attr:`_resolve_functional` is set).
         """
         symbolic = not self._resolve_functional
+        if key == "tilt" and self.dz_rot:
+            if isinstance(value, str):
+                return f"({value}) + {self.dz_rot}", True
+            return value + self.dz_rot, False
         if value in ("angle", "angle/2"):
             if symbolic and key in ("e1", "e2"):
                 which = "entrance_edge_angle" if key == "e1" else "exit_edge_angle"
@@ -626,6 +630,49 @@ class BaseElementTranslator(PhysicalBaseElement):
             # n_kicks is ELEGANT's count of 4th-order steps; yoshida4 means the same
             properties["integrator"] = "yoshida4"
         return self.name, obj, properties
+
+    def to_at(self) -> object:
+        """
+        Generates a pyAT (Accelerator Toolbox) element, dispatching on
+        ``hardware_type`` via
+        :data:`~laura.translator.conversion_rules.codes.at_conversion.at_conversion_rules`.
+
+        AT has no deferred expressions, so every value is resolved. The
+        element's aperture and its offset and roll errors are applied here;
+        a pitch or yaw error is not exported.
+
+        Returns
+        -------
+        at.Element
+        """
+        import at
+
+        from ..conversion_rules.codes.at_conversion import (
+            at_conversion_rules,
+            build_passive,
+        )
+
+        self.start_write()
+        builder = at_conversion_rules.get(self.hardware_type)
+        if builder is None:
+            warn(
+                f"Element type {self.hardware_type} of {self.name} not supported "
+                "by AT; using a drift"
+            )
+            builder = build_passive
+        obj = builder(self)
+        params = self._rftrack_aperture_params()
+        if params is not None:
+            rx, ry, shape = params
+            if shape == "circular":
+                obj.EApertures = [rx, ry]
+            else:
+                obj.RApertures = [-rx, rx, -ry, ry]
+        if self.dx_rot or self.dy_rot:
+            warn(f"{self.name}: AT export drops the pitch and yaw errors.")
+        if self.dx or self.dy or self.roll:  # tilt has MAD-X's TILT sign
+            at.transform_elem(obj, dx=self.dx, dy=self.dy, tilt=self.roll)
+        return obj
 
     def to_genesis(self, index: int) -> str:
         """
@@ -1481,6 +1528,12 @@ class BaseElementTranslator(PhysicalBaseElement):
     def dz_rot(self) -> float:
         """Roll error, about the longitudinal (z) axis [rad]."""
         return self.physical.error.rotation.psi
+
+    @property
+    def roll(self) -> float:
+        """Total roll [rad]: the magnet's ``tilt`` plus :attr:`dz_rot`."""
+        tilt = getattr(getattr(self, "magnetic", None), "tilt", 0.0) or 0.0
+        return float(self.resolve(tilt)) + self.dz_rot
 
     def _astra_rotation(self, plane: str) -> float:
         """The total design-plus-error rotation for one plane, in ASTRA's sense."""

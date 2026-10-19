@@ -9,6 +9,7 @@ magnetic_orders = {
 }
 
 from .astra import astra_unsupported
+from .at import at_unsupported, ATLatticeImporter
 from .bmad import bmad_unsupported, BmadLatticeImporter
 from .cheetah import cheetah_unsupported
 from .csrtrack import csrtrack_unsupported
