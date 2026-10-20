@@ -7,10 +7,12 @@ from laura.models.element_list import (
     SectionLattice,
     flatten_occurrence,
 )
-from laura.models.reversal import reverse_section
+from laura.models.exceptions import LatticeError
+from laura.models.reversal import _forget_placement, reverse_section
 
 from ..utils.functions import sanitize_string
 from .ac_dipole import ACDipoleTranslator
+from .codes.importer import infer_geometry
 from .converter import translate_elements
 from .fanout import ContainerTranslator, wrap_lattice_line
 from .section import SectionLatticeTranslator, fix_ring_reference
@@ -193,6 +195,53 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
             resolve_functional=section.resolve_functional,
             revolution_frequency=section.revolution_frequency,
         )
+
+    def as_section(self, name: str | None = None) -> SectionLatticeTranslator:
+        """The whole layout as one section, for exporting it as one lattice --
+        a ring split into sections, say -- through any section exporter.
+
+        Elements are re-placed at their :meth:`arc_lengths`, so gaps between
+        sections survive as drifts.
+        """
+        arc = self.arc_lengths()
+        elements, order = [], []
+        for section in self.sections.values():
+            registry = section.elements.elements
+            for element_name in section.order:
+                source = registry.get(element_name)
+                if source is None:
+                    continue
+                if element_name in order:
+                    raise LatticeError(
+                        f"'{element_name}' appears twice in layout '{self.name}', "
+                        "so it cannot be merged into one section."
+                    )
+                element = source.model_copy(deep=True)
+                phys = element.physical
+                _forget_placement(phys, keep_s=element_name in arc)
+                if element_name in arc:
+                    phys.s = arc[element_name] + (phys.length or 0.0) / 2.0
+                    phys.s_point = "middle"
+                elements.append(element)
+                order.append(element_name)
+        first = next(iter(self.sections.values()))
+        merged = SectionLattice(
+            name=name or self.name,
+            elements=elements,
+            order=order,
+            master_lattice=self.master_lattice,
+            functional_definitions=self.functional_definitions,
+            resolve_functional=self.resolve_functional,
+            revolution_frequency=self.revolution_frequency,
+            reference_energy=first.reference_energy,
+        )
+        registry = merged.elements.elements
+        merged._resolve_sequential_placement(registry)
+        merged.resolve_positions(registry)
+        if any(s.geometry == "closed" for s in self.sections.values()):
+            merged.geometry = "closed"
+        infer_geometry(merged)
+        return self._section_translator(merged)
 
     def _section_translator(self, section) -> SectionLatticeTranslator:
         """

@@ -180,23 +180,9 @@ class MagnetTranslator(MultipoleStrengthTranslator):
                 )
             return self._format_bmad(parameters=parameters)
         parameters = self._bmad_parameters()
-        strength = self.magnetic.ks
-        # `ks` and not `bs_field`: LAURA's is the integrated *normalised*
-        # strength, so dividing the length out gives Bmad's normalised `ks`
-        # [1/m]. `bs_field` is tesla, and the two differ by the rigidity.
-        parameters["ks"] = (
-            f"{strength} / {self.magnetic.length}"
-            if (
-                not self._resolve_functional
-                and self.is_functional(strength)
-                and self.magnetic.length
-            )
-            else (
-                self.resolve(strength) / self.magnetic.length
-                if self.magnetic.length
-                else self.resolve(strength)
-            )
-        )
+        parameters.pop("ks", None)
+        # `S0L` is the integrated field [T*m], so tesla rather than Bmad's normalised `ks`
+        parameters["bs_field"] = SolenoidTranslator._field(self)
         return self._format_bmad(parameters=parameters)
 
     def _add_bmad_magnetic_field(
@@ -402,11 +388,15 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         self.start_write()
         if "corrector" in self.hardware_type.lower():
             return ""
+        # GPT "X" is minus Bmad's y_pitch, "Y" its x_pitch (GPT manual; not run)
         rotation = list(self.ccs.rotation)
-        rotation[2] += getattr(self.magnetic, "tilt", 0.0) or 0.0
+        rotation[0] += self.dy_rot
+        rotation[1] -= self.dx_rot
+        rotation[2] += self.roll
         ccs_label, value_text = self.ccs.ccs_text(
             list(self.physical.middle.model_dump().values()),
             rotation,
+            offset=(self.dx, self.dy, self.dz),
         )
         length = self.magnetic.length
         kn = self.magnetic.KnL() / length if length else self.magnetic.KnL()
@@ -869,7 +859,9 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         ):
             return ""
         for key, value in self._dump_items(
-            self._convert_keyword_opal, elements_opal[etype]
+            self._convert_keyword_opal,
+            elements_opal[etype],
+            overrides=self._opal_alignment(),
         ):
             if key in ("k1", "k2", "k3", "k4", "k5", "k6"):
                 value = getattr(self, f"{key}l")
@@ -894,10 +886,88 @@ class SolenoidTranslator(BaseElementTranslator):
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
 
+    Brho: Union[float, str] = 0.0
+    """Rigidity ``p / q`` [T*m], negative for electrons, for the codes whose
+    solenoid takes a normalised strength: they ignore the
+    beam's charge, so its sign sets the sense of rotation. MAD-X also takes
+    the name of a variable holding it."""
+
+    def _field(self, scale: Union[float, str] = 1.0) -> Union[float, str]:
+        """``S0L`` [T*m] over the length and ``scale``; the field [T] by default."""
+        strength = self.magnetic.ks
+        length = self.magnetic.length or 1.0
+        if isinstance(scale, str):
+            return f"{self._field()} / {scale}"
+        if not self._resolve_functional and self.is_functional(strength):
+            return f"({strength}) / {length * scale}"
+        return self.resolve(strength) / (length * scale)
+
+    def full_dump(self, resolve: bool = True) -> dict:
+        data = super().full_dump(resolve=resolve)
+        # an unset field-map scale would otherwise shadow ``field_amplitude``
+        if not data.get("simulation_field_amplitude"):
+            data.pop("simulation_field_amplitude", None)
+        return data
+
     @computed_field
     @property
-    def ks(self) -> Union[float, str]:
-        return self.magnetic.ks
+    def field_amplitude(self) -> Union[float, str]:
+        """Field [T]."""
+        return self._field()
+
+    @computed_field
+    @property
+    def ks(self) -> Union[float, str, None]:
+        """Normalised strength ``B / Brho`` [1/m], once ``Brho`` is known."""
+        return self._field(self.Brho) if self.Brho else None
+
+    def _check_rigidity(self, code: str) -> None:
+        if not self.Brho and self.resolve(self.magnetic.ks):
+            warn(
+                f"{code} needs the rigidity (Brho) to normalise solenoid "
+                f"{self.name!r}; its strength was not written."
+            )
+
+    def to_madx(self, at: float | None = None, Brho: Union[float, str] = 0.0) -> str:
+        self.Brho = Brho or self.Brho
+        self._check_rigidity("MAD-X")
+        return super().to_madx(at=at)
+
+    def to_xsuite(self, beam_length: int, Brho: float = 0.0) -> tuple:
+        self.Brho = Brho or self.Brho
+        self._check_rigidity("Xsuite")
+        return super().to_xsuite(beam_length)
+
+    def to_elegant(self) -> str:
+        text = super().to_elegant()
+        field = self._field()
+        if isinstance(field, str):  # elegant takes rpn
+            rpn = self._rpn(self.magnetic.ks, self.magnetic.length or 1.0, "/")
+            text = text.replace(f"b = {field}", f"b = {rpn}")
+        return text
+
+    def _half_ks(self) -> float:
+        """OCELOT's and Cheetah's ``k = B / (2 Brho)``, measured to turn as MAD-X's ``ks``."""
+        length = self.magnetic.length or 1.0
+        return self.resolve(self.magnetic.ks) / (length * 2 * self.Brho)
+
+    def to_ocelot(self, Brho: float = 0.0) -> object:
+        self.Brho = Brho or self.Brho
+        self._check_rigidity("OCELOT")
+        obj = super().to_ocelot()
+        if self.Brho:
+            obj.k = self._half_ks()
+        return obj
+
+    def to_cheetah(self, Brho: float = 0.0) -> object:
+        from torch import float64, tensor
+
+        self.Brho = Brho or self.Brho
+        self._check_rigidity("Cheetah")
+        obj = super().to_cheetah()
+        if self.Brho:
+            obj.k = tensor(self._half_ks(), dtype=float64)
+        return obj
 
     def to_bmad(self) -> str:
         """
@@ -910,23 +980,15 @@ class SolenoidTranslator(BaseElementTranslator):
         """
         self.start_write()
         parameters = self._bmad_parameters()
-        strength = self.magnetic.ks
-        # `ks` and not `bs_field` -- see the note in `SolenoidTranslator`.
-        if self.magnetic.length:
-            parameters["ks"] = (
-                f"{strength} / {self.magnetic.length}"
-                if not self._resolve_functional and self.is_functional(strength)
-                else self.resolve(strength) / self.magnetic.length
-            )
-        else:
-            parameters["ks"] = self.resolve(strength)
+        parameters.pop("ks", None)
+        parameters["bs_field"] = self._field()
         MagnetTranslator._add_bmad_magnetic_field(
             self,
             parameters,
-            field_scale=parameters["ks"],
+            field_scale=parameters["bs_field"],
             kind="bs",
             n=0,
-            strength_key="ks",
+            strength_key="bs_field",
         )
         return self._format_bmad(parameters=parameters)
 
@@ -1105,7 +1167,9 @@ class SolenoidTranslator(BaseElementTranslator):
         etype = self._convert_type_opal(self.hardware_type)
         wholestring = f"{self.name.replace('-', '_')}: {etype}"
         for key, value in self._dump_items(
-            self._convert_keyword_opal, elements_opal[etype]
+            self._convert_keyword_opal,
+            elements_opal[etype],
+            overrides=self._opal_alignment(),
         ):
             value = self.opal_ks(designenergy) if key == "ks" else self._flag(value)
             if value is not None:

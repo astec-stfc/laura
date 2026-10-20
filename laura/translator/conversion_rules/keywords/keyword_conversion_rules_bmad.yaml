@@ -52,10 +52,10 @@ wiggler:
   period: l_period
   num_periods: n_period
 solenoid:
-  ks: ks
+  field_amplitude: bs_field
 combinedsolenoidquadrupole:
   k1l: k1
-  ks: ks
+  field_amplitude: bs_field
 electrostaticseparator:
   field_amplitude: e_field
   horizontal_kick: hkick

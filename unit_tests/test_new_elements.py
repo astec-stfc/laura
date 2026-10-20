@@ -349,8 +349,8 @@ class TestMatrixTransformAndCrabCavityDispatch:
         out = translate_elements([_crab()])["cc1"].to_elegant()
         assert "cc1: rfdf" in out
         assert "voltage = 5000000.0" in out
-        # +90 degree ELEGANT phase convention applied
-        assert "phase = 90.0" in out
+        # RFDF kicks as cos(phase + wt): see test_crab_cavity_phase.py
+        assert "phase = 0.0" in out
         assert out.count("n_kicks") == 1
 
     def test_crab_cavity_madx(self):

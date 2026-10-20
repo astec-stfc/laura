@@ -19,7 +19,9 @@ solenoid:
 nonlinearlens:
   integrated_strength: knll
   dimensional_parameter: cnll
-crabcavity:
-  field_amplitude: voltage
-  voltage: crab_voltage
-  phase: lag
+crabcavity: &crab
+  phase: phase
+  frequency: frequency
+  n_kicks: num_kicks
+  field_amplitude: crab_voltage
+rfdeflectingcavity: *crab

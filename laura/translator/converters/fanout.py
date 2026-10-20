@@ -52,8 +52,11 @@ class ContainerTranslator:
     def to_astra(self) -> Dict[str, Any]:
         return self._fan_out("to_astra")
 
-    def to_ocelot(self, save: bool = False) -> Dict[str, Any]:
-        return self._fan_out("to_ocelot", save=save)
+    def to_ocelot(self, save: bool = False, Brho: float = 0.0) -> Dict[str, Any]:
+        return self._fan_out("to_ocelot", save=save, Brho=Brho)
+
+    def to_cheetah(self, save: bool = False, Brho: float = 0.0) -> Dict[str, Any]:
+        return self._fan_out("to_cheetah", save=save, Brho=Brho)
 
     def to_at(
         self,
@@ -82,9 +85,6 @@ class ContainerTranslator:
         return self._fan_out(
             "to_at", energy=energy, particle=self.particle or particle, save=save
         )
-
-    def to_cheetah(self, save: bool = False) -> Dict[str, Any]:
-        return self._fan_out("to_cheetah", save=save)
 
     def to_xsuite(
         self,
@@ -152,7 +152,10 @@ class ContainerTranslator:
         return self._fan_out("to_rftrack", P_Q=P_Q, save=save)
 
     def to_madx(
-        self, beam: Dict[str, Any] | None = None, refer: str = "entry"
+        self,
+        beam: Dict[str, Any] | None = None,
+        refer: str = "entry",
+        Brho: float = 0.0,
     ) -> Dict[str, Any]:
         """
         Create one MAD-X ``SEQUENCE`` per section, keyed by
@@ -170,6 +173,8 @@ class ContainerTranslator:
             :meth:`~laura.translator.converters.section.SectionLatticeTranslator.to_madx`.
         refer: str
             Element reference position, forwarded to every section.
+        Brho: float
+            Rigidity ``p / q`` [T*m], forwarded to every section.
         """
         return self._fan_out(
             "to_madx",
@@ -178,6 +183,7 @@ class ContainerTranslator:
                 "beam": beam.get(name) if isinstance(beam, dict) else None
             },
             refer=refer,
+            Brho=Brho,
         )
 
     def _elegant_body(

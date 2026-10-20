@@ -137,9 +137,9 @@ def test_documentation_lattice_matches_tao_s_positions(
                     )
                     assert element.magnetic.KnL(order) == pytest.approx(expected)
                 elif native_type == "Solenoid":
-                    # KS (normalised), not BS_FIELD (tesla): LAURA's S0L is normalised.
+                    # BS_FIELD (tesla), not KS (normalised): LAURA's S0L is in T*m.
                     assert element.magnetic.ks == pytest.approx(
-                        parameters["KS"] * length
+                        parameters["BS_FIELD"] * length
                     )
                 elif native_type in ("Lcavity", "RFCavity"):
                     assert element.cavity.frequency == pytest.approx(
@@ -263,11 +263,10 @@ def test_native_taylor_and_sol_quad_import(tmp_path):
     sq_index = importer.names_numbered[1][branch].index("SQ")
     assert sq.hardware_type == "CombinedSolenoidQuadrupole"
     assert sq.magnetic.KnL(1) == pytest.approx(0.6)
-    # KS not BS_FIELD: ks = 0.4 over 2 m is 0.8; BS_FIELD is ~0.0267 at p0c = 10 MeV.
+    # BS_FIELD not KS: S0L is in T*m, ~0.0267 T over 2 m at p0c = 10 MeV.
     assert sq.magnetic.ks == pytest.approx(
-        importer.params[1][branch][sq_index]["KS"] * 2
+        importer.params[1][branch][sq_index]["BS_FIELD"] * 2
     )
-    assert sq.magnetic.ks == pytest.approx(0.8)
 
 
 def test_beginning_ele_imports_as_twiss_match(tmp_path):

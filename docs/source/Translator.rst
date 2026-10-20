@@ -265,7 +265,7 @@ Translation methods for complete lattice sections:
 * ``to_xsuite(beam_length, env, particle_ref, save)``: Generates Xsuite :py:class:`Line` objects.
 * ``to_csrtrack()``: Creates CSRTrack input files.
 * ``to_wake_t()``: Produces Wake-T :py:class:`Beamline` objects.
-* ``to_madx(beam, refer)``: Creates a MAD-X ``SEQUENCE`` definition string; see :ref:`madx-translator`.
+* ``to_madx(beam, refer, Brho)``: Creates a MAD-X ``SEQUENCE`` definition string; see :ref:`madx-translator`.
 * ``to_rftrack(P_Q, save, sc_nsteps)`` / ``to_rftrack_volume(P_Q, save)``: Builds an RF-Track ``Lattice`` or ``Volume``; see :ref:`rftrack-translator`.
 
 The translator automatically:
@@ -368,6 +368,11 @@ The returned string is plain MAD-X input, intended to be passed directly to
 
 At the layout and model level, ``to_madx`` takes the beam definitions keyed by section name
 (and, for the model, by layout then section), so each sequence can be given its own beam.
+
+A solenoid's ``S0L`` is its integrated field [T·m], but MAD-X's ``ks`` is ``B / Bρ`` and MAD-X
+ignores the beam's charge. So pass ``Brho`` as the signed rigidity ``p / q``, negative for
+electrons. Without it, the strength is dropped with a warning. ``to_xsuite`` takes it from
+``particle_ref``. Bmad (``bs_field``) and elegant (``B``) are given the field itself.
 
 As with the other codes, a :ref:`functional parameter <functional-parameters>` is carried through
 symbolically rather than being resolved to a number: the header (produced by
@@ -587,6 +592,20 @@ Translation methods produce complete beamline definitions:
 * ``to_xsuite(beam_length, env, particle_ref, save)``: Generates a dictionary of Xsuite :py:class:`Line` objects.
 * ``to_rftrack(P_Q, save)``: Returns a dictionary of RF-Track ``Lattice`` objects; see :ref:`rftrack-translator`.
 * ``to_madx(beam)``: Returns a dictionary of MAD-X ``SEQUENCE`` definition strings, keyed by section name. ``beam`` is itself keyed by section name.
+
+To export the whole layout as one line (e.g. a ring), merge it first:
+``translator.as_section().to_xsuite()``. ``as_section(name)`` concatenates the sections at their
+arc lengths into a single :py:class:`SectionLatticeTranslator`, so every section exporter
+applies; the result is closed if any section is. An element appearing twice raises
+:py:class:`LatticeError`.
+
+Alignment errors (``physical.error``) are exported in Bmad's convention: offsets ``dx``/``dy``/``dz``,
+``dx_rot`` = −``x_pitch``, ``dy_rot`` = −``y_pitch``, about the element centre. Each code's own pivot
+and sign are converted on export and inverted on import (MAD-X, Xsuite, elegant, OCELOT). A
+straight element's roll error adds to its ``tilt``; a bend's ``tilt`` rolls its reference frame,
+so its roll error goes to the code's separate field error (``ETILT``, ``DPSI``,
+``rot_s_rad_no_frame``). MAD-X errors are written as a ``<line>_errors`` macro, executed after
+``USE``. Any error a code cannot represent is dropped with a warning.
 
 The translator automatically:
 

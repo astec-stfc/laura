@@ -15,6 +15,35 @@ from laura.models.element_list import MachineLayout, SectionLattice
 from ...utils.ac_dipole import MV_PER_VOLT
 from .importer import LatticeImporter, apply_misalignment, twiss_simulation
 
+
+def xsuite_misalignment(native: Any) -> Dict[str, float]:
+    """``native``'s alignment errors as :func:`apply_misalignment` arguments,
+    pivoted about the centre as LAURA (Bmad) does."""
+    get = lambda key: float(getattr(native, key, 0.0) or 0.0)  # noqa: E731
+    dx, dy, dz = get("shift_x"), get("shift_y"), get("shift_s")
+    rot_x, rot_y = get("rot_x_rad"), get("rot_y_rad")
+    lever = get("length") / 2 - get("rot_shift_anchor")
+    if lever and (rot_x or rot_y):
+        if get("angle") or get("h"):
+            warn(
+                f"{native.__class__.__name__}: a pitch about an off-centre anchor "
+                "on a curved element is imported as if about the centre."
+            )
+        else:
+            dx += lever * np.cos(rot_x) * np.sin(rot_y)
+            dy += lever * np.sin(rot_x)
+            dz += lever * (np.cos(rot_x) * np.cos(rot_y) - 1)
+    return dict(
+        dx=dx,
+        dy=dy,
+        dz=dz,
+        roll=get("rot_s_rad"),
+        dx_rot=-rot_y,
+        dy_rot=-rot_x,
+        dz_rot=get("rot_s_rad_no_frame"),
+    )
+
+
 xsuite_unsupported = [
     "Laser",
     "Wakefield",
@@ -482,13 +511,25 @@ class XsuiteLatticeImporter(LatticeImporter):
                         magnetic.pop(exit_field, None)
             return {"magnetic": magnetic}
         if native_type in {"Solenoid", "UniformSolenoid"}:
-            strength = self._symbol(element_name, "ks", length)
+            # ks = B / (p/q); LAURA keeps the integrated field [T*m]
+            ref = getattr(self.line, "particle_ref", None)
+            scale = (
+                length * float(ref.p0c[0] / (299792458.0 * ref.q0))
+                if ref is not None
+                else 0.0
+            )
+            if not scale:
+                warn(
+                    f"No particle_ref to convert solenoid {element_name!r} ks "
+                    "to tesla; dropped."
+                )
+                return {"magnetic": {"length": length}}
+            strength = self._symbol(element_name, "ks", scale)
+            ks = float(getattr(native, "ks", 0.0))
             return {
                 "magnetic": {
                     "length": length,
-                    "fields": {
-                        "S0L": strength or float(getattr(native, "ks", 0.0)) * length
-                    },
+                    "fields": {"S0L": strength or ks * scale},
                 }
             }
         if native_type == "NonLinearLens":
@@ -523,7 +564,7 @@ class XsuiteLatticeImporter(LatticeImporter):
         if native_type == "CrabCavity":
             return {
                 "cavity": {
-                    "phase": self._rf_phase(element_name, native),
+                    "phase": self._rf_phase(element_name, native, crest_at_90=True),
                     "frequency": float(native.frequency),
                 },
                 "simulation": {
@@ -730,11 +771,7 @@ class XsuiteLatticeImporter(LatticeImporter):
                     absorbed_edges.get(element_name),
                 ),
             }
-            apply_misalignment(
-                data,
-                laura_type,
-                *(float(getattr(native, key, 0.0)) for key in ("shift_x", "shift_y", "rot_s_rad")),
-            )
+            apply_misalignment(data, laura_type, **xsuite_misalignment(native))
             if laura_type is laura_elements.Drift:
                 data["hardware_class"] = "Drift"
             self.elements[element_name] = laura_type(**data)

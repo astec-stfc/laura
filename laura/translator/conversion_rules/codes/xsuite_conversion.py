@@ -78,7 +78,7 @@ xsuite_conversion_rules = {
     "Integrated_Current_Transformer": Drift_xs,
     "Faraday_Cup_Monitor": Drift_xs,
     "RFCavity": Cavity_xs,
-    "RFDeflectingCavity": Cavity_xs,
+    "RFDeflectingCavity": CrabCavity_xs,
     "Aperture": Drift_xs,
     "Shutter": Drift_xs,
     "Valve": Drift_xs,

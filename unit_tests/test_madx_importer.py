@@ -85,7 +85,8 @@ class TestMadxImporter:
     def test_solenoid_field(self, importer):
         sol = importer.elements["SOL1"]
         assert sol.hardware_type == "Solenoid"
-        assert sol.magnetic.fields.S0L == pytest.approx(0.2)
+        # ks * L * p / q for the header's 1 GeV electron
+        assert sol.magnetic.fields.S0L == pytest.approx(0.2 * -1e9 / 299792458.0)
 
     def test_rcollimator_disambiguated_and_sized(self, importer):
         col = importer.elements["COL1"]

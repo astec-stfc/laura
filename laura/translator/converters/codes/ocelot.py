@@ -18,7 +18,12 @@ from ...utils.functions import (
 )
 from .. import keyword_conversion_rules_ocelot as keyword_conversion_rules
 from . import magnetic_orders
-from .importer import LatticeImporter, keyword_rules, twiss_simulation
+from .importer import (
+    LatticeImporter,
+    apply_misalignment,
+    keyword_rules,
+    twiss_simulation,
+)
 
 
 def _switch_dict(type_rules: Dict[str, type]) -> Dict[str, str]:
@@ -237,12 +242,10 @@ class OcelotLatticeImporter(LatticeImporter):
                                     except AttributeError:
                                         pass
             if typeconv == "solenoid":
-                newobj["magnetic"].update(
-                    {
-                        "length": length,
-                        "fields": {"S0L": float(getattr(elem, "k", 0.0)) * length},
-                    }
-                )
+                # ponytail: k = B / (2 Brho) needs a beam energy, which OCELOT lattices lack
+                if getattr(elem, "k", 0.0):
+                    warn(f"Solenoid {elem.id!r} k needs a beam energy; dropped.")
+                newobj["magnetic"].update({"length": length})
             elif typeconv == "undulator":
                 kx, ky = abs(float(elem.Kx)), abs(float(elem.Ky))
                 newobj["magnetic"].update(
@@ -277,10 +280,14 @@ class OcelotLatticeImporter(LatticeImporter):
                         }.get(str(elem.type).lower(), "rectangular"),
                     }
                 )
-                if elem.dx or elem.dy:
-                    newobj["physical"]["error"] = {
-                        "position": {"x": elem.dx, "y": elem.dy, "z": 0.0}
-                    }
+            apply_misalignment(
+                newobj,
+                getattr(laura_elems, newobj["hardware_type"]),
+                *(
+                    float(getattr(elem, key, 0.0) or 0.0)
+                    for key in ("dx", "dy", "tilt")
+                ),
+            )
             if definitions:
                 apply_functional_fields(
                     newobj, getattr(elem, "laura_functional_fields", {})

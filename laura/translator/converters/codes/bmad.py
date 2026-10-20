@@ -1556,8 +1556,12 @@ class BmadLatticeImporter(LatticeImporter):
         simulation = {"field_amplitude": amplitude}
         if parameters.get("N_RF_STEPS") is not None:
             simulation["n_kicks"] = int(parameters["N_RF_STEPS"])
+        phi0 = parameters.get(e.keyword("phase"), 0.0)
         cavity = {
-            "phase": -360.0 * parameters.get(e.keyword("phase"), 0.0),
+            # inverse of RFCavityTranslator.to_bmad
+            "phase": (
+                360.0 * phi0 - 90.0 if e.etype == "Crab_Cavity" else -360.0 * phi0
+            ),
             "frequency": frequency,
             "n_cells": n_cells,
             "cell_length": cell_length,
@@ -1590,22 +1594,22 @@ class BmadLatticeImporter(LatticeImporter):
         }
 
     def _build_solenoid(self, e: "_NativeElement") -> dict:
-        ks = e.parameters.get(e.keyword("ks"), 0.0)
+        field = e.parameters.get(e.keyword("field_amplitude"), 0.0)
         return {
             "hardware_type": e.hardware_type,
-            "magnetic": {"length": e.length, "fields": {"S0L": ks * e.length}},
+            "magnetic": {"length": e.length, "fields": {"S0L": field * e.length}},
         }
 
     def _build_sol_quad(self, e: "_NativeElement") -> dict:
         k1 = e.keyword("k1l")
-        ks = e.parameters.get(e.keyword("ks"), 0.0)
+        field = e.parameters.get(e.keyword("field_amplitude"), 0.0)
         return {
             "hardware_type": e.hardware_type,
             "magnetic": {
                 "length": e.length,
                 "k1l": self._symbol(e.base_name, k1, e.length)
                 or e.parameters.get(k1, 0.0) * e.length,
-                "solenoid_fields": {"S0L": ks * e.length},
+                "solenoid_fields": {"S0L": field * e.length},
             },
         }
 

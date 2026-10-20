@@ -112,7 +112,8 @@ class CsrTrackForces(CsrTrackElement):
     objecttype: str = "csrtrack_forces"
     """Type of object"""
 
-    type: Literal["projected", "csr_g_to_p"] | None = None
+    type: Literal["projected", "csr_g_to_p"] = "projected"
+    """CSRTrack rejects a ``forces`` block without one."""
 
     shape: Literal["ellipsoid"] = "ellipsoid"
 

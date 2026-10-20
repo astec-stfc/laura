@@ -294,11 +294,12 @@ class TestSolenoid:
             magnetic={"magnetic_length": 0.2, "ks": "sol_ks"},
         )
         st = SolenoidTranslator.model_validate(sol.model_dump())
-        assert 'ks = "sol_ks"' in st.to_elegant()
+        # S0L [T*m] goes to SOLE's field B [T]
+        assert 'b = "sol_ks 0.2 /"' in st.to_elegant()
         # no pydantic "expected float, got str" serialization warning
         assert not any("serialized value" in str(w.message) for w in recwarn.list)
         set_resolve_functional(True)
-        assert "ks = 1.5" in st.to_elegant()
+        assert "b = 7.5" in st.to_elegant()
 
 
 class TestNonLinearLens:

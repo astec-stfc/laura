@@ -20,7 +20,13 @@ from ...utils.elegant.sdds_classes_aps import SddsParams
 from ...utils.fields import FieldMap
 from ...utils.functions import merge_layout_elements, number_repeated_names
 from .. import keyword_conversion_rules_elegant
-from .importer import LatticeImporter, check_layouts, infer_geometry, keyword_rules
+from .importer import (
+    LatticeImporter,
+    apply_misalignment,
+    check_layouts,
+    infer_geometry,
+    keyword_rules,
+)
 
 elegant_unsupported = [
     "Plasma",
@@ -356,6 +362,7 @@ class ElegantLatticeImporter(LatticeImporter):
                     expression, 0.0 if parameter == "angle" else length
                 ):
                     data[parameter] = expressions[parameter]
+            self._read_misalignment(name, data, (params.elegant_params or {}).get(name))
             rules = keyword_rules(
                 keyword_conversion_rules_elegant, data["hardware_type"]
             )
@@ -409,6 +416,41 @@ class ElegantLatticeImporter(LatticeImporter):
                     simulation.pop(raw_name, None)
         return self.elegant_data, filenames
 
+    @staticmethod
+    def _read_misalignment(name: str, data: dict, raw: dict | None) -> None:
+        """Alignment errors from ``raw`` elegant parameters into ``data``, as
+        the exporter writes them; ``TILT`` is read as ``magnetic.tilt``."""
+        cls = laura_elements.ELEMENT_REGISTRY.get(data["hardware_type"]) or getattr(
+            laura_elements, data["hardware_type"], laura_elements.Drift
+        )
+        # a CSRDRIFT's DZ is its step, not an offset
+        if not raw or issubclass(cls, laura_elements.Drift):
+            return
+        get = dict(
+            zip(
+                (p.lower() for p in raw["ElementParameter"]),
+                raw["ParameterValue"],
+                strict=True,
+            )
+        ).get
+        yaw = get("yaw") or get("eyaw") or 0.0
+        pitch = get("pitch") or get("epitch") or 0.0
+        if (yaw or pitch) and get("malign_method") != 2:
+            warn(f"ELEGANT {name!r}: pitch/yaw without MALIGN_METHOD=2 not imported.")
+            yaw = pitch = 0.0
+        data.setdefault("physical", {})
+        apply_misalignment(
+            data,
+            cls,
+            dx=get("dx") or 0.0,
+            dy=get("dy") or 0.0,
+            roll=0.0,
+            dz=get("dz") or 0.0,
+            dx_rot=-yaw,
+            dy_rot=pitch,
+            dz_rot=get("etilt") or 0.0,
+        )
+
     def create_laura_element_dictionary(self):
         if not self.elegant_data:
             self.create_element_dictionary()
@@ -424,6 +466,8 @@ class ElegantLatticeImporter(LatticeImporter):
 
             v = self._convert_k_to_kl(v)
             v = self._convert_ele_phase_to_phase(v)
+            if vtype == "Solenoid":
+                v = self._convert_b_to_s0l(v, elem_length)
 
             physical = {
                 "s": cumulative_s,
@@ -636,6 +680,16 @@ class ElegantLatticeImporter(LatticeImporter):
                     pass
         return None
 
+    def _convert_b_to_s0l(self, v, length: float) -> dict:
+        """SOLE's ``B`` [T] becomes the integrated field ``S0L`` [T*m]."""
+        field = v.get("simulation", {}).pop("field_amplitude", None)
+        if field:
+            symbol = self._rpn_symbol(field, length)
+            v["magnetic"].setdefault("fields", {})["S0L"] = (
+                symbol or float(field) * length
+            )
+        return v
+
     def _convert_k_to_kl(self, v) -> dict:
         multi = {}
         if "angle" in v and "magnetic" in v:
@@ -665,8 +719,11 @@ class ElegantLatticeImporter(LatticeImporter):
         if "cavity" in v:
             if "phase" in v["cavity"]:
                 value = v["cavity"]["phase"]
+                # inverse of RFCavityTranslator.to_elegant: deflectors take -phase
+                deflector = v.get("hardware_type") in ("RFDeflectingCavity", "CrabCavity")
+                offset = 0 if deflector else 90
                 tokens = value.strip('"').split() if isinstance(value, str) else []
-                if len(tokens) == 3 and tokens[0] == "90" and tokens[2] == "-":
+                if len(tokens) == 3 and tokens[0] == str(offset) and tokens[2] == "-":
                     symbol = self._rpn_symbol(tokens[1])
                     v["cavity"]["phase"] = symbol or value
                 else:
@@ -674,11 +731,11 @@ class ElegantLatticeImporter(LatticeImporter):
                     if symbol:
                         converted = f"{symbol}_laura_phase"
                         self.functional_definitions[converted] = (
-                            90 - self.functional_definitions[symbol]
+                            offset - self.functional_definitions[symbol]
                         )
                         v["cavity"]["phase"] = converted
                     else:
-                        v["cavity"]["phase"] = 90 - value
+                        v["cavity"]["phase"] = offset - value
         return v
 
     @staticmethod

@@ -101,6 +101,8 @@ class ApertureTranslator(BaseElementTranslator):
                 else self.physical.start.z + self.dz + 1e-3
             )
             dic["Ap_Z2"] = {"value": end, "default": 0}
+        dic["A_xoff"] = {"value": self.dx, "default": 0, "type": "not_zero"}
+        dic["A_yoff"] = {"value": self.dy, "default": 0, "type": "not_zero"}
         dic["A_xrot"] = {
             "value": self._astra_rotation("x"),
             "default": 0,

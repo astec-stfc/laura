@@ -60,19 +60,33 @@ def twiss_simulation(*values: float) -> dict:
 
 
 def apply_misalignment(
-    data: dict, laura_type: type, dx: float, dy: float, roll: float
+    data: dict,
+    laura_type: type,
+    dx: float,
+    dy: float,
+    roll: float,
+    dz: float = 0.0,
+    dx_rot: float = 0.0,
+    dy_rot: float = 0.0,
+    dz_rot: float = 0.0,
 ) -> None:
-    """Write offsets into ``data``'s ``physical.error`` and a roll into the
-    magnet's ``tilt``, or into the roll error where the type has no ``tilt``."""
-    if dx or dy:
-        data["physical"]["error"] = {"position": {"x": dx, "y": dy}}
-    if not roll:
-        return
+    """Write alignment errors, in LAURA's sense, into ``data``'s
+    ``physical.error``, and ``roll`` into the magnet's ``tilt`` -- or into the
+    roll error where the type has no ``tilt``."""
     field = laura_type.model_fields.get("magnetic")
-    if "tilt" in getattr(field and field.annotation, "model_fields", ()):
+    if "tilt" not in getattr(field and field.annotation, "model_fields", ()):
+        dz_rot += roll
+    elif roll:
         data.setdefault("magnetic", {})["tilt"] = roll
-    else:
-        data["physical"].setdefault("error", {})["rotation"] = {"psi": roll}
+    position = dict(zip("xyz", (dx, dy, dz)))
+    rotation = dict(zip(("theta", "phi", "psi"), (dx_rot, dy_rot, dz_rot)))
+    error = {
+        key: {k: v for k, v in values.items() if v}
+        for key, values in (("position", position), ("rotation", rotation))
+        if any(values.values())
+    }
+    if error:
+        data["physical"].setdefault("error", {}).update(error)
 
 
 def keyword_rules(rules: Dict, hardware_type: str) -> Dict:

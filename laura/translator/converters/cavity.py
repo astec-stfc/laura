@@ -144,10 +144,12 @@ class RFCavityTranslator(BaseElementTranslator):
             etype = "rfcavity"
         parameters = self._bmad_parameters(etype)
         phase = self.cavity.phase
+        # Bmad's crab kick is sin(2*pi*phi0 - wt): phase 0 (full kick) is phi0 = 1/4
+        sign, offset = (1, 90) if etype == "crab_cavity" else (-1, 0)
         parameters["phi0"] = (
-            f"-({phase}) / 360"
+            f"({sign} * ({phase}) + {offset}) / 360"
             if not self._resolve_functional and self.is_functional(phase)
-            else -self.resolve(phase) / 360
+            else (sign * self.resolve(phase) + offset) / 360
         )
         voltage = parameters.get("voltage")
         if voltage is not None and self.structure_type == "TravellingWave":
@@ -267,6 +269,9 @@ class RFCavityTranslator(BaseElementTranslator):
                                 value = self._rpn(value, 360.0, "/", 2 * 3.14159, "*")
                             else:
                                 value = (value / 360.0) * (2 * 3.14159)
+                        elif etype in ("rfdf", "rftm110"):
+                            # elegant's deflectors kick as cos(phase + wt)
+                            value = self._rpn(0, value, "-") if functional else 0 - value
                         else:
                             value = (
                                 self._rpn(90, value, "-") if functional else 90 - value
@@ -325,6 +330,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 if key not in keys:
                     string += f", {key} = {value!s}"
                 keys.append(key)
+        self._warn_dropped_misalignment("elegant", emitted, "tilt" in emitted)
         wholestring += f"{string};\n"
         return wholestring
 
@@ -627,7 +633,10 @@ class RFCavityTranslator(BaseElementTranslator):
         if etype.lower() == "drift" or self.simulation.field_definition is None:
             return ""
         for key, value in self._dump_items(
-            self._convert_keyword_opal, elements_opal[etype], unique=False
+            self._convert_keyword_opal,
+            elements_opal[etype],
+            unique=False,
+            overrides=self._opal_alignment(),
         ):
             if key == "lag":
                 value = -value * np.pi / 180

@@ -304,7 +304,7 @@ def test_bmad_additional_element_mappings():
                 {"E_FIELD": 5.0, "HKICK": 3.0, "VKICK": 4.0},
                 {"_VEC0": np.arange(6), "_MAT6": np.eye(6)},
                 {"_TAYLOR": identity_taylor, "_SPIN_TAYLOR": identity_spin},
-                {"K1": 0.3, "KS": 0.4},
+                {"K1": 0.3, "BS_FIELD": 0.4},
                 {},
                 {},
                 {},

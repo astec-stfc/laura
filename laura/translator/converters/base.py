@@ -41,6 +41,9 @@ from ..utils.functions import check_value, expand_substitution, sanitize_string
 _ASTRA_ROTATION_SIGN = {"x": -1.0, "y": -1.0, "z": 1.0}
 """Sign taking a LAURA ``Rotation`` component into ASTRA's ``*_xrot`` family."""
 
+_MISALIGNMENTS = ("dx", "dy", "dz", "dx_rot", "dy_rot", "dz_rot")
+"""Alignment-error attributes, in the Bmad sense (see ``bmad/misalignment.py``)."""
+
 _BMAD_MAIN_MULTIPOLE_ORDERS = {
     "sbend": (0, 1),
     "rbend": (0, 1),
@@ -335,7 +338,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         Resolve the magnet-derived value of the ``code`` keyword ``key``: the
         ``"angle"`` tokens, the normalised ``k<n>`` strengths, the bend
-        ``angle`` and ``tilt`` plus :attr:`dz_rot`.
+        ``angle`` and, except on a bend, ``tilt`` plus :attr:`dz_rot`.
 
         Returns
         -------
@@ -344,7 +347,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             (never when :attr:`_resolve_functional` is set).
         """
         symbolic = not self._resolve_functional
-        if key == "tilt" and self.dz_rot:
+        if key == "tilt" and self.dz_rot and not self._curved:
             if isinstance(value, str):
                 return f"({value}) + {self.dz_rot}", True
             return value + self.dz_rot, False
@@ -360,18 +363,29 @@ class BaseElementTranslator(PhysicalBaseElement):
                 self._functional_strength_expr(int(key[1]), code) if symbolic else None
             )
             return (expr, True) if expr is not None else (getattr(self, key), False)
+        if key == "ks" and isinstance(value, str):
+            return value, True  # a functional field or a rigidity variable
         if key == "angle" and symbolic:
             raw = self._raw_multipole_strength(0)
             if raw is not None:
                 return raw, True
         return value, False
 
-    def _dump_items(self, convert, allowed, resolve: bool = True, unique: bool = True):
+    def _dump_items(
+        self,
+        convert,
+        allowed,
+        resolve: bool = True,
+        unique: bool = True,
+        overrides: Dict[str, Any] | None = None,
+    ):
         """
         Yield ``(keyword, value)`` for each non-None field of :meth:`full_dump`
-        whose keyword, after ``convert``, is in ``allowed``. With ``unique``,
-        only the first field mapping onto each keyword is yielded.
+        whose keyword, after ``convert``, is in ``allowed``, with the value
+        ``overrides`` gives that keyword, if any. With ``unique``, only the
+        first field mapping onto each keyword is yielded.
         """
+        overrides = overrides or {}
         seen = set()
         for key, value in self.full_dump(resolve=resolve).items():
             if value is None or key in ("name", "type", "commandtype"):
@@ -379,7 +393,19 @@ class BaseElementTranslator(PhysicalBaseElement):
             keyword = convert(key)
             if keyword in allowed and not (unique and keyword in seen):
                 seen.add(keyword)
-                yield keyword, value
+                yield keyword, overrides.get(keyword, value)
+
+    def _opal_alignment(self) -> Dict[str, float]:
+        """OPAL values that differ from LAURA's: OPAL pivots about the
+        entrance and its ``DTHETA`` turns the other way (measured on a quad).
+        """
+        # ponytail: bend and RF conventions are unmeasured; assumed the quad's
+        lever = (self.physical.length or 0.0) / 2
+        return {
+            "dx": self.dx + lever * math.sin(self.dx_rot),
+            "dy": self.dy + lever * math.sin(self.dy_rot),
+            "dtheta": -self.dx_rot,
+        }
 
     def start_write(self) -> None:
         """
@@ -404,16 +430,45 @@ class BaseElementTranslator(PhysicalBaseElement):
                 f"{self.name!r} was exported as a drift."
             )
         terms = []
+        allowed = elements_elegant[etype]
+        convert = self._keyword_converter_elegant(etype)
         for key, value in self._dump_items(
-            self._keyword_converter_elegant(etype),
-            elements_elegant[etype],
-            resolve=self._resolve_functional,
+            convert, allowed, resolve=self._resolve_functional
         ):
-            value, _ = self._magnet_value(key, value, "elegant")
-            if key == "yaw" and isinstance(value, (int, float)):
+            # a straight csbend takes its roll error as ``etilt`` too
+            if not (key == "tilt" and "etilt" in allowed):
+                value, _ = self._magnet_value(key, value, "elegant")
+            if key in ("yaw", "eyaw") and isinstance(value, (int, float)):
                 value = -value
             terms.append(f"{key} = {self._elegant_value(self._flag(value))}")
+        if "malign_method" in allowed and any(self._misalignment().values()):
+            # elegant's default (0) ignores pitch/yaw and treats bend offsets differently
+            terms.append("malign_method = 2")
+        written = {q for q in _MISALIGNMENTS if convert(q) in allowed}
+        self._warn_dropped_misalignment("elegant", written, "tilt" in allowed)
         return elegant_line(f"{self.name}: {etype}", terms)
+
+    def _misalignment(self) -> Dict[str, float]:
+        """The alignment errors, keyed by attribute name."""
+        return {q: getattr(self, q) for q in _MISALIGNMENTS}
+
+    def _warn_dropped_misalignment(
+        self, code: str, written: set, tilt: bool = False
+    ) -> None:
+        """Warn about non-zero alignment errors ``code`` cannot take: those
+        not ``written``, bar a roll error folded into a written ``tilt``."""
+        if (
+            tilt
+            and not self._curved
+            and hasattr(getattr(self, "magnetic", None), "tilt")
+        ):
+            written = written | {"dz_rot"}
+        dropped = [q for q, v in self._misalignment().items() if v and q not in written]
+        if dropped:
+            warn(
+                f"{code} cannot take {', '.join(dropped)} on {self.name!r} "
+                f"({self.hardware_type}); dropped."
+            )
 
     def to_ocelot(self) -> object:
         """
@@ -910,7 +965,9 @@ class BaseElementTranslator(PhysicalBaseElement):
             return ""
         wholestring = f"{self.name.replace('-', '_')}: {etype}"
         for key, value in self._dump_items(
-            self._convert_keyword_opal, elements_opal[etype]
+            self._convert_keyword_opal,
+            elements_opal[etype],
+            overrides=self._opal_alignment(),
         ):
             wholestring += f", {key} = {self._flag(self._angle_token(value))}"
         if etype == "monitor":
@@ -1535,10 +1592,43 @@ class BaseElementTranslator(PhysicalBaseElement):
         tilt = getattr(getattr(self, "magnetic", None), "tilt", 0.0) or 0.0
         return float(self.resolve(tilt)) + self.dz_rot
 
+    def madx_alignment(self) -> Dict[str, float]:
+        """MAD-X ``EALIGN`` terms for the alignment errors.
+
+        MAD-X pivots about the entrance, in a bend's entrance frame; LAURA
+        (Bmad) about the centre, in the frame turned by half the bend angle.
+        A roll error goes into ``tilt`` except on a bend.
+        """
+        if not any(self._misalignment().values()):
+            return {}
+        length = self.physical.length or 0.0
+        angle = float(self.resolve(self.magnetic.KnL(0))) if self._curved else 0.0
+        h = angle / 2
+        lever = length / angle * math.sin(h) if angle else length / 2
+        sagitta = length / angle * (1 - math.cos(h)) if angle else 0.0
+        folded = not angle and hasattr(getattr(self, "magnetic", None), "tilt")
+        terms = {
+            "dx": self.dx * math.cos(h) - self.dz * math.sin(h) + self.dx_rot * lever,
+            "dy": self.dy + self.dy_rot * lever,
+            "ds": self.dx * math.sin(h) + self.dz * math.cos(h) + self.dx_rot * sagitta,
+            "dtheta": -self.dx_rot,
+            "dphi": -self.dy_rot * math.cos(h),
+            "dpsi": 0.0 if folded else self.dz_rot + self.dy_rot * math.sin(h),
+        }
+        return {key: value for key, value in terms.items() if value}
+
+    @property
+    def _curved(self) -> bool:
+        """A bend, whose ``tilt`` every code takes as a roll of the reference
+        frame, so its roll error cannot be folded into it."""
+        return self.hardware_type == "Dipole" and bool(self.magnetic.KnL(0))
+
     def _astra_rotation(self, plane: str) -> float:
-        """The total design-plus-error rotation for one plane, in ASTRA's sense."""
+        """The total design-plus-error rotation for one plane, in ASTRA's
+        sense; about z, that includes the magnet's ``tilt``."""
         sign = _ASTRA_ROTATION_SIGN[plane]
-        return sign * (getattr(self, f"{plane}_rot") + getattr(self, f"d{plane}_rot"))
+        error = self.roll if plane == "z" else getattr(self, f"d{plane}_rot")
+        return sign * (getattr(self, f"{plane}_rot") + error)
 
     def get_field_reference_position(self, if_none: str = "start") -> np.ndarray:
         """
