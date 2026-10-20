@@ -7,6 +7,8 @@ Dependency-free, so the importer can use them without the exporter's builders.
 from math import factorial
 from typing import Dict, List, Tuple
 
+from .alignment import sagitta
+
 CLIGHT = 299792458.0
 """Speed of light [m/s]; AT's ``TimeLag`` is a path length."""
 
@@ -58,3 +60,11 @@ def time_lag(phase: float, frequency: float, crest: float = 90.0) -> float:
 def cavity_phase(lag: float, frequency: float, crest: float = 90.0) -> float:
     """Inverse of :func:`time_lag`."""
     return lag * frequency / CLIGHT * 360.0 - crest
+
+
+def at_pivot(length: float, angle: float) -> dict:
+    """:func:`~laura.translator.utils.alignment.to_frame` arguments, bar the
+    tilt, for pyAT's ``ReferencePoint.CENTRE``: a bend's chord midpoint, in its
+    rolled frame."""
+    chord = sagitta(length, angle)
+    return {"pivot": (-chord, 0.0, 0.0), "chord": chord}

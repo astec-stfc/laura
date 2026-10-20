@@ -187,9 +187,12 @@ def test_imported_values_carry_laura_conventions():
 
 
 def test_conventions_match_the_madx_route(tmp_path):
-    """Kicks, tilt and voltage agree with ``at.load_madx``. LAURA's MAD-X
-    export writes no offsets and AT's loader ignores ``LAG``."""
+    """Kicks, tilt and voltage agree with ``at.load_madx``. AT's loader ignores
+    ``LAG``, and exhausts memory parsing the alignment-error macro, so the
+    quad's error is cleared."""
     section = _section([e for e in _every_type() if e.name in ("start", "quad", "kick", "cav")])
+    quad = section.elements.elements["quad"]
+    quad.physical.error = type(quad.physical.error)()
     native = _to_at(section)
     path = tmp_path / "line.madx"
     path.write_text(SectionLatticeTranslator.from_section(section).to_madx())

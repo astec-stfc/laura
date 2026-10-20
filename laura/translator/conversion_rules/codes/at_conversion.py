@@ -20,7 +20,8 @@ except ImportError as _err:
         'Install with: pip install "laura-accelerator[at]"'
     ) from _err
 
-from ...utils.at import FRINGE_BEND_MODEL, polynoms, time_lag
+from ...utils.alignment import to_frame
+from ...utils.at import FRINGE_BEND_MODEL, at_pivot, polynoms, time_lag
 
 AT_STEP_LENGTH = 0.005
 """Longest integration step [m]."""
@@ -49,6 +50,43 @@ def _strengths(t, skip_bend: bool = False) -> tuple:
     normal = {n: v for n, v in normal.items() if v}
     skew = {n: v for n, v in skew.items() if v}
     return polynoms(normal, skew, t.physical.length)
+
+
+def misalign(obj: "at.Element", t) -> None:
+    """
+    Apply ``t``'s tilt and alignment errors to ``obj``. A bend's design tilt
+    rolls its frame, and its errors move it inside that roll, the roll is wrapped round
+    them here.
+    """
+    curved = t._curved
+    errors = t._misalignment()
+    if not curved:
+        errors["dz_rot"] = t.roll
+    frame = t.roll - t.dz_rot if curved else 0.0
+    if not (frame or any(errors.values())):
+        return
+    angle = obj.BendingAngle if curved else 0.0
+    offset, rotation = to_frame(
+        errors, tilt=frame, **at_pivot(t.physical.length, angle)
+    )
+    at.transform_elem(
+        obj,
+        dx=offset[0],
+        dy=offset[1],
+        dz=offset[2],
+        pitch=rotation[0],
+        yaw=rotation[1],
+        tilt=rotation[2],
+        reference=at.ReferencePoint.CENTRE,
+    )
+    if frame:
+        c, s = np.cos(frame), np.sin(frame)
+        rm = np.diag([c, c, c, c, 1.0, 1.0])
+        rm[0, 2] = rm[1, 3] = s
+        rm[2, 0] = rm[3, 1] = -s
+        obj.R1, obj.T1 = obj.R1 @ rm, rm.T @ obj.T1
+        obj.R2, obj.T2 = rm.T @ obj.R2, rm.T @ obj.T2
+        obj._tilt_frame = frame  # what pyAT's ``tilt_frame`` getter reads
 
 
 def _steps(t) -> dict:

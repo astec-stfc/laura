@@ -13,6 +13,7 @@ import laura.models.element as laura_elements
 from laura.models.element_list import MachineLayout, SectionLattice
 
 from ...utils.ac_dipole import MV_PER_VOLT
+from ...utils.alignment import from_frame, sagitta
 from .importer import LatticeImporter, apply_misalignment, twiss_simulation
 
 
@@ -33,14 +34,16 @@ def xsuite_misalignment(native: Any) -> Dict[str, float]:
             dx += lever * np.cos(rot_x) * np.sin(rot_y)
             dy += lever * np.sin(rot_x)
             dz += lever * (np.cos(rot_x) * np.cos(rot_y) - 1)
+    angle = get("angle") or get("h") * get("length")
     return dict(
-        dx=dx,
-        dy=dy,
-        dz=dz,
         roll=get("rot_s_rad"),
-        dx_rot=-rot_y,
-        dy_rot=-rot_x,
-        dz_rot=get("rot_s_rad_no_frame"),
+        **from_frame(
+            (dx, dy, dz),
+            (-rot_x, rot_y, get("rot_s_rad_no_frame")),
+            tilt=get("rot_s_rad"),
+            rolled=False,
+            chord=sagitta(get("length"), angle),
+        ),
     )
 
 

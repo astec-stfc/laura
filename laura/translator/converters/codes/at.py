@@ -10,7 +10,8 @@ from pydantic import ConfigDict, model_validator
 import laura.models.element as laura_elements
 
 from ...utils.ac_dipole import MV_PER_VOLT
-from ...utils.at import CLIGHT, cavity_phase, integrated
+from ...utils.alignment import from_frame
+from ...utils.at import CLIGHT, at_pivot, cavity_phase, integrated
 from ...utils.functions import number_repeated_names
 from .importer import LatticeImporter, apply_misalignment
 
@@ -61,6 +62,22 @@ _ORDERS = {
 
 _PLANES = [0, 1, 2, 3, 5, 4]
 """AT's (delta, ct) back to the (z-like, delta) order LAURA's matrices carry."""
+
+
+def _misalignment(elem: Any, length: float) -> Dict[str, float]:
+    """Invert :func:`~laura.translator.conversion_rules.codes.at_conversion.misalign`,
+    as :func:`apply_misalignment` arguments."""
+    get = lambda key: float(getattr(elem, key, 0.0))  # noqa: E731
+    angle, frame = get("BendingAngle"), get("tilt_frame")
+    errors = from_frame(
+        (get("dx"), get("dy"), get("dz")),
+        (get("pitch"), get("yaw"), get("tilt")),
+        tilt=frame,
+        **at_pivot(length, angle),
+    )
+    if not angle:  # the body roll is the whole tilt
+        frame, errors["dz_rot"] = frame + errors["dz_rot"], 0.0
+    return {"roll": frame, **errors}
 
 
 class ATLatticeImporter(LatticeImporter):
@@ -134,9 +151,7 @@ class ATLatticeImporter(LatticeImporter):
             }
             laura_type = self._fill(data, elem, laura_type, length, brho)
             if laura_type is not laura_elements.MatrixTransform:
-                apply_misalignment(
-                    data, laura_type, *(float(getattr(elem, k, 0.0)) for k in ("dx", "dy", "tilt"))
-                )
+                apply_misalignment(data, laura_type, **_misalignment(elem, length))
             if "aperture" in laura_type.model_fields:
                 self._aperture(data, elem, name)
             self.elements[name] = laura_type(**data)
