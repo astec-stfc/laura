@@ -363,6 +363,8 @@ class BaseElementTranslator(PhysicalBaseElement):
                 self._functional_strength_expr(int(key[1]), code) if symbolic else None
             )
             return (expr, True) if expr is not None else (getattr(self, key), False)
+        if key == "ks" and isinstance(value, str):
+            return value, True  # a functional field or a rigidity variable
         if key == "angle" and symbolic:
             raw = self._raw_multipole_strength(0)
             if raw is not None:

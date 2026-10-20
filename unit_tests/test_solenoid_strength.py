@@ -46,6 +46,42 @@ def test_madx_and_its_import(tmp_path):
     assert imported["s1"].magnetic.fields.S0L == pytest.approx(B * L)
 
 
+def test_madx_takes_the_rigidity_as_a_variable_read_once():
+    """MAD-X evaluates a solenoid's ``ks`` as it is defined, ``:=`` or not."""
+    madx = pytest.importorskip("cpymad.madx").Madx(stdout=False)
+    madx.input(f"brho = {BRHO};")
+    madx.input(
+        section(solenoid()).to_madx(
+            beam={"particle": "electron", "pc": P0C / 1e9}, Brho="brho"
+        )
+    )
+    madx.input("brho = 1;")
+    tw = madx.twiss(betx=1, bety=1, x=X0)
+    assert [tw.x[-1], tw.px[-1], tw.y[-1], tw.py[-1]] == pytest.approx(EXPECTED)
+
+
+def test_ocelot():
+    ocelot = pytest.importorskip("ocelot")
+
+    lattice = section(solenoid()).to_ocelot(Brho=BRHO)
+    energy = np.hypot(P0C, 0.51099895e6) / 1e9
+    final = ocelot.lattice_transfer_map(lattice, energy=energy) @ [X0, 0, 0, 0, 0, 0]
+    assert list(final[:4]) == pytest.approx(EXPECTED, rel=1e-6)
+
+
+def test_cheetah():
+    cheetah = pytest.importorskip("cheetah")
+    import torch
+
+    beam = cheetah.ParticleBeam(
+        particles=torch.tensor([[X0, 0, 0, 0, 0, 0, 1.0]], dtype=torch.float64),
+        energy=torch.tensor(np.hypot(P0C, 0.51099895e6), dtype=torch.float64),
+        species=cheetah.Species("electron"),
+    )
+    final = section(solenoid()).to_cheetah(Brho=BRHO).track(beam).particles[0, :4]
+    assert final.tolist() == pytest.approx(EXPECTED, rel=1e-6)
+
+
 def test_xsuite_and_its_import():
     xt = pytest.importorskip("xtrack")
     from laura.translator.converters.codes.xsuite import XsuiteLatticeImporter

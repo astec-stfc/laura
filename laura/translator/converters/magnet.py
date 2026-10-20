@@ -886,18 +886,21 @@ class SolenoidTranslator(BaseElementTranslator):
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
 
-    Brho: float = 0.0
+    Brho: Union[float, str] = 0.0
     """Rigidity ``p / q`` [T*m], negative for electrons, for the codes whose
     solenoid takes a normalised strength: they ignore the
-    beam's charge, so its sign sets the sense of rotation."""
+    beam's charge, so its sign sets the sense of rotation. MAD-X also takes
+    the name of a variable holding it."""
 
-    def _field(self, scale: float = 1.0) -> Union[float, str]:
+    def _field(self, scale: Union[float, str] = 1.0) -> Union[float, str]:
         """``S0L`` [T*m] over the length and ``scale``; the field [T] by default."""
         strength = self.magnetic.ks
-        divisor = (self.magnetic.length or 1.0) * scale
+        length = self.magnetic.length or 1.0
+        if isinstance(scale, str):
+            return f"{self._field()} / {scale}"
         if not self._resolve_functional and self.is_functional(strength):
-            return f"({strength}) / {divisor}"
-        return self.resolve(strength) / divisor
+            return f"({strength}) / {length * scale}"
+        return self.resolve(strength) / (length * scale)
 
     def full_dump(self, resolve: bool = True) -> dict:
         data = super().full_dump(resolve=resolve)
@@ -925,7 +928,7 @@ class SolenoidTranslator(BaseElementTranslator):
                 f"{self.name!r}; its strength was not written."
             )
 
-    def to_madx(self, at: float | None = None, Brho: float = 0.0) -> str:
+    def to_madx(self, at: float | None = None, Brho: Union[float, str] = 0.0) -> str:
         self.Brho = Brho or self.Brho
         self._check_rigidity("MAD-X")
         return super().to_madx(at=at)
@@ -943,13 +946,28 @@ class SolenoidTranslator(BaseElementTranslator):
             text = text.replace(f"b = {field}", f"b = {rpn}")
         return text
 
-    def to_ocelot(self) -> object:
-        self._check_rigidity("OCELOT")  # its k is B / (2 Brho)
-        return super().to_ocelot()
+    def _half_ks(self) -> float:
+        """OCELOT's and Cheetah's ``k = B / (2 Brho)``, measured to turn as MAD-X's ``ks``."""
+        length = self.magnetic.length or 1.0
+        return self.resolve(self.magnetic.ks) / (length * 2 * self.Brho)
 
-    def to_cheetah(self) -> object:
-        self._check_rigidity("Cheetah")  # its k is B / (2 Brho)
-        return super().to_cheetah()
+    def to_ocelot(self, Brho: float = 0.0) -> object:
+        self.Brho = Brho or self.Brho
+        self._check_rigidity("OCELOT")
+        obj = super().to_ocelot()
+        if self.Brho:
+            obj.k = self._half_ks()
+        return obj
+
+    def to_cheetah(self, Brho: float = 0.0) -> object:
+        from torch import float64, tensor
+
+        self.Brho = Brho or self.Brho
+        self._check_rigidity("Cheetah")
+        obj = super().to_cheetah()
+        if self.Brho:
+            obj.k = tensor(self._half_ks(), dtype=float64)
+        return obj
 
     def to_bmad(self) -> str:
         """

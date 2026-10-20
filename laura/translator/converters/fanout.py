@@ -52,11 +52,11 @@ class ContainerTranslator:
     def to_astra(self) -> Dict[str, Any]:
         return self._fan_out("to_astra")
 
-    def to_ocelot(self, save: bool = False) -> Dict[str, Any]:
-        return self._fan_out("to_ocelot", save=save)
+    def to_ocelot(self, save: bool = False, Brho: float = 0.0) -> Dict[str, Any]:
+        return self._fan_out("to_ocelot", save=save, Brho=Brho)
 
-    def to_cheetah(self, save: bool = False) -> Dict[str, Any]:
-        return self._fan_out("to_cheetah", save=save)
+    def to_cheetah(self, save: bool = False, Brho: float = 0.0) -> Dict[str, Any]:
+        return self._fan_out("to_cheetah", save=save, Brho=Brho)
 
     def to_xsuite(
         self,

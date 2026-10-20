@@ -994,7 +994,7 @@ class SectionLatticeTranslator(SectionLattice):
                 )
         return string
 
-    def to_ocelot(self, save=False) -> "MagneticLattice":
+    def to_ocelot(self, save=False, Brho: float = 0.0) -> "MagneticLattice":
         """
         Create an Ocelot-compatible magnetic lattice object based on the lattice information.
 
@@ -1002,6 +1002,9 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         save: bool
             Flag to indicate whether to save the lattice to a file.
+        Brho: float
+            Rigidity ``p / q`` [T*m], negative for electrons, to normalise
+            solenoid strengths.
 
         Returns
         -------
@@ -1023,7 +1026,11 @@ class SectionLatticeTranslator(SectionLattice):
 
         symbolic = not IgnoreExtra.resolve_functional
         for d in elem_dict.values():
-            obj = d.to_ocelot()
+            obj = (
+                d.to_ocelot(Brho=Brho)
+                if isinstance(d, SolenoidTranslator)
+                else d.to_ocelot()
+            )
             objs = list(obj) if isinstance(obj, (list, tuple)) else [obj]
             # an OCELOT bend's tilt rolls its frame, so it cannot take a roll error
             roll = d.roll - d.dz_rot * d._curved
@@ -1179,7 +1186,7 @@ class SectionLatticeTranslator(SectionLattice):
             obj.tilt = obj.tilt + roll
         element._warn_dropped_misalignment("cheetah", written, hasattr(obj, "tilt"))
 
-    def to_cheetah(self, save=False) -> "Segment":
+    def to_cheetah(self, save=False, Brho: float = 0.0) -> "Segment":
         """
         Create a Cheetah-compatible lattice segment object based on the lattice information.
 
@@ -1187,6 +1194,9 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         save: bool
             Flag to indicate whether to save the lattice to a file.
+        Brho: float
+            Rigidity ``p / q`` [T*m], negative for electrons, to normalise
+            solenoid strengths.
 
         Returns
         -------
@@ -1202,7 +1212,11 @@ class SectionLatticeTranslator(SectionLattice):
         segments = False
         for element in elem_dict.values():
             if not element.subelement:
-                elem = element.to_cheetah()
+                elem = (
+                    element.to_cheetah(Brho=Brho)
+                    if isinstance(element, SolenoidTranslator)
+                    else element.to_cheetah()
+                )
                 if elem is not None:
                     self._cheetah_misalignment(element, elem)
                     segment.append(elem)
