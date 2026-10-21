@@ -1591,10 +1591,12 @@ class BaseElementTranslator(PhysicalBaseElement):
         return float(self.resolve(tilt)) + self.dz_rot
 
     def madx_alignment(self, s: float | None = None) -> Dict[str, float]:
-        """MAD-X ``EALIGN`` terms for the alignment errors. MAD-X pivots about
+        """
+        MAD-X ``EALIGN`` terms for the alignment errors. MAD-X pivots about
         the entrance, in a bend's entrance frame before its tilt; after
         ``MAKETHIN``, about each slice at ``s`` from the centre. A roll error
-        goes into ``tilt`` except on a bend."""
+        goes into ``tilt`` except on a bend.
+        """
         errors = self._misalignment()
         if not any(errors.values()):
             return {}

@@ -1120,6 +1120,8 @@ class SectionLatticeTranslator(SectionLattice):
                             f"Amplitude{plane}",
                             getattr(ac, f"Amplitude{plane}") / brho,
                         )
+            elif ac.PassMethod == "SolenoidLinearPass":
+                ac.K /= brho * ring.particle.charge  # B / (p / q), as MAD-X's KS
         if save:
             ring.save(f"{self.directory}/{self.name}.m")
         return ring

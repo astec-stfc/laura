@@ -100,6 +100,23 @@ def test_xsuite_and_its_import():
     assert imported.magnetic.fields.S0L == pytest.approx(B * L)
 
 
+def test_at_and_its_import():
+    at = pytest.importorskip("at")
+    from laura.translator import ATLatticeImporter
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        ring = section(solenoid()).to_at(
+            energy=np.hypot(P0C, 0.51099895e6), particle="electron"
+        )
+        r = np.zeros((6, 1))
+        r[0, 0] = X0
+        final = at.lattice_pass(ring, r, refpts=len(ring))[:4, 0, 0, 0]
+        imported = ATLatticeImporter(lattice=ring).create_laura_element_dictionary()
+    assert list(final) == pytest.approx(EXPECTED)
+    assert imported["S1"].magnetic.fields.S0L == pytest.approx(B * L)
+
+
 @pytest.mark.skipif(which("elegant") is None, reason="elegant is not installed")
 def test_elegant_and_its_import(tmp_path):
     from laura.translator.converters.codes.elegant import ElegantLatticeImporter

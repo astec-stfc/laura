@@ -26,9 +26,11 @@ def sagitta(length: float, angle: float) -> float:
 
 
 def arc_point(length: float, angle: float, s: float) -> Tuple[Vector, float]:
-    """``(pivot, turn)`` for the point ``s`` along the arc from its midpoint:
+    """
+    ``(pivot, turn)`` for the point ``s`` along the arc from its midpoint:
     where it sits in the bend's centre frame, and how far its frame is turned
-    about y."""
+    about y.
+    """
     if not angle:
         return (0.0, 0.0, s), 0.0
     radius, phi = length / angle, s * angle / length
@@ -81,7 +83,9 @@ def from_frame(
     )
 
 
-def _lever(rotation: np.ndarray, pivot: Vector, tilt: float, chord: float) -> np.ndarray:
+def _lever(
+    rotation: np.ndarray, pivot: Vector, tilt: float, chord: float
+) -> np.ndarray:
     """How far ``rotation`` moves ``pivot``; the roll turns about the chord."""
     roll = _roll(tilt)
     axis = roll @ (-chord, 0.0, 0.0)

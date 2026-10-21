@@ -257,8 +257,9 @@ def build_wiggler(t) -> "at.Element":
 
 
 def build_solenoid(t) -> "at.Element":
-    """A ``SolenoidLinearPass`` element; its ``K`` is MAD-X's per-metre ``KS``
-    and LAURA's ``ks`` is integrated, as the importers and Bmad exporter read it."""
+    """A ``SolenoidLinearPass`` element. Its ``K`` is MAD-X's ``KS``, ``B / Brho``;
+    the builder leaves the field ``S0L / L`` and ``SectionLatticeTranslator.to_at``
+    divides by the signed rigidity."""
     if not t.physical.length:
         return build_passive(t)
     return at.Element(

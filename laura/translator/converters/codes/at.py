@@ -1,5 +1,6 @@
 """Accelerator Toolbox (pyAT): what the exporter cannot write, and the importer."""
 
+from copy import deepcopy
 from math import degrees
 from typing import Any, Dict, Optional
 from warnings import warn
@@ -69,6 +70,13 @@ def _misalignment(elem: Any, length: float) -> Dict[str, float]:
     as :func:`apply_misalignment` arguments."""
     get = lambda key: float(getattr(elem, key, 0.0))  # noqa: E731
     angle, frame = get("BendingAngle"), get("tilt_frame")
+    keys = ("dx", "dy", "dz", "pitch", "yaw", "tilt")
+    if frame and any(get(k) for k in keys) and _pyat_frame(elem):
+        warn(
+            f"{elem.FamName}: pyAT's own tilt_frame applies the alignment errors "
+            "before the roll, which no LAURA misalignment reproduces; imported "
+            "as if LAURA had written it."
+        )
     errors = from_frame(
         (get("dx"), get("dy"), get("dz")),
         (get("pitch"), get("yaw"), get("tilt")),
@@ -78,6 +86,24 @@ def _misalignment(elem: Any, length: float) -> Dict[str, float]:
     if not angle:  # the body roll is the whole tilt
         frame, errors["dz_rot"] = frame + errors["dz_rot"], 0.0
     return {"roll": frame, **errors}
+
+
+def _pyat_frame(elem: Any) -> bool:
+    """Whether pyAT's ``transform_elem`` built ``elem``'s frame roll, rather
+    than :func:`~laura.translator.conversion_rules.codes.at_conversion.misalign`."""
+    import at
+
+    native = deepcopy(elem)
+    at.transform_elem(
+        native,
+        *(getattr(elem, k) for k in ("dx", "dy", "dz", "tilt", "pitch", "yaw")),
+        tilt_frame=elem.tilt_frame,
+        reference=elem.ReferencePoint,
+    )
+    return all(
+        np.allclose(getattr(native, k), getattr(elem, k, np.nan))
+        for k in ("R1", "T1", "R2", "T2")
+    )
 
 
 class ATLatticeImporter(LatticeImporter):
@@ -236,7 +262,9 @@ class ATLatticeImporter(LatticeImporter):
                 "helical": int(getattr(elem, "NVharm", 0)) > 0,
             }
         elif laura_type is laura_elements.Solenoid:
-            data["magnetic"] = {"length": length, "fields": {"S0L": float(elem.K) * length}}
+            # K is B / (p / q); S0L is the integrated field [T*m]
+            charge = self.lattice.particle.charge
+            data["magnetic"] = {"length": length, "fields": {"S0L": float(elem.K) * length * brho * charge}}
         elif laura_type is laura_elements.MatrixTransform:
             planes = np.ix_(_PLANES, _PLANES)
             simulation = {"r_matrix": np.asarray(elem.M66)[planes]}

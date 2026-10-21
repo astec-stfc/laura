@@ -287,6 +287,23 @@ def test_at_round_trip(make):
         assert imported.magnetic.tilt == pytest.approx(0.106)
 
 
+def test_at_warns_about_pyats_own_tilt_frame():
+    at = pytest.importorskip("at")
+    from laura.translator import ATLatticeImporter
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        ring = section(strong_bend(ERRORS)).to_at(energy=1e9, particle="electron")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        ATLatticeImporter(lattice=ring).create_laura_element_dictionary()
+    assert not [w for w in caught if "tilt_frame" in str(w.message)]
+    bend = next(e for e in ring if e.PassMethod.startswith("Bnd"))
+    at.transform_elem(bend, tilt_frame=bend.tilt_frame)  # rebuilt pyAT's way
+    with pytest.warns(UserWarning, match="tilt_frame"):
+        ATLatticeImporter(lattice=ring).create_laura_element_dictionary()
+
+
 class TestXsuite:
     def test_bend_roll_error_rolls_the_field_only(self):
         pytest.importorskip("xtrack")
