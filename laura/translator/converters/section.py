@@ -20,6 +20,7 @@ from ...models.simulation import (
     TwissMatchSimulationElement,
     WakefieldSimulationElement,
 )
+from ..utils.alignment import sagitta, to_frame
 from ..utils.bmad import (
     BmadBody,
     bmad_beginning_datum,
@@ -1307,14 +1308,23 @@ class SectionLatticeTranslator(SectionLattice):
                 if "shift_x" in getattr(component, "_xofields", ()):
                     # rot_s_rad rolls a bend's frame (design tilt); the error rolls the field only
                     curved = component in (xt.Bend, xt.RBend)
+                    frame = element.roll - element.dz_rot * curved
+                    angle = element.resolve(element.magnetic.KnL(0)) if curved else 0.0
+                    # xtrack rolls a bend about its arc midpoint, LAURA about its chord
+                    offset, rotation = to_frame(
+                        element._misalignment(),
+                        tilt=frame,
+                        rolled=False,
+                        chord=sagitta(element.physical.length, float(angle or 0.0)),
+                    )
                     misalignment = {
-                        "shift_x": element.dx,
-                        "shift_y": element.dy,
-                        "shift_s": element.dz,
-                        "rot_x_rad": -element.dy_rot,
-                        "rot_y_rad": -element.dx_rot,
-                        "rot_s_rad": element.roll - element.dz_rot * curved,
-                        "rot_s_rad_no_frame": element.dz_rot * curved,
+                        "shift_x": float(offset[0]),
+                        "shift_y": float(offset[1]),
+                        "shift_s": float(offset[2]),
+                        "rot_x_rad": -float(rotation[0]),
+                        "rot_y_rad": float(rotation[1]),
+                        "rot_s_rad": frame,
+                        "rot_s_rad_no_frame": float(rotation[2]) * curved,
                     }
                     misalignment = {k: v for k, v in misalignment.items() if v}
                     if misalignment:

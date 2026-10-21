@@ -34,6 +34,7 @@ from ..converters import (
     type_conversion_rules_opal,
 )
 from ..converters.codes.gpt import GptCcs
+from ..utils.alignment import arc_point, sagitta, to_frame
 from ..utils.bmad import bmad_misalignment
 from ..utils.fields import FieldMap
 from ..utils.functions import check_value, expand_substitution, sanitize_string
@@ -1549,30 +1550,37 @@ class BaseElementTranslator(PhysicalBaseElement):
         tilt = getattr(getattr(self, "magnetic", None), "tilt", 0.0) or 0.0
         return float(self.resolve(tilt)) + self.dz_rot
 
-    def madx_alignment(self) -> Dict[str, float]:
-        """MAD-X ``EALIGN`` terms for the alignment errors.
-
-        MAD-X pivots about the entrance, in a bend's entrance frame; LAURA
-        (Bmad) about the centre, in the frame turned by half the bend angle.
-        A roll error goes into ``tilt`` except on a bend.
+    def madx_alignment(self, s: float | None = None) -> Dict[str, float]:
         """
-        if not any(self._misalignment().values()):
+        MAD-X ``EALIGN`` terms for the alignment errors. MAD-X pivots about
+        the entrance, in a bend's entrance frame before its tilt; after
+        ``MAKETHIN``, about each slice at ``s`` from the centre. A roll error
+        goes into ``tilt`` except on a bend.
+        """
+        errors = self._misalignment()
+        if not any(errors.values()):
             return {}
+        curved = self._curved
+        if not curved and hasattr(getattr(self, "magnetic", None), "tilt"):
+            errors["dz_rot"] = 0.0
         length = self.physical.length or 0.0
-        angle = float(self.resolve(self.magnetic.KnL(0))) if self._curved else 0.0
-        h = angle / 2
-        lever = length / angle * math.sin(h) if angle else length / 2
-        sagitta = length / angle * (1 - math.cos(h)) if angle else 0.0
-        folded = not angle and hasattr(getattr(self, "magnetic", None), "tilt")
+        angle = float(self.resolve(self.magnetic.KnL(0))) if curved else 0.0
+        offset, rotation = to_frame(
+            errors,
+            *arc_point(length, angle, -length / 2 if s is None else s),
+            tilt=self.roll - self.dz_rot if curved else 0.0,
+            rolled=False,
+            chord=sagitta(length, angle),
+        )
         terms = {
-            "dx": self.dx * math.cos(h) - self.dz * math.sin(h) + self.dx_rot * lever,
-            "dy": self.dy + self.dy_rot * lever,
-            "ds": self.dx * math.sin(h) + self.dz * math.cos(h) + self.dx_rot * sagitta,
-            "dtheta": -self.dx_rot,
-            "dphi": -self.dy_rot * math.cos(h),
-            "dpsi": 0.0 if folded else self.dz_rot + self.dy_rot * math.sin(h),
+            "dx": offset[0],
+            "dy": offset[1],
+            "ds": offset[2],
+            "dtheta": rotation[1],
+            "dphi": -rotation[0],
+            "dpsi": rotation[2],
         }
-        return {key: value for key, value in terms.items() if value}
+        return {key: float(value) for key, value in terms.items() if value}
 
     @property
     def _curved(self) -> bool:

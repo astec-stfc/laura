@@ -15,6 +15,7 @@ from ...utils.functions import (
     merge_layout_elements,
     number_repeated_names,
 )
+from ...utils.alignment import arc_point, from_frame, sagitta
 from ...utils.madx.TFSFile import TFSFile
 from .. import keyword_conversion_rules_madx, type_conversion_rules_madx
 from . import magnetic_orders
@@ -54,23 +55,18 @@ def _align_errors(madx, sequence: str) -> Dict:
     }
 
 
-def madx_misalignment(align, length: float, angle: float) -> Dict[str, float]:
+def madx_misalignment(
+    align, length: float, angle: float, tilt: float = 0.0
+) -> Dict[str, float]:
     """Invert :meth:`~laura.translator.converters.base.BaseElementTranslator.madx_alignment`:
     MAD-X ``EALIGN`` terms as LAURA alignment errors."""
-    h = angle / 2
-    lever = length / angle * np.sin(h) if angle else length / 2
-    sagitta = length / angle * (1 - np.cos(h)) if angle else 0.0
-    dx_rot = -align.dtheta
-    dy_rot = -align.dphi / np.cos(h)
-    a = align.dx - dx_rot * lever
-    b = align.ds - dx_rot * sagitta
-    return dict(
-        dx=a * np.cos(h) + b * np.sin(h),
-        dy=align.dy - dy_rot * lever,
-        dz=-a * np.sin(h) + b * np.cos(h),
-        dx_rot=dx_rot,
-        dy_rot=dy_rot,
-        dz_rot=align.dpsi - dy_rot * np.sin(h),
+    return from_frame(
+        (align.dx, align.dy, align.ds),
+        (-align.dphi, align.dtheta, align.dpsi),
+        *arc_point(length, angle, -length / 2),
+        tilt=tilt,
+        rolled=False,
+        chord=sagitta(length, angle),
     )
 
 
@@ -500,12 +496,17 @@ class MadxLatticeImporter(LatticeImporter):
 
             if row.get("_align"):
                 entry.setdefault("physical", {})
-                angle = row.get("angle", 0.0) if elemtype in ("sbend", "rbend") else 0.0
+                bend = elemtype in ("sbend", "rbend")
                 apply_misalignment(
                     entry,
                     getattr(laura_elements, sftype),
                     roll=0.0,
-                    **madx_misalignment(row["_align"], row.get("l", 0.0), angle),
+                    **madx_misalignment(
+                        row["_align"],
+                        row.get("l", 0.0),
+                        row.get("angle", 0.0) if bend else 0.0,
+                        row.get("tilt", 0.0) if bend else 0.0,
+                    ),
                 )
             for param, val in row.items():
                 if param in ("name", "keyword", "s", "_align"):

@@ -191,6 +191,73 @@ def test_madx_and_xsuite_agree(make, case):
     np.testing.assert_allclose(by_madx, by_xsuite, atol=1e-2 * np.abs(by_madx).max())
 
 
+def strong_bend(error, tilt=0.2, angle=0.8):
+    """Strong enough that the pivots' sagitta and the frame roll show."""
+    return Dipole(
+        name="q",
+        machine_area="S",
+        physical={"s": 0.5, "length": 1.0, "error": error},
+        magnetic={
+            "length": 1.0,
+            "tilt": tilt,
+            "multipoles": {
+                "K0L": {"order": 0, "normal": angle},
+                "K1L": {"order": 1, "normal": 0.6},
+            },
+        },
+    )
+
+
+def negative_bend(error):
+    return strong_bend(error, tilt=-0.3, angle=-0.8)
+
+
+@pytest.mark.parametrize("code", ["madx", "xsuite"])
+@pytest.mark.parametrize(
+    "make", [quad, strong_bend, negative_bend], ids=["quad", "bend", "negative_bend"]
+)
+@pytest.mark.parametrize("case", CASES)
+def test_tracking_agrees_with_bmad(code, make, case, tmp_path):
+    """Tracked off axis so a quad's roll shows."""
+    from unit_tests.test_ac_dipole_export import LIBTAO, TestBmadParity
+
+    if not LIBTAO.exists():
+        pytest.skip("libtao is not installed")
+    start = (1e-3, 5e-4)
+
+    def by_madx(element):
+        m = pytest.importorskip("cpymad.madx").Madx(stdout=False)
+        m.input(section(element).to_madx(beam={"particle": "electron", "energy": 1}))
+        tw = m.twiss(betx=1, bety=1, x=start[0], y=start[1])
+        return np.array([tw.x[-1], tw.px[-1], tw.y[-1], tw.py[-1]])
+
+    def by_bmad(element, run):
+        tao = TestBmadParity.parsed(tmp_path / run, translator(element))
+        tao.cmd(f"set particle_start x = {start[0]}")
+        tao.cmd(f"set particle_start y = {start[1]}")
+        orbit = tao.ele_orbit("Q")
+        return np.array([orbit[k] for k in ("x", "px", "y", "py")])
+
+    def by_xsuite(element):
+        xt = pytest.importorskip("xtrack")
+        line = section(element).to_xsuite(beam_length=1, save=False)
+        line.particle_ref = xt.Particles(p0c=1e9, mass0=xt.ELECTRON_MASS_EV)
+        p = line.build_particles(x=start[0], px=0, y=start[1], py=0)
+        line.track(p)
+        return np.array([p.x[0], p.px[0], p.y[0], p.py[0]])
+
+    track = {"madx": by_madx, "xsuite": by_xsuite}[code]
+    (tmp_path / "bare").mkdir()
+    (tmp_path / "error").mkdir()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        bare = by_bmad(make({}), "bare")
+        np.testing.assert_allclose(track(make({})), bare, atol=1e-6)
+        want = by_bmad(make(CASES[case]), "error") - bare
+        got = track(make(CASES[case])) - track(make({}))
+    np.testing.assert_allclose(got, want, atol=1e-2 * np.abs(want).max())
+
+
 class TestXsuite:
     def test_bend_roll_error_rolls_the_field_only(self):
         pytest.importorskip("xtrack")
@@ -229,6 +296,18 @@ class TestXsuite:
         assert [error.rotation.theta, error.rotation.phi] == pytest.approx([4e-3, 5e-3])
         assert imported["sext"].magnetic.tilt == pytest.approx(0.106)
         assert imported["cavity"].physical.error.rotation.psi == pytest.approx(0.05)
+
+    def test_a_bend_round_trips_about_its_chord(self):
+        pytest.importorskip("xtrack")
+        from laura.translator.converters.codes.xsuite import xsuite_misalignment
+
+        native = section(strong_bend(ERRORS)).to_xsuite(beam_length=1, save=False)["q"]
+        assert native.shift_y != pytest.approx(-2e-3)  # moved to xtrack's roll axis
+        imported = xsuite_misalignment(native)
+        assert [imported[k] for k in ("dx", "dy", "dz", "dx_rot", "dy_rot", "dz_rot")] == (
+            pytest.approx([1e-3, -2e-3, 3e-3, 4e-3, 5e-3, 6e-3])
+        )
+        assert imported["roll"] == pytest.approx(0.2)
 
     def test_an_entrance_anchor_is_re_centred(self):
         xt = pytest.importorskip("xtrack")
