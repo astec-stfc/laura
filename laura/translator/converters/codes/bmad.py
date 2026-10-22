@@ -1533,10 +1533,6 @@ class BmadLatticeImporter(LatticeImporter):
         structure_type = str(
             parameters.get(e.keyword("structure_type"), "Standing_Wave")
         ).replace("_", "")
-        # Bmad says whether a structure is standing or travelling but never
-        # which mode it runs in, and LAURA needs one: a standing-wave cavity is
-        # taken as pi mode and a travelling-wave one as 2pi/3, which is what an
-        # S-band linac is built from. The cell is then lambda/2 or lambda/3.
         numerator, denominator = (
             (1, 3) if structure_type.lower().startswith("travel") else (1, 2)
         )
@@ -1552,9 +1548,8 @@ class BmadLatticeImporter(LatticeImporter):
         cell_length = cell_length or e.length / n_cells
         amplitude = parameters[e.keyword("field_amplitude")]
         if denominator == 3 and cell_length:
-            amplitude = amplitude / abs(
-                (n_cells + 3.8) * cell_length * (1 / np.sqrt(2))
-            )
+            cells = 1 if cell_length == e.length else n_cells - n_cells % 3
+            amplitude = amplitude / abs((cells + 3.8) * cell_length * (1 / np.sqrt(2)))
         simulation = {"field_amplitude": amplitude}
         if parameters.get("N_RF_STEPS") is not None:
             simulation["n_kicks"] = int(parameters["N_RF_STEPS"])
