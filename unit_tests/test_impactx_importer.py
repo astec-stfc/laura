@@ -139,3 +139,19 @@ def test_reads_an_inputs_file():
     )
     assert q2.physical.s == pytest.approx(2.75)
     assert sum(name.startswith("monitor") for name in elements) == 6
+
+
+def test_an_inputs_file_includes_files_beside_it_and_leaves_diags_alone(tmp_path):
+    pytest.importorskip("impactx")
+    (tmp_path / "input_fodo.in").write_text(FODO.read_text())
+    (tmp_path / "main.in").write_text("FILE = input_fodo.in\n")
+    (tmp_path / "diags").mkdir()
+    (tmp_path / "diags" / "keep").touch()
+    lattice = ImpactXLatticeImporter(source_file=str(tmp_path / "main.in"))
+    assert "quad1" in lattice.create_laura_element_dictionary()
+    assert sorted(p.name for p in tmp_path.iterdir()) == [
+        "diags",
+        "input_fodo.in",
+        "main.in",
+    ]
+    assert (tmp_path / "diags" / "keep").exists()

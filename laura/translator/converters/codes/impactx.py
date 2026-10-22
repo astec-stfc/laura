@@ -30,26 +30,7 @@ _ORDERS = {
 _HWANG_LEE = {"K0": pi**2 / 6, "K1": 0.0, "K3": 1 / 6, "K4": 0.0, "K5": 0.0, "K6": 0.0}
 """``DipEdge``'s Hwang-Lee coefficients and their ImpactX defaults."""
 
-_READ_INPUTS = """
-import json, sys
-import amrex.space3d as amr, impactx
-sim = impactx.ImpactX()
-sim.init_grids()
-sim.load_inputs_file(sys.argv[1])
-sim.init_lattice_elements_from_inputs()
-beam, given = amr.ParmParse("beam"), amr.ParmParse("").to_dict().get("beam", {})
-dicts = [
-    {k: v.to_numpy().tolist() if hasattr(v, "to_numpy") else v for k, v in d.items()}
-    for d in sim.lattice.to_dicts()
-]
-json.dump({
-    "kin_energy": beam.get_real("kin_energy") if "kin_energy" in given else None,
-    "particle": beam.get_str("particle") if "particle" in given else None,
-    "elements": dicts,
-}, open("lattice.json", "w"))
-sim.finalize()
-"""
-"""Run in a subprocess: AMReX starts once per process and ImpactX writes ``diags``."""
+_READ_INPUTS = Path(__file__).with_name("impactx_inputs.py")
 
 
 def _stem(name: str) -> str:
@@ -121,12 +102,12 @@ class ImpactXLatticeImporter(LatticeImporter):
         if (self.lattice is None) == (self.source_file is None):
             raise ValueError("Give exactly one of lattice or source_file.")
         if self.source_file:
-            source = str(Path(self.source_file).resolve())
-            # ponytail: run elsewhere, so a FILE include relative to the cwd won't resolve
-            with tempfile.TemporaryDirectory() as cwd:
+            source = Path(self.source_file).resolve()
+            with tempfile.TemporaryDirectory() as tmp:
+                out = Path(tmp, "lattice.json")
                 read = subprocess.run(
-                    [sys.executable, "-I", "-c", _READ_INPUTS, source],
-                    cwd=cwd,
+                    [sys.executable, "-I", str(_READ_INPUTS), str(source), str(out)],
+                    cwd=source.parent,
                     capture_output=True,
                     text=True,
                 )
@@ -134,7 +115,7 @@ class ImpactXLatticeImporter(LatticeImporter):
                     raise RuntimeError(
                         f"ImpactX could not read {self.source_file}:\n{read.stderr}"
                     )
-                loaded = json.loads(Path(cwd, "lattice.json").read_text())
+                loaded = json.loads(out.read_text())
             particle = loaded["particle"] or self.particle
             object.__setattr__(self, "lattice", loaded["elements"])
             object.__setattr__(self, "particle", particle)
@@ -283,7 +264,6 @@ class ImpactXLatticeImporter(LatticeImporter):
                     f"{name}: no energy given; the longitudinal terms assume beta = 1."
                 )
             r = d["R"].to_numpy() if hasattr(d["R"], "to_numpy") else d["R"]
-            # ImpactX's t = -z / beta and pt = -beta pz; LAURA's map is Bmad's
             frame = np.array([1, 1, 1, 1, -1 / beta, -beta])
             data["simulation"] = {
                 "r_matrix": np.asarray(r, dtype=float) * frame / frame[:, None]
