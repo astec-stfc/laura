@@ -51,6 +51,18 @@ URI: [laura:SextupoleMagnet](https://w3id.org/laura/SextupoleMagnet)
         
       SextupoleMagnet : fringe_field_coefficient
         
+      SextupoleMagnet : fringe_k0
+        
+      SextupoleMagnet : fringe_k1
+        
+      SextupoleMagnet : fringe_k3
+        
+      SextupoleMagnet : fringe_k4
+        
+      SextupoleMagnet : fringe_k5
+        
+      SextupoleMagnet : fringe_k6
+        
       SextupoleMagnet : gap
         
       SextupoleMagnet : gradient
@@ -158,6 +170,12 @@ URI: [laura:SextupoleMagnet](https://w3id.org/laura/SextupoleMagnet)
 | [edge_field_integral_entrance](edge_field_integral_entrance.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for entrance-edge focussing | [MagneticElement](MagneticElement.md) |
 | [edge_field_integral_exit](edge_field_integral_exit.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for exit-edge focussing | [MagneticElement](MagneticElement.md) |
 | [exit_gap](exit_gap.md) | 0..1 <br/> [Float](Float.md) | Full gap between pole faces at the exit face [m] | [MagneticElement](MagneticElement.md) |
+| [fringe_k0](fringe_k0.md) | 0..1 <br/> [Float](Float.md) | Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs | [MagneticElement](MagneticElement.md) |
+| [fringe_k1](fringe_k1.md) | 0..1 <br/> [Float](Float.md) | Hwang-Lee fringe-field integral K1; see ``fringe_k0`` | [MagneticElement](MagneticElement.md) |
+| [fringe_k3](fringe_k3.md) | 0..1 <br/> [Float](Float.md) | Hwang-Lee fringe-field integral K3; see ``fringe_k0`` | [MagneticElement](MagneticElement.md) |
+| [fringe_k4](fringe_k4.md) | 0..1 <br/> [Float](Float.md) | Hwang-Lee fringe-field integral K4; see ``fringe_k0`` | [MagneticElement](MagneticElement.md) |
+| [fringe_k5](fringe_k5.md) | 0..1 <br/> [Float](Float.md) | Hwang-Lee fringe-field integral K5; see ``fringe_k0`` | [MagneticElement](MagneticElement.md) |
+| [fringe_k6](fringe_k6.md) | 0..1 <br/> [Float](Float.md) | Hwang-Lee fringe-field integral K6; see ``fringe_k0`` | [MagneticElement](MagneticElement.md) |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | 0..1 <br/> [Float](Float.md) | Coefficient controlling the fringe-field roll-off rate | [MagneticElement](MagneticElement.md) |
 | [gradient](gradient.md) | 0..1 <br/> [Float](Float.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) | [MagneticElement](MagneticElement.md) |
 | [angle](angle.md) | 0..1 <br/> [Float](Float.md) | Integrated bending angle [rad] | [MagneticElement](MagneticElement.md) |
@@ -490,6 +508,67 @@ attributes:
     minimum_value: 0.0
     unit:
       ucum_code: m
+  fringe_k0:
+    name: fringe_k0
+    description: Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401,
+      eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: SextupoleMagnet
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
+  fringe_k1:
+    name: fringe_k1
+    description: Hwang-Lee fringe-field integral K1; see ``fringe_k0``.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: SextupoleMagnet
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
+  fringe_k3:
+    name: fringe_k3
+    description: Hwang-Lee fringe-field integral K3; see ``fringe_k0``.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: SextupoleMagnet
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
+  fringe_k4:
+    name: fringe_k4
+    description: Hwang-Lee fringe-field integral K4; see ``fringe_k0``.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: SextupoleMagnet
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
+  fringe_k5:
+    name: fringe_k5
+    description: Hwang-Lee fringe-field integral K5; see ``fringe_k0``.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: SextupoleMagnet
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
+  fringe_k6:
+    name: fringe_k6
+    description: Hwang-Lee fringe-field integral K6; see ``fringe_k0``.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: SextupoleMagnet
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
   fringe_field_coefficient:
     name: fringe_field_coefficient
     description: Coefficient controlling the fringe-field roll-off rate.
@@ -515,11 +594,7 @@ attributes:
     name: angle
     description: 'Integrated bending angle [rad]. Dipoles only. Part of the data model
       (lattice YAML may set it), but derived from multipoles.K0L rather than stored:
-      the MagneticElement wrapper implements it as a read/write property so a symbolic
-      bend angle survives round-tripping and reads follow the global resolution mode.
-      Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated
-      base does not also declare it as a field, which would make pydantic treat the
-      property object as the field default.'
+      the MagneticElement wrapper implements it as a read/write property.'
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: SextupoleMagnet

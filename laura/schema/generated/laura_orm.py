@@ -744,6 +744,12 @@ class MagneticElement(Base):
     edge_field_integral_entrance = Column(Float())
     edge_field_integral_exit = Column(Float())
     exit_gap = Column(Float())
+    fringe_k0 = Column(Float())
+    fringe_k1 = Column(Float())
+    fringe_k3 = Column(Float())
+    fringe_k4 = Column(Float())
+    fringe_k5 = Column(Float())
+    fringe_k6 = Column(Float())
     fringe_field_coefficient = Column(Float())
     gradient = Column(Float())
     angle = Column(Float())
@@ -760,7 +766,7 @@ class MagneticElement(Base):
     
 
     def __repr__(self):
-        return f"MagneticElement(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"MagneticElement(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_k0={self.fringe_k0},fringe_k1={self.fringe_k1},fringe_k3={self.fringe_k3},fringe_k4={self.fringe_k4},fringe_k5={self.fringe_k5},fringe_k6={self.fringe_k6},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8062,7 +8068,7 @@ class TwissMatchSimulationElement(SimulationElement):
 
 class MatrixTransformSimulationElement(SimulationElement):
     """
-    Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+    Zero- through third-order transfer-map coefficients for a matrix transform element, in Bmad's phase-space coordinates (x, px, y, py, z, pz): z = -beta c dt, positive ahead of the reference, and pz = dp/p0. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
     """
     __tablename__ = 'MatrixTransformSimulationElement'
 
@@ -8602,6 +8608,12 @@ class DipoleMagnet(MagneticElement):
     edge_field_integral_entrance = Column(Float())
     edge_field_integral_exit = Column(Float())
     exit_gap = Column(Float())
+    fringe_k0 = Column(Float())
+    fringe_k1 = Column(Float())
+    fringe_k3 = Column(Float())
+    fringe_k4 = Column(Float())
+    fringe_k5 = Column(Float())
+    fringe_k6 = Column(Float())
     fringe_field_coefficient = Column(Float())
     gradient = Column(Float())
     angle = Column(Float())
@@ -8618,7 +8630,7 @@ class DipoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"DipoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"DipoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_k0={self.fringe_k0},fringe_k1={self.fringe_k1},fringe_k3={self.fringe_k3},fringe_k4={self.fringe_k4},fringe_k5={self.fringe_k5},fringe_k6={self.fringe_k6},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8652,6 +8664,12 @@ class QuadrupoleMagnet(MagneticElement):
     edge_field_integral_entrance = Column(Float())
     edge_field_integral_exit = Column(Float())
     exit_gap = Column(Float())
+    fringe_k0 = Column(Float())
+    fringe_k1 = Column(Float())
+    fringe_k3 = Column(Float())
+    fringe_k4 = Column(Float())
+    fringe_k5 = Column(Float())
+    fringe_k6 = Column(Float())
     fringe_field_coefficient = Column(Float())
     gradient = Column(Float())
     angle = Column(Float())
@@ -8668,7 +8686,7 @@ class QuadrupoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"QuadrupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"QuadrupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_k0={self.fringe_k0},fringe_k1={self.fringe_k1},fringe_k3={self.fringe_k3},fringe_k4={self.fringe_k4},fringe_k5={self.fringe_k5},fringe_k6={self.fringe_k6},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8702,6 +8720,12 @@ class SextupoleMagnet(MagneticElement):
     edge_field_integral_entrance = Column(Float())
     edge_field_integral_exit = Column(Float())
     exit_gap = Column(Float())
+    fringe_k0 = Column(Float())
+    fringe_k1 = Column(Float())
+    fringe_k3 = Column(Float())
+    fringe_k4 = Column(Float())
+    fringe_k5 = Column(Float())
+    fringe_k6 = Column(Float())
     fringe_field_coefficient = Column(Float())
     gradient = Column(Float())
     angle = Column(Float())
@@ -8718,7 +8742,7 @@ class SextupoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"SextupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"SextupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_k0={self.fringe_k0},fringe_k1={self.fringe_k1},fringe_k3={self.fringe_k3},fringe_k4={self.fringe_k4},fringe_k5={self.fringe_k5},fringe_k6={self.fringe_k6},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8752,6 +8776,12 @@ class OctupoleMagnet(MagneticElement):
     edge_field_integral_entrance = Column(Float())
     edge_field_integral_exit = Column(Float())
     exit_gap = Column(Float())
+    fringe_k0 = Column(Float())
+    fringe_k1 = Column(Float())
+    fringe_k3 = Column(Float())
+    fringe_k4 = Column(Float())
+    fringe_k5 = Column(Float())
+    fringe_k6 = Column(Float())
     fringe_field_coefficient = Column(Float())
     gradient = Column(Float())
     angle = Column(Float())
@@ -8768,7 +8798,7 @@ class OctupoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"OctupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"OctupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_k0={self.fringe_k0},fringe_k1={self.fringe_k1},fringe_k3={self.fringe_k3},fringe_k4={self.fringe_k4},fringe_k5={self.fringe_k5},fringe_k6={self.fringe_k6},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8802,6 +8832,12 @@ class CombinedSolenoidQuadrupoleMagnet(MagneticElement):
     edge_field_integral_entrance = Column(Float())
     edge_field_integral_exit = Column(Float())
     exit_gap = Column(Float())
+    fringe_k0 = Column(Float())
+    fringe_k1 = Column(Float())
+    fringe_k3 = Column(Float())
+    fringe_k4 = Column(Float())
+    fringe_k5 = Column(Float())
+    fringe_k6 = Column(Float())
     fringe_field_coefficient = Column(Float())
     gradient = Column(Float())
     angle = Column(Float())
@@ -8820,7 +8856,7 @@ class CombinedSolenoidQuadrupoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"CombinedSolenoidQuadrupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},solenoid_fields_id={self.solenoid_fields_id},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"CombinedSolenoidQuadrupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_k0={self.fringe_k0},fringe_k1={self.fringe_k1},fringe_k3={self.fringe_k3},fringe_k4={self.fringe_k4},fringe_k5={self.fringe_k5},fringe_k6={self.fringe_k6},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},solenoid_fields_id={self.solenoid_fields_id},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -9620,6 +9656,12 @@ class CorrectorMagnet(DipoleMagnet):
     edge_field_integral_entrance = Column(Float())
     edge_field_integral_exit = Column(Float())
     exit_gap = Column(Float())
+    fringe_k0 = Column(Float())
+    fringe_k1 = Column(Float())
+    fringe_k3 = Column(Float())
+    fringe_k4 = Column(Float())
+    fringe_k5 = Column(Float())
+    fringe_k6 = Column(Float())
     fringe_field_coefficient = Column(Float())
     gradient = Column(Float())
     angle = Column(Float())
@@ -9636,7 +9678,7 @@ class CorrectorMagnet(DipoleMagnet):
     
 
     def __repr__(self):
-        return f"Corrector_Magnet(id={self.id},horizontal_kick={self.horizontal_kick},vertical_kick={self.vertical_kick},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"Corrector_Magnet(id={self.id},horizontal_kick={self.horizontal_kick},vertical_kick={self.vertical_kick},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_k0={self.fringe_k0},fringe_k1={self.fringe_k1},fringe_k3={self.fringe_k3},fringe_k4={self.fringe_k4},fringe_k5={self.fringe_k5},fringe_k6={self.fringe_k6},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 

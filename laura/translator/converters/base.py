@@ -708,6 +708,32 @@ class BaseElementTranslator(PhysicalBaseElement):
             properties["integrator"] = "yoshida4"
         return self.name, obj, properties
 
+    def to_impactx(
+        self, model: str = "exact", energy: float | None = None, particle: str = "electron"
+    ) -> list:
+        """
+        ImpactX elements as the dicts ``element.to_dict()`` writes, dispatching
+        on ``hardware_type`` via
+        :data:`~laura.translator.conversion_rules.codes.impactx_conversion.impactx_conversion_rules`.
+
+        Parameters
+        ----------
+        model: str
+            Fidelity tier, ``"linear"``, ``"paraxial"`` or ``"exact"``.
+        energy: float, optional
+            Total energy of the design particle [eV], needed by a solenoid.
+        particle: str
+            Design particle; its mass normalises the RF voltage.
+
+        Returns
+        -------
+        list[dict]
+        """
+        from ..conversion_rules.codes.impactx_conversion import reference, to_dicts
+
+        self.start_write()
+        return to_dicts(self, model, reference(energy, particle))
+
     def to_genesis(self, index: int) -> str:
         """
         Generates a string representation of the object's properties in the Genesis format.
@@ -841,11 +867,11 @@ class BaseElementTranslator(PhysicalBaseElement):
             lines += [s.format(var=vn) for s in post_stmts]
         return lines, varnames
 
-    def _rftrack_aperture_params(self):
+    def _rftrack_aperture_params(self, code: str = "RF-Track"):
         """
         Resolve this element's aperture (if any) into the ``(Rx, Ry, shape)``
         arguments of RF-Track's ``set_aperture``; RF-Track has no standalone
-        aperture element.
+        aperture element. ``code`` names the target in the offset warning.
 
         Returns
         -------
@@ -856,9 +882,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         if aperture is None or not getattr(aperture, "shape", None):
             return None
         if aperture.horizontal_offset or aperture.vertical_offset:
-            warn(
-                f"RF-Track apertures are centred; the offset of {self.name!r} was dropped."
-            )
+            warn(f"{code} apertures are centred; the offset of {self.name!r} was dropped.")
         shape = aperture.shape
         if shape in ("circular", "elliptical"):
             if aperture.radius is not None:

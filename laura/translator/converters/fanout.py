@@ -73,6 +73,38 @@ class ContainerTranslator:
             save=save,
         )
 
+    def to_impactx(
+        self,
+        model: str = "exact",
+        energy: float | None = None,
+        particle: str = "electron",
+        save: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        One list of ImpactX element dicts per section; see
+        :meth:`~laura.translator.converters.section.SectionLatticeTranslator.to_impactx`.
+        A container's own ``particle`` wins over ``particle``.
+
+        Parameters
+        ----------
+        model: str
+            Fidelity tier: ``"linear"``, ``"paraxial"`` or ``"exact"``
+        energy: float, optional
+            Beam energy [eV] for this section; defaults to
+            :attr:`reference_energy`.
+        particle: str
+            Particle species
+        save: bool, optional
+            Also write ``{directory}/{name}.impactx.json``.
+        """
+        return self._fan_out(
+            "to_impactx",
+            model=model,
+            energy=energy,
+            particle=self.particle or particle,
+            save=save,
+        )
+
     def to_bmad(
         self,
         particle: str | None = None,

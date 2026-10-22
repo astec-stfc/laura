@@ -30,16 +30,20 @@ class MatrixTransformTranslator(BaseElementTranslator):
         self.start_write()
         etype = self._convert_type_elegant(self.hardware_type)
         terms = [f"L = {self.length}"] if self.length else []
-        if not np.array_equal(self.simulation.c_matrix, np.zeros(6)):
-            for i, val in enumerate(self.simulation.c_matrix):
+        s = np.array([1, 1, 1, 1, -1, 1])
+        c_matrix = s * self.simulation.c_matrix
+        r_matrix = np.einsum("i,j,ij->ij", s, s, self.simulation.r_matrix)
+        t_matrix = np.einsum("i,j,k,ijk->ijk", s, s, s, self.simulation.t_matrix)
+        if not np.array_equal(c_matrix, np.zeros(6)):
+            for i, val in enumerate(c_matrix):
                 if val != 0:
                     terms.append(f"C{i + 1} = {val}")
-        for i, row in enumerate(self.simulation.r_matrix):
+        for i, row in enumerate(r_matrix):
             for j, val in enumerate(row):
                 if val != 0.0:
                     terms.append(f"R{i + 1}{j + 1} = {val}")
-        if not np.array_equal(self.simulation.t_matrix, np.zeros((6, 6, 6))):
-            for i, plane in enumerate(self.simulation.t_matrix):
+        if not np.array_equal(t_matrix, np.zeros((6, 6, 6))):
+            for i, plane in enumerate(t_matrix):
                 for j, row in enumerate(plane):
                     for k, val in enumerate(row):
                         if val != 0:

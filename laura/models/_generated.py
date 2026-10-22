@@ -1600,7 +1600,7 @@ class _TwissMatchSimulationElementBase(_SimulationElementBase):
 
 class _MatrixTransformSimulationElementBase(_SimulationElementBase):
     """
-    Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+    Zero- through third-order transfer-map coefficients for a matrix transform element, in Bmad's phase-space coordinates (x, px, y, py, z, pz): z = -beta c dt, positive ahead of the reference, and pz = dp/p0. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MatrixTransformSimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation'})
@@ -2246,6 +2246,18 @@ class _MagneticElementBase(ConfiguredBaseModel):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -3115,6 +3127,18 @@ class _DipoleMagnetBase(_MagneticElementBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -3190,6 +3214,18 @@ class _QuadrupoleMagnetBase(_MagneticElementBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -3268,12 +3304,24 @@ class _SextupoleMagnetBase(_MagneticElementBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
     """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
-    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default."""
+    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
+    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property."""
 
 
 class _OctupoleMagnetBase(_MagneticElementBase):
@@ -3348,12 +3396,24 @@ class _OctupoleMagnetBase(_MagneticElementBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
     """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
-    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default."""
+    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
+    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property."""
 
 
 class _CorrectorMagnetBase(_DipoleMagnetBase):
@@ -3426,6 +3486,18 @@ class _CorrectorMagnetBase(_DipoleMagnetBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -3586,12 +3658,24 @@ class _CombinedSolenoidQuadrupoleMagnetBase(_MagneticElementBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
     """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
-    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default."""
+    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
+    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property."""
 
 
 class _WigglerMagnetBase(ConfiguredBaseModel):

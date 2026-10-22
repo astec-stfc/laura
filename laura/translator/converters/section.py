@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 from textwrap import wrap
 from typing import TYPE_CHECKING, Any, Dict, Optional
@@ -40,7 +41,6 @@ from ..utils.functions import (
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
-from .magnet import MagnetTranslator, SolenoidTranslator
 from .codes import (
     astra_unsupported,
     bmad_unsupported,
@@ -57,6 +57,7 @@ from .codes import (
 from .codes.gpt import GptCcs, GptDtMinT, GptZMinMax
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
+from .magnet import MagnetTranslator, SolenoidTranslator
 from .wake import WakefieldTranslator
 
 unsupported_elements = {
@@ -583,9 +584,9 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[
-                            key
-                        ] += f"{section_header_text_astra[key]} = True\n"
+                        element_headers[key] += (
+                            f"{section_header_text_astra[key]} = True\n"
+                        )
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
@@ -611,9 +612,9 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers[
-                                "&WAKE"
-                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
+                            element_headers["&WAKE"] += (
+                                f"{section_header_text_astra['&WAKE']} = True\n"
+                            )
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += w.astra_wake_spacing[1]
@@ -1323,9 +1324,10 @@ class SectionLatticeTranslator(SectionLattice):
                             chord=sagitta(element.physical.length, float(angle or 0.0)),
                         )
                         misalignment = {
-                            # an elliptical aperture's offset is already a shift
-                            "shift_x": float(offset[0]) + properties.get("shift_x", 0.0),
-                            "shift_y": float(offset[1]) + properties.get("shift_y", 0.0),
+                            "shift_x": float(offset[0])
+                            + properties.get("shift_x", 0.0),
+                            "shift_y": float(offset[1])
+                            + properties.get("shift_y", 0.0),
                             "shift_s": float(offset[2]),
                             "rot_x_rad": -float(rotation[0]),
                             "rot_y_rad": float(rotation[1]),
@@ -1354,6 +1356,44 @@ class SectionLatticeTranslator(SectionLattice):
         if save:
             line.to_json(f"{self.directory}/{self.name}.json")
         return line
+
+    def to_impactx(
+        self,
+        model: str = "exact",
+        energy: float | None = None,
+        particle: str = "electron",
+        save: bool = False,
+    ) -> list:
+        """
+        ImpactX elements for this section, as the dicts
+        ``KnownElementsList.from_dicts`` reads.
+
+        Parameters
+        ----------
+        model: str
+            Fidelity tier, ``"linear"``, ``"paraxial"`` or ``"exact"``; see
+            :func:`~laura.translator.conversion_rules.codes.impactx_conversion.tier`.
+        energy: float, optional
+            Total energy of the design particle [eV]; defaults to
+            :attr:`reference_energy`.
+        particle: str
+            Design particle.
+        save: bool
+            Also write ``{directory}/{name}.impactx.json``.
+
+        Returns
+        -------
+        list[dict]
+        """
+        energy = self.reference_energy if energy is None else energy
+        elements = []
+        for d in self._translate(self.create_drifts().values()).values():
+            if not d.subelement:
+                elements += d.to_impactx(model=model, energy=energy, particle=particle)
+        if save:
+            with open(f"{self.directory}/{self.name}.impactx.json", "w") as f:
+                json.dump(elements, f, indent=1)
+        return elements
 
     def to_csrtrack(self) -> str:
         """

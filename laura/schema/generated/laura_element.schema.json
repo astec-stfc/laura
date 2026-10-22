@@ -3340,7 +3340,7 @@
       "description": "Combined solenoid and quadrupole magnetic field.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
           "type": [
             "number",
             "null"
@@ -3426,6 +3426,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -3733,7 +3775,7 @@
       "description": "Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
           "type": [
             "number",
             "null"
@@ -3819,6 +3861,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -4797,7 +4881,7 @@
       "description": "",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
           "type": [
             "number",
             "null"
@@ -4883,6 +4967,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -9216,7 +9342,7 @@
       "description": "Magnetic field parameters for a beamline magnet, including multipole components, field integrals, and geometric edge parameters.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
           "type": [
             "number",
             "null"
@@ -9302,6 +9428,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -9822,7 +9990,7 @@
     },
     "MatrixTransformSimulationElement": {
       "additionalProperties": false,
-      "description": "Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.",
+      "description": "Zero- through third-order transfer-map coefficients for a matrix transform element, in Bmad's phase-space coordinates (x, px, y, py, z, pz): z = -beta c dt, positive ahead of the reference, and pz = dp/p0. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.",
       "properties": {
         "apply": {
           "description": "Whether to apply the transfer map.",
@@ -10654,7 +10822,7 @@
       "description": "Octupole magnet field, principal multipole order 3.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
           "type": [
             "number",
             "null"
@@ -10740,6 +10908,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -12638,7 +12848,7 @@
       "description": "",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
           "type": [
             "number",
             "null"
@@ -12724,6 +12934,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -15433,7 +15685,7 @@
       "description": "Sextupole magnet field, principal multipole order 2.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
           "type": [
             "number",
             "null"
@@ -15519,6 +15771,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"

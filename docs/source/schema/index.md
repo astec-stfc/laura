@@ -283,6 +283,12 @@ Name: laura_schema
 | [forward_channel](forward_channel.md) | Forward channel index |
 | [frequency](frequency.md) | Operating frequency [Hz] |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | Coefficient controlling the fringe-field roll-off rate |
+| [fringe_k0](fringe_k0.md) | Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs |
+| [fringe_k1](fringe_k1.md) | Hwang-Lee fringe-field integral K1; see ``fringe_k0`` |
+| [fringe_k3](fringe_k3.md) | Hwang-Lee fringe-field integral K3; see ``fringe_k0`` |
+| [fringe_k4](fringe_k4.md) | Hwang-Lee fringe-field integral K4; see ``fringe_k0`` |
+| [fringe_k5](fringe_k5.md) | Hwang-Lee fringe-field integral K5; see ``fringe_k0`` |
+| [fringe_k6](fringe_k6.md) | Hwang-Lee fringe-field integral K6; see ``fringe_k0`` |
 | [fringe_model](fringe_model.md) | Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only,... |
 | [from_beam](from_beam.md) | Compute transform from tracked beam properties |
 | [gap](gap.md) | Full gap between pole faces [m] |

@@ -1,5 +1,8 @@
 """Exports of the less common element types."""
 
+import subprocess
+from shutil import which
+
 import pytest
 
 pytest.importorskip("easygdf")
@@ -344,6 +347,36 @@ class TestMatrixTransformAndCrabCavityDispatch:
         out = translate_elements([mt])["mt1"].to_elegant()
         for i in range(1, 7):
             assert f"R{i}{i} = 1.0" in out
+
+    @pytest.mark.skipif(which("elegant") is None, reason="elegant is not installed")
+    def test_matrix_transform_elegant_r56_is_bmads(self, tmp_path):
+        """Bmad's z is positive ahead, elegant's c*t positive behind: with R56 > 0
+        a particle with more energy arrives earlier."""
+        mt = MatrixTransform(name="mt1", machine_area="S", simulation={"r_matrix": {"r56": 1.0}})
+        (tmp_path / "lat.lte").write_text(
+            translate_elements([mt])["mt1"].to_elegant() + "LN: line=(mt1)\n"
+        )
+        pc = 250 / 0.51099895
+        (tmp_path / "beam.sdds").write_text(
+            "SDDS1\n"
+            + "".join(
+                f"&column name={n}, units={u}, type=double &end\n"
+                for n, u in (("x", "m"), ("xp", '""'), ("y", "m"), ("yp", '""'), ("t", "s"), ("p", '""'))
+            )
+            + "&column name=particleID, type=long &end\n"
+            f"&data mode=ascii, no_row_counts=1 &end\n0 0 0 0 0 {pc} 1\n0 0 0 0 0 {pc * 1.001} 2\n"
+        )
+        (tmp_path / "run.ele").write_text(
+            f"&run_setup lattice=lat.lte, use_beamline=LN, p_central={pc}, output=out.sdds &end\n"
+            "&run_control &end\n&sdds_beam input=beam.sdds &end\n&track &end\n"
+        )
+        subprocess.run(["elegant", "run.ele"], cwd=tmp_path, check=True, capture_output=True)
+        output = subprocess.run(
+            ["sdds2stream", "-col=particleID,t", "out.sdds"],
+            cwd=tmp_path, check=True, capture_output=True, text=True,
+        ).stdout
+        (_, t1), (_, t2) = sorted([*map(float, row.split())] for row in output.splitlines())
+        assert t2 - t1 == pytest.approx(-1e-3 / 299792458.0, rel=1e-4)
 
     def test_crab_cavity_elegant_uses_rfdf_not_rfca(self):
         out = translate_elements([_crab()])["cc1"].to_elegant()

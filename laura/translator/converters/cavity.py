@@ -91,6 +91,19 @@ class RFCavityTranslator(BaseElementTranslator):
         """Cavity field amplitude, resolving a functional definition if set symbolically."""
         return self.resolve(self.simulation.field_amplitude)
 
+    @property
+    def voltage(self) -> float:
+        """Voltage [V] for codes that take one: :attr:`field_amplitude`, times
+        :meth:`voltage_factor`."""
+        return self.field_amplitude * self.voltage_factor()
+
+    def voltage_factor(self) -> float:
+        """1 for a standing-wave cavity; an effective length [m] turning a
+        travelling-wave cavity's gradient into a voltage."""
+        if self.structure_type != "TravellingWave":
+            return 1.0
+        return abs((self.get_cells() + 3.8) * self.cavity.cell_length / np.sqrt(2))
+
     @computed_field
     @property
     def tcolumn(self) -> str | None:

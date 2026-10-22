@@ -1176,6 +1176,12 @@ type MagneticElement
     edgeFieldIntegralEntrance: Float
     edgeFieldIntegralExit: Float
     exitGap: Float
+    fringeK0: Float
+    fringeK1: Float
+    fringeK3: Float
+    fringeK4: Float
+    fringeK5: Float
+    fringeK6: Float
     fringeFieldCoefficient: Float
     gradient: Float
     angle: Float
