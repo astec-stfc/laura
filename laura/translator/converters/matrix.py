@@ -189,6 +189,8 @@ class MatrixTransformTranslator(BaseElementTranslator):
         etype = self._convert_type_madx(self.hardware_type)
         string = sanitize_string(self.name) + ": " + etype + f", l = {self.length}"
         c_matrix, r_matrix, t_matrix = self._taylor_map("MAD-X", gamma)
+        # MAD-X's TRACK refuses a MATRIX with T terms, so keep a linear map linear
+        t_matrix = t_matrix * bool(np.any(self.simulation.t_matrix))
         for i, val in enumerate(c_matrix):
             if val != 0:
                 string += f", kick{i + 1} = {val}"

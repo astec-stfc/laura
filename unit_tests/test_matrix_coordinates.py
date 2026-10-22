@@ -37,6 +37,13 @@ def matrix():
     )
 
 
+def test_madx_keeps_a_linear_map_linear():
+    """MAD-X's TRACK refuses a MATRIX with T terms."""
+    linear = MatrixTransform(name="m", machine_area="S", simulation={"r_matrix": R})
+    text = translator(linear).to_madx(gamma=E / M)
+    assert "rm56" in text and "tm" not in text
+
+
 def test_madx():
     madx = pytest.importorskip("cpymad.madx").Madx(stdout=False)
     with pytest.warns(UserWarning, match="beta = 1"):
