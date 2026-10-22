@@ -126,8 +126,8 @@ class TestMadxCorrector:
         )
         ht = CorrectorTranslator.model_validate(hc.model_dump())
         vt = CorrectorTranslator.model_validate(vc.model_dump())
-        assert ht.to_madx() == "hc1: hkicker, l = 0.1, kick = 0.02;\n"
-        assert vt.to_madx() == "vc1: vkicker, l = 0.1, kick = 0.03;\n"
+        assert ht.to_madx() == "hc1: hkicker, l = 0.1, tilt = 0.0, kick = 0.02;\n"
+        assert vt.to_madx() == "vc1: vkicker, l = 0.1, tilt = 0.0, kick = 0.03;\n"
 
     def test_combined_corrector_carries_both_planes(self):
         cc = CombinedCorrector(

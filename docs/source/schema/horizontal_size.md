@@ -1,7 +1,7 @@
 # Slot: horizontal_size 
 
 
-_Full horizontal aperture [m]._
+_Horizontal half aperture, centre to edge [m]._
 
 
 
@@ -104,7 +104,7 @@ URI: [laura:horizontal_size](https://w3id.org/laura/horizontal_size)
 <details>
 ```yaml
 name: horizontal_size
-description: Full horizontal aperture [m].
+description: Horizontal half aperture, centre to edge [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 ifabsent: float(0.0)

@@ -109,6 +109,13 @@ enum NumericDtypeEnum
     float64
   }
 
+enum WaveformInterpolationEnum
+  {
+    linear
+    hold
+    spline
+  }
+
 type AcceleratorElement
   {
     name: String!
@@ -177,6 +184,7 @@ type ACDipoleSimulationElement
     frequency: Float
     phase: Float
     ramp: [Int]
+    waveform: SampledWaveform
   }
 
 type Aperture
@@ -208,6 +216,8 @@ type ApertureElement
     numberOfElements: Int
     horizontalSize: Float
     verticalSize: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     shape: ApertureShapeEnum
     radius: Float
     negativeExtent: Float
@@ -1823,6 +1833,13 @@ type Rotation
     phi: Float
     psi: Float
     theta: Float
+  }
+
+type SampledWaveform
+  {
+    time: [Float]
+    factor: [Float]
+    interpolation: WaveformInterpolationEnum
   }
 
 type Screen

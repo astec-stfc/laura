@@ -19,6 +19,8 @@ URI: [laura:ApertureElement](https://w3id.org/laura/ApertureElement)
  classDiagram
     class ApertureElement
     click ApertureElement href "../ApertureElement/"
+      ApertureElement : horizontal_offset
+        
       ApertureElement : horizontal_size
         
       ApertureElement : negative_extent
@@ -39,6 +41,8 @@ URI: [laura:ApertureElement](https://w3id.org/laura/ApertureElement)
         click ApertureShapeEnum href "../ApertureShapeEnum/"
     
 
+        
+      ApertureElement : vertical_offset
         
       ApertureElement : vertical_size
         
@@ -62,8 +66,10 @@ URI: [laura:ApertureElement](https://w3id.org/laura/ApertureElement)
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [number_of_elements](number_of_elements.md) | 0..1 <br/> [Integer](Integer.md) | Number of aperture sub-elements (e | direct |
-| [horizontal_size](horizontal_size.md) | 0..1 <br/> [Float](Float.md) | Full horizontal aperture [m] | direct |
-| [vertical_size](vertical_size.md) | 0..1 <br/> [Float](Float.md) | Full vertical aperture [m] | direct |
+| [horizontal_size](horizontal_size.md) | 0..1 <br/> [Float](Float.md) | Horizontal half aperture, centre to edge [m] | direct |
+| [vertical_size](vertical_size.md) | 0..1 <br/> [Float](Float.md) | Vertical half aperture, centre to edge [m] | direct |
+| [horizontal_offset](horizontal_offset.md) | 0..1 <br/> [Float](Float.md) | Horizontal position of the aperture centre on the element axis [m] | direct |
+| [vertical_offset](vertical_offset.md) | 0..1 <br/> [Float](Float.md) | Vertical position of the aperture centre on the element axis [m] | direct |
 | [shape](shape.md) | 0..1 <br/> [ApertureShapeEnum](ApertureShapeEnum.md) | Cross-sectional aperture shape | direct |
 | [radius](radius.md) | 0..1 <br/> [Float](Float.md) | Radius for circular apertures [m] | direct |
 | [negative_extent](negative_extent.md) | 0..1 <br/> [Float](Float.md) | Upstream / inner extent [m] | direct |
@@ -187,7 +193,7 @@ attributes:
     minimum_value: 0
   horizontal_size:
     name: horizontal_size
-    description: Full horizontal aperture [m].
+    description: Horizontal half aperture, centre to edge [m].
     from_schema: https://w3id.org/laura/schema/elements
     rank: 1000
     ifabsent: float(0.0)
@@ -199,7 +205,7 @@ attributes:
       ucum_code: m
   vertical_size:
     name: vertical_size
-    description: Full vertical aperture [m].
+    description: Vertical half aperture, centre to edge [m].
     from_schema: https://w3id.org/laura/schema/elements
     rank: 1000
     ifabsent: float(0.0)
@@ -207,6 +213,28 @@ attributes:
     - ApertureElement
     range: float
     minimum_value: 0.0
+    unit:
+      ucum_code: m
+  horizontal_offset:
+    name: horizontal_offset
+    description: Horizontal position of the aperture centre on the element axis [m].
+    from_schema: https://w3id.org/laura/schema/elements
+    ifabsent: float(0.0)
+    domain_of:
+    - ApertureElement
+    - SimulationElement
+    range: float
+    unit:
+      ucum_code: m
+  vertical_offset:
+    name: vertical_offset
+    description: Vertical position of the aperture centre on the element axis [m].
+    from_schema: https://w3id.org/laura/schema/elements
+    ifabsent: float(0.0)
+    domain_of:
+    - ApertureElement
+    - SimulationElement
+    range: float
     unit:
       ucum_code: m
   shape:
@@ -276,7 +304,7 @@ attributes:
     minimum_value: 0
   horizontal_size:
     name: horizontal_size
-    description: Full horizontal aperture [m].
+    description: Horizontal half aperture, centre to edge [m].
     from_schema: https://w3id.org/laura/schema/elements
     rank: 1000
     ifabsent: float(0.0)
@@ -289,7 +317,7 @@ attributes:
       ucum_code: m
   vertical_size:
     name: vertical_size
-    description: Full vertical aperture [m].
+    description: Vertical half aperture, centre to edge [m].
     from_schema: https://w3id.org/laura/schema/elements
     rank: 1000
     ifabsent: float(0.0)
@@ -298,6 +326,30 @@ attributes:
     - ApertureElement
     range: float
     minimum_value: 0.0
+    unit:
+      ucum_code: m
+  horizontal_offset:
+    name: horizontal_offset
+    description: Horizontal position of the aperture centre on the element axis [m].
+    from_schema: https://w3id.org/laura/schema/elements
+    ifabsent: float(0.0)
+    owner: ApertureElement
+    domain_of:
+    - ApertureElement
+    - SimulationElement
+    range: float
+    unit:
+      ucum_code: m
+  vertical_offset:
+    name: vertical_offset
+    description: Vertical position of the aperture centre on the element axis [m].
+    from_schema: https://w3id.org/laura/schema/elements
+    ifabsent: float(0.0)
+    owner: ApertureElement
+    domain_of:
+    - ApertureElement
+    - SimulationElement
+    range: float
     unit:
       ucum_code: m
   shape:

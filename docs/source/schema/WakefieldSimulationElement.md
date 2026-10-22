@@ -272,9 +272,9 @@ attributes:
     name: factor
     description: Wake scaling factor.
     from_schema: https://w3id.org/laura/schema/simulation
-    rank: 1000
     ifabsent: float(1)
     domain_of:
+    - SampledWaveform
     - WakefieldSimulationElement
     range: float
   interpolate:
@@ -430,10 +430,10 @@ attributes:
     name: factor
     description: Wake scaling factor.
     from_schema: https://w3id.org/laura/schema/simulation
-    rank: 1000
     ifabsent: float(1)
     owner: WakefieldSimulationElement
     domain_of:
+    - SampledWaveform
     - WakefieldSimulationElement
     range: float
   interpolate:
@@ -626,10 +626,10 @@ attributes:
     range: boolean
   lsc_enable:
     name: lsc_enable
-    description: Whether longitudinal space-charge effects are enabled.
+    description: Whether longitudinal space-charge effects are enabled. Off by default.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    ifabsent: 'true'
+    ifabsent: 'false'
     owner: WakefieldSimulationElement
     domain_of:
     - SimulationElement
@@ -750,6 +750,7 @@ attributes:
     ifabsent: float(0.0)
     owner: WakefieldSimulationElement
     domain_of:
+    - ApertureElement
     - SimulationElement
     range: float
     unit:
@@ -762,6 +763,7 @@ attributes:
     ifabsent: float(0.0)
     owner: WakefieldSimulationElement
     domain_of:
+    - ApertureElement
     - SimulationElement
     range: float
     unit:

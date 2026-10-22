@@ -399,6 +399,8 @@ class ApertureElement(Base):
     number_of_elements = Column(Integer())
     horizontal_size = Column(Float())
     vertical_size = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     shape = Column(Enum('circular', 'rectangular', 'elliptical', 'planar', 'scraper', name='ApertureShapeEnum'))
     radius = Column(Float())
     negative_extent = Column(Float())
@@ -406,7 +408,7 @@ class ApertureElement(Base):
     
 
     def __repr__(self):
-        return f"ApertureElement(id={self.id},number_of_elements={self.number_of_elements},horizontal_size={self.horizontal_size},vertical_size={self.vertical_size},shape={self.shape},radius={self.radius},negative_extent={self.negative_extent},positive_extent={self.positive_extent},)"
+        return f"ApertureElement(id={self.id},number_of_elements={self.number_of_elements},horizontal_size={self.horizontal_size},vertical_size={self.vertical_size},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},shape={self.shape},radius={self.radius},negative_extent={self.negative_extent},positive_extent={self.positive_extent},)"
 
 
 
@@ -554,6 +556,34 @@ class MatrixValue(Base):
 
     def __repr__(self):
         return f"MatrixValue(id={self.id},)"
+
+
+
+    
+
+
+class SampledWaveform(Base):
+    """
+    A pulse shape sampled at a sparse set of points, for a device whose strength is a program rather than a constant: an injection kicker, an extraction septum, a tune exciter driven from a measured trace. Only the knots are stored, and the value between them follows ``interpolation``.
+    """
+    __tablename__ = 'SampledWaveform'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    interpolation = Column(Enum('linear', 'hold', 'spline', name='WaveformInterpolationEnum'))
+    
+    
+    time_rel = relationship( "SampledWaveformTime" )
+    time = association_proxy("time_rel", "time",
+                                  creator=lambda x_: SampledWaveformTime(time=x_))
+    
+    
+    factor_rel = relationship( "SampledWaveformFactor" )
+    factor = association_proxy("factor_rel", "factor",
+                                  creator=lambda x_: SampledWaveformFactor(factor=x_))
+    
+
+    def __repr__(self):
+        return f"SampledWaveform(id={self.id},interpolation={self.interpolation},)"
 
 
 
@@ -3801,6 +3831,42 @@ class MachineModelLayouts(Base):
 
     def __repr__(self):
         return f"MachineModel_layouts(MachineModel_id={self.MachineModel_id},layouts_name={self.layouts_name},)"
+
+
+
+    
+
+
+class SampledWaveformTime(Base):
+    """
+    None
+    """
+    __tablename__ = 'SampledWaveform_time'
+
+    SampledWaveform_id = Column(Integer(), ForeignKey('SampledWaveform.id'), primary_key=True)
+    time = Column(Float(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"SampledWaveform_time(SampledWaveform_id={self.SampledWaveform_id},time={self.time},)"
+
+
+
+    
+
+
+class SampledWaveformFactor(Base):
+    """
+    None
+    """
+    __tablename__ = 'SampledWaveform_factor'
+
+    SampledWaveform_id = Column(Integer(), ForeignKey('SampledWaveform.id'), primary_key=True)
+    factor = Column(Float(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"SampledWaveform_factor(SampledWaveform_id={self.SampledWaveform_id},factor={self.factor},)"
 
 
 
@@ -8125,6 +8191,8 @@ class ACDipoleSimulationElement(SimulationElement):
     wakefield_enable = Column(Boolean())
     field_reference_position = Column(Text())
     scale_field = Column(Float())
+    waveform_id = Column(Integer(), ForeignKey('SampledWaveform.id'))
+    waveform = relationship("SampledWaveform", uselist=False, foreign_keys=[waveform_id])
     
     
     ramp_rel = relationship( "ACDipoleSimulationElementRamp" )
@@ -8133,7 +8201,7 @@ class ACDipoleSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"ACDipoleSimulationElement(id={self.id},field_amplitude={self.field_amplitude},frequency={self.frequency},phase={self.phase},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"ACDipoleSimulationElement(id={self.id},field_amplitude={self.field_amplitude},frequency={self.frequency},phase={self.phase},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},waveform_id={self.waveform_id},)"
 
 
 

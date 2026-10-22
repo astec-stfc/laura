@@ -233,8 +233,7 @@ slots:
 slot_usage:
   n_kicks:
     name: n_kicks
-    description: Number of cavity kicks to apply.
-    ifabsent: int(0)
+    description: Number of cavity kicks to apply. Unset leaves it to the code.
   lsc_bins:
     name: lsc_bins
     description: Number of longitudinal space-charge bins.
@@ -379,8 +378,7 @@ is_a: SimulationElement
 slot_usage:
   n_kicks:
     name: n_kicks
-    description: Number of cavity kicks to apply.
-    ifabsent: int(0)
+    description: Number of cavity kicks to apply. Unset leaves it to the code.
   lsc_bins:
     name: lsc_bins
     description: Number of longitudinal space-charge bins.
@@ -574,10 +572,9 @@ attributes:
     range: string
   n_kicks:
     name: n_kicks
-    description: Number of cavity kicks to apply.
+    description: Number of cavity kicks to apply. Unset leaves it to the code.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    ifabsent: int(0)
     owner: RFCavitySimulationElement
     domain_of:
     - SimulationElement
@@ -604,10 +601,10 @@ attributes:
     range: boolean
   lsc_enable:
     name: lsc_enable
-    description: Whether longitudinal space-charge effects are enabled.
+    description: Whether longitudinal space-charge effects are enabled. Off by default.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    ifabsent: 'true'
+    ifabsent: 'false'
     owner: RFCavitySimulationElement
     domain_of:
     - SimulationElement
@@ -727,6 +724,7 @@ attributes:
     ifabsent: float(0.0)
     owner: RFCavitySimulationElement
     domain_of:
+    - ApertureElement
     - SimulationElement
     range: float
     unit:
@@ -739,6 +737,7 @@ attributes:
     ifabsent: float(0.0)
     owner: RFCavitySimulationElement
     domain_of:
+    - ApertureElement
     - SimulationElement
     range: float
     unit:

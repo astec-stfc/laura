@@ -324,8 +324,10 @@ def _aperture(parameters: Dict[str, Any], etype: str = "") -> Dict[str, Dict[str
         return {}
     return {
         "aperture": {
-            "horizontal_size": limits["X1_LIMIT"] + limits["X2_LIMIT"],
-            "vertical_size": limits["Y1_LIMIT"] + limits["Y2_LIMIT"],
+            "horizontal_size": (limits["X1_LIMIT"] + limits["X2_LIMIT"]) / 2,
+            "vertical_size": (limits["Y1_LIMIT"] + limits["Y2_LIMIT"]) / 2,
+            "horizontal_offset": (limits["X2_LIMIT"] - limits["X1_LIMIT"]) / 2,
+            "vertical_offset": (limits["Y2_LIMIT"] - limits["Y1_LIMIT"]) / 2,
             "shape": shape or "rectangular",
         }
     }

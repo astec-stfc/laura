@@ -1,7 +1,7 @@
 # Slot: edge_order 
 
 
-_Polynomial order of the edge-field expansion._
+_Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-order terms). Unset / default is second order._
 
 
 
@@ -44,7 +44,6 @@ URI: [laura:edge_order](https://w3id.org/laura/edge_order)
 
 | Property | Value |
 | --- | --- |
-| If Absent | `int(2)` |
 | Owner | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 
@@ -87,10 +86,10 @@ URI: [laura:edge_order](https://w3id.org/laura/edge_order)
 <details>
 ```yaml
 name: edge_order
-description: Polynomial order of the edge-field expansion.
+description: Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-order
+  terms). Unset / default is second order.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-ifabsent: int(2)
 owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement

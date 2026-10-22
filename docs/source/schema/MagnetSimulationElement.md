@@ -124,7 +124,7 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 | [csr_bins](csr_bins.md) | 0..1 <br/> [Integer](Integer.md) | Number of longitudinal bins for the CSR mesh | direct |
 | [nonlinear](nonlinear.md) | 0..1 <br/> [Boolean](Boolean.md) | Include higher-order (sextupole+) field components | direct |
 | [smoothing_half_width](smoothing_half_width.md) | 0..1 <br/> [Integer](Integer.md) | Half-width of the current-profile smoothing kernel | direct |
-| [edge_order](edge_order.md) | 0..1 <br/> [Integer](Integer.md) | Polynomial order of the edge-field expansion | direct |
+| [edge_order](edge_order.md) | 0..1 <br/> [Integer](Integer.md) | Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-orde... | direct |
 | [smooth_points](smooth_points.md) | 0..1 <br/> [Float](Float.md) | Number of points used to smooth the field map [ASTRA] | direct |
 | [n_kicks](n_kicks.md) | 0..1 <br/> [Integer](Integer.md) | Number of integration kicks | [SimulationElement](SimulationElement.md) |
 | [lsc_bins](lsc_bins.md) | 0..1 <br/> [Integer](Integer.md) | Number of bins used in longitudinal space-charge calculations | [SimulationElement](SimulationElement.md) |
@@ -336,10 +336,10 @@ attributes:
     range: integer
   edge_order:
     name: edge_order
-    description: Polynomial order of the edge-field expansion.
+    description: Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the
+      second-order terms). Unset / default is second order.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
-    ifabsent: int(2)
     domain_of:
     - MagnetSimulationElement
     range: integer
@@ -491,10 +491,10 @@ attributes:
     range: integer
   edge_order:
     name: edge_order
-    description: Polynomial order of the edge-field expansion.
+    description: Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the
+      second-order terms). Unset / default is second order.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
-    ifabsent: int(2)
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
@@ -559,10 +559,10 @@ attributes:
     range: boolean
   lsc_enable:
     name: lsc_enable
-    description: Whether longitudinal space-charge effects are enabled.
+    description: Whether longitudinal space-charge effects are enabled. Off by default.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    ifabsent: 'true'
+    ifabsent: 'false'
     owner: MagnetSimulationElement
     domain_of:
     - SimulationElement
@@ -685,6 +685,7 @@ attributes:
     ifabsent: float(0.0)
     owner: MagnetSimulationElement
     domain_of:
+    - ApertureElement
     - SimulationElement
     range: float
     unit:
@@ -697,6 +698,7 @@ attributes:
     ifabsent: float(0.0)
     owner: MagnetSimulationElement
     domain_of:
+    - ApertureElement
     - SimulationElement
     range: float
     unit:

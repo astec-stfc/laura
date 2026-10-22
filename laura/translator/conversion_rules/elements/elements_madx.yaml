@@ -91,15 +91,18 @@ nllens:
 hkicker:
   l: double
   kick: double
+  tilt: double
 
 vkicker:
   l: double
   kick: double
+  tilt: double
 
 kicker:
   l: double
   hkick: double
   vkick: double
+  tilt: double
 
 rfcavity:
   l: double
@@ -198,13 +201,13 @@ collimator:
 
 ecollimator:
   l: double
-  xsize: double
-  ysize: double
+  apertype: string
+  aperture: double_array
 
 rcollimator:
   l: double
-  xsize: double
-  ysize: double
+  apertype: string
+  aperture: double_array
 
 beambeam:
   charge: double

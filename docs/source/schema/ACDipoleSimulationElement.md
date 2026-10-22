@@ -68,18 +68,20 @@ URI: [laura:ACDipoleSimulationElement](https://w3id.org/laura/ACDipoleSimulation
         
       ACDipoleSimulationElement : vertical_offset
         
+      ACDipoleSimulationElement : wakefield_definition
+        
+      ACDipoleSimulationElement : wakefield_enable
+        
       ACDipoleSimulationElement : waveform
         
           
     
+        
+        
+        ACDipoleSimulationElement --> "0..1" SampledWaveform : waveform
+        click SampledWaveform href "../SampledWaveform/"
     
-    ACDipoleSimulationElement --> "0..1" SampledWaveform : waveform
-    click SampledWaveform href "../SampledWaveform/"
 
-        
-      ACDipoleSimulationElement : wakefield_definition
-        
-      ACDipoleSimulationElement : wakefield_enable
         
       
 ```
@@ -221,12 +223,12 @@ attributes:
     multivalued: true
   waveform:
     name: waveform
-    description: 'Sampled pulse shape, for a device whose strength is a program rather
-      than a sinusoid -- an injection kicker or an extraction septum. An alternative
-      to ``frequency``/``phase``/``ramp`` rather than an addition to them: a kicker
-      carries a waveform and no frequency, a tune exciter a frequency and no waveform.'
-    from_schema: https://w3id.org/laura/schema
+    description: Sampled pulse shape, for a device whose strength is a program rather
+      than a sinusoid -- an injection kicker or an extraction septum.
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
+    domain_of:
+    - ACDipoleSimulationElement
     range: SampledWaveform
 class_uri: laura:ACDipoleSimulationElement
 
@@ -267,13 +269,10 @@ attributes:
     multivalued: true
   waveform:
     name: waveform
-    description: 'Sampled pulse shape, for a device whose strength is a program rather
-      than a sinusoid -- an injection kicker or an extraction septum. An alternative
-      to ``frequency``/``phase``/``ramp`` rather than an addition to them: a kicker
-      carries a waveform and no frequency, a tune exciter a frequency and no waveform.'
-    from_schema: https://w3id.org/laura/schema
+    description: Sampled pulse shape, for a device whose strength is a program rather
+      than a sinusoid -- an injection kicker or an extraction septum.
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
-    alias: waveform
     owner: ACDipoleSimulationElement
     domain_of:
     - ACDipoleSimulationElement
@@ -362,10 +361,10 @@ attributes:
     range: boolean
   lsc_enable:
     name: lsc_enable
-    description: Whether longitudinal space-charge effects are enabled.
+    description: Whether longitudinal space-charge effects are enabled. Off by default.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    ifabsent: 'true'
+    ifabsent: 'false'
     owner: ACDipoleSimulationElement
     domain_of:
     - SimulationElement
@@ -485,6 +484,7 @@ attributes:
     ifabsent: float(0.0)
     owner: ACDipoleSimulationElement
     domain_of:
+    - ApertureElement
     - SimulationElement
     range: float
     unit:
@@ -497,6 +497,7 @@ attributes:
     ifabsent: float(0.0)
     owner: ACDipoleSimulationElement
     domain_of:
+    - ApertureElement
     - SimulationElement
     range: float
     unit:

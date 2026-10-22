@@ -2,8 +2,8 @@ general:
   length: l
   edge_field_integral: fint
   half_gap: gap
-  horizontal_size: x_max
-  vertical_size: y_max
+  horizontal_size: xsize
+  vertical_size: ysize
   output_filename: filename
   csr_bins: bins
   hangle: hkick
@@ -28,6 +28,3 @@ rfcavity:
 rfdeflectingcavity:
   frequency: freq
   field_amplitude: volt
-collimator:
-  horizontal_size: xsize
-  vertical_size: ysize

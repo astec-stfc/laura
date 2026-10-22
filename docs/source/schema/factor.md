@@ -1,10 +1,5 @@
 # Slot: factor 
 
-
-_Wake scaling factor._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -34,21 +29,13 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [String](String.md) |
 | Domain Of | [SampledWaveform](SampledWaveform.md), [WakefieldSimulationElement](WakefieldSimulationElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| If Absent | `float(1)` |
-| Owner | [WakefieldSimulationElement](WakefieldSimulationElement.md) |
-
-
 
 
 
@@ -62,13 +49,6 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -88,15 +68,10 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 <details>
 ```yaml
 name: factor
-description: Wake scaling factor.
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-ifabsent: float(1)
-owner: WakefieldSimulationElement
 domain_of:
 - SampledWaveform
 - WakefieldSimulationElement
-range: float
+range: string
 
 ```
 </details></div>

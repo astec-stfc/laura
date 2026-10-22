@@ -14,12 +14,18 @@ URI: [laura:WaveformInterpolationEnum](https://w3id.org/laura/WaveformInterpolat
 ## Permissible Values
 | Value | Meaning | Description |
 | --- | --- | --- |
-| linear | None | Straight line between neighbouring knots. What every tracking code does by de... |
-| hold | None | Each knot's value holds until the next one, so the waveform is a staircase. No... |
+| linear | None | Straight line between neighbouring knots |
+| hold | None | Each knot's value holds until the next one, so the waveform is a staircase |
 | spline | None | Cubic spline through the knots, for a measured trace sampled too coarsely for... |
 
 
 
+
+## Slots
+
+| Name | Description |
+| ---  | --- |
+| [interpolation](interpolation.md) | How the strength behaves between the sampled knots |
 
 
 
@@ -62,12 +68,11 @@ permissible_values:
   hold:
     text: hold
     description: Each knot's value holds until the next one, so the waveform is a
-      staircase. No code offers this natively; a device that steps rather than slews
-      has to say so here, or it will be read as a slew.
+      staircase.
   spline:
     text: spline
     description: Cubic spline through the knots, for a measured trace sampled too
-      coarsely for straight lines to be honest about it.
+      coarsely for straight lines.
 
 ```
 </details>

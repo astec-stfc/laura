@@ -404,3 +404,18 @@ def test_bare_per_metre_strength_symbol_is_integrated(tmp_path):
     assert importer.functional_definitions["kx"] == pytest.approx(0.2)
     assert elements["Q4"].magnetic.multipoles.K1L.normal == pytest.approx(0.1)
     assert elements["Q5"].magnetic.multipoles.K1L.normal == pytest.approx(0.05)
+
+
+def test_collimator_shapes_come_from_the_elegant_type(tmp_path):
+    _, elements = _saved_lattice(
+        tmp_path,
+        "R: RCOL,L=0.1,X_MAX=0.01,Y_MAX=0.02\n"
+        "E: ECOL,L=0.1,X_MAX=0.01,Y_MAX=0.02\n"
+        "M: MAXAMP,X_MAX=0.01,Y_MAX=0.02,ELLIPTICAL=1\n"
+        "S: LINE=(R,E,M)\n"
+        'USE,"S"\n',
+    )
+
+    shapes = {name: elements[name]["aperture"]["shape"] for name in "REM"}
+    assert shapes == {"R": "rectangular", "E": "elliptical", "M": "elliptical"}
+    assert elements["R"]["aperture"]["horizontal_size"] == 0.01

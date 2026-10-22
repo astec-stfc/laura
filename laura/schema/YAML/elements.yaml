@@ -200,16 +200,28 @@ classes:
         ifabsent: int(0)
       horizontal_size:
         range: float
-        description: Full horizontal aperture [m].
+        description: Horizontal half aperture, centre to edge [m].
         ifabsent: float(0.0)
         minimum_value: 0.0
         unit:
           ucum_code: m
       vertical_size:
         range: float
-        description: Full vertical aperture [m].
+        description: Vertical half aperture, centre to edge [m].
         ifabsent: float(0.0)
         minimum_value: 0.0
+        unit:
+          ucum_code: m
+      horizontal_offset:
+        range: float
+        description: Horizontal position of the aperture centre on the element axis [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
+      vertical_offset:
+        range: float
+        description: Vertical position of the aperture centre on the element axis [m].
+        ifabsent: float(0.0)
         unit:
           ucum_code: m
       shape:

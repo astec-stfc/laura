@@ -49,9 +49,8 @@ URI: [xsd:time](http://www.w3.org/2001/XMLSchema#time)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | xsd:time |
+| self | laura:time |
 | native | laura:time |
-| exact | schema:Time |
 
 
 

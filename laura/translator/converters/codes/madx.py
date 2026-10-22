@@ -10,15 +10,14 @@ from pydantic import PrivateAttr, model_validator
 import laura.models.element as laura_elements
 from laura.models.element_list import MachineModel
 
+from ...utils.alignment import arc_point, from_frame, sagitta
 from ...utils.functions import (
     introspect_model_defaults,
     merge_layout_elements,
     number_repeated_names,
 )
-from ...utils.alignment import arc_point, from_frame, sagitta
 from ...utils.madx.TFSFile import TFSFile
 from .. import keyword_conversion_rules_madx, type_conversion_rules_madx
-from . import magnetic_orders
 from .importer import (
     LatticeImporter,
     apply_misalignment,
@@ -29,9 +28,11 @@ from .importer import (
     twiss_simulation,
 )
 
-_RAW_KEYS = ("k0", "k1", "k2", "k3", "angle", "l", "kick", "hkick", "vkick", "ks")
+_STRENGTH_KEYS = ("k0", "k1", "k2", "k3", "k1s", "k2s", "k3s", "ks")
 
-_ORDER_TYPES = {order: name for name, order in magnetic_orders.items()}
+_RAW_KEYS = _STRENGTH_KEYS + ("angle", "l", "kick", "hkick", "vkick")
+
+_ORDER_TYPES = {0: "Dipole", 1: "Quadrupole", 2: "Sextupole", 3: "Octupole"}
 
 _CALL_RE = re.compile(r"(?i)\bcall\s*,\s*file\s*=\s*([^;]+);")
 
@@ -70,6 +71,33 @@ def madx_misalignment(
     )
 
 
+def _madx_aperture(row: Dict, elemtype: str, name: str) -> Dict:
+    """
+    LAURA aperture fields from MAD-X ``apertype``/``aperture``, or the older
+    collimator ``xsize``/``ysize``; both codes use half sizes.
+    """
+    kind = str(row.get("apertype") or "").lower()
+    half = list(row.get("aperture") or [])
+    if not any(half):
+        kind = "ellipse" if elemtype == "ecollimator" else "rectangle"
+        half = [row.get("xsize") or 0.0, row.get("ysize") or 0.0]
+    if not any(half):
+        return {}
+    offset = list(row.get("aper_offset") or []) + [0.0, 0.0]
+    offsets = {"horizontal_offset": offset[0], "vertical_offset": offset[1]}
+    if kind == "circle":
+        return {"shape": "circular", "radius": half[0]} | offsets
+    shape = {"rectangle": "rectangular", "ellipse": "elliptical"}.get(kind)
+    if shape is None:
+        warn(f"Dropping MAD-X {kind!r} aperture of {name!r}; LAURA has no such shape.")
+        return {}
+    return {
+        "shape": shape,
+        "horizontal_size": half[0],
+        "vertical_size": half[1],
+    } | offsets
+
+
 def _switch_dict() -> Dict[str, str]:
     """MAD-X keyword -> LAURA type name, reversing ``type_conversion_rules_madx``.
 
@@ -83,6 +111,7 @@ def _switch_dict() -> Dict[str, str]:
             "monitor": "Beam_Position_Monitor",
             "marker": "Marker",
             "rcollimator": "Collimator",
+            "ecollimator": "Collimator",
             "rbend": "Dipole",
             "hmonitor": "Diagnostic",
             "vmonitor": "Diagnostic",
@@ -270,6 +299,11 @@ class MadxLatticeImporter(LatticeImporter):
                         parameter.expr
                     )
                     used.update(re.findall(r"[A-Za-z_][\w.]*", parameter.expr))
+            if row["keyword"] == "rbend":
+                row["l"] = length
+                for face in ("e1", "e2"):
+                    row[face] = row.get(face, 0.0) + row.get("angle", 0.0) / 2
+                    self.deferred_parameters.get(row["name"], {}).pop(face, None)
             if (
                 row["keyword"] == "rfcavity"
                 and not row.get("freq")
@@ -382,7 +416,7 @@ class MadxLatticeImporter(LatticeImporter):
                 symbol = self._single_symbol(expression, source_definitions, length)
                 if (
                     symbol
-                    and param in {"k0", "k1", "k2", "k3", "ks"}
+                    and param in _STRENGTH_KEYS
                     and compact_expression(expression) == symbol.lower()
                 ):
                     value = source_definitions[symbol] * length
@@ -469,6 +503,11 @@ class MadxLatticeImporter(LatticeImporter):
                     f"for {name!r}; skipping."
                 )
                 continue
+            if sftype == "Combined_Corrector":
+                model_fields = {
+                    **model_fields,
+                    "magnetic": model_fields["magnetic"]["horizontal"],
+                }
 
             entry = {
                 "hardware_type": sftype,
@@ -524,6 +563,8 @@ class MadxLatticeImporter(LatticeImporter):
                         entry[subk][param] = val
                     elif param in kwele and kwele[param] in model_fields[subk]:
                         entry[subk][kwele[param]] = val
+            if "aperture" in entry:
+                entry["aperture"].update(_madx_aperture(row, elemtype, name))
             if "magnetic" in entry:
                 multipoles = {}
                 for param, val in row.items():
@@ -589,11 +630,15 @@ class MadxLatticeImporter(LatticeImporter):
         if "magnetic" in v:
             multi = {}
             for n in range(4):
-                key = f"k{n}"
-                if key in v:
-                    raw = v[key]
-                    knl = raw if isinstance(raw, str) or n == 0 else float(raw) * length
-                    multi[f"K{n}L"] = {"order": n, "normal": knl}
+                for key, part in ((f"k{n}", "normal"), (f"k{n}s", "skew")):
+                    if key in v:
+                        raw = v[key]
+                        knl = (
+                            raw
+                            if isinstance(raw, str) or n == 0
+                            else float(raw) * length
+                        )
+                        multi.setdefault(f"K{n}L", {"order": n})[part] = knl
             if multi:
                 v["magnetic"].setdefault("multipoles", {}).update(multi)
 

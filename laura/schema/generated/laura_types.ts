@@ -169,6 +169,18 @@ export enum LatticeGeometryEnum {
     closed = "closed",
 };
 /**
+* How a sampled waveform behaves between the points it was sampled at.
+*/
+export enum WaveformInterpolationEnum {
+    
+    /** Straight line between neighbouring knots. What every tracking code does by default. */
+    linear = "linear",
+    /** Each knot's value holds until the next one, so the waveform is a staircase. */
+    hold = "hold",
+    /** Cubic spline through the knots, for a measured trace sampled too coarsely for straight lines. */
+    spline = "spline",
+};
+/**
 * Bending plane enum.
 */
 export enum BendingPlaneEnum {
@@ -521,10 +533,14 @@ export interface Shutter extends PhysicalAcceleratorElement {
 export interface ApertureElement {
     /** Number of aperture sub-elements (e.g., for multi-leaf collimators). */
     number_of_elements?: number,
-    /** Full horizontal aperture [m]. */
+    /** Horizontal half aperture, centre to edge [m]. */
     horizontal_size?: number,
-    /** Full vertical aperture [m]. */
+    /** Vertical half aperture, centre to edge [m]. */
     vertical_size?: number,
+    /** Horizontal position of the aperture centre on the element axis [m]. */
+    horizontal_offset?: number,
+    /** Vertical position of the aperture centre on the element axis [m]. */
+    vertical_offset?: number,
     /** Cross-sectional aperture shape. */
     shape?: string,
     /** Radius for circular apertures [m]. */
@@ -684,6 +700,19 @@ export interface MatrixValue {
 
 
 /**
+ * A pulse shape sampled at a sparse set of points, for a device whose strength is a program rather than a constant: an injection kicker, an extraction septum, a tune exciter driven from a measured trace. Only the knots are stored, and the value between them follows ``interpolation``.
+ */
+export interface SampledWaveform {
+    /** Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as ``factor``. */
+    time?: number[],
+    /** Strength at each of the times in ``time``, as a fraction of the element's nominal strength; 1.0 is full strength. */
+    factor?: number[],
+    /** How the strength behaves between the sampled knots. */
+    interpolation?: string,
+}
+
+
+/**
  * Base simulation attributes: field-map files, reference positions, and optional tracking controls for simulation codes.
  */
 export interface SimulationElement {
@@ -693,7 +722,7 @@ export interface SimulationElement {
     lsc_bins?: number,
     /** Whether coherent synchrotron radiation effects are enabled. */
     csr_enable?: boolean,
-    /** Whether longitudinal space-charge effects are enabled. */
+    /** Whether longitudinal space-charge effects are enabled. Off by default. */
     lsc_enable?: boolean,
     /** Phase-space tracking algorithm requested from the target code. */
     tracking_method?: string,
@@ -758,7 +787,7 @@ export interface MagnetSimulationElement extends SimulationElement {
     nonlinear?: boolean,
     /** Half-width of the current-profile smoothing kernel. */
     smoothing_half_width?: number,
-    /** Polynomial order of the edge-field expansion. */
+    /** Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-order terms). Unset / default is second order. */
     edge_order?: number,
     /** Number of points used to smooth the field map [ASTRA]. */
     smooth_points?: number,
@@ -985,6 +1014,8 @@ export interface ACDipoleSimulationElement extends SimulationElement {
     phase?: number,
     /** Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp. */
     ramp?: number[],
+    /** Sampled pulse shape, for a device whose strength is a program rather than a sinusoid -- an injection kicker or an extraction septum. */
+    waveform?: SampledWaveform,
 }
 
 

@@ -283,7 +283,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -399,6 +399,17 @@
             "boolean",
             "null"
           ]
+        },
+        "waveform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SampledWaveform"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Sampled pulse shape, for a device whose strength is a program rather than a sinusoid -- an injection kicker or an extraction septum."
         }
       },
       "title": "ACDipoleSimulationElement",
@@ -710,8 +721,15 @@
       "additionalProperties": false,
       "description": "Transverse aperture geometry for drift-space checks and collimators.",
       "properties": {
+        "horizontal_offset": {
+          "description": "Horizontal position of the aperture centre on the element axis [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "horizontal_size": {
-          "description": "Full horizontal aperture [m].",
+          "description": "Horizontal half aperture, centre to edge [m].",
           "minimum": 0.0,
           "type": [
             "number",
@@ -752,8 +770,15 @@
           "$ref": "#/$defs/ApertureShapeEnum",
           "description": "Cross-sectional aperture shape."
         },
+        "vertical_offset": {
+          "description": "Vertical position of the aperture centre on the element axis [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "vertical_size": {
-          "description": "Full vertical aperture [m].",
+          "description": "Vertical half aperture, centre to edge [m].",
           "minimum": 0.0,
           "type": [
             "number",
@@ -1297,7 +1322,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -4452,7 +4477,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -5236,7 +5261,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -5679,7 +5704,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -8981,7 +9006,7 @@
           ]
         },
         "edge_order": {
-          "description": "Polynomial order of the edge-field expansion.",
+          "description": "Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-order terms). Unset / default is second order.",
           "type": [
             "integer",
             "null"
@@ -9053,7 +9078,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -9884,7 +9909,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -12033,7 +12058,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -13289,7 +13314,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -13303,7 +13328,7 @@
           ]
         },
         "n_kicks": {
-          "description": "Number of cavity kicks to apply.",
+          "description": "Number of cavity kicks to apply. Unset leaves it to the code.",
           "type": [
             "integer",
             "null"
@@ -14425,7 +14450,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -14862,6 +14887,38 @@
         }
       },
       "title": "Rotation",
+      "type": "object"
+    },
+    "SampledWaveform": {
+      "additionalProperties": false,
+      "description": "A pulse shape sampled at a sparse set of points, for a device whose strength is a program rather than a constant: an injection kicker, an extraction septum, a tune exciter driven from a measured trace. Only the knots are stored, and the value between them follows ``interpolation``.",
+      "properties": {
+        "factor": {
+          "description": "Strength at each of the times in ``time``, as a fraction of the element's nominal strength; 1.0 is full strength.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "interpolation": {
+          "$ref": "#/$defs/WaveformInterpolationEnum",
+          "description": "How the strength behaves between the sampled knots."
+        },
+        "time": {
+          "description": "Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as ``factor``.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "title": "SampledWaveform",
       "type": "object"
     },
     "Screen": {
@@ -15869,7 +15926,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -17135,7 +17192,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -18383,7 +18440,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -18770,6 +18827,16 @@
       ],
       "title": "WallCurrentMonitor",
       "type": "object"
+    },
+    "WaveformInterpolationEnum": {
+      "description": "How a sampled waveform behaves between the points it was sampled at.",
+      "enum": [
+        "linear",
+        "hold",
+        "spline"
+      ],
+      "title": "WaveformInterpolationEnum",
+      "type": "string"
     },
     "Wiggler": {
       "additionalProperties": false,
@@ -19551,7 +19618,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Whether longitudinal space-charge effects are enabled.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"

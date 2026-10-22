@@ -21,6 +21,7 @@ URI: [laura:horizontal_offset](https://w3id.org/laura/horizontal_offset)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [SimulationElement](SimulationElement.md) | Base simulation attributes: field-map files, reference positions, and optiona... |  no  |
+| [ApertureElement](ApertureElement.md) | Transverse aperture geometry for drift-space checks and collimators |  no  |
 | [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  no  |
 | [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  no  |
 | [WakefieldSimulationElement](WakefieldSimulationElement.md) | Simulation attributes for passive wakefield structures |  no  |
@@ -47,7 +48,7 @@ URI: [laura:horizontal_offset](https://w3id.org/laura/horizontal_offset)
 | Property | Value |
 | --- | --- |
 | Range | [Float](Float.md) |
-| Domain Of | [SimulationElement](SimulationElement.md) |
+| Domain Of | [ApertureElement](ApertureElement.md), [SimulationElement](SimulationElement.md) |
 
 ### Cardinality and Requirements
 
@@ -114,6 +115,7 @@ from_schema: https://w3id.org/laura/schema
 rank: 1000
 ifabsent: float(0.0)
 domain_of:
+- ApertureElement
 - SimulationElement
 range: float
 unit:

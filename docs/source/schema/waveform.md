@@ -1,7 +1,7 @@
 # Slot: waveform 
 
 
-_Sampled pulse shape, for a device whose strength is a program rather than a sinusoid -- an injection kicker or an extraction septum. An alternative to `frequency`/`phase`/`ramp` rather than an addition to them: a kicker carries a waveform and no frequency, a tune exciter a frequency and no waveform._
+_Sampled pulse shape, for a device whose strength is a program rather than a sinusoid -- an injection kicker or an extraction septum._
 
 
 
@@ -86,10 +86,8 @@ URI: [laura:waveform](https://w3id.org/laura/waveform)
 <details>
 ```yaml
 name: waveform
-description: 'Sampled pulse shape, for a device whose strength is a program rather
-  than a sinusoid -- an injection kicker or an extraction septum. An alternative to
-  ``frequency``/``phase``/``ramp`` rather than an addition to them: a kicker carries
-  a waveform and no frequency, a tune exciter a frequency and no waveform.'
+description: Sampled pulse shape, for a device whose strength is a program rather
+  than a sinusoid -- an injection kicker or an extraction septum.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: ACDipoleSimulationElement

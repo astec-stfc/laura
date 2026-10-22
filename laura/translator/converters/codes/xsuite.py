@@ -628,39 +628,44 @@ class XsuiteLatticeImporter(LatticeImporter):
             return {
                 "aperture": {
                     "shape": "elliptical",
-                    "horizontal_size": 2 * float(native.a),
-                    "vertical_size": 2 * float(native.b),
+                    "horizontal_size": float(native.a),
+                    "vertical_size": float(native.b),
                 }
             }
         if native_type == "LimitRect":
             return {
                 "aperture": {
                     "shape": "rectangular",
-                    "horizontal_size": float(native.max_x - native.min_x),
-                    "vertical_size": float(native.max_y - native.min_y),
+                    "horizontal_size": float(native.max_x - native.min_x) / 2,
+                    "vertical_size": float(native.max_y - native.min_y) / 2,
+                    "horizontal_offset": float(native.max_x + native.min_x) / 2,
+                    "vertical_offset": float(native.max_y + native.min_y) / 2,
                 }
             }
+        # LAURA has no racetrack or polygon, so these keep only their half span
         if native_type == "LimitRectEllipse":
             return {
                 "aperture": {
-                    "horizontal_size": 2
-                    * min(float(native.max_x), float(np.sqrt(native.a_squ))),
-                    "vertical_size": 2
-                    * min(float(native.max_y), float(np.sqrt(native.b_squ))),
+                    "horizontal_size": min(
+                        float(native.max_x), float(np.sqrt(native.a_squ))
+                    ),
+                    "vertical_size": min(
+                        float(native.max_y), float(np.sqrt(native.b_squ))
+                    ),
                 }
             }
         if native_type == "LimitRacetrack":
             return {
                 "aperture": {
-                    "horizontal_size": float(native.max_x - native.min_x),
-                    "vertical_size": float(native.max_y - native.min_y),
+                    "horizontal_size": float(native.max_x - native.min_x) / 2,
+                    "vertical_size": float(native.max_y - native.min_y) / 2,
                 }
             }
         if native_type == "LimitPolygon":
             return {
                 "aperture": {
-                    "horizontal_size": float(np.ptp(native.x_vertices)),
-                    "vertical_size": float(np.ptp(native.y_vertices)),
+                    "horizontal_size": float(np.ptp(native.x_vertices)) / 2,
+                    "vertical_size": float(np.ptp(native.y_vertices)) / 2,
                 }
             }
         return {}
@@ -748,11 +753,6 @@ class XsuiteLatticeImporter(LatticeImporter):
                 continue
 
             warning = None if stored_type else _LOSSY_CONVERSIONS.get(native_type)
-            if native_type == "LimitRect" and (
-                not np.isclose(native.min_x, -native.max_x)
-                or not np.isclose(native.min_y, -native.max_y)
-            ):
-                warning = "the off-centre aperture offset was not represented"
             if warning:
                 warn(
                     f"Xtrack element type {native_type!r} for {element_name!r} "

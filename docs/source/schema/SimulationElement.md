@@ -380,10 +380,10 @@ attributes:
     range: boolean
   lsc_enable:
     name: lsc_enable
-    description: Whether longitudinal space-charge effects are enabled.
+    description: Whether longitudinal space-charge effects are enabled. Off by default.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    ifabsent: 'true'
+    ifabsent: 'false'
     owner: SimulationElement
     domain_of:
     - SimulationElement
@@ -503,6 +503,7 @@ attributes:
     ifabsent: float(0.0)
     owner: SimulationElement
     domain_of:
+    - ApertureElement
     - SimulationElement
     range: float
     unit:
@@ -515,6 +516,7 @@ attributes:
     ifabsent: float(0.0)
     owner: SimulationElement
     domain_of:
+    - ApertureElement
     - SimulationElement
     range: float
     unit:

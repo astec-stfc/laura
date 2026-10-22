@@ -1012,6 +1012,7 @@ class SectionLatticeTranslator(SectionLattice):
         MagneticLattice
             An Ocelot `MagneticLattice` object.
         """
+        from ocelot.cpbd.elements import Aperture as OcelotAperture
         from ocelot.cpbd.elements import Drift as OcelotDrift
         from ocelot.cpbd.elements import Octupole, Undulator
         from ocelot.cpbd.magnetic_lattice import MagneticLattice
@@ -1036,7 +1037,9 @@ class SectionLatticeTranslator(SectionLattice):
             # an OCELOT bend's tilt rolls its frame, so it cannot take a roll error
             roll = d.roll - d.dz_rot * d._curved
             for o in objs:
-                o.dx, o.dy = d.dx, d.dy
+                # an Aperture's dx/dy are its centre, already set with its offset
+                if not isinstance(o, OcelotAperture):
+                    o.dx, o.dy = d.dx, d.dy
                 o.tilt += roll
             d._warn_dropped_misalignment("ocelot", {"dx", "dy"}, tilt=True)
             if (d.dx or d.dy) and roll:
@@ -1291,51 +1294,56 @@ class SectionLatticeTranslator(SectionLattice):
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
                 if isinstance(element, ACDipoleTranslator):
-                    name, component, properties = element.to_xsuite(
+                    parts = element.to_xsuite(
                         beam_length=beam_length,
                         revolution_frequency=self.revolution_frequency,
                     )
                 elif isinstance(element, SolenoidTranslator):
-                    name, component, properties = element.to_xsuite(
-                        beam_length=beam_length, Brho=Brho
-                    )
+                    parts = element.to_xsuite(beam_length=beam_length, Brho=Brho)
                 else:
-                    name, component, properties = element.to_xsuite(
-                        beam_length=beam_length
-                    )
-                if turns > 1 and "stop_at_turn" in properties:
-                    properties["stop_at_turn"] = int(turns)
-                if "shift_x" in getattr(component, "_xofields", ()):
-                    # rot_s_rad rolls a bend's frame (design tilt); the error rolls the field only
-                    curved = component in (xt.Bend, xt.RBend)
-                    frame = element.roll - element.dz_rot * curved
-                    angle = element.resolve(element.magnetic.KnL(0)) if curved else 0.0
-                    # xtrack rolls a bend about its arc midpoint, LAURA about its chord
-                    offset, rotation = to_frame(
-                        element._misalignment(),
-                        tilt=frame,
-                        rolled=False,
-                        chord=sagitta(element.physical.length, float(angle or 0.0)),
-                    )
-                    misalignment = {
-                        "shift_x": float(offset[0]),
-                        "shift_y": float(offset[1]),
-                        "shift_s": float(offset[2]),
-                        "rot_x_rad": -float(rotation[0]),
-                        "rot_y_rad": float(rotation[1]),
-                        "rot_s_rad": frame,
-                        "rot_s_rad_no_frame": float(rotation[2]) * curved,
-                    }
-                    misalignment = {k: v for k, v in misalignment.items() if v}
-                    if misalignment:
-                        # Bmad pivots about the centre; xtrack defaults to the entrance
-                        misalignment["rot_shift_anchor"] = element.physical.length / 2
-                    properties.update(misalignment)
-                if any(_is_symbolic(v) for v in properties.values()):
-                    env.new(element.name, component, **properties)
-                    line.append(element.name)
-                else:
-                    line.append(element.name, component(**properties))
+                    parts = element.to_xsuite(beam_length=beam_length)
+                # a thick aperture comes back as entrance limit, drift, exit limit
+                for name, component, properties in (
+                    parts if isinstance(parts, list) else [parts]
+                ):
+                    if turns > 1 and "stop_at_turn" in properties:
+                        properties["stop_at_turn"] = int(turns)
+                    if "shift_x" in getattr(component, "_xofields", ()):
+                        # rot_s_rad rolls a bend's frame (design tilt); the error rolls the field only
+                        curved = component in (xt.Bend, xt.RBend)
+                        frame = element.roll - element.dz_rot * curved
+                        angle = (
+                            element.resolve(element.magnetic.KnL(0)) if curved else 0.0
+                        )
+                        # xtrack rolls a bend about its arc midpoint, LAURA about its chord
+                        offset, rotation = to_frame(
+                            element._misalignment(),
+                            tilt=frame,
+                            rolled=False,
+                            chord=sagitta(element.physical.length, float(angle or 0.0)),
+                        )
+                        misalignment = {
+                            # an elliptical aperture's offset is already a shift
+                            "shift_x": float(offset[0]) + properties.get("shift_x", 0.0),
+                            "shift_y": float(offset[1]) + properties.get("shift_y", 0.0),
+                            "shift_s": float(offset[2]),
+                            "rot_x_rad": -float(rotation[0]),
+                            "rot_y_rad": float(rotation[1]),
+                            "rot_s_rad": frame,
+                            "rot_s_rad_no_frame": float(rotation[2]) * curved,
+                        }
+                        misalignment = {k: v for k, v in misalignment.items() if v}
+                        if misalignment:
+                            # Bmad pivots about the centre; xtrack defaults to the entrance
+                            misalignment["rot_shift_anchor"] = (
+                                element.physical.length / 2
+                            )
+                        properties.update(misalignment)
+                    if any(_is_symbolic(v) for v in properties.values()):
+                        env.new(name, component, **properties)
+                        line.append(name)
+                    else:
+                        line.append(name, component(**properties))
                 element_types[element.name] = element.hardware_type
         line.metadata["laura_element_types"] = element_types
         line.metadata["laura_functional_definitions"] = dict(

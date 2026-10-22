@@ -271,22 +271,23 @@ class OcelotLatticeImporter(LatticeImporter):
                 xmax, ymax = float(elem.xmax), float(elem.ymax)
                 newobj["aperture"].update(
                     {
-                        "horizontal_size": 2 * xmax if isfinite(xmax) else 0.0,
-                        "vertical_size": 2 * ymax if isfinite(ymax) else 0.0,
+                        "horizontal_size": xmax if isfinite(xmax) else 0.0,
+                        "vertical_size": ymax if isfinite(ymax) else 0.0,
+                        "horizontal_offset": float(elem.dx),
+                        "vertical_offset": float(elem.dy),
                         "shape": {
                             "rect": "rectangular",
-                            "ellipse": "elliptical",
-                            "circle": "circular",
+                            "ellipt": "elliptical",
                         }.get(str(elem.type).lower(), "rectangular"),
                     }
                 )
+            dx, dy, tilt = (
+                float(getattr(elem, key, 0.0) or 0.0) for key in ("dx", "dy", "tilt")
+            )
+            if typeconv == "aperture":
+                dx = dy = 0.0  # an Aperture's dx/dy are its centre, read above
             apply_misalignment(
-                newobj,
-                getattr(laura_elems, newobj["hardware_type"]),
-                *(
-                    float(getattr(elem, key, 0.0) or 0.0)
-                    for key in ("dx", "dy", "tilt")
-                ),
+                newobj, getattr(laura_elems, newobj["hardware_type"]), dx, dy, tilt
             )
             if definitions:
                 apply_functional_fields(

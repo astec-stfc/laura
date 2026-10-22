@@ -135,6 +135,7 @@ Name: laura_schema
 | [RFModulatorElement](RFModulatorElement.md) | RF modulator (klystron driver) parameters |
 | [RFProtectionElement](RFProtectionElement.md) | RF protection system parameters |
 | [Rotation](Rotation.md) | Euler-angle rotation relative to the global coordinate system |
+| [SampledWaveform](SampledWaveform.md) | A pulse shape sampled at a sparse set of points, for a device whose strength ... |
 | [SectionLattice](SectionLattice.md) | An ordered list of element names defining a contiguous beamline section |
 | [ShutterElement](ShutterElement.md) | Shutter interlock configuration |
 | [SimulationElement](SimulationElement.md) | Base simulation attributes: field-map files, reference positions, and optiona... |
@@ -247,7 +248,7 @@ Name: laura_schema
 | [edge_field_integral](edge_field_integral.md) | Per-simulation override of the magnet's fringe-field integral |
 | [edge_field_integral_entrance](edge_field_integral_entrance.md) | Fringe-field integral for entrance-edge focussing |
 | [edge_field_integral_exit](edge_field_integral_exit.md) | Fringe-field integral for exit-edge focussing |
-| [edge_order](edge_order.md) | Polynomial order of the edge-field expansion |
+| [edge_order](edge_order.md) | Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-orde... |
 | [electrical](electrical.md) | Power-supply electrical limits |
 | [element](element.md) | Name of the reference element |
 | [element_dtype](element_dtype.md) | Numeric type of the value, or of one element of the array for ``control_type:... |
@@ -268,7 +269,7 @@ Name: laura_schema
 | [expression](expression.md) | Expression graph computing the value written to ``target``, as nested mapping... |
 | [ez_peak](ez_peak.md) | Peak longitudinal electric field |
 | [f](f.md) | Saturation fraction (slope ratio below/above I_max) |
-| [factor](factor.md) | Wake scaling factor |
+| [factor](factor.md) | Strength at each of the times in ``time``, as a fraction of the element's nom... |
 | [field_amplitude](field_amplitude.md) | Field amplitude scaling |
 | [field_definition](field_definition.md) | Path to the 3-D field-map file |
 | [field_file_name](field_file_name.md) | Cavity field file name |
@@ -303,7 +304,7 @@ Name: laura_schema
 | [horizontal_kick](horizontal_kick.md) | Horizontal deflection [rad] |
 | [horizontal_offset](horizontal_offset.md) | Horizontal simulation offset from the reference orbit [m] |
 | [horizontal_sigma](horizontal_sigma.md) | Horizontal RMS size of the opposing bunch [m] |
-| [horizontal_size](horizontal_size.md) | Full horizontal aperture [m] |
+| [horizontal_size](horizontal_size.md) | Horizontal half aperture, centre to edge [m] |
 | [I0](I0.md) | Current offset [A] |
 | [I_max](I_max.md) | Current at which saturation begins [A] |
 | [identifier](identifier.md) | Protocol-specific PV name (e |
@@ -317,6 +318,7 @@ Name: laura_schema
 | [interlocks](interlocks.md) | Names of the interlocks guarding this shutter |
 | [interpolate](interpolate.md) | Interpolate points in wake file |
 | [interpolate_current_bins](interpolate_current_bins.md) | Flag indicating current-bin interpolation |
+| [interpolation](interpolation.md) | How the strength behaves between the sampled knots |
 | [interpolation_method](interpolation_method.md) | Interpolation method for ASTRA |
 | [isr_enable](isr_enable.md) | Enable incoherent synchrotron-radiation emittance growth |
 | [K0L](K0L.md) | Integrated dipole field |
@@ -512,6 +514,7 @@ Name: laura_schema
 | [target](target.md) | Dotted attribute path on the owning element that ``expression`` writes to (e |
 | [theta](theta.md) | Rotation about the vertical (y) axis [rad] |
 | [tilt](tilt.md) | Rotation about the beam axis [rad] |
+| [time](time.md) | Sample times, measured from the moment the device fires [s] |
 | [timings](timings.md) | Timing windows for LLRF channels |
 | [tolerance](tolerance.md) | Current tolerance band during the degauss cycle [A] |
 | [trace](trace.md) | Trace metadata |
@@ -538,13 +541,14 @@ Name: laura_schema
 | [vertical_kick](vertical_kick.md) | Vertical deflection [rad] |
 | [vertical_offset](vertical_offset.md) | Vertical simulation offset from the reference orbit [m] |
 | [vertical_sigma](vertical_sigma.md) | Vertical RMS size of the opposing bunch [m] |
-| [vertical_size](vertical_size.md) | Full vertical aperture [m] |
+| [vertical_size](vertical_size.md) | Vertical half aperture, centre to edge [m] |
 | [virtual_name](virtual_name.md) | Alternative internal name used by the control system when the physical name i... |
 | [waist](waist.md) | Laser beam waist (1/e^2 radius) [m] |
 | [wakefield_definition](wakefield_definition.md) | Path to the wakefield impedance file |
 | [wakefield_enable](wakefield_enable.md) | Whether the wakefield named by wakefield_definition is applied |
 | [wakefield_model](wakefield_model.md) | Wakefield model identifier |
 | [wakefile](wakefile.md) | Wake file name |
+| [waveform](waveform.md) | Sampled pulse shape, for a device whose strength is a program rather than a s... |
 | [wavelength](wavelength.md) | Laser wavelength [m] |
 | [width](width.md) | Opposing-bunch length for the 3-D weak-strong model [m] |
 | [world_offset](world_offset.md) | Offset already expressed in global world coordinates |
@@ -579,6 +583,7 @@ Name: laura_schema
 | [LaserProfileTypeEnum](LaserProfileTypeEnum.md) | Transverse intensity profile model for a laser beam |
 | [LatticeGeometryEnum](LatticeGeometryEnum.md) | Whether the reference orbit closes on itself |
 | [NumericDtypeEnum](NumericDtypeEnum.md) | Numeric storage type of a control variable's value, or of an individual eleme... |
+| [WaveformInterpolationEnum](WaveformInterpolationEnum.md) | How a sampled waveform behaves between the points it was sampled at |
 
 
 ## Types

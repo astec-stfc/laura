@@ -1,7 +1,7 @@
 # Class: SampledWaveform 
 
 
-_A pulse shape sampled at a sparse set of points, for a device whose strength is a program rather than a constant: an injection kicker, an extraction septum, a tune exciter driven from a measured trace. Only the knots are stored, and the value between them follows `interpolation`. That is the common denominator of what the tracking codes accept -- MAD-X `ramp1`-`ramp4`, Bmad `x_knot`/`y_knot` on a ramper, elegant `WAVEFORM` (an SDDS file of `(t, factor)`) and Xsuite `FunctionPieceWiseLinear` are each sparse knots plus a rule. The waveform is the device's own shape, held relative to the moment it fires and to its nominal strength. *When* it fires, and at what absolute strength, is a property of the study rather than of the machine, and is set in the tracking code's run settings instead._
+_A pulse shape sampled at a sparse set of points, for a device whose strength is a program rather than a constant: an injection kicker, an extraction septum, a tune exciter driven from a measured trace. Only the knots are stored, and the value between them follows ``interpolation``._
 
 
 
@@ -25,13 +25,16 @@ URI: [laura:SampledWaveform](https://w3id.org/laura/SampledWaveform)
         
           
     
+        
+        
+        SampledWaveform --> "0..1" WaveformInterpolationEnum : interpolation
+        click WaveformInterpolationEnum href "../WaveformInterpolationEnum/"
     
-    SampledWaveform --> "0..1" WaveformInterpolationEnum : interpolation
-    click WaveformInterpolationEnum href "../WaveformInterpolationEnum/"
 
         
       SampledWaveform : time
         
+      
 ```
 
 
@@ -51,7 +54,7 @@ URI: [laura:SampledWaveform](https://w3id.org/laura/SampledWaveform)
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [time](time.md) | * <br/> [Float](Float.md) | Sample times, measured from the moment the device fires [s] | direct |
-| [factor](factor.md) | * <br/> [Float](Float.md) | Strength at each of the times in `time`, as a fraction of the element's nomin... | direct |
+| [factor](factor.md) | * <br/> [Float](Float.md) | Strength at each of the times in ``time``, as a fraction of the element's nom... | direct |
 | [interpolation](interpolation.md) | 0..1 <br/> [WaveformInterpolationEnum](WaveformInterpolationEnum.md) | How the strength behaves between the sampled knots | direct |
 
 
@@ -113,40 +116,40 @@ name: SampledWaveform
 description: 'A pulse shape sampled at a sparse set of points, for a device whose
   strength is a program rather than a constant: an injection kicker, an extraction
   septum, a tune exciter driven from a measured trace. Only the knots are stored,
-  and the value between them follows ``interpolation``. That is the common denominator
-  of what the tracking codes accept -- MAD-X ``ramp1``-``ramp4``, Bmad ``x_knot``/``y_knot``
-  on a ramper, elegant ``WAVEFORM`` (an SDDS file of ``(t, factor)``) and Xsuite ``FunctionPieceWiseLinear``
-  are each sparse knots plus a rule. The waveform is the device''s own shape, held
-  relative to the moment it fires and to its nominal strength. *When* it fires, and
-  at what absolute strength, is a property of the study rather than of the machine,
-  and is set in the tracking code''s run settings instead.'
+  and the value between them follows ``interpolation``.'
 from_schema: https://w3id.org/laura/schema
 attributes:
   time:
     name: time
     description: Sample times, measured from the moment the device fires [s]. Must
       be non-decreasing and the same length as ``factor``.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
+    domain_of:
+    - SampledWaveform
+    range: float
+    multivalued: true
     unit:
       ucum_code: s
-    multivalued: true
-    range: float
   factor:
     name: factor
     description: Strength at each of the times in ``time``, as a fraction of the element's
-      nominal strength; 1.0 is full strength. A pulse normally starts and ends at
-      zero.
-    from_schema: https://w3id.org/laura/schema
+      nominal strength; 1.0 is full strength.
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
-    multivalued: true
+    domain_of:
+    - SampledWaveform
+    - WakefieldSimulationElement
     range: float
+    multivalued: true
   interpolation:
     name: interpolation
     description: How the strength behaves between the sampled knots.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: WaveformInterpolationEnum(linear)
+    domain_of:
+    - SampledWaveform
     range: WaveformInterpolationEnum
 class_uri: laura:SampledWaveform
 
@@ -161,50 +164,40 @@ name: SampledWaveform
 description: 'A pulse shape sampled at a sparse set of points, for a device whose
   strength is a program rather than a constant: an injection kicker, an extraction
   septum, a tune exciter driven from a measured trace. Only the knots are stored,
-  and the value between them follows ``interpolation``. That is the common denominator
-  of what the tracking codes accept -- MAD-X ``ramp1``-``ramp4``, Bmad ``x_knot``/``y_knot``
-  on a ramper, elegant ``WAVEFORM`` (an SDDS file of ``(t, factor)``) and Xsuite ``FunctionPieceWiseLinear``
-  are each sparse knots plus a rule. The waveform is the device''s own shape, held
-  relative to the moment it fires and to its nominal strength. *When* it fires, and
-  at what absolute strength, is a property of the study rather than of the machine,
-  and is set in the tracking code''s run settings instead.'
+  and the value between them follows ``interpolation``.'
 from_schema: https://w3id.org/laura/schema
 attributes:
   time:
     name: time
     description: Sample times, measured from the moment the device fires [s]. Must
       be non-decreasing and the same length as ``factor``.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
-    unit:
-      ucum_code: s
-    alias: time
     owner: SampledWaveform
     domain_of:
     - SampledWaveform
-    multivalued: true
     range: float
+    multivalued: true
+    unit:
+      ucum_code: s
   factor:
     name: factor
     description: Strength at each of the times in ``time``, as a fraction of the element's
-      nominal strength; 1.0 is full strength. A pulse normally starts and ends at
-      zero.
-    from_schema: https://w3id.org/laura/schema
+      nominal strength; 1.0 is full strength.
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
-    alias: factor
     owner: SampledWaveform
     domain_of:
     - SampledWaveform
     - WakefieldSimulationElement
-    multivalued: true
     range: float
+    multivalued: true
   interpolation:
     name: interpolation
     description: How the strength behaves between the sampled knots.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: WaveformInterpolationEnum(linear)
-    alias: interpolation
     owner: SampledWaveform
     domain_of:
     - SampledWaveform

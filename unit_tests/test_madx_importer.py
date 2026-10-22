@@ -91,6 +91,8 @@ class TestMadxImporter:
     def test_rcollimator_disambiguated_and_sized(self, importer):
         col = importer.elements["COL1"]
         assert col.hardware_type == "Collimator"
+        # MAD-X xsize/ysize and LAURA sizes are both half apertures
+        assert col.aperture.shape == "rectangular"
         assert col.aperture.horizontal_size == pytest.approx(0.01)
         assert col.aperture.vertical_size == pytest.approx(0.02)
 
@@ -551,3 +553,108 @@ def test_a_twiss_file_gives_its_energy_header(tmp_path):
     )
     section = next(iter(importer.create_section().values()))
     assert section.reference_energy == pytest.approx(2.86e9)
+
+
+_ROUND_TRIP = (
+    "beam, particle=electron, energy=1;\n"
+    "tb: multipole, knl={0.01};\n"
+    "thq: multipole, knl={0, 0.5};\n"
+    "ths: multipole, knl={0, 0, 3.0}, ksl={0, 0.1};\n"
+    "skq: quadrupole, l=0.3, k1s=0.8;\n"
+    "qmix: quadrupole, l=0.3, k1=1, k1s=0.5;\n"
+    "sks: sextupole, l=0.2, k2s=40;\n"
+    "rb: rbend, l=1, angle=0.2, e1=0.03, k1=0.5;\n"
+    "tk: tkicker, l=0.1, hkick=1e-4, vkick=2e-4;\n"
+    "rc: rcollimator, l=0.2, apertype=rectangle, aperture={0.01, 0.02}, aper_offset={0.002, -0.001};\n"
+    "ec: ecollimator, l=0.2, apertype=ellipse, aperture={0.03, 0.04};\n"
+    "s: sequence, l=10, refer=entry;\n"
+    "tb, at=0.5; thq, at=1; ths, at=1.5; skq, at=2; qmix, at=3; sks, at=4;\n"
+    "rb, at=5; tk, at=7; rc, at=8; ec, at=9;\n"
+    "endsequence;\n"
+)
+
+
+def test_source_import_keeps_thin_skew_rbend_kicker_and_aperture(tmp_path):
+    pytest.importorskip("cpymad")
+    elements = _madx(tmp_path, _ROUND_TRIP, sequence="s").create_laura_element_dictionary()
+
+    assert elements["tb"].hardware_type == "Dipole"
+    assert elements["tb"].magnetic.KnL(0) == pytest.approx(0.01)
+    assert elements["skq"].magnetic.multipoles.K1L.skew == pytest.approx(0.24)
+    assert elements["qmix"].magnetic.multipoles.K1L.normal == pytest.approx(0.3)
+    assert elements["qmix"].magnetic.multipoles.K1L.skew == pytest.approx(0.15)
+    assert elements["sks"].magnetic.multipoles.K2L.skew == pytest.approx(8.0)
+    rb = elements["rb"]
+    assert rb.physical.length == pytest.approx(0.1 / math.sin(0.1))  # arc, not chord
+    assert rb.magnetic.entrance_edge_angle == pytest.approx(0.13)
+    assert rb.magnetic.exit_edge_angle == pytest.approx(0.1)
+    assert elements["tk"].magnetic.length == pytest.approx(0.1)
+    assert elements["ec"].aperture.shape == "elliptical"
+    assert elements["ec"].aperture.horizontal_size == pytest.approx(0.03)
+    assert elements["rc"].aperture.vertical_size == pytest.approx(0.02)
+    assert elements["rc"].aperture.horizontal_offset == pytest.approx(0.002)
+    assert elements["rc"].aperture.vertical_offset == pytest.approx(-0.001)
+
+
+def test_export_round_trip_matches_the_source_in_madx(tmp_path):
+    """Thin magnets, skews, rbends and kickers track as the source deck does."""
+    pytest.importorskip("cpymad")
+    import numpy as np
+    from cpymad.madx import Madx
+
+    from laura.translator.converters.layout import MachineLayoutTranslator
+
+    layout = _madx(tmp_path, _ROUND_TRIP, sequence="s").create_layout()
+    translator = MachineLayoutTranslator.from_layout(layout)
+    translator.directory = str(tmp_path)
+    ((_, section),) = list(translator._children())
+    exported = section.to_madx(beam={"particle": "electron", "energy": 1.0})
+    assert "apertype = ellipse, aperture = {0.03, 0.04}" in exported
+    assert "aper_offset = {0.002, -0.001}" in exported
+
+    def optics(text):
+        madx = Madx(stdout=False)
+        madx.input(text)
+        madx.use(sequence=list(madx.sequence)[0])
+        twiss = madx.twiss(betx=1, bety=1, rmatrix=True)
+        survey = madx.survey()
+        matrix = [getattr(twiss, f"re{a}{b}")[-1] for a in range(1, 7) for b in range(1, 7)]
+        return np.array(matrix + [survey.x[-1], survey.z[-1], survey.theta[-1]])
+
+    np.testing.assert_allclose(optics(exported), optics(_ROUND_TRIP), atol=1e-12)
+
+
+def test_roll_errors_survive_export_on_kickers_and_quads(tmp_path):
+    """A roll error goes to ``tilt`` where MAD-X has one, else to ``EALIGN dpsi``."""
+    pytest.importorskip("cpymad")
+    import numpy as np
+    from cpymad.madx import Madx
+
+    from laura.translator.converters.layout import MachineLayoutTranslator
+
+    source = (
+        "beam, particle=electron, energy=1;\n"
+        "k: kicker, l=0.2, hkick=1e-3;\n"
+        "hk: hkicker, l=0.2, kick=1e-3;\n"
+        "q: quadrupole, l=0.3, k1=1.2;\n"
+        "c: rfcavity, l=0.5, volt=10, freq=3000, lag=0.1;\n"
+        "s: sequence, l=4, refer=entry; k, at=0.5; hk, at=1; q, at=1.5; c, at=2.5; endsequence;\n"
+        "use, sequence=s;\n"
+        "select, flag=error, clear; select, flag=error, range=k; ealign, dpsi=0.3;\n"
+        "select, flag=error, clear; select, flag=error, range=hk; ealign, dpsi=-0.2;\n"
+        "select, flag=error, clear; select, flag=error, range=q; ealign, dpsi=0.1, dx=1e-3;\n"
+        "select, flag=error, clear; select, flag=error, range=c; ealign, dpsi=0.3, dx=1e-3;\n"
+    )
+    layout = _madx(tmp_path, source, sequence="s").create_layout()
+    translator = MachineLayoutTranslator.from_layout(layout)
+    translator.directory = str(tmp_path)
+    ((_, section),) = list(translator._children())
+    exported = section.to_madx(beam={"particle": "electron", "energy": 1.0})
+
+    def orbit(text):
+        madx = Madx(stdout=False)
+        madx.input(text)
+        twiss = madx.twiss(sequence=list(madx.sequence)[0], betx=1, bety=1)
+        return np.array([twiss.x[-1], twiss.px[-1], twiss.y[-1], twiss.py[-1]])
+
+    np.testing.assert_allclose(orbit(exported), orbit(source), atol=1e-15)

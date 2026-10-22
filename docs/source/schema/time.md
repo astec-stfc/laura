@@ -1,7 +1,7 @@
 # Slot: time 
 
 
-_Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as `factor`._
+_Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as ``factor``._
 
 
 
@@ -45,9 +45,18 @@ URI: [laura:time](https://w3id.org/laura/time)
 
 | Property | Value |
 | --- | --- |
-| Unit | s |
 | Owner | [SampledWaveform](SampledWaveform.md) |
 
+
+<details>
+<summary>Additional Constraints</summary>
+**Unit:**
+
+| Property | Value |
+| --- | --- |
+| ucum_code | s |
+
+</details>
 
 
 
@@ -92,13 +101,13 @@ description: Sample times, measured from the moment the device fires [s]. Must b
   non-decreasing and the same length as ``factor``.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-unit:
-  ucum_code: s
 owner: SampledWaveform
 domain_of:
 - SampledWaveform
 range: float
 multivalued: true
+unit:
+  ucum_code: s
 
 ```
 </details></div>

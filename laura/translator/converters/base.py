@@ -77,6 +77,27 @@ def ocelot_attributes(cls: type) -> frozenset:
     return _OCELOT_ATTRIBUTES[cls]
 
 
+def bmad_limits(name: str, aperture, horizontal: float, vertical: float) -> dict:
+    """
+    Bmad's four limits for half sizes ``horizontal``/``vertical`` centred
+    at ``aperture``'s offset; ``x1``/``y1`` are the negative sides.
+    """
+    ox, oy = aperture.horizontal_offset, aperture.vertical_offset
+    shape = getattr(aperture.shape, "value", aperture.shape)
+    if (ox or oy) and shape in ("elliptical", "circular"):
+        warn(
+            f"Bmad splits an ellipse at the element axis, so the offset "
+            f"ellipse of {name!r} is written as two half-ellipses."
+        )
+    # ponytail: an edge exactly on the axis gives a limit of 0, which Bmad reads as open
+    return {
+        "x1_limit": horizontal - ox,
+        "x2_limit": horizontal + ox,
+        "y1_limit": vertical - oy,
+        "y2_limit": vertical + oy,
+    }
+
+
 BMAD_EXACT_METHOD = "runge_kutta"
 """Bmad tracking method for the thick :data:`BMAD_EXACT_TYPES` whose lattice chose
 none. Not symplectic; ``symp_lie_ptc`` is, and agreed as well, if long-term tracking drifts."""
@@ -834,18 +855,22 @@ class BaseElementTranslator(PhysicalBaseElement):
         aperture = getattr(self, "aperture", None)
         if aperture is None or not getattr(aperture, "shape", None):
             return None
+        if aperture.horizontal_offset or aperture.vertical_offset:
+            warn(
+                f"RF-Track apertures are centred; the offset of {self.name!r} was dropped."
+            )
         shape = aperture.shape
         if shape in ("circular", "elliptical"):
             if aperture.radius is not None:
                 rx = ry = aperture.radius
             else:
-                rx = (aperture.horizontal_size or 0.0) / 2
-                ry = (aperture.vertical_size or 0.0) / 2 or rx
+                rx = aperture.horizontal_size or 0.0
+                ry = aperture.vertical_size or rx
             if rx > 0 or ry > 0:
                 return (rx, ry, "circular")
         elif shape in ("planar", "rectangular", "scraper"):
-            rx = (aperture.horizontal_size or 0.0) / 2
-            ry = (aperture.vertical_size or 0.0) / 2
+            rx = aperture.horizontal_size or 0.0
+            ry = aperture.vertical_size or 0.0
             if rx > 0 or ry > 0:
                 return (rx, ry, "rectangular")
         return None
@@ -1300,12 +1325,11 @@ class BaseElementTranslator(PhysicalBaseElement):
             return
         if "x1_limit" not in element:
             return
-        horizontal = aperture.radius or (aperture.horizontal_size or 0.0) / 2
-        vertical = aperture.radius or (aperture.vertical_size or 0.0) / 2
+        horizontal = aperture.radius or aperture.horizontal_size or 0.0
+        vertical = aperture.radius or aperture.vertical_size or 0.0
         if not horizontal and not vertical:
             return
-        parameters["x1_limit"] = parameters["x2_limit"] = horizontal
-        parameters["y1_limit"] = parameters["y2_limit"] = vertical
+        parameters.update(bmad_limits(self.name, aperture, horizontal, vertical))
         shape = getattr(aperture.shape, "value", aperture.shape)
         if shape in ("elliptical", "circular"):
             parameters["aperture_type"] = "elliptical"
@@ -1561,7 +1585,11 @@ class BaseElementTranslator(PhysicalBaseElement):
         if not any(errors.values()):
             return {}
         curved = self._curved
-        if not curved and hasattr(getattr(self, "magnetic", None), "tilt"):
+        if (
+            not curved
+            and hasattr(getattr(self, "magnetic", None), "tilt")
+            and "tilt" in elements_madx[self._convert_type_madx(self.hardware_type)]
+        ):
             errors["dz_rot"] = 0.0
         length = self.physical.length or 0.0
         angle = float(self.resolve(self.magnetic.KnL(0))) if curved else 0.0
