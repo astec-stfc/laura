@@ -3,6 +3,7 @@ import importlib
 _EXPORTS = {
     "BmadLatticeImporter": ".converters.codes",
     "ElegantLatticeImporter": ".converters.codes",
+    "ImpactXLatticeImporter": ".converters.codes",
     "MadxLatticeImporter": ".converters.codes",
     "OcelotLatticeImporter": ".converters.codes",
     "XsuiteLatticeImporter": ".converters.codes",

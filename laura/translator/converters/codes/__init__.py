@@ -15,6 +15,7 @@ from .csrtrack import csrtrack_unsupported
 from .elegant import elegant_unsupported, ElegantLatticeImporter
 from .genesis import genesis_unsupported
 from .gpt import gpt_unsupported
+from .impactx import ImpactXLatticeImporter
 from .madx import MadxLatticeImporter
 from .ocelot import ocelot_unsupported, OcelotLatticeImporter
 from .opal import opal_unsupported
