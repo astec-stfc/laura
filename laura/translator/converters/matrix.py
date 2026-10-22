@@ -8,6 +8,44 @@ from laura.models.simulation import MatrixTransformSimulationElement
 from ..utils.functions import sanitize_string
 from .base import BaseElementTranslator, elegant_line
 
+MADX_MASS = {
+    "positron": 0.51099895e-3,
+    "electron": 0.51099895e-3,
+    "proton": 0.93827208816,
+    "antiproton": 0.93827208816,
+    "posmuon": 0.1056583755,
+    "negmuon": 0.1056583755,
+}
+"""Rest mass [GeV] of MAD-X's named particles."""
+
+
+def madx_gamma(beam: dict | None) -> float | None:
+    """The Lorentz factor of a MAD-X ``BEAM`` given as a dict, if it sets one."""
+    beam = {k.lower(): v for k, v in (beam or {}).items()}
+    mass = beam.get(
+        "mass", MADX_MASS.get(str(beam.get("particle", "positron")).lower())
+    )
+    if "gamma" in beam:
+        return float(beam["gamma"])
+    if mass and "energy" in beam:
+        return float(beam["energy"]) / mass
+    if mass and "pc" in beam:
+        return float(np.hypot(1, float(beam["pc"]) / mass))
+    return None
+
+
+def _compose(outer: tuple, inner: tuple) -> tuple:
+    """``outer`` after ``inner``, each a ``(C, R, T)`` map, to second order."""
+    c2, r2, t2 = outer
+    c1, r1, t1 = inner
+    t2c = np.einsum("ijk,j->ik", t2, c1) + np.einsum("ijk,k->ij", t2, c1)
+    return (
+        c2 + r2 @ c1 + np.einsum("ijk,j,k->i", t2, c1, c1),
+        (r2 + t2c) @ r1,
+        np.einsum("ij,jkl->ikl", r2 + t2c, t1)
+        + np.einsum("ijk,jl,km->ilm", t2, r1, r1),
+    )
+
 
 class MatrixTransformTranslator(BaseElementTranslator):
     """
@@ -17,6 +55,40 @@ class MatrixTransformTranslator(BaseElementTranslator):
 
     simulation: MatrixTransformSimulationElement
     """Matrix transform simulation element"""
+
+    def _taylor_map(self, code: str, gamma: float | None) -> tuple:
+        """
+        C, R and T in Xsuite or MAD-X format, to second order.
+        Based off LAURA/Bmad convention.
+        """
+        sim = self.simulation
+        c, r, t = (
+            np.asarray(m, dtype=float)
+            for m in (sim.c_matrix, sim.r_matrix, sim.t_matrix)
+        )
+        if gamma is None:
+            off_diagonal = r - np.diag(np.diag(r))
+            beta_terms = code == "MAD-X" and (
+                off_diagonal[4:].any() or off_diagonal[:, 4:].any()
+            )
+            if t.any() or c[4:].any() or beta_terms:
+                warn(
+                    f"{self.name}: no energy given; the {code} matrix assumes beta = 1."
+                )
+            gamma = np.inf
+        beta = np.sqrt(1 - gamma**-2)
+        d = np.array([1, 1, 1, 1, 1 / beta, beta]) if code == "MAD-X" else np.ones(6)
+        q = np.zeros((6, 6, 6))
+        q[4, 4, 5] = q[4, 5, 4] = -0.5 / gamma**2
+        q[5, 5, 5] = 0.5 / gamma**2
+        q = d[:, None, None] * q
+        to = (np.zeros(6), np.diag(d), q)
+        back = (
+            np.zeros(6),
+            np.diag(1 / d),
+            -np.einsum("i,ijk,j,k->ijk", 1 / d, q, 1 / d, 1 / d),
+        )
+        return _compose(to, _compose((c, r, t), back))
 
     def to_elegant(self) -> str:
         """
@@ -91,7 +163,7 @@ class MatrixTransformTranslator(BaseElementTranslator):
             terms.append(f"{{{components[term['index']]}: {term['coef']} |{suffix}}}")
         return f"{sanitize_string(self.name)}: taylor, " + ", ".join(terms) + "\n"
 
-    def to_madx(self, at: float = None) -> str:
+    def to_madx(self, at: float = None, gamma: float | None = None) -> str:
         """
         Generates a string representation of the object's properties in the MAD-X
         format, as a MAD-X ``MATRIX`` element (an explicit, arbitrary transfer
@@ -104,6 +176,9 @@ class MatrixTransformTranslator(BaseElementTranslator):
         at: float, optional
             S-position at which to place the element inside a MAD-X ``SEQUENCE``;
             see :meth:`~laura.translator.converters.base.BaseElementTranslator.to_madx`.
+        gamma: float, optional
+            Lorentz factor of the reference particle, to convert to MAD-X's
+            (t, pt); without it, beta = 1.
 
         Returns
         -------
@@ -113,26 +188,24 @@ class MatrixTransformTranslator(BaseElementTranslator):
         self.start_write()
         etype = self._convert_type_madx(self.hardware_type)
         string = sanitize_string(self.name) + ": " + etype + f", l = {self.length}"
-        if not np.array_equal(self.simulation.c_matrix, np.zeros(6)):
-            for i, val in enumerate(self.simulation.c_matrix):
-                if val != 0:
-                    string += f", kick{i + 1} = {val}"
-        if not np.array_equal(self.simulation.r_matrix, np.eye(6)):
-            for i, row in enumerate(self.simulation.r_matrix):
-                for j, val in enumerate(row):
-                    if val != (1.0 if i == j else 0.0):
-                        string += f", rm{i + 1}{j + 1} = {val}"
-        if not np.array_equal(self.simulation.t_matrix, np.zeros((6, 6, 6))):
-            for i, plane in enumerate(self.simulation.t_matrix):
-                for j, row in enumerate(plane):
-                    for k, val in enumerate(row):
-                        if val != 0:
-                            string += f", tm{i + 1}{j + 1}{k + 1} = {val}"
+        c_matrix, r_matrix, t_matrix = self._taylor_map("MAD-X", gamma)
+        for i, val in enumerate(c_matrix):
+            if val != 0:
+                string += f", kick{i + 1} = {val}"
+        for i, row in enumerate(r_matrix):
+            for j, val in enumerate(row):
+                if val != (1.0 if i == j else 0.0):
+                    string += f", rm{i + 1}{j + 1} = {val}"
+        for i, plane in enumerate(t_matrix):
+            for j, row in enumerate(plane):
+                for k, val in enumerate(row):
+                    if val != 0:
+                        string += f", tm{i + 1}{j + 1}{k + 1} = {val}"
         if at is not None:
             string += f", at = {at}"
         return string + ";\n"
 
-    def to_xsuite(self, beam_length: int) -> tuple:
+    def to_xsuite(self, beam_length: int, gamma: float | None = None) -> tuple:
         """
         Generates an Xsuite object based on the element's properties and type.
 
@@ -140,6 +213,9 @@ class MatrixTransformTranslator(BaseElementTranslator):
         ----------
         beam_length: int
             Number of macroparticles in the beam
+        gamma: float, optional
+            Lorentz factor of the reference particle, for the second-order
+            terms of (zeta, pzeta); without it, beta = 1.
 
         Returns
         -------
@@ -151,11 +227,12 @@ class MatrixTransformTranslator(BaseElementTranslator):
         type_conversion_rules_xsuite = xsuite_conversion.xsuite_conversion_rules
         self.start_write()
         obj = type_conversion_rules_xsuite[self.hardware_type]
+        k, r, t = self._taylor_map("Xsuite", gamma)
         properties = {
             "length": self.length,
-            "k": self.simulation.c_matrix,
-            "R": self.simulation.r_matrix,
-            "T": self.simulation.t_matrix,
+            "k": k,
+            "R": r,
+            "T": t,
         }
         return self.name, obj, properties
 

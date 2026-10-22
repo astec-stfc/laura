@@ -58,6 +58,7 @@ from .codes.gpt import GptCcs, GptDtMinT, GptZMinMax
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
 from .magnet import MagnetTranslator, SolenoidTranslator
+from .matrix import MatrixTransformTranslator, madx_gamma
 from .wake import WakefieldTranslator
 
 unsupported_elements = {
@@ -1290,6 +1291,11 @@ class SectionLatticeTranslator(SectionLattice):
             if isinstance(particle_ref, xt.Particles)
             else 0.0
         )
+        gamma = (
+            float(particle_ref.gamma0[0])
+            if isinstance(particle_ref, xt.Particles)
+            else None
+        )
         line = env.new_line()
         element_types = {}
         for i, element in enumerate(list(elem_dict.values())):
@@ -1301,6 +1307,8 @@ class SectionLatticeTranslator(SectionLattice):
                     )
                 elif isinstance(element, SolenoidTranslator):
                     parts = element.to_xsuite(beam_length=beam_length, Brho=Brho)
+                elif isinstance(element, MatrixTransformTranslator):
+                    parts = element.to_xsuite(beam_length=beam_length, gamma=gamma)
                 else:
                     parts = element.to_xsuite(beam_length=beam_length)
                 # a thick aperture comes back as entrance limit, drift, exit limit
@@ -1448,7 +1456,8 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         beam: dict
             A dictionary describing a beam distribution with the keys as defined in the
-            `Beam Section of the MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html#Ch7.S1>`_
+            `Beam Section of the MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html#Ch7.S1>`_.
+            Its energy converts ``MatrixTransform`` maps to MAD-X's (t, pt).
         refer: str
             Gives a reference position for element placement, related to the ``at=`` parameter.
         Brho: float
@@ -1476,6 +1485,8 @@ class SectionLatticeTranslator(SectionLattice):
                 at += d.physical.length / 2
             if isinstance(d, SolenoidTranslator):
                 fulltext += d.to_madx(at=at, Brho=Brho)
+            elif isinstance(d, MatrixTransformTranslator):
+                fulltext += d.to_madx(at=at, gamma=madx_gamma(beam))
             else:
                 fulltext += d.to_madx(at=at)
             alignment = d.madx_alignment()
