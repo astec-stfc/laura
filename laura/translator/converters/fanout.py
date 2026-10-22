@@ -79,6 +79,7 @@ class ContainerTranslator:
         energy: float | None = None,
         particle: str = "electron",
         save: bool = False,
+        field_maps: bool = False,
     ) -> Dict[str, Any]:
         """
         One list of ImpactX element dicts per section; see
@@ -96,6 +97,8 @@ class ContainerTranslator:
             Particle species
         save: bool, optional
             Also write ``{directory}/{name}.impactx.json``.
+        field_maps: bool
+            Thick ``RFCavity`` from standing-wave field maps.
         """
         return self._fan_out(
             "to_impactx",
@@ -103,6 +106,7 @@ class ContainerTranslator:
             energy=energy,
             particle=self.particle or particle,
             save=save,
+            field_maps=field_maps,
         )
 
     def to_bmad(

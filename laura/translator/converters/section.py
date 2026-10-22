@@ -1371,6 +1371,7 @@ class SectionLatticeTranslator(SectionLattice):
         energy: float | None = None,
         particle: str = "electron",
         save: bool = False,
+        field_maps: bool = False,
     ) -> list:
         """
         ImpactX elements for this section, as the dicts
@@ -1388,6 +1389,9 @@ class SectionLatticeTranslator(SectionLattice):
             Design particle.
         save: bool
             Also write ``{directory}/{name}.impactx.json``.
+        field_maps: bool
+            Thick ``RFCavity`` from standing-wave field maps; see
+            :meth:`~laura.translator.converters.base.BaseElementTranslator.to_impactx`.
 
         Returns
         -------
@@ -1397,7 +1401,9 @@ class SectionLatticeTranslator(SectionLattice):
         elements = []
         for d in self._translate(self.create_drifts().values()).values():
             if not d.subelement:
-                elements += d.to_impactx(model=model, energy=energy, particle=particle)
+                elements += d.to_impactx(
+                    model=model, energy=energy, particle=particle, field_maps=field_maps
+                )
         if save:
             with open(f"{self.directory}/{self.name}.impactx.json", "w") as f:
                 json.dump(elements, f, indent=1)

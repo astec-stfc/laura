@@ -6,7 +6,7 @@ ImpactX elements, as the plain dicts ``element.to_dict()`` writes and
 ``model`` picks the fidelity tier, ``"linear"``, ``"paraxial"`` or ``"exact"``.
 """
 
-from math import degrees, sqrt
+from math import ceil, degrees, sqrt
 from warnings import warn
 
 import numpy as np
@@ -17,6 +17,7 @@ _DRIFTS = {"linear": "Drift", "paraxial": "ChrDrift", "exact": "ExactDrift"}
 _QUADS = {"linear": "Quad", "paraxial": "ChrQuad", "exact": "ExactQuad"}
 _EDGES = {"linear": "linear_slac75", "exact": "nonlinear_hwang_lee"}
 _HWANG_LEE = ("k0", "k1", "k3", "k4", "k5", "k6")
+_INT_ORDER = 4
 
 
 def tier(available, model: str) -> str:
@@ -111,6 +112,8 @@ def build_magnet(t, model, ref) -> list:
         }
         if body["type"] != "Quad":
             body["unit"] = 0
+        if body["type"] == "ExactQuad":
+            body["int_order"] = _INT_ORDER
         return [body]
     return [
         {
@@ -118,6 +121,7 @@ def build_magnet(t, model, ref) -> list:
             "name": t.name,
             "ds": length,
             "unit": 0,
+            "int_order": _INT_ORDER,
             "k_normal": [k / length for k in normal],
             "k_skew": [k / length for k in skew],
         }
@@ -160,6 +164,7 @@ def build_dipole(t, model, ref) -> list:
         "name": t.name,
         "ds": length,
         "unit": 0,
+        "int_order": _INT_ORDER,
         "k_normal": k_normal,
         "k_skew": k_skew,
     }
@@ -231,6 +236,72 @@ def build_solenoid(t, model, ref) -> list:
             "ds": length,
             "ez": 0.0,
             "bz": ks * ref["beta_gamma"],
+        }
+    ]
+
+
+def _standing_wave_map(t):
+    """The on-axis standing-wave field map ``start_write()`` resolved, or None."""
+    field = getattr(t.simulation, "field_definition", None)
+    if not getattr(field, "read", False):
+        return None
+    types = [getattr(field, key) for key in ("field_type", "cavity_type")]
+    types = [v.decode() if isinstance(v, bytes) else v for v in types]
+    return field if types == ["1DElectroDynamic", "StandingWave"] else None
+
+
+def fourier_coefficients(z, field, ncoef: int = 100) -> tuple:
+    """
+    ``impactx.fourier_coefficients``: the cosine and sine coefficients of
+    ``field`` about the middle of ``z``, by the trapezoidal rule on a uniform
+    resampling.
+    """
+    z = np.asarray(z, dtype=float)
+    length = z[-1] - z[0]
+    h = length / (len(z) - 1)
+    uniform = z[0] + h * np.arange(len(z))
+    weights = np.full(len(z), h / (length / 2))
+    weights[[0, -1]] /= 2
+    angles = np.outer(
+        uniform - (z[0] + z[-1]) / 2, 2 * np.pi * np.arange(ncoef) / length
+    )
+    sampled = np.interp(uniform, z, field) * weights
+    return sampled @ np.cos(angles), sampled @ np.sin(angles)
+
+
+def field_map_cavity(t, ref) -> list | None:
+    """
+    A thick ``RFCavity`` from a standing-wave field map, or None without one.
+
+    ImpactX pushes the beam through it with a linear map about the reference
+    particle: RF focusing, but no RF curvature. The crest must come from
+    tracking the reference particle in ImpactX.
+    """
+    length = t.physical.length
+    field = _standing_wave_map(t)
+    if field is None:
+        return None
+    z = np.asarray(field.z_values, dtype=float)
+    if abs(z[-1] - z[0] - length) > 1e-3 * length:
+        warn(
+            f"{t.name}: its field map spans {z[-1] - z[0]:.4g} m of its "
+            f"{length:.4g} m; written as a thin ShortRF."
+        )
+        return None
+    cos, sin = fourier_coefficients(z, field.Ez.value.val)
+    frequency = float(t.resolve(t.cavity.frequency))
+    return [
+        {
+            "type": "RFCavity",
+            "name": t.name,
+            "ds": length,
+            "escale": float(t.field_amplitude) * abs(ref["charge"]) / ref["mass"],
+            "freq": frequency,
+            "phase": float(t.cavity.crest) - float(t.phase),
+            "cos_coefficients": cos.tolist(),
+            "sin_coefficients": sin.tolist(),
+            # ImpactX's default of 10 steps gives a third of a TESLA cavity's gain
+            "mapsteps": ceil(200 * length * frequency / 299792458.0),
         }
     ]
 
@@ -342,16 +413,19 @@ impactx_conversion_rules = {
 model tier and the :func:`reference` particle."""
 
 
-def to_dicts(t, model: str, ref: dict) -> list:
+def to_dicts(t, model: str, ref: dict, field_maps: bool = False) -> list:
     """``t`` as ImpactX element dicts: its builder's output, with the element's
-    alignment and an elliptical bore aperture on every part but drifts."""
+    alignment and an elliptical bore aperture on every part but drifts. With
+    ``field_maps``, a cavity with a standing-wave field map is a
+    :func:`field_map_cavity`."""
     builder = impactx_conversion_rules.get(t.hardware_type)
     if builder is None:
         warn(
             f"Element type {t.hardware_type} of {t.name} not supported by ImpactX; using a drift"
         )
         builder = _passive
-    parts = builder(t, model, ref)
+    parts = field_map_cavity(t, ref) if field_maps and builder is build_cavity else None
+    parts = parts or builder(t, model, ref)
     # a bend's rotation rolls its frame, as MAD-X's tilt; a roll error has nowhere to go
     curved = t._curved
     tilt = float(t.resolve(getattr(getattr(t, "magnetic", None), "tilt", 0.0) or 0.0))
@@ -389,9 +463,11 @@ def lattice(dicts: list):
     loaded.from_dicts(
         [
             # Map6x6 reads a nested list column by column
-            {**d, "R": Map6x6(np.transpose(d["R"]).tolist())}
-            if d["type"] == "LinearMap"
-            else d
+            (
+                {**d, "R": Map6x6(np.transpose(d["R"]).tolist())}
+                if d["type"] == "LinearMap"
+                else d
+            )
             for d in dicts
         ]
     )

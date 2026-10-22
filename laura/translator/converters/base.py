@@ -709,7 +709,11 @@ class BaseElementTranslator(PhysicalBaseElement):
         return self.name, obj, properties
 
     def to_impactx(
-        self, model: str = "exact", energy: float | None = None, particle: str = "electron"
+        self,
+        model: str = "exact",
+        energy: float | None = None,
+        particle: str = "electron",
+        field_maps: bool = False,
     ) -> list:
         """
         ImpactX elements as the dicts ``element.to_dict()`` writes, dispatching
@@ -724,6 +728,10 @@ class BaseElementTranslator(PhysicalBaseElement):
             Total energy of the design particle [eV], needed by a solenoid.
         particle: str
             Design particle; its mass normalises the RF voltage.
+        field_maps: bool
+            Write a cavity with a standing-wave field map as a thick
+            ``RFCavity``, rather than a thin ``ShortRF``;
+            see :func:`~laura.translator.conversion_rules.codes.impactx_conversion.field_map_cavity`.
 
         Returns
         -------
@@ -732,7 +740,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         from ..conversion_rules.codes.impactx_conversion import reference, to_dicts
 
         self.start_write()
-        return to_dicts(self, model, reference(energy, particle))
+        return to_dicts(self, model, reference(energy, particle), field_maps)
 
     def to_genesis(self, index: int) -> str:
         """
@@ -882,7 +890,9 @@ class BaseElementTranslator(PhysicalBaseElement):
         if aperture is None or not getattr(aperture, "shape", None):
             return None
         if aperture.horizontal_offset or aperture.vertical_offset:
-            warn(f"{code} apertures are centred; the offset of {self.name!r} was dropped.")
+            warn(
+                f"{code} apertures are centred; the offset of {self.name!r} was dropped."
+            )
         shape = aperture.shape
         if shape in ("circular", "elliptical"):
             if aperture.radius is not None:
