@@ -21,7 +21,7 @@ except ImportError as _err:
     ) from _err
 
 from ...utils.alignment import to_frame
-from ...utils.at import FRINGE_BEND_MODEL, at_pivot, polynoms, time_lag
+from ...utils.at import FRINGE_BEND_MODEL, at_matrices, at_pivot, polynoms, time_lag
 
 AT_STEP_LENGTH = 0.005
 """Longest integration step [m]."""
@@ -30,11 +30,6 @@ _MAGNET_CLASSES = {
     "Quadrupole": at.Quadrupole,
     "Sextupole": at.Sextupole,
 }
-
-
-_AT_PLANES = [0, 1, 2, 3, 5, 4]
-"""LAURA writes its matrices raw to every code, whose last two planes are
-(z-like, delta); AT's are (delta, ct)."""
 
 
 def _strengths(t, skip_bend: bool = False) -> tuple:
@@ -226,19 +221,19 @@ def build_ac_dipole(t) -> "at.Element":
 def build_matrix(t) -> "at.Element":
     """``Matrix66Pass``, or ``MatrixTijkPass`` given a second-order map;
     ``c_matrix`` is the exit offset ``T2``."""
-    simulation, planes = t.simulation, _AT_PLANES
+    simulation = t.simulation
+    c, m66, tijk = at_matrices(simulation.c_matrix, simulation.r_matrix, simulation.t_matrix)
     kwargs = {"Length": t.physical.length}
-    if simulation.c_matrix.any():
-        kwargs["T2"] = simulation.c_matrix[planes]
+    if c.any():
+        kwargs["T2"] = c
     if simulation.u_matrix.any():
         warn(f"{t.name}: AT has no third-order map; the U matrix was dropped.")
-    m66 = simulation.r_matrix[np.ix_(planes, planes)]
-    if not simulation.t_matrix.any():
+    if not tijk.any():
         return at.M66(t.name, m66, **kwargs)
     return at.Element(
         t.name,
         M66=np.asfortranarray(m66),
-        Tijk=np.asfortranarray(simulation.t_matrix[np.ix_(planes, planes, planes)]),
+        Tijk=np.asfortranarray(tijk),
         PassMethod="MatrixTijkPass",
         **kwargs,
     )

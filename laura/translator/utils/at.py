@@ -7,6 +7,8 @@ Dependency-free, so the importer can use them without the exporter's builders.
 from math import factorial
 from typing import Dict, List, Tuple
 
+import numpy as np
+
 from .alignment import sagitta
 
 CLIGHT = 299792458.0
@@ -17,6 +19,9 @@ FRINGE_BEND_MODEL = {1: 1, 2: 3}
 first-order Brown; of its second-order models, 3 is the one that matches the
 other codes on CLIC DR and br14. Only the ``BndMPoleSymplectic4Pass`` fallback
 reads it; 0 means the edge is off."""
+
+AT_FRAME = np.eye(6)[[0, 1, 2, 3, 5, 4]] * [[1], [1], [1], [1], [1], [-1]]
+"""Bmad/LAURA matrices to AT's (x, px, y, py, delta, ct)."""
 
 
 def polynoms(
@@ -60,6 +65,16 @@ def time_lag(phase: float, frequency: float, crest: float = 90.0) -> float:
 def cavity_phase(lag: float, frequency: float, crest: float = 90.0) -> float:
     """Inverse of :func:`time_lag`."""
     return lag * frequency / CLIGHT * 360.0 - crest
+
+
+def at_matrices(c, r, t, frame=AT_FRAME) -> tuple:
+    """``C``, ``R`` and ``T`` taken into ``frame``; ``AT_FRAME.T`` comes back."""
+    c, r, t = (np.asarray(m, dtype=float) for m in (c, r, t))
+    return (
+        frame @ c,
+        frame @ r @ frame.T,
+        np.einsum("ia,abc,jb,kc->ijk", frame, t, frame, frame),
+    )
 
 
 def at_pivot(length: float, angle: float) -> dict:

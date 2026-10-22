@@ -12,7 +12,14 @@ import laura.models.element as laura_elements
 
 from ...utils.ac_dipole import MV_PER_VOLT
 from ...utils.alignment import from_frame
-from ...utils.at import CLIGHT, at_pivot, cavity_phase, integrated
+from ...utils.at import (
+    AT_FRAME,
+    CLIGHT,
+    at_matrices,
+    at_pivot,
+    cavity_phase,
+    integrated,
+)
 from ...utils.functions import number_repeated_names
 from .importer import LatticeImporter, apply_misalignment
 
@@ -60,9 +67,6 @@ _ORDERS = {
     2: laura_elements.Sextupole,
     3: laura_elements.Octupole,
 }
-
-_PLANES = [0, 1, 2, 3, 5, 4]
-"""AT's (delta, ct) back to the (z-like, delta) order LAURA's matrices carry."""
 
 
 def _misalignment(elem: Any, length: float) -> Dict[str, float]:
@@ -168,7 +172,9 @@ class ATLatticeImporter(LatticeImporter):
             if native in ("Multipole", "ThinMultipole"):
                 laura_type = self._multipole_type(elem)
             if laura_type is None:
-                warn(f"Could not import AT element type {native!r} for {name!r}; skipping.")
+                warn(
+                    f"Could not import AT element type {native!r} for {name!r}; skipping."
+                )
                 continue
             data = {
                 "name": name,
@@ -201,20 +207,30 @@ class ATLatticeImporter(LatticeImporter):
         normal = integrated(elem.PolynomB, length)
         skew = integrated(elem.PolynomA, length)
         if any(n > 4 for n in (*normal, *skew)):
-            warn(f"{elem.FamName}: LAURA stores multipoles only through K4L; higher orders were skipped.")
+            warn(
+                f"{elem.FamName}: LAURA stores multipoles only through K4L; higher orders were skipped."
+            )
         return {
-            f"K{n}L": {"order": n, "normal": normal.get(n, 0.0), "skew": skew.get(n, 0.0)}
+            f"K{n}L": {
+                "order": n,
+                "normal": normal.get(n, 0.0),
+                "skew": skew.get(n, 0.0),
+            }
             for n in sorted({*normal, *skew})
             if n <= 4
         }
 
-    def _fill(self, data: dict, elem, laura_type: type, length: float, brho: float) -> type:
+    def _fill(
+        self, data: dict, elem, laura_type: type, length: float, brho: float
+    ) -> type:
         """Add the type's own fields to ``data``; return the class to build,
         which an AC dipole's plane can change."""
         if laura_type is laura_elements.Dipole:
             multipoles = self._multipoles(elem, length)
             if multipoles.pop("K0L", {}).get("normal"):
-                warn(f"{elem.FamName}: AT's PolynomB[0] on a Dipole is a field error; not imported.")
+                warn(
+                    f"{elem.FamName}: AT's PolynomB[0] on a Dipole is a field error; not imported."
+                )
             data["magnetic"] = {
                 "length": length,
                 "multipoles": {
@@ -237,19 +253,30 @@ class ATLatticeImporter(LatticeImporter):
                 h, v = (float(k) for k in elem.KickAngle)
             else:  # a thin multipole's PolynomB[0] kicks toward -x
                 h, v = -float(elem.PolynomB[0]), float(elem.PolynomA[0])
-            data["magnetic"] = {"length": length, "horizontal_kick": h, "vertical_kick": v}
+            data["magnetic"] = {
+                "length": length,
+                "horizontal_kick": h,
+                "vertical_kick": v,
+            }
         elif laura_type in (*_ORDERS.values(), laura_elements.Magnet):
-            data["magnetic"] = {"length": length, "multipoles": self._multipoles(elem, length)}
+            data["magnetic"] = {
+                "length": length,
+                "multipoles": self._multipoles(elem, length),
+            }
         elif laura_type in (laura_elements.RFCavity, laura_elements.CrabCavity):
             crab = laura_type is laura_elements.CrabCavity
             voltage = float(elem.Voltages[0]) if crab else float(elem.Voltage)
             if crab and elem.Voltages[1]:
-                warn(f"{elem.FamName}: LAURA's crab cavity is horizontal; the vertical voltage was not imported.")
+                warn(
+                    f"{elem.FamName}: LAURA's crab cavity is horizontal; the vertical voltage was not imported."
+                )
             frequency = float(elem.Frequency)
             data["cavity"] = {
                 "frequency": frequency,
                 "phase": cavity_phase(
-                    float(getattr(elem, "TimeLag", 0.0)), frequency, crest=-90.0 if crab else 90.0
+                    float(getattr(elem, "TimeLag", 0.0)),
+                    frequency,
+                    crest=-90.0 if crab else 90.0,
                 ),
             }
             data["simulation"] = {"field_amplitude": voltage}
@@ -262,17 +289,19 @@ class ATLatticeImporter(LatticeImporter):
                 "helical": int(getattr(elem, "NVharm", 0)) > 0,
             }
         elif laura_type is laura_elements.Solenoid:
-            # K is B / (p / q); S0L is the integrated field [T*m]
             charge = self.lattice.particle.charge
-            data["magnetic"] = {"length": length, "fields": {"S0L": float(elem.K) * length * brho * charge}}
+            data["magnetic"] = {
+                "length": length,
+                "fields": {"S0L": float(elem.K) * length * brho * charge},
+            }
         elif laura_type is laura_elements.MatrixTransform:
-            planes = np.ix_(_PLANES, _PLANES)
-            simulation = {"r_matrix": np.asarray(elem.M66)[planes]}
-            if hasattr(elem, "T2"):
-                simulation["c_matrix"] = np.asarray(elem.T2)[_PLANES]
-            if hasattr(elem, "Tijk"):
-                simulation["t_matrix"] = np.asarray(elem.Tijk)[np.ix_(_PLANES, _PLANES, _PLANES)]
-            data["simulation"] = simulation
+            c, r, t = at_matrices(
+                getattr(elem, "T2", np.zeros(6)),
+                elem.M66,
+                getattr(elem, "Tijk", np.zeros((6, 6, 6))),
+                AT_FRAME.T,
+            )
+            data["simulation"] = {"c_matrix": c, "r_matrix": r, "t_matrix": t}
         elif laura_type is laura_elements.HorizontalACDipole:
             vertical = getattr(elem, "AmplitudeB", None) is None
             plane = "A" if vertical else "B"
@@ -300,4 +329,8 @@ class ATLatticeImporter(LatticeImporter):
             rx, ry, shape = (xmax - xmin) / 2, (ymax - ymin) / 2, "rectangular"
         else:
             return
-        data["aperture"] = {"shape": shape, "horizontal_size": 2 * rx, "vertical_size": 2 * ry}
+        data["aperture"] = {
+            "shape": shape,
+            "horizontal_size": 2 * rx,
+            "vertical_size": 2 * ry,
+        }

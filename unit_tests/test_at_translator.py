@@ -182,8 +182,19 @@ def test_imported_values_carry_laura_conventions():
     assert elements["hacd"].simulation.field_amplitude == pytest.approx(100.0)
     assert type(elements["vacd"]) is VerticalACDipole
     assert elements["vacd"].simulation.field_amplitude == pytest.approx(-50.0)
-    np.testing.assert_allclose(elements["mat"].simulation.r_matrix, _matrix()["r_matrix"])
+    for key, value in _matrix().items():
+        np.testing.assert_allclose(getattr(elements["mat"].simulation, key), value)
     assert "drift" not in " ".join(elements).lower()
+
+
+def test_matrix_r56_is_bmads():
+    """Bmad's z is positive ahead, AT's ct positive behind: with R56 > 0 a
+    particle with more energy arrives earlier."""
+    r = np.eye(6)
+    r[4, 5] = 1.0
+    ring = _to_at(_section([MatrixTransform(name="mat", **_element(simulation={"r_matrix": r}))]))
+    out, *_ = ring.track(np.array([[0.0], [0], [0], [0], [1e-3], [0]]), nturns=1)
+    assert out[5].ravel() == pytest.approx([-1e-3])
 
 
 def test_conventions_match_the_madx_route(tmp_path):
