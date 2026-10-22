@@ -971,7 +971,7 @@ export interface TwissMatchSimulationElement extends SimulationElement {
 
 
 /**
- * Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+ * Zero- through third-order transfer-map coefficients for a matrix transform element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0.
  */
 export interface MatrixTransformSimulationElement extends SimulationElement {
     /** Whether to apply the transfer map. */
