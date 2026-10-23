@@ -39,7 +39,7 @@ def _write(self, text: str) -> str:
     return filename
 
 
-def _write_wake(self, *, verbose: bool, n_cells: int = 1) -> str | None:
+def _write_wake(self, *, verbose: bool, cell_length: float | None = None) -> str | None:
     if self.Wz.value is None:
         if verbose:
             warn(
@@ -60,8 +60,9 @@ def _write_wake(self, *, verbose: bool, n_cells: int = 1) -> str | None:
     wake = _values(self.Wz, "Wz")
     if len(axis) != len(wake):
         raise ValueError("Bmad wake coordinate and Wz arrays must have equal lengths")
-    # LAURA's wake is per cell with z >= 0 behind the source; Bmad's per element, z <= 0
-    wake = wake * n_cells
+    wake_length = cell_length and (self.reference_length or cell_length)
+    if wake_length:
+        wake = wake / wake_length
     if time_based == "F":
         axis, wake = -axis[::-1], wake[::-1]
 
@@ -72,7 +73,7 @@ def _write_wake(self, *, verbose: bool, n_cells: int = 1) -> str | None:
     return _write(
         self,
         "{\n"
-        "  scale_with_length = F,\n"
+        f"  scale_with_length = {'T' if wake_length else 'F'},\n"
         "  z_long = {\n"
         f"    time_based = {time_based},\n"
         "    w = {\n"
@@ -136,7 +137,7 @@ def write_bmad_field_file(
     kind: str | None = None,
     n: int | None = None,
     verbose: bool = True,
-    n_cells: int = 1,
+    cell_length: float | None = None,
 ) -> str | None:
     """
     Write the field data of a :class:`~laura.translator.utils.fields.FieldMap`
@@ -156,6 +157,9 @@ def write_bmad_field_file(
         ``b`` (normal), ``bs`` (solenoid))
     n: int | None
         Harmonic index for generalized-gradient
+    cell_length: float | None
+        Length of the element a wake is on, per cell. With it, wakes are written per
+        metre of their ``reference_length`` (or of ``cell_length``); without it, whole
 
     Returns
     -------
@@ -186,7 +190,7 @@ def write_bmad_field_file(
         else self.field_type
     )
     if field_type in {"LongitudinalWake", "TransverseWake", "3DWake"}:
-        return _write_wake(self, verbose=verbose, n_cells=n_cells)
+        return _write_wake(self, verbose=verbose, cell_length=cell_length)
     if "MagnetoStatic" in str(field_type):
         return _write_gen_gradients(
             self,

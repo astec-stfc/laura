@@ -1216,10 +1216,12 @@ class SolenoidTranslator(BaseElementTranslator):
                 wholestring += f", {key} = {value}"
         if isinstance(self.simulation.field_definition, FieldMap):
             wholestring += f', fmapfn = "{self.generate_field_file_name(self.simulation.field_definition, code="opal")}"'
-            # OPAL puts the map's origin at ELEMEDGE; ASTRA and GPT put it at the field reference
-            sval += float(np.linalg.norm(
-                self.get_field_reference_position() - np.asarray(self.physical.start.array)
-            ))
+            sval += float(
+                np.linalg.norm(
+                    self.get_field_reference_position()
+                    - np.asarray(self.physical.start.array)
+                )
+            )
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
@@ -1340,7 +1342,6 @@ class CorrectorTranslator(BaseElementTranslator):
         return self.magnetic.vertical_kick
 
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
-        # OPAL rejects a corrector shorter than one time step, so a thin one cannot be written
         if not self.physical.length:
             if self.hangle or self.vangle:
                 warn(f"OPAL has no thin corrector; {self.name}'s kick is dropped")

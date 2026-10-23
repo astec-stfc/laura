@@ -591,9 +591,9 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[key] += (
-                            f"{section_header_text_astra[key]} = True\n"
-                        )
+                        element_headers[
+                            key
+                        ] += f"{section_header_text_astra[key]} = True\n"
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
@@ -619,9 +619,9 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers["&WAKE"] += (
-                                f"{section_header_text_astra['&WAKE']} = True\n"
-                            )
+                            element_headers[
+                                "&WAKE"
+                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += w.astra_wake_spacing[1]
@@ -684,10 +684,10 @@ class SectionLatticeTranslator(SectionLattice):
             element.ccs = ccs
             fulltext += element.to_gpt(Brho, **kwargs)
             if isinstance(element, RFCavityTranslator):
-                # magnets downstream scale to the accelerated beam, not the section's entrance
                 mc2 = electron_mass * speed_of_light**2 / elementary_charge
                 kinetic = (
-                    np.hypot(Brho * speed_of_light, mc2) - mc2
+                    np.hypot(Brho * speed_of_light, mc2)
+                    - mc2
                     + cavity_energy_gain(element) * 1e6
                 )
                 Brho = np.sqrt(kinetic * (kinetic + 2 * mc2)) / speed_of_light
@@ -720,8 +720,6 @@ class SectionLatticeTranslator(SectionLattice):
                 or element.hardware_type.lower() == "marker"
             ):
                 relpos = list(element.physical.middle.model_dump().values())
-                # past a dipole z is measured from its ccs; the survey z put the
-                # screens after the LCLS laser heater 10.6 m downstream
                 if ccs.name != "wcs":
                     relpos, _ = ccs.relative_position(
                         relpos,

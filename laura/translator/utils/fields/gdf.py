@@ -1,9 +1,12 @@
 from typing import List
-import numpy as np
-import easygdf
 from warnings import warn
-from .field_parameter import require_rf, set_field
+
+import easygdf
+import numpy as np
+
 from laura.models.constants import speed_of_light
+
+from .field_parameter import require_rf, set_field
 
 # field_type: (block names, drop repeated z samples via union)
 _GDF_BLOCKS = {
@@ -36,9 +39,9 @@ def write_gdf_field_file(self) -> str:
     str:
         The name of the GDF field file.
     """
-    travelling = self.field_type == "1DElectroDynamic" and self.cavity_type == "TravellingWave"
-    # the TW mock-up spans the whole structure, so cavities sharing a map with
-    # different cell counts would overwrite each other's file
+    travelling = (
+        self.field_type == "1DElectroDynamic" and self.cavity_type == "TravellingWave"
+    )
     gdf_file = self._output_filename(
         extension=f"_{self.n_cells:g}cells.gdf" if travelling else ".gdf"
     )
@@ -74,7 +77,9 @@ def write_gdf_field_file(self) -> str:
                 ]
             )
             halfcell2[:, 0] += middle_rf[-1, 0] + zstep
-            zdata, ezdata = np.concatenate([halfcell1, middle_rf, halfcell2]).transpose()
+            zdata, ezdata = np.concatenate(
+                [halfcell1, middle_rf, halfcell2]
+            ).transpose()
         blocks = union(
             [
                 {"name": "z", "value": zdata},

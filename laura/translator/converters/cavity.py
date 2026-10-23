@@ -215,12 +215,12 @@ class RFCavityTranslator(BaseElementTranslator):
             wakefield_file_name = self.generate_field_file_name(
                 self.simulation.wakefield_definition, code="elegant"
             )
-            # Unset columns default to the names write_sdds_field_file gives them;
-            # otherwise no wakefile is emitted and the rfcw tracks without its wake.
             wake, sim = self.simulation.wakefield_definition, self.simulation
             sim.t_column = sim.t_column or "t"
             for col in ("Wx", "Wy", "Wz"):
-                if getattr(wake, col) is not None and not getattr(sim, f"{col.lower()}_column"):
+                if getattr(wake, col) is not None and not getattr(
+                    sim, f"{col.lower()}_column"
+                ):
                     setattr(sim, f"{col.lower()}_column", col)
             self.set_wakefield_column_names(wakefield_file_name)
         string = f"{self.name}: {etype}"
@@ -279,7 +279,9 @@ class RFCavityTranslator(BaseElementTranslator):
                                 value = (value / 360.0) * (2 * 3.14159)
                         elif etype in ("rfdf", "rftm110"):
                             # elegant's deflectors kick as cos(phase + wt)
-                            value = self._rpn(0, value, "-") if functional else 0 - value
+                            value = (
+                                self._rpn(0, value, "-") if functional else 0 - value
+                            )
                         else:
                             value = (
                                 self._rpn(90, value, "-") if functional else 90 - value
@@ -422,7 +424,6 @@ class RFCavityTranslator(BaseElementTranslator):
                     if hasattr(self, key) and getattr(self, key) is not None
                     else value
                 )
-                # `self.voltage` already carries the travelling-wave factor
                 if isinstance(value, float):
                     dt = float64
                     setattr(
@@ -641,14 +642,12 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convert_type_opal(self.hardware_type)
-        # only an accelerating cavity: a TW deflector maps to drift and must stay one
         if etype == "rfcavity" and self.structure_type == "TravellingWave":
             etype = "travelingwave"
         wholestring = f"{self.name.replace('-', '_')}: {etype}"
         if etype.lower() == "drift" or self.simulation.field_definition is None:
             return ""
         if not self.field_amplitude:
-            # OPAL's autophaser rejects a cavity with no field; it is a drift anyway
             return ""
         for key, value in self._dump_items(
             self._convert_keyword_opal,
@@ -670,7 +669,6 @@ class RFCavityTranslator(BaseElementTranslator):
                 wholestring += f", mode = {mode}"
                 field = self.simulation.field_definition
                 if field.start_cell_z is not None:
-                    # the written map starts where OPAL's two-period window does
                     sval += opal_tw_window(field, field.frequency)[0]
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring

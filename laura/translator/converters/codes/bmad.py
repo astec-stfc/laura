@@ -1234,8 +1234,6 @@ class BmadLatticeImporter(LatticeImporter):
         )
         if not sampled:
             return {}
-        # LAURA keeps a wake per cell with z >= 0 behind the source, as CLARA's files
-        # and the elegant/Ocelot exporters read it; Bmad's is per element with z <= 0.
         sampled = {
             key: -values[::-1] if key == "z" else values[::-1] / n_cells
             for key, values in sampled.items()
@@ -1252,7 +1250,6 @@ class BmadLatticeImporter(LatticeImporter):
             field_type=field_type,
             origin_code="Bmad",
             length=len(sampled["z"]),
-            # the machine one (per-cell) table describes; ASTRA places one wake per this length
             reference_length=length / n_cells,
             filename=re.sub(r"[^A-Za-z0-9_.-]", "_", name) + "_wake.bmad",
             **{

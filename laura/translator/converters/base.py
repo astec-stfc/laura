@@ -981,16 +981,17 @@ class BaseElementTranslator(PhysicalBaseElement):
         if etype.lower() == "drift":
             return ""
         wholestring = f"{self.name.replace('-', '_')}: {etype}"
-        # OPAL-T takes K1..K3 as field gradients [T/m^n], not LAURA's normalised k,
-        # so they carry the charge sign (p/q < 0 for electrons, as GPT's charge_sign default)
-        # ponytail: electrons only, and measured on classic OPAL 2022.1; check OPAL-X before relying on it
         brho = -(designenergy or 0) * 1e6 / 299792458.0
         for key, value in self._dump_items(
             self._convert_keyword_opal,
             elements_opal[etype],
             overrides=self._opal_alignment(),
         ):
-            if brho and key in ("k1", "k2", "k3", "dk1", "dk2", "dk3") and isinstance(value, (int, float)):
+            if (
+                brho
+                and key in ("k1", "k2", "k3", "dk1", "dk2", "dk3")
+                and isinstance(value, (int, float))
+            ):
                 value = value * brho
             wholestring += f", {key} = {self._flag(self._angle_token(value))}"
         if etype == "monitor":
@@ -1807,11 +1808,13 @@ class BaseElementTranslator(PhysicalBaseElement):
             The same parameters
         """
         if self._wakefield_active():
+            cavity = getattr(self, "cavity", None)
             wake = self.generate_field_file_name(
                 self.simulation.wakefield_definition,
                 code="bmad",
                 verbose=getattr(self, "verbose", True),
-                n_cells=getattr(getattr(self, "cavity", None), "n_cells", None) or 1,
+                cell_length=self.physical.length
+                / (getattr(cavity, "n_cells", None) or 1),
             )
             if wake:
                 parameters["sr_wake"] = f"call::{wake}"

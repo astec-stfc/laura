@@ -61,7 +61,7 @@ def test_z_is_negative_because_that_is_how_bmad_indexes_a_table():
 
 
 def test_scale_with_length_folds_the_length_into_the_samples():
-    """Other codes' wake files are absolute, so the Bmad writer then sets scale_with_length = F."""
+    """Other codes' wake files are absolute, so the import multiplies a per-metre wake out."""
     modes = [[1.0, 0.0, 0.0, 0.25, "none"]]
 
     absolute = sample_bmad_sr_wake(_base(), modes, length=3.0, samples=3)

@@ -1,6 +1,8 @@
-import numpy as np
 import re
 from warnings import warn
+
+import numpy as np
+
 from .field_parameter import require_rf, set_field
 
 d = ",!?/&-:;@'\n \t"
@@ -35,8 +37,6 @@ def generate_astra_field_data(self) -> np.ndarray:
     )
     if self.field_type == "LongitudinalWake":
         wzdata = self.Wz.value.val
-        # one Dohlus sub-table (Nq Np / R L / C 10a+b), with no leading "Nt 0" line:
-        # ASTRA 3.2's Monopole_Method_F read that line as Nq Np, so took Nq as R
         preamble = np.array(
             [
                 [length, 0],
@@ -243,7 +243,6 @@ def read_astra_field_file(
     elif field_type == "LongitudinalWake":
         try:
             fdat = np.loadtxt(filename)
-            # older files carry a leading "Nt 0" line before the sub-table
             skip = 3 if len(fdat) == int(fdat[0, 0]) + 3 else 4
             numrows = int(fdat[skip - 3, 0])
             set_field(self, "z", fdat[skip : skip + numrows][::, 0], "m")
