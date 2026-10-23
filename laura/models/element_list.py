@@ -1,29 +1,31 @@
-from laura._compat import DeprecatedMethodAliases
 import logging
 import os
-import numpy as np
-from typing import List, Dict, Any, Union, Literal, Optional
-from pydantic import field_validator, BaseModel, ValidationInfo, Field, PositiveInt
+import warnings
+from typing import Any, Dict, List, Literal, Optional, Union
 from warnings import warn
+
+import numpy as np
+from pydantic import BaseModel, Field, PositiveInt, ValidationInfo, field_validator
 from yaml import safe_load
-from ._functions import read_yaml
-from .element import BaseElement, Drift, PhysicalBaseElement, Diagnostic
-from .physical import PhysicalElement, DriftPhysicalElement, Position, Rotation
-from .trajectory import Trajectory
+
+from laura._compat import DeprecatedMethodAliases
+
 from ..utils.rotation_matrix import (
     euler_angles_to_rotation_matrix,
     rotation_matrix_to_euler,
 )
+from ._functions import read_yaml
 from .base_models import (
     ModelBase,
     set_functional_definitions,
     set_resolve_functional,
     validate_functional_references,
 )
+from .element import BaseElement, Diagnostic, Drift, PhysicalBaseElement
 from .exceptions import LatticeError
-import warnings
-
+from .physical import DriftPhysicalElement, PhysicalElement, Position, Rotation
 from .simulation import DriftSimulationElement
+from .trajectory import Trajectory
 
 _log = logging.getLogger("laura.model")
 
@@ -419,9 +421,8 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel):
                             middle=Position(x=x, y=y, z=z),
                             datum=Position(x=x, y=y, z=z),
                         ),
-                        # collective effects over a negative (overlap) drift are meaningless
                         simulation=DriftSimulationElement(
-                            csr_enable=csr_enable and length > 0,
+                            csr_enable=csr_enable,
                             lsc_enable=lsc_enable and length > 0,
                             lsc_bins=lsc_bins,
                         ),
