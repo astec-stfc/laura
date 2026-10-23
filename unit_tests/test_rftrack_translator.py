@@ -403,7 +403,12 @@ class TestTravellingWaveFieldMapArgs:
 
 
 def _fake_translator(simulation, cavity=None, magnetic=None):
-    return SimpleNamespace(simulation=simulation, cavity=cavity, magnetic=magnetic)
+    # RFCavityTranslator.structure_type, which also accepts Bmad's "TravelingWave"
+    structure = str(getattr(cavity, "structure_type", "StandingWave"))
+    structure = "TravellingWave" if structure.lower() in ("travellingwave", "travelingwave") else structure
+    return SimpleNamespace(
+        simulation=simulation, cavity=cavity, magnetic=magnetic, structure_type=structure
+    )
 
 
 @pytest.mark.parametrize(

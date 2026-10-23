@@ -124,8 +124,9 @@ def test_bmad_short_range_wake_sidecars(tmp_path):
     sidecar = (tmp_path / "wake.bmad").read_text()
     assert "scale_with_length = F" in sidecar
     assert "time_based = F" in sidecar
-    assert "0.01 5" in sidecar
-    assert "0.02 0,\n" in sidecar
+    # LAURA's z >= 0 behind the source is Bmad's z <= 0
+    assert "      -0.01 5,\n" in sidecar
+    assert "      -0.02 0,\n" in sidecar
 
     cavity = RFCavity(
         name="C",

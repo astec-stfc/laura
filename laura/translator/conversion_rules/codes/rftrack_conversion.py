@@ -436,7 +436,7 @@ def build_rf_cavity(t, **kwargs) -> "object":
     approximation) for travelling-wave; :func:`build_cavity_fieldmap` (real
     on-axis field map) for a standing-wave cavity with one resolved, else
     :func:`build_pillbox_cavity` (single-coefficient approximation)."""
-    if t.cavity.structure_type == "TravellingWave":
+    if t.structure_type in ["TravellingWave", "TravelingWave"]:
         if _tw_fieldmap_available(t):
             return build_tw_fieldmap(t, **kwargs)
         return build_tw_structure(t, **kwargs)
@@ -446,7 +446,7 @@ def build_rf_cavity(t, **kwargs) -> "object":
 
 
 def repr_rf_cavity(t, **kwargs) -> tuple:
-    if t.cavity.structure_type == "TravellingWave":
+    if t.structure_type in ["TravellingWave", "TravelingWave"]:
         if _tw_fieldmap_available(t):
             return repr_tw_fieldmap(t, **kwargs)
         return repr_tw_structure(t, **kwargs)

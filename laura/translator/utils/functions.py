@@ -465,6 +465,45 @@ def tw_cavity_energy_gain(cavity):
     return delta_w
 
 
+def cavity_energy_gain(cavity) -> float:
+    """
+    Estimate the energy gain of an RF cavity [MeV], for design energies along a line.
+
+    With a 1D on-axis field map this is the transit-time integral for a beta = 1
+    particle, ``A |int e(z) exp(ikz) dz|`` with ``e`` the map normalised to unit peak;
+    for an ASTRA-style travelling-wave map, twice that over one core period (ASTRA
+    builds the wave from two standing waves) per period of the structure.  Within
+    about 1% of ASTRA for the LCLS gun and L0 linacs.  Without a map it falls back to
+    :func:`tw_cavity_energy_gain`, or the amplitude, as before.
+
+    Parameters:
+        cavity (RFCavityTranslator): cavity translator
+
+    Returns:
+        float: Estimated energy gain [MeV]
+    """
+    cavity.update_field_definition()  # loads the map if it is still a file name
+    field = cavity.simulation.field_definition
+    on_crest = np.cos(np.pi * cavity.phase / 180)
+    if getattr(field, "field_type", None) != "1DElectroDynamic":
+        if cavity.structure_type == "TravellingWave":
+            return tw_cavity_energy_gain(cavity) / 1e6
+        return cavity.field_amplitude * on_crest / 1e6
+    z = np.asarray(field.z.value.val)
+    ez = np.asarray(field.Ez.value.val)
+    ez = ez / np.abs(ez).max()
+    k = 2 * np.pi * cavity.cavity.frequency / 299792458.0
+    if field.start_cell_z is None:
+        integral = abs(np.trapezoid(ez * np.exp(1j * k * z), z))
+    else:
+        core = (z >= field.start_cell_z) & (z <= field.end_cell_z)
+        periods_in_core = (field.end_cell_z - field.start_cell_z) * k / (2 * np.pi)
+        per_period = 2 * abs(np.trapezoid(ez[core] * np.exp(1j * k * z[core]), z[core]))
+        periods = cavity.cavity.n_cells * field.mode_numerator / field.mode_denominator
+        integral = per_period / periods_in_core * periods
+    return cavity.field_amplitude * integral * on_crest / 1e6
+
+
 from laura._compat import deprecated_aliases  # noqa: E402
 
 __getattr__ = deprecated_aliases(

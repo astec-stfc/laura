@@ -1211,6 +1211,7 @@ class BmadLatticeImporter(LatticeImporter):
         parameters: Dict[str, Any],
         length: float,
         hardware_type: str,
+        n_cells: int = 1,
     ) -> Dict[str, Any]:
         """Sample this element's Bmad wake into a LAURA ``field``, if it has one."""
         tables = parameters.get("_WAKE")
@@ -1233,6 +1234,12 @@ class BmadLatticeImporter(LatticeImporter):
         )
         if not sampled:
             return {}
+        # LAURA keeps a wake per cell with z >= 0 behind the source, as CLARA's files
+        # and the elegant/Ocelot exporters read it; Bmad's is per element with z <= 0.
+        sampled = {
+            key: -values[::-1] if key == "z" else values[::-1] / n_cells
+            for key, values in sampled.items()
+        }
         units = {"z": "m", "Wz": "V/C", "Wx": "V/C/m", "Wy": "V/C/m"}
         transverse = "Wx" in sampled or "Wy" in sampled
         if not transverse:
@@ -1244,7 +1251,9 @@ class BmadLatticeImporter(LatticeImporter):
         wake = FieldMap(
             field_type=field_type,
             origin_code="Bmad",
-            length=length,
+            length=len(sampled["z"]),
+            # the machine one (per-cell) table describes; ASTRA places one wake per this length
+            reference_length=length / n_cells,
             filename=re.sub(r"[^A-Za-z0-9_.-]", "_", name) + "_wake.bmad",
             **{
                 key: FieldParameter(name=key, value=UnitValue(values, units=units[key]))
@@ -1429,7 +1438,13 @@ class BmadLatticeImporter(LatticeImporter):
             | _fringe_model(e.parameters, e.etype, hardware_type)
             | dict(elem_data.get("simulation") or {})
         )
-        wake_data = self._wake_field(e.name, e.parameters, e.length, hardware_type)
+        wake_data = self._wake_field(
+            e.name,
+            e.parameters,
+            e.length,
+            hardware_type,
+            (elem_data.get("cavity") or {}).get("n_cells") or 1,
+        )
         if wake_data:
             simulation.update(wake_data["simulation"])
         if simulation:

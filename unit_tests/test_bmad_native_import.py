@@ -866,14 +866,19 @@ def _wake_model(tmp_path):
 
 
 def test_a_short_range_wake_is_imported_as_sampled_arrays(tmp_path):
-    """Modes are sampled to a grid; a quarter-turn mode gives W(0) = amp_scale*amp."""
+    """Modes are sampled to a grid; a quarter-turn mode gives W(0) = amp_scale*amp,
+    stored per cell with z >= 0 behind the source like every other LAURA wake."""
     elements = _wake_model(tmp_path)
 
     wake = elements["C1"].simulation.wakefield_definition
+    n_cells = elements["C1"].cavity.n_cells
+    assert n_cells > 1
     assert wake.field_type == "LongitudinalWake"
-    assert wake.z.value.val[-1] == 0.0
-    assert wake.z.value.val[0] == pytest.approx(-0.01)
-    assert wake.Wz.value.val[-1] == pytest.approx(2.0e14)
+    assert wake.z.value.val[0] == 0.0
+    assert wake.z.value.val[-1] == pytest.approx(0.01)
+    assert wake.Wz.value.val[0] == pytest.approx(2.0e14 / n_cells)
+    assert wake.length == len(wake.z.value.val)
+    assert wake.reference_length == pytest.approx(2.0 / n_cells)
 
 
 def test_a_super_lord_is_imported_whole_and_keeps_its_wake(tmp_path):
@@ -883,7 +888,7 @@ def test_a_super_lord_is_imported_whole_and_keeps_its_wake(tmp_path):
     assert not [name for name in elements if name.startswith("C1#")]
     wake = elements["C1"].simulation.wakefield_definition
     assert wake is not None, "C1 lost its wake"
-    assert wake.Wz.value.val[-1] == pytest.approx(2.0e14)
+    assert wake.Wz.value.val[0] == pytest.approx(2.0e14 / elements["C1"].cavity.n_cells)
     assert elements["C1"].physical.length == pytest.approx(2.0)
     assert elements["SPLIT"].subelement == "C1"
 
@@ -894,7 +899,7 @@ def test_a_wake_on_a_marker_is_imported_too(tmp_path):
 
     wake = elements["M1"].simulation.wakefield_definition
     assert wake is not None
-    assert wake.Wz.value.val[-1] == pytest.approx(5.0e13)
+    assert wake.Wz.value.val[0] == pytest.approx(5.0e13)
 
 
 def test_an_exported_element_keeps_its_wake_beside_it(tmp_path):
@@ -911,7 +916,7 @@ def test_an_exported_element_keeps_its_wake_beside_it(tmp_path):
     sidecar = output / "M1_wake.hdf5"
     assert sidecar.is_file()
     with h5py.File(sidecar, "r") as written:
-        assert written["Wz"][-1] == pytest.approx(5.0e13)
+        assert written["Wz"][0] == pytest.approx(5.0e13)
         assert written["z"].attrs["units"] == "m"
     assert "M1_wake.hdf5" in (output / "M1.yaml").read_text()
 

@@ -17,6 +17,8 @@ general:
   dx_rot: dtheta
   dy_rot: dphi
   dz_rot: dpsi
+solenoid:
+  field_amplitude: ks
 dipole:
   entrance_edge_angle: e1
   exit_edge_angle: e2

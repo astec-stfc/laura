@@ -36,7 +36,12 @@ def write_gdf_field_file(self) -> str:
     str:
         The name of the GDF field file.
     """
-    gdf_file = self._output_filename(extension=".gdf")
+    travelling = self.field_type == "1DElectroDynamic" and self.cavity_type == "TravellingWave"
+    # the TW mock-up spans the whole structure, so cavities sharing a map with
+    # different cell counts would overwrite each other's file
+    gdf_file = self._output_filename(
+        extension=f"_{self.n_cells:g}cells.gdf" if travelling else ".gdf"
+    )
     blocks = None
     zdata = self.z.value.val
     if self.field_type in _GDF_BLOCKS:
@@ -47,7 +52,7 @@ def write_gdf_field_file(self) -> str:
     elif self.field_type == "1DElectroDynamic":
         ezdata = self.Ez.value.val
         fielddata = np.array([zdata, ezdata]).transpose()
-        if self.cavity_type == "TravellingWave":
+        if travelling:
             startpos = list(zdata).index(self.start_cell_z)
             halfcell1 = 1.0 * fielddata[:startpos]
             halfcell2 = 1.0 * halfcell1[::-1]

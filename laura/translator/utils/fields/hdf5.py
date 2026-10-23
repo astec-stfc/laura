@@ -128,12 +128,16 @@ def write_hdf5_field_file(self):
             "mode_numerator",
             "mode_denominator",
             "orientation",
-            "length",
         ]
         for att in attrs:
             if hasattr(self, att):
                 if getattr(self, att) is not None:
                     h5file.attrs[att] = getattr(self, att)
+        # the reader keeps a 2D map's length, but reads any other field's as reference_length;
+        # writing a sample count there put ASTRA's wakes kilometres downstream
+        length = self.length if self.field_type == "2DElectroDynamic" else self.reference_length
+        if length is not None:
+            h5file.attrs["length"] = length
         dsets = [n for n in FIELD_NAMES if n != "t"]
         for dset in dsets:
             if isinstance(getattr(self, dset), FieldParameter):

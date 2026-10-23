@@ -39,7 +39,7 @@ def _write(self, text: str) -> str:
     return filename
 
 
-def _write_wake(self, *, verbose: bool) -> str | None:
+def _write_wake(self, *, verbose: bool, n_cells: int = 1) -> str | None:
     if self.Wz.value is None:
         if verbose:
             warn(
@@ -60,6 +60,10 @@ def _write_wake(self, *, verbose: bool) -> str | None:
     wake = _values(self.Wz, "Wz")
     if len(axis) != len(wake):
         raise ValueError("Bmad wake coordinate and Wz arrays must have equal lengths")
+    # LAURA's wake is per cell with z >= 0 behind the source; Bmad's per element, z <= 0
+    wake = wake * n_cells
+    if time_based == "F":
+        axis, wake = -axis[::-1], wake[::-1]
 
     rows = ",\n".join(
         f"      {_format(position)} {_format(value)}"
@@ -132,6 +136,7 @@ def write_bmad_field_file(
     kind: str | None = None,
     n: int | None = None,
     verbose: bool = True,
+    n_cells: int = 1,
 ) -> str | None:
     """
     Write the field data of a :class:`~laura.translator.utils.fields.FieldMap`
@@ -181,7 +186,7 @@ def write_bmad_field_file(
         else self.field_type
     )
     if field_type in {"LongitudinalWake", "TransverseWake", "3DWake"}:
-        return _write_wake(self, verbose=verbose)
+        return _write_wake(self, verbose=verbose, n_cells=n_cells)
     if "MagnetoStatic" in str(field_type):
         return _write_gen_gradients(
             self,
