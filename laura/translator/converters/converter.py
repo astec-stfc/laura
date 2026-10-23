@@ -25,6 +25,7 @@ from laura.models.element import (
     Solenoid,
     TwissMatch,
     VerticalCorrector,
+    Wakefield,
     Wiggler,
     Wire,
 )
@@ -50,6 +51,7 @@ from .matrix import MatrixTransformTranslator
 from .plasma import PlasmaTranslator
 from .rf_multipole import RFMultipoleTranslator
 from .twiss import TwissMatchTranslator
+from .wake import WakefieldTranslator
 from .wire import WireTranslator
 
 
@@ -125,6 +127,8 @@ def translate_elements(
             translator = BeamBeamTranslator
         elif isinstance(elem, RFMultipole):
             translator = RFMultipoleTranslator
+        elif isinstance(elem, Wakefield):
+            translator = WakefieldTranslator
         else:
             translator = BaseElementTranslator
         try:

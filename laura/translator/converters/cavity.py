@@ -154,6 +154,13 @@ class RFCavityTranslator(BaseElementTranslator):
             wakefield_file_name = self.generate_field_file_name(
                 self.simulation.wakefield_definition, code="elegant"
             )
+            wake, sim = self.simulation.wakefield_definition, self.simulation
+            sim.t_column = sim.t_column or "t"
+            for col in ("Wx", "Wy", "Wz"):
+                if getattr(
+                    getattr(wake, col, None), "value", None
+                ) is not None and not getattr(sim, f"{col.lower()}_column"):
+                    setattr(sim, f"{col.lower()}_column", col)
             self.set_wakefield_column_names(wakefield_file_name)
         string = self.name + ": " + etype
         keys = []
@@ -173,7 +180,11 @@ class RFCavityTranslator(BaseElementTranslator):
                 if etype == "rftmez0" and key == "freq":
                     key = "frequency"
                 functional = self.is_functional(value)
-                if self.hardware_type in ["RFCavity", "RFDeflectingCavity", "CrabCavity"]:
+                if self.hardware_type in [
+                    "RFCavity",
+                    "RFDeflectingCavity",
+                    "CrabCavity",
+                ]:
                     if key == "phase":
                         if etype == "rftmez0":
                             # If using rftmez0 or similar
@@ -183,7 +194,9 @@ class RFCavityTranslator(BaseElementTranslator):
                                 value = (value / 360.0) * (2 * 3.14159)
                         else:
                             # In ELEGANT all phases are +90degrees!!
-                            value = self._rpn(90, value, "-") if functional else 90 - value
+                            value = (
+                                self._rpn(90, value, "-") if functional else 90 - value
+                            )
 
                 # In ELEGANT the voltages need to be compensated
                 if key == "volt":

@@ -144,11 +144,12 @@ class SectionLatticeTranslator(SectionLattice):
         if len(list(hw_types & set(unsupported))) > 0:
             unsupported = " ".join(list(hw_types & set(unsupported)))
             if self.verbose:
-                warn(f"WARNING! Elements {unsupported} not supported for {code};"
-                     f"Note that this may lead to errors or inaccurate results when tracking through these elements."
-                     f"NB The element may be supported in the code, but not yet by the LAURA converter;"
-                     f"Raise an issue if you want this to be rectified.")
-
+                warn(
+                    f"WARNING! Elements {unsupported} not supported for {code};"
+                    f"Note that this may lead to errors or inaccurate results when tracking through these elements."
+                    f"NB The element may be supported in the code, but not yet by the LAURA converter;"
+                    f"Raise an issue if you want this to be rectified."
+                )
 
     def to_astra(self) -> str:
         """
@@ -161,6 +162,7 @@ class SectionLatticeTranslator(SectionLattice):
             An ASTRA-compatible input file.
         """
         from .codes.astra import section_header_text_astra
+
         self._check_elements_supported("astra")
 
         headers = [
@@ -196,10 +198,16 @@ class SectionLatticeTranslator(SectionLattice):
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
                         counter[key] += e.aperture.number_of_elements
+                    elif isinstance(e, WakefieldTranslator):
+                        counter[key] += int(e.cavity.n_cells)
                     else:
                         counter[key] += 1
-                    if hasattr(e.simulation, "wakefield_definition") and isinstance(
-                        e.simulation.wakefield_definition, (str, FieldMap)
+                    if (
+                        not isinstance(e, WakefieldTranslator)
+                        and hasattr(e.simulation, "wakefield_definition")
+                        and isinstance(
+                            e.simulation.wakefield_definition, (str, FieldMap)
+                        )
                     ):
                         w = WakefieldTranslator(
                             name=e.name + "_wake",
@@ -222,7 +230,7 @@ class SectionLatticeTranslator(SectionLattice):
                             )
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
-                        counter["&WAKE"] += e.cavity.n_cells
+                        counter["&WAKE"] += int(e.cavity.n_cells)
                 else:
                     cond = (
                         "&"
@@ -314,6 +322,7 @@ class SectionLatticeTranslator(SectionLattice):
                     ),
                     directory=element.directory,
                 )
+                w.ccs = element.ccs  # model_post_init resets ccs to the origin
                 fulltext += w.to_gpt(Brho, **kwargs)
             new_ccs = deepcopy(element.ccs)
             if not new_ccs.name == ccs.name:
@@ -380,6 +389,7 @@ class SectionLatticeTranslator(SectionLattice):
             An OPAL-compatible input file.
         """
         self._check_elements_supported("opal")
+        self._warn_dropped_wakes("OPAL")
         check_dict = [
             "option",
             "distribution",
@@ -467,6 +477,29 @@ class SectionLatticeTranslator(SectionLattice):
             sim = getattr(d, "simulation", None)
             if sim is not None and hasattr(sim, "wakefield_enable"):
                 sim.wakefield_enable = False
+
+    def _warn_dropped_wakes(self, code: str) -> None:
+        """
+        Warn that ``code`` is written without the structure wakefields that are
+        switched on, since LAURA doesn't export wakes to it.
+
+        Parameters
+        ----------
+        code: str
+            Name of the code being written
+        """
+        if not self.wakefield_enable:
+            return
+        names = [
+            e.name
+            for e in self.elements.elements.values()
+            if getattr(getattr(e, "simulation", None), "wakefield_definition", None)
+            and getattr(e.simulation, "wakefield_enable", True)
+        ]
+        if names:
+            warn(
+                f"{code} is written without structure wakefields; dropped on {', '.join(names)}"
+            )
 
     def _apply_tw_focusing(self, elem_dict: dict) -> None:
         """Pass :attr:`~tw_focusing` on to the translated cavities."""
@@ -643,11 +676,13 @@ class SectionLatticeTranslator(SectionLattice):
         MagneticLattice
             An Ocelot `MagneticLattice` object.
         """
+        from ocelot.cpbd.elements import Drift as OcelotDrift
+        from ocelot.cpbd.elements import Octupole, Undulator
         from ocelot.cpbd.magnetic_lattice import MagneticLattice
-        from ocelot.cpbd.transformations.second_order import SecondTM
         from ocelot.cpbd.transformations.kick import KickTM
         from ocelot.cpbd.transformations.runge_kutta import RungeKuttaTM
-        from ocelot.cpbd.elements import Octupole, Undulator, Drift as OcelotDrift
+        from ocelot.cpbd.transformations.second_order import SecondTM
+
         self._check_elements_supported("ocelot")
 
         method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
@@ -822,7 +857,9 @@ class SectionLatticeTranslator(SectionLattice):
             A Cheetah `Segment` object.
         """
         from cheetah import Segment
+
         self._check_elements_supported("cheetah")
+        self._warn_dropped_wakes("Cheetah")
 
         section_with_drifts = self.create_drifts()
         elem_dict = translate_elements(
@@ -872,7 +909,9 @@ class SectionLatticeTranslator(SectionLattice):
             A Xsuite `Line` object.
         """
         import xtrack as xt
+
         self._check_elements_supported("xsuite")
+        self._warn_dropped_wakes("Xsuite")
 
         if not isinstance(env, xt.Environment):
             env = xt.Environment()
@@ -887,11 +926,10 @@ class SectionLatticeTranslator(SectionLattice):
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+
         def _is_symbolic(val: Any) -> bool:
             if isinstance(val, str):
-                return any(
-                    nam in val for nam in IgnoreExtra.functional_definitions
-                )
+                return any(nam in val for nam in IgnoreExtra.functional_definitions)
             if isinstance(val, (list, tuple)):
                 return any(_is_symbolic(v) for v in val)
             return False
@@ -905,7 +943,9 @@ class SectionLatticeTranslator(SectionLattice):
                         revolution_frequency=self.revolution_frequency,
                     )
                 else:
-                    name, component, properties = element.to_xsuite(beam_length=beam_length)
+                    name, component, properties = element.to_xsuite(
+                        beam_length=beam_length
+                    )
                 if any(_is_symbolic(v) for v in properties.values()):
                     env.new(element.name, component, **properties)
                     line.append(element.name)
@@ -955,7 +995,9 @@ class SectionLatticeTranslator(SectionLattice):
             simulation=DiagnosticSimulationElement(
                 output_filename="end_screen.csrtrack"
             ),
-            physical=lastelem.physical.model_copy(update={"middle": lastelem.physical.end}),
+            physical=lastelem.physical.model_copy(
+                update={"middle": lastelem.physical.end}
+            ),
         )
         csrtrackstr += lastscreen.to_csrtrack(n=counter["screen"])
         csrtrackstr += "}\n"
@@ -996,6 +1038,7 @@ class SectionLatticeTranslator(SectionLattice):
             declarations for any functional definitions used symbolically by
             the lattice's elements.
         """
+        self._warn_dropped_wakes("MAD-X")
         section_with_drifts = self.create_drifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
@@ -1041,6 +1084,7 @@ class SectionLatticeTranslator(SectionLattice):
             A Wake-T `Beamline` object.
         """
         from wake_t import Beamline
+
         self._check_elements_supported("wake_t")
 
         section_with_drifts = self.create_drifts()

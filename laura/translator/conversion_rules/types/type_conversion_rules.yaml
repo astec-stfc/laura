@@ -27,7 +27,7 @@ elegant:
   APContour: apcontour
   Watch_Point: watch
   Marker: watch
-  Wakefield: wake
+  Wakefield: rfcw
   Horizontal_Corrector: hkick
   Vertical_Corrector: vkick
   Combined_Corrector: kicker
