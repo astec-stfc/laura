@@ -264,9 +264,7 @@ def check_value(self, d, default=None):
             return (
                 d["value"]
                 if d["value"] is not None
-                else d["default"]
-                if "default" in d
-                else default
+                else d["default"] if "default" in d else default
             )
     elif isinstance(d, str):
         return (
