@@ -150,11 +150,12 @@ class SectionLatticeTranslator(SectionLattice):
         if len(list(hw_types & set(unsupported))) > 0:
             unsupported = " ".join(list(hw_types & set(unsupported)))
             if self.verbose:
-                warn(f"WARNING! Elements {unsupported} not supported for {code};"
-                     f"Note that this may lead to errors or inaccurate results when tracking through these elements."
-                     f"NB The element may be supported in the code, but not yet by the LAURA converter;"
-                     f"Raise an issue if you want this to be rectified.")
-
+                warn(
+                    f"WARNING! Elements {unsupported} not supported for {code};"
+                    f"Note that this may lead to errors or inaccurate results when tracking through these elements."
+                    f"NB The element may be supported in the code, but not yet by the LAURA converter;"
+                    f"Raise an issue if you want this to be rectified."
+                )
 
     def to_astra(self) -> str:
         """
@@ -167,6 +168,7 @@ class SectionLatticeTranslator(SectionLattice):
             An ASTRA-compatible input file.
         """
         from .codes.astra import section_header_text_astra
+
         self._check_elements_supported("astra")
 
         headers = [
@@ -195,9 +197,9 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[key] += (
-                            f"{section_header_text_astra[key]} = True\n"
-                        )
+                        element_headers[
+                            key
+                        ] += f"{section_header_text_astra[key]} = True\n"
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
@@ -223,9 +225,9 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers["&WAKE"] += (
-                                f"{section_header_text_astra['&WAKE']} = True\n"
-                            )
+                            element_headers[
+                                "&WAKE"
+                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += e.cavity.n_cells
@@ -655,6 +657,7 @@ class SectionLatticeTranslator(SectionLattice):
         from ocelot.cpbd.transformations.kick import KickTM
         from ocelot.cpbd.transformations.runge_kutta import RungeKuttaTM
         from ocelot.cpbd.transformations.second_order import SecondTM
+
         self._check_elements_supported("ocelot")
 
         method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
@@ -830,6 +833,7 @@ class SectionLatticeTranslator(SectionLattice):
         """
         import cheetah
         from cheetah import Segment
+
         self._check_elements_supported("cheetah")
 
         section_with_drifts = self.create_drifts()
@@ -884,6 +888,7 @@ class SectionLatticeTranslator(SectionLattice):
             A Xsuite `Line` object.
         """
         import xtrack as xt
+
         self._check_elements_supported("xsuite")
 
         if not isinstance(env, xt.Environment):
@@ -900,11 +905,10 @@ class SectionLatticeTranslator(SectionLattice):
             directory=self.directory,
         )
         self._apply_tw_focusing(elem_dict)
+
         def _is_symbolic(val: Any) -> bool:
             if isinstance(val, str):
-                return any(
-                    nam in val for nam in IgnoreExtra.functional_definitions
-                )
+                return any(nam in val for nam in IgnoreExtra.functional_definitions)
             if isinstance(val, (list, tuple)):
                 return any(_is_symbolic(v) for v in val)
             return False
@@ -919,7 +923,9 @@ class SectionLatticeTranslator(SectionLattice):
                         revolution_frequency=self.revolution_frequency,
                     )
                 else:
-                    name, component, properties = element.to_xsuite(beam_length=beam_length)
+                    name, component, properties = element.to_xsuite(
+                        beam_length=beam_length
+                    )
                 if any(_is_symbolic(v) for v in properties.values()):
                     env.new(element.name, component, **properties)
                     obj, args = env[element.name], (element.name,)
@@ -939,8 +945,12 @@ class SectionLatticeTranslator(SectionLattice):
                 line.append(*args)
                 if edges:
                     line.append(f"{element.name}_exit", exit)
-        if p0c is None and any(isinstance(e, RFCavityTranslator) for e in elem_dict.values()):
-            warn(f"{self.name}: Xsuite cavities are written without edge focusing, as no particle_ref was given")
+        if p0c is None and any(
+            isinstance(e, RFCavityTranslator) for e in elem_dict.values()
+        ):
+            warn(
+                f"{self.name}: Xsuite cavities are written without edge focusing, as no particle_ref was given"
+            )
         if isinstance(particle_ref, xt.Particles):
             line.particle_ref = particle_ref
         if save:
@@ -985,7 +995,9 @@ class SectionLatticeTranslator(SectionLattice):
             simulation=DiagnosticSimulationElement(
                 output_filename="end_screen.csrtrack"
             ),
-            physical=lastelem.physical.model_copy(update={"middle": lastelem.physical.end}),
+            physical=lastelem.physical.model_copy(
+                update={"middle": lastelem.physical.end}
+            ),
         )
         csrtrackstr += lastscreen.to_csrtrack(n=counter["screen"])
         csrtrackstr += "}\n"
@@ -1071,6 +1083,7 @@ class SectionLatticeTranslator(SectionLattice):
             A Wake-T `Beamline` object.
         """
         from wake_t import Beamline
+
         self._check_elements_supported("wake_t")
 
         section_with_drifts = self.create_drifts()
