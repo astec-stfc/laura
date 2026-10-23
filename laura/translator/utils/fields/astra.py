@@ -1,8 +1,10 @@
-import numpy as np
 import re
 from warnings import warn
-from .field_parameter import FieldParameter
+
+import numpy as np
+
 from ..units import UnitValue
+from .field_parameter import FieldParameter
 
 d = ",!?/&-:;@'\n \t"
 
@@ -40,7 +42,6 @@ def generate_astra_field_data(self) -> np.ndarray:
         wzdata = self.Wz.value.val
         preamble = np.array(
             [
-                [1, 0],
                 [length, 0],
                 [0, 0],
                 [0, 0],
@@ -285,12 +286,14 @@ def read_astra_field_file(
     elif field_type == "LongitudinalWake":
         try:
             fdat = np.loadtxt(filename)
-            numrows = int(fdat[1, 0])
+            skip = 3 if len(fdat) == int(fdat[0, 0]) + 3 else 4
+            numrows = int(fdat[skip - 3, 0])
             setattr(
                 self,
                 "z",
                 FieldParameter(
-                    name="z", value=UnitValue(fdat[4 : 4 + numrows][::, 0], units="m")
+                    name="z",
+                    value=UnitValue(fdat[skip : skip + numrows][::, 0], units="m"),
                 ),
             )
             setattr(
@@ -298,7 +301,7 @@ def read_astra_field_file(
                 "Wz",
                 FieldParameter(
                     name="Wz",
-                    value=UnitValue(fdat[4 : 4 + numrows][::, 1]),
+                    value=UnitValue(fdat[skip : skip + numrows][::, 1]),
                     units="V/C",
                 ),
             )
