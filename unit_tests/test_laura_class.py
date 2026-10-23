@@ -273,6 +273,33 @@ class TestDriftsAndSPos:
         for i in range(1, len(values)):
             assert values[i] >= values[i - 1]
 
+    def test_overlapping_elements_get_negative_drift(self):
+        # LCLS gun: SOL1 starts 39 mm inside the gun, which used to count as a +39 mm drift
+        elems = [
+            Quadrupole(
+                name="GUN", machine_area="G", magnetic={"length": 0.135, "k1l": 0.0},
+                physical={"length": 0.135, "middle": {"x": 0.0, "y": 0.0, "z": 0.0675}},
+            ),
+            Solenoid(
+                name="SOL1", machine_area="G", magnetic={"length": 0.2},
+                physical={"length": 0.2, "middle": {"x": 0.0, "y": 0.0, "z": 0.19601}},
+            ),
+            Marker(
+                name="VV01", machine_area="G", hardware_class="Marker",
+                physical={"middle": {"x": 0.0, "y": 0.0, "z": 0.37452}},
+            ),
+        ]
+        machine = LAURA(
+            element_list=elems,
+            layout={"default_layout": "line1", "layouts": {"line1": ["G"]}},
+            section={"sections": {"G": ["GUN", "SOL1", "VV01"]}},
+        )
+        drifts = machine.create_drifts()
+        assert list(drifts) == ["GUN", "drift1", "SOL1", "drift2", "VV01"]
+        assert drifts["drift1"].physical.length == pytest.approx(-0.03899)
+        assert machine.get_elements_s_pos()["VV01"] == pytest.approx(0.37452)
+        assert machine.elements["VV01"].physical.s == pytest.approx(0.37452)
+
 
 # ---------------------------------------------------------------------------
 # Export round-trip with YAML

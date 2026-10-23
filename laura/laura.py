@@ -9,7 +9,6 @@ import logging
 import os
 import types
 from itertools import chain
-from math import copysign
 from typing import Any, Dict, List
 
 import numpy as np
@@ -19,8 +18,8 @@ from yaml.constructor import Constructor
 _log = logging.getLogger("laura.machine")
 
 from ._compat import DeprecatedMethodAliases
-from .models.physical import PhysicalElement, Position
-from .models.element_list import MachineModel, BaseElement, dot, chunks
+from .models.physical import DriftPhysicalElement, Position
+from .models.element_list import MachineModel, BaseElement, signed_gap, chunks
 from .models.element import Drift
 from .importers.yaml_loader import (
     read_yaml_combined_file,
@@ -235,18 +234,15 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
         for e, d in driftdata:
             newelements[e[0]] = e[1]
             if len(d) > 1:
-                x1, y1, z1 = d[0]
-                x2, y2, z2 = d[1]
                 try:
-                    length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
-                    vector = dot((d[1] - d[0]), [0, 0, 1])
+                    length = signed_gap(e[1].physical, d[1])
                 except Exception as exc:
                     _log.error(
                         "Drift calculation error near element '%s': %s", e[0], exc
                     )
                     _log.debug("Position data: %s", d)
                     raise exc
-                if round(length, 6) > 0:
+                if round(length, 6) != 0:
                     elementno += 1
                     name = "drift" + str(elementno)
                     x, y, z = [(a + b) / 2.0 for a, b in zip(d[0], d[1])]
@@ -254,8 +250,8 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
                         name=name,
                         machine_area=newelements[e[0]].machine_area,
                         hardware_class="Drift",
-                        physical=PhysicalElement(
-                            length=abs(round(copysign(length, vector), 6)),
+                        physical=DriftPhysicalElement(
+                            length=round(length, 6),
                             middle=Position(x=x, y=y, z=z),
                             datum=Position(x=x, y=y, z=z),
                         ),

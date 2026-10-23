@@ -674,3 +674,12 @@ class PhysicalElement(_PhysicalElementBase):
         vec = [ex, ey, ez]
         end = middle + self.rotated_position(vec)
         return Position.from_list(end)
+
+
+class DriftPhysicalElement(PhysicalElement):
+    """
+    Physical info for a drift. Its length may be negative, purely so a sequence can step
+    back over overlapping elements (e.g. a solenoid around the end of a gun).
+    """
+
+    length: float = Field(default=0)

@@ -8,7 +8,7 @@ from warnings import warn
 from yaml import safe_load
 from ._functions import read_yaml
 from .element import BaseElement, Drift, PhysicalBaseElement, Diagnostic
-from .physical import PhysicalElement, Position, Rotation
+from .physical import PhysicalElement, DriftPhysicalElement, Position, Rotation
 from .trajectory import Trajectory
 from ..utils.rotation_matrix import (
     euler_angles_to_rotation_matrix,
@@ -101,8 +101,10 @@ def load_functional_definitions(
     raise ValueError("functional_definitions must be a path, dict, or None")
 
 
-def dot(a, b) -> float:
-    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+def signed_gap(prev: PhysicalElement, start) -> float:
+    """Distance along the beam from the exit of ``prev`` to ``start``, negative where they overlap."""
+    step = np.asarray(start) - np.asarray(prev.end.array)
+    return float(np.copysign(np.linalg.norm(step), step @ prev.end_rotation_matrix[:, 2]))
 
 
 def chunks(li, n):
@@ -396,18 +398,15 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel):
         for e, d in driftdata:
             newelements[e[0]] = e[1]
             if len(d) > 1:
-                x1, y1, z1 = d[0]
-                x2, y2, z2 = d[1]
                 try:
-                    length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
-                    vector = dot((d[1] - d[0]), [0, 0, 1])
+                    length = signed_gap(e[1].physical, d[1])
                 except Exception as exc:
                     _log.error(
                         "Drift calculation error near element '%s': %s", e[0], exc
                     )
                     _log.debug("Position data: %s", d)
                     raise exc
-                if round(length, 16) > 0:
+                if round(length, 16) != 0:
                     elementno += 1
                     name = self.name + "_drift_" + str(elementno)
                     x, y, z = [(a + b) / 2.0 for a, b in zip(d[0], d[1])]
@@ -415,14 +414,15 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel):
                         name=name,
                         hardware_class="Drift",
                         machine_area=newelements[e[0]].machine_area,
-                        physical=PhysicalElement(
-                            length=abs(round(np.copysign(length, vector), 16)),
+                        physical=DriftPhysicalElement(
+                            length=round(length, 16),
                             middle=Position(x=x, y=y, z=z),
                             datum=Position(x=x, y=y, z=z),
                         ),
+                        # collective effects over a negative (overlap) drift are meaningless
                         simulation=DriftSimulationElement(
-                            csr_enable=csr_enable,
-                            lsc_enable=lsc_enable,
+                            csr_enable=csr_enable and length > 0,
+                            lsc_enable=lsc_enable and length > 0,
                             lsc_bins=lsc_bins,
                         ),
                     )
@@ -668,7 +668,7 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel):
         rot_list: list[np.ndarray] = [np.eye(3)]
 
         current_s = 0.0
-        prev_end: Optional[np.ndarray] = None
+        prev_phys: Optional[PhysicalElement] = None
 
         elements_to_wire: list[PhysicalElement] = []
 
@@ -686,8 +686,8 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel):
                 continue
 
             gap = (
-                float(np.linalg.norm(start_arr - prev_end))
-                if prev_end is not None
+                signed_gap(prev_phys, start_arr)
+                if prev_phys is not None
                 else float(np.linalg.norm(start_arr))
             )
             s_elem_start = current_s + gap
@@ -712,7 +712,7 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel):
             phys.s = s_elem_mid
 
             current_s = s_elem_end
-            prev_end = end_arr
+            prev_phys = phys
             elements_to_wire.append(phys)
 
         traj = Trajectory(np.array(s_list), np.array(pos_list), np.array(rot_list))

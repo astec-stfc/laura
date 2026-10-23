@@ -78,7 +78,7 @@ from ..utils import CascadingAccessMixin, flatten_dict, StringWithQuotes, FlowLi
 from .manufacturer import ManufacturerElement
 from .electrical import ElectricalElement
 from .degauss import DegaussableElement
-from .physical import PhysicalElement, Rotation
+from .physical import PhysicalElement, DriftPhysicalElement, Rotation
 from .reference import ReferenceElement
 from .magnetic import (
     MagneticElement,
@@ -1423,6 +1423,9 @@ class Drift(PhysicalBaseElement, _DriftBase):
 
     hardware_type: str = Field(default="Drift", frozen=True)
     """Drift hardware type."""
+
+    physical: Optional[DriftPhysicalElement] = Field(default=None)
+    """Drift physical attributes; the length may be negative."""
 
     simulation: Optional[DriftSimulationElement] = None
     """Drift simulation attributes."""
