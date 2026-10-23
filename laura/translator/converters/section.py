@@ -23,7 +23,6 @@ from ..utils.functions import (
     elegant_functional_definitions,
     madx_functional_definitions,
     sanitize_string,
-    tw_cavity_energy_gain,
 )
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
@@ -382,13 +381,13 @@ class SectionLatticeTranslator(SectionLattice):
         Create an OPAL-compatible input file based on the lattice information and
         the settings provided in :attr:`~opal_headers`.
 
-        Note that, for sections with accelerating sections, the beam energy `energy` may not
-        be updated correctly, which may affect the accuracy of tracking through dipoles.
+        Each RF cavity raises the design energy by
+        :func:`~laura.translator.utils.functions.cavity_energy_gain`, an estimate.
 
         Parameters
         ----------
         energy: float
-            Beam energy
+            Beam energy at the start of the section [MeV]
         breakstr: str
             String for separating sections in the lattice file.
 
@@ -420,13 +419,14 @@ class SectionLatticeTranslator(SectionLattice):
         )
         written = []
         svals = self.get_resolved_s_values(as_dict=True, at_entrance=True)
+        dt = self.opal_headers["track"].DT
+        # with staged steps, the longest one fits a thin element into every stage
+        dt = max(dt) if isinstance(dt, (list, tuple)) else dt
         for d in elem_dict.values():
             d.opal_version = self.opal_version
+            d.opal_time_step = float(dt)
             if isinstance(d, RFCavityTranslator):
-                if d.structure_type.lower() == "travellingwave":
-                    energy += tw_cavity_energy_gain(d)
-                else:
-                    energy += d.field_amplitude * np.cos(np.pi * d.phase / 180)
+                energy += cavity_energy_gain(d)
             if d.subelement:
                 phys = d.physical
                 traj = getattr(phys, "_trajectory", None)

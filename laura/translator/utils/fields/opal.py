@@ -1,12 +1,27 @@
-import numpy as np
-from .sdds import write_sdds_field_file
-from warnings import warn
-from collections import Counter
-from .field_parameter import FieldParameter
-from ..units import UnitValue
 import re
+from collections import Counter
+from warnings import warn
+
+import numpy as np
+
+from laura.models.constants import speed_of_light
+
+from ..units import UnitValue
+from .field_parameter import FieldParameter
+from .sdds import write_sdds_field_file
 
 d = ",!?/&-:;@'\n \t"
+
+
+def opal_tw_window(field, frequency: float) -> tuple[float, float]:
+    """
+    The stretch of an ASTRA-style travelling-wave map that OPAL's ``TRAVELINGWAVE``
+    reads: two RF periods, the first full period starting at ``start_cell_z``.
+    OPAL takes the period as half the map's length and the core as starting half a
+    period in, so a map with longer couplers gets the wrong cell length.
+    """
+    period = speed_of_light / frequency
+    return field.start_cell_z - period / 2, field.start_cell_z + 3 * period / 2
 
 
 def write_opal_field_file(
@@ -91,8 +106,15 @@ def write_opal_field_file(
             return
         head = ["AstraDynamic", str(fourier)]
         freq = [str(frequency * 1e-6)]
-        zdata = self.z.value.val
-        ezdata = self.Ez.value.val
+        zdata = np.asarray(self.z.value.val)
+        ezdata = np.asarray(self.Ez.value.val)
+        if self.start_cell_z is not None:
+            lo, hi = opal_tw_window(self, frequency)
+            if lo < zdata.min() - 1e-9 or hi > zdata.max() + 1e-9:
+                raise ValueError(f"TW map spans {zdata.min()}-{zdata.max()} m, OPAL needs {lo}-{hi} m")
+            dz = (zdata.max() - zdata.min()) / (len(zdata) - 1)
+            znew = np.linspace(lo, hi, int(round((hi - lo) / dz)) + 1)
+            zdata, ezdata = znew - lo, np.interp(znew, zdata, ezdata)
         data = np.transpose([zdata, ezdata])
         header = [head, freq]
     elif self.field_type == "2DElectroDynamic":

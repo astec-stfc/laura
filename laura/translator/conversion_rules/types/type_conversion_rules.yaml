@@ -100,8 +100,8 @@ opal:
   RFCavity: rfcavity
   RFDeflectingCavity: drift
   Wakefield: drift
-  Horizontal_Corrector: hkicker
-  Vertical_Corrector: vkicker
+  Horizontal_Corrector: kicker
+  Vertical_Corrector: kicker
   Combined_Corrector: kicker
   Plasma: drift
   TwissMatch: drift

@@ -92,6 +92,10 @@ class BaseElementTranslator(PhysicalBaseElement):
     some attribute conventions -- notably the solenoid ``KS``; see
     :func:`~laura.translator.converters.magnet.SolenoidTranslator.opal_ks`."""
 
+    opal_time_step: float = 1e-12
+    """OPAL ``TRACK`` time step [s];
+    OPAL's own default until :meth:`SectionLatticeTranslator.to_opal` sets it."""
+
     def model_post_init(self, __context):
         self.type_conversion_rules = type_conversion_rules
         hardware_type = self.hardware_type.lower()
@@ -295,12 +299,22 @@ class BaseElementTranslator(PhysicalBaseElement):
                             None
                             if self._resolve_functional
                             else self._raw_edge_angle(
-                                "entrance_edge_angle" if key == "e1" else "exit_edge_angle",
+                                (
+                                    "entrance_edge_angle"
+                                    if key == "e1"
+                                    else "exit_edge_angle"
+                                ),
                                 "elegant",
                             )
                         )
-                        value = raw if raw is not None else (
-                            self.magnetic.KnL(0) if value == "angle" else self.magnetic.KnL(0) / 2
+                        value = (
+                            raw
+                            if raw is not None
+                            else (
+                                self.magnetic.KnL(0)
+                                if value == "angle"
+                                else self.magnetic.KnL(0) / 2
+                            )
                         )
                     elif value == "angle":
                         value = self.magnetic.KnL(0)
@@ -345,7 +359,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         object
             An Ocelot object representing the element, initialized with its properties.
         """
-        from ocelot.cpbd.elements import Marker, Aperture
+        from ocelot.cpbd.elements import Aperture, Marker
+
         from ..conversion_rules.codes import ocelot_conversion
 
         type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
@@ -378,10 +393,11 @@ class BaseElementTranslator(PhysicalBaseElement):
             A Cheetah object representing the element, initialized with its properties.
         """
         from cheetah.accelerator import Aperture as Aperture_Cheetah
-        from cheetah.accelerator import Screen as Screen_Cheetah
         from cheetah.accelerator import Drift as Drift_Cheetah
+        from cheetah.accelerator import Screen as Screen_Cheetah
+        from torch import float64, tensor
+
         from ..conversion_rules.codes import cheetah_conversion
-        from torch import tensor, float64
 
         type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
@@ -488,7 +504,10 @@ class BaseElementTranslator(PhysicalBaseElement):
             if (key not in ["name", "type", "commandtype"]) and (
                 xkey in list(obj.__dict__.keys())
             ):
-                if key in ["k1", "k2", "k3", "k4", "k5", "k6"] and not self._resolve_functional:
+                if (
+                    key in ["k1", "k2", "k3", "k4", "k5", "k6"]
+                    and not self._resolve_functional
+                ):
                     expr = self._functional_strength_expr(int(key[1]), "xsuite")
                     if expr is not None:
                         value = expr
@@ -617,8 +636,8 @@ class BaseElementTranslator(PhysicalBaseElement):
             appending.
         """
         from ..conversion_rules.codes.rftrack_conversion import (
-            rftrack_conversion_rules,
             build_drift,
+            rftrack_conversion_rules,
         )
 
         self.start_write()
@@ -667,8 +686,8 @@ class BaseElementTranslator(PhysicalBaseElement):
             ``SectionLatticeTranslator._save_rftrack_py_file``).
         """
         from ..conversion_rules.codes.rftrack_conversion import (
-            rftrack_repr_rules,
             repr_drift,
+            rftrack_repr_rules,
         )
 
         self.start_write()
@@ -796,6 +815,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring = self.name.replace("-", "_") + ": " + etype
         if etype.lower() == "drift":
             return ""
+        brho = -(designenergy or 0) * 1e6 / 299792458.0
         keys = []
         for key, value in self.full_dump().items():
             if (
@@ -810,8 +830,12 @@ class BaseElementTranslator(PhysicalBaseElement):
                         value = self.magnetic.KnL(0)
                     elif value == "angle/2":
                         value = self.magnetic.KnL(0) / 2
-                    # elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                    #     value = getattr(self, f"{key}l")
+                    elif (
+                        brho
+                        and key in ("k1", "k2", "k3", "dk1", "dk2", "dk3")
+                        and isinstance(value, (int, float))
+                    ):
+                        value = value * brho
                     val = 1 if value is True else value
                     val = 0 if value is False else val
                     tmpstring = ", " + key + " = " + str(val)
@@ -823,8 +847,17 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
-    _KEYWORD_STRIP_PREFIXES: ClassVar[list] = ["", "simulation_", "cavity_", "magnetic_", "aperture_"]
-    _KEYWORD_STRIP_PREFIXES_WAKE_T: ClassVar[list] = _KEYWORD_STRIP_PREFIXES + ["plasma_", "laser_"]
+    _KEYWORD_STRIP_PREFIXES: ClassVar[list] = [
+        "",
+        "simulation_",
+        "cavity_",
+        "magnetic_",
+        "aperture_",
+    ]
+    _KEYWORD_STRIP_PREFIXES_WAKE_T: ClassVar[list] = _KEYWORD_STRIP_PREFIXES + [
+        "plasma_",
+        "laser_",
+    ]
 
     @staticmethod
     def _convert_type(etype: str, rules: dict, default):
@@ -895,7 +928,11 @@ class BaseElementTranslator(PhysicalBaseElement):
                             None
                             if self._resolve_functional
                             else self._raw_edge_angle(
-                                "entrance_edge_angle" if key == "e1" else "exit_edge_angle",
+                                (
+                                    "entrance_edge_angle"
+                                    if key == "e1"
+                                    else "exit_edge_angle"
+                                ),
                                 "madx",
                             )
                         )
@@ -903,7 +940,11 @@ class BaseElementTranslator(PhysicalBaseElement):
                             value = raw
                             deferred = True
                         else:
-                            value = self.magnetic.KnL(0) if value == "angle" else self.magnetic.KnL(0) / 2
+                            value = (
+                                self.magnetic.KnL(0)
+                                if value == "angle"
+                                else self.magnetic.KnL(0) / 2
+                            )
                     elif value == "angle":
                         value = self.magnetic.KnL(0)
                     elif value == "angle/2":
@@ -987,8 +1028,9 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def _convert_type_ocelot(self, etype: str) -> object:
         """Converts the element type to the corresponding Ocelot type using predefined rules."""
-        from ..conversion_rules.codes import ocelot_conversion
         from ocelot.cpbd.elements.drift import Drift as Drift_Oce
+
+        from ..conversion_rules.codes import ocelot_conversion
 
         return self._convert_type(
             etype, ocelot_conversion.ocelot_conversion_rules, Drift_Oce
@@ -1000,8 +1042,9 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def _convert_type_cheetah(self, etype: str) -> object:
         """Converts the element type to the corresponding Cheetah type using predefined rules."""
-        from ..conversion_rules.codes import cheetah_conversion
         from cheetah.accelerator import Drift as Drift_Che
+
+        from ..conversion_rules.codes import cheetah_conversion
 
         return self._convert_type(
             etype, cheetah_conversion.cheetah_conversion_rules, Drift_Che

@@ -5,6 +5,7 @@ from laura.models.rf import RFCavityElement
 from laura.models.simulation import RFCavitySimulationElement
 from laura.translator.utils.fields import FieldMap
 from laura.translator.utils.fields.gdf import gpt_tw_mockup
+from laura.translator.utils.fields.opal import opal_tw_window
 
 from ..converters import (
     elements_elegant,
@@ -178,7 +179,11 @@ class RFCavityTranslator(BaseElementTranslator):
                 if etype == "rftmez0" and key == "freq":
                     key = "frequency"
                 functional = self.is_functional(value)
-                if self.hardware_type in ["RFCavity", "RFDeflectingCavity", "CrabCavity"]:
+                if self.hardware_type in [
+                    "RFCavity",
+                    "RFDeflectingCavity",
+                    "CrabCavity",
+                ]:
                     if key == "phase":
                         if etype == "rftmez0":
                             # If using rftmez0 or similar
@@ -188,7 +193,9 @@ class RFCavityTranslator(BaseElementTranslator):
                                 value = (value / 360.0) * (2 * 3.14159)
                         else:
                             # In ELEGANT all phases are +90degrees!!
-                            value = self._rpn(90, value, "-") if functional else 90 - value
+                            value = (
+                                self._rpn(90, value, "-") if functional else 90 - value
+                            )
 
                 # In ELEGANT the voltages need to be compensated
                 if key == "volt":
@@ -588,13 +595,15 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convert_type_opal(self.hardware_type)
-        if self.structure_type == "TravellingWave":
+        if etype == "rfcavity" and self.structure_type == "TravellingWave":
             etype = "travelingwave"
         wholestring = self.name.replace("-", "_") + ": " + etype
         field_file_name = self.generate_field_file_name(
             self.simulation.field_definition, code="opal"
         )
         if etype.lower() == "drift" or self.simulation.field_definition is None:
+            return ""
+        if not self.field_amplitude:
             return ""
         for key, value in self.full_dump().items():
             if (
@@ -629,6 +638,9 @@ class RFCavityTranslator(BaseElementTranslator):
                     self.simulation.field_definition.mode_denominator
                 )
                 wholestring += f", mode = {mode}"
+                field = self.simulation.field_definition
+                if field.start_cell_z is not None:
+                    sval += opal_tw_window(field, field.frequency)[0]
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 

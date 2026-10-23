@@ -5,6 +5,7 @@ from warnings import warn
 import numpy as np
 from pydantic import computed_field
 
+from laura.models.constants import speed_of_light
 from laura.models.magnetic import (
     CorrectorMagnet,
     DipoleMagnet,
@@ -358,7 +359,11 @@ class MagnetTranslator(BaseElementTranslator):
         """
         z1 = self.physical.start.z
         z2 = self.physical.end.z
-        s_comment = f"! quad{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
+        s_comment = (
+            f"! quad{n} s={self.physical.s:.6f}\n"
+            if self.physical.s is not None
+            else ""
+        )
         return (
             s_comment
             + """quadrupole{\nposition{rho="""
@@ -820,7 +825,11 @@ class DipoleTranslator(BaseElementTranslator):
                 b1 = np.round(
                     (
                         1.0
-                        / (2 * self.magnetic.half_gap * self.magnetic.edge_field_integral)
+                        / (
+                            2
+                            * self.magnetic.half_gap
+                            * self.magnetic.edge_field_integral
+                        )
                         if self.magnetic.half_gap > 0
                         else 10000
                     ),
@@ -1248,6 +1257,12 @@ class SolenoidTranslator(BaseElementTranslator):
                 )
                 + '"'
             )
+            sval += float(
+                np.linalg.norm(
+                    self.get_field_reference_position()
+                    - np.asarray(self.physical.start.array)
+                )
+            )
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
@@ -1336,6 +1351,14 @@ class CorrectorTranslator(BaseElementTranslator):
     def vangle(self) -> Union[float, str]:
         """Vertical kick angle [rad] (`magnetic.vertical_kick`)."""
         return self.magnetic.vertical_kick
+
+    def to_opal(self, sval: float, designenergy: float | None = None) -> str:
+        if self.physical.length:
+            return super().to_opal(sval, designenergy)
+        length = speed_of_light * self.opal_time_step
+        thin = self.model_copy(deep=True)
+        thin.physical.length = thin.magnetic.length = length
+        return BaseElementTranslator.to_opal(thin, sval - length / 2, designenergy)
 
     def to_ocelot(self) -> object:
         """
