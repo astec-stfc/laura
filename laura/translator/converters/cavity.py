@@ -173,7 +173,11 @@ class RFCavityTranslator(BaseElementTranslator):
                 if etype == "rftmez0" and key == "freq":
                     key = "frequency"
                 functional = self.is_functional(value)
-                if self.hardware_type in ["RFCavity", "RFDeflectingCavity", "CrabCavity"]:
+                if self.hardware_type in [
+                    "RFCavity",
+                    "RFDeflectingCavity",
+                    "CrabCavity",
+                ]:
                     if key == "phase":
                         if etype == "rftmez0":
                             # If using rftmez0 or similar
@@ -183,7 +187,9 @@ class RFCavityTranslator(BaseElementTranslator):
                                 value = (value / 360.0) * (2 * 3.14159)
                         else:
                             # In ELEGANT all phases are +90degrees!!
-                            value = self._rpn(90, value, "-") if functional else 90 - value
+                            value = (
+                                self._rpn(90, value, "-") if functional else 90 - value
+                            )
 
                 # In ELEGANT the voltages need to be compensated
                 if key == "volt":
@@ -483,10 +489,68 @@ class RFCavityTranslator(BaseElementTranslator):
                         )
                     else:
                         value = value
-                if key == "num_kicks" and self.get_cells() > 1:
-                    value = 3 * self.get_cells()
                 properties.update({key: value})
+        if self.get_cells() > 1:
+            properties["num_kicks"] = 3 * self.get_cells()
         return self.name, obj, properties
+
+    def xsuite_edges(self, cavity: object, p0c: float) -> tuple:
+        """
+        Transverse focusing for an Xsuite cavity, which has none of its own:
+        hard-edge (Chambers) lenses for a travelling wave, and the
+        Rosenzweig-Serafini matrix for a standing wave, or a travelling wave when
+        :attr:`~tw_focusing` is off.
+
+        Parameters
+        ----------
+        cavity: xtrack.Cavity
+            The cavity
+        p0c: float
+            Reference momentum ahead of the cavity [eV]
+
+        Returns
+        -------
+        tuple
+            (entrance map, reference energy increase, exit lens, reference momentum after)
+        """
+        import xtrack as xt
+
+        L, voltage = cavity.length, cavity.voltage
+        cos_phi = np.sin(cavity.phase + np.radians(cavity.lag))
+        gain = voltage * cos_phi
+        p1 = p0c + gain
+        log_ratio = np.log1p(gain / p0c) / (gain / p0c) if gain else 1.0
+        body = np.array([[1, L * log_ratio], [0, p0c / p1]])
+        exit = np.array([[1, 0], [gain / (2 * L * p1), 1]])
+        if self.structure_type == "TravellingWave" and self.tw_focusing:
+            target = exit @ body @ np.array([[1, 0], [-gain / (2 * L * p0c), 1]])
+        else:
+            alpha = np.sqrt(0.125) * voltage / p0c * log_ratio
+            c, s = np.cos(alpha), np.sin(alpha)
+            target = np.array(
+                [
+                    [
+                        c - np.sqrt(2) * cos_phi * s,
+                        np.sinc(alpha / np.pi) * log_ratio * L,
+                    ],
+                    [
+                        -voltage / (p1 * np.sqrt(2) * L) * (0.5 + cos_phi**2) * s,
+                        p0c / p1 * (c + np.sqrt(2) * cos_phi * s),
+                    ],
+                ]
+            )
+
+        def taylor_map(m: np.ndarray) -> object:
+            m1 = np.eye(6)
+            m1[:2, :2] = m1[2:4, 2:4] = m
+            return xt.FirstOrderTaylorMap(m1=m1)
+
+        return (
+            taylor_map(np.linalg.inv(exit @ body) @ target),
+            xt.ReferenceEnergyIncrease(Delta_p0c=gain),
+            taylor_map(exit),
+            p1,
+        )
 
     def to_madx(self, at: float = None) -> str:
         """
