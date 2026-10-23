@@ -28,6 +28,7 @@ from laura.models.element import (
     Wiggler,
     Wire,
 )
+from laura.translator.utils.fields import FieldMap
 
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
@@ -127,10 +128,14 @@ def translate_elements(
             translator = RFMultipoleTranslator
         else:
             translator = BaseElementTranslator
+        data = elem.model_dump(by_alias=False)
+        simulation = getattr(elem, "simulation", None)
+        for key in ("field_definition", "wakefield_definition"):
+            field = getattr(simulation, key, None)
+            if isinstance(field, FieldMap):
+                data["simulation"][key] = field.model_copy()
         try:
-            elem_dict.update(
-                {elem.name: translator.model_validate(elem.model_dump(by_alias=False))}
-            )
+            elem_dict.update({elem.name: translator.model_validate(data)})
         except Exception as exc:
             raise Exception(
                 f"Element {elem.name} failed validation: {elem.model_dump().keys()}"
