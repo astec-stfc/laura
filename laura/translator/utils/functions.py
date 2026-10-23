@@ -1,13 +1,17 @@
 import math
 import re
 import os
+from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, Type, Union, get_args, get_origin
+
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
-from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.models.base_models import IgnoreExtra
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, get_args, get_origin
+from laura.models.constants import speed_of_light
+from laura.models.element import Magnet
+from laura.utils.dict_utils import numpy_scalar_to_python
+
 from .fields import FieldMap
 from laura.utils.naming import number_repeated_names  # noqa: F401 (re-exported)
 
@@ -428,9 +432,7 @@ def check_value(self, d, default=None):
             return (
                 d["value"]
                 if d["value"] is not None
-                else d["default"]
-                if "default" in d
-                else default
+                else d["default"] if "default" in d else default
             )
     elif isinstance(d, str):
         return (
@@ -440,16 +442,18 @@ def check_value(self, d, default=None):
         )
 
 
-def tw_cavity_energy_gain(cavity):
+def tw_cavity_energy_gain(cavity, phase: float | None = None):
     """
     Estimate energy gain in a travelling-wave RF cavity.
 
     Parameters:
-        cavity (RFCavityTranslator): travelling-wave cavity translator
+        cavity (laura.models.element.RFCavity): RFCavity element
+        phase (float, optional): phase off crest [deg]; the cavity's own by default
 
     Returns:
         float: Estimated energy gain [eV]
     """
+    phase = cavity.phase if phase is None else phase
 
     # Approximate effective accelerating gradient
     e_acc = cavity.field_amplitude * np.sin(
@@ -460,48 +464,69 @@ def tw_cavity_energy_gain(cavity):
     l_total = cavity.cavity.n_cells * cavity.cavity.cell_length
 
     # Energy gain in MeV (since 1 MV/m * 1 m = 1 MeV for charge = e)
-    delta_w = e_acc * l_total * np.cos(np.pi * cavity.phase / 180)
+    delta_w = e_acc * l_total * np.cos(np.pi * phase / 180)
 
     return delta_w
 
 
-def cavity_energy_gain(cavity) -> float:
+def transit_time_integral(z, ez, frequency: float) -> float:
+    """
+    ``|int ez(z) exp(ikz) dz|`` [m]: the on-crest energy gain per unit field of a
+    beta = 1 particle through the standing-wave field ``ez``.
+
+    Parameters:
+        z (array): positions [m]
+        ez (array): on-axis field shape
+        frequency (float): RF frequency [Hz]
+
+    Returns:
+        float: transit-time integral [m]
+    """
+    z = np.asarray(z, dtype=float)
+    f = np.asarray(ez, dtype=float) * np.exp(
+        2j * np.pi * frequency / speed_of_light * z
+    )
+    return abs(np.sum((f[1:] + f[:-1]) * np.diff(z)) / 2)
+
+
+def cavity_energy_gain(cavity, phase: float | None = None) -> float:
     """
     Estimate the energy gain of an RF cavity [MeV], for design energies along a line.
 
     With a 1D on-axis field map this is the transit-time integral for a beta = 1
     particle, ``A |int e(z) exp(ikz) dz|`` with ``e`` the map normalised to unit peak;
-    for an ASTRA-style travelling-wave map, twice that over one core period (ASTRA
-    builds the wave from two standing waves) per period of the structure.  Within
-    about 1% of ASTRA for the LCLS gun and L0 linacs.  Without a map it falls back to
-    :func:`tw_cavity_energy_gain`, or the amplitude, as before.
+    Within about 1% of ASTRA for a test gun+linac.  Without a map it falls back to
+    :func:`tw_cavity_energy_gain`, or the amplitude.
 
     Parameters:
         cavity (RFCavityTranslator): cavity translator
+        phase (float, optional): phase off crest [deg]; the cavity's own by default
 
     Returns:
         float: Estimated energy gain [MeV]
     """
     cavity.update_field_definition()  # loads the map if it is still a file name
     field = cavity.simulation.field_definition
-    on_crest = np.cos(np.pi * cavity.phase / 180)
+    phase = cavity.phase if phase is None else phase
     if getattr(field, "field_type", None) != "1DElectroDynamic":
         if cavity.structure_type == "TravellingWave":
-            return tw_cavity_energy_gain(cavity) / 1e6
-        return cavity.field_amplitude * on_crest / 1e6
+            return tw_cavity_energy_gain(cavity, phase) / 1e6
+        return cavity.field_amplitude * np.cos(np.pi * phase / 180) / 1e6
     z = np.asarray(field.z.value.val)
     ez = np.asarray(field.Ez.value.val)
     ez = ez / np.abs(ez).max()
-    k = 2 * np.pi * cavity.cavity.frequency / 299792458.0
+    frequency = cavity.cavity.frequency
     if field.start_cell_z is None:
-        integral = abs(np.trapezoid(ez * np.exp(1j * k * z), z))
+        integral = transit_time_integral(z, ez, frequency)
     else:
         core = (z >= field.start_cell_z) & (z <= field.end_cell_z)
-        periods_in_core = (field.end_cell_z - field.start_cell_z) * k / (2 * np.pi)
-        per_period = 2 * abs(np.trapezoid(ez[core] * np.exp(1j * k * z[core]), z[core]))
+        periods_in_core = (
+            (field.end_cell_z - field.start_cell_z) * frequency / speed_of_light
+        )
+        per_period = 2 * transit_time_integral(z[core], ez[core], frequency)
         periods = cavity.cavity.n_cells * field.mode_numerator / field.mode_denominator
         integral = per_period / periods_in_core * periods
-    return cavity.field_amplitude * integral * on_crest / 1e6
+    return cavity.field_amplitude * integral * np.cos(np.pi * phase / 180) / 1e6
 
 
 from laura._compat import deprecated_aliases  # noqa: E402

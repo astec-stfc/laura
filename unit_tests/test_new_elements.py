@@ -438,6 +438,23 @@ class TestMadxCavityAndAperture:
         )
         assert expected in getattr(translate_elements([cav])["c1"], method)()
 
+    def test_travelling_wave_cavity_tw_focusing_off_uses_standing_wave(self):
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={
+                "structure_type": "TravellingWave",
+                "phase": 0.0,
+                "mode_numerator": 2,
+                "mode_denominator": 3,
+            },
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        tr = translate_elements([cav])["c1"]
+        assert tr.to_cheetah().cavity_type == "traveling_wave"
+        tr.tw_focusing = False
+        assert "body_focus_model = SRS" in tr.to_elegant()
+        assert tr.to_cheetah().cavity_type == "standing_wave"
+
     def test_elliptical_aperture_uses_ecollimator(self):
         ap = Aperture(
             name="ap1", machine_area="S",

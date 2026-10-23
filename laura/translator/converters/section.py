@@ -7,8 +7,6 @@ from warnings import warn
 import numpy as np
 from pydantic import PositiveInt
 
-from laura.models.constants import electron_mass, elementary_charge, speed_of_light
-
 if TYPE_CHECKING:
     from cheetah import Segment
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
@@ -16,6 +14,7 @@ if TYPE_CHECKING:
     from xtrack import Line
 
 from ...models.base_models import IgnoreExtra
+from ...models.constants import electron_mass, elementary_charge, speed_of_light
 from ...models.element_list import SectionLattice
 from ...models.rf import WakefieldElement
 from ...models.simulation import (
@@ -33,8 +32,8 @@ from ..utils.bmad import (
 )
 from ..utils.fields import FieldMap
 from ..utils.functions import (
-    bmad_functional_definitions,
     cavity_energy_gain,
+    bmad_functional_definitions,
     elegant_functional_definitions,
     functional_fields,
     madx_functional_definitions,
@@ -124,7 +123,7 @@ class SectionLatticeTranslator(SectionLattice):
 
     gpt_screen_positions: Dict = {}
     """``{element name: z}`` of each GPT screen as written by :meth:`to_gpt`; past a
-    dipole that z is in the dipole's ccs, not the survey."""
+    dipole, z is measured in that dipole's ccs rather than the survey frame."""
 
     opal_headers: Dict = {}
     """Headers for OPAL input file; see :class:`~laura.translator.converters.codes.opal.OpalHeader`
@@ -151,6 +150,10 @@ class SectionLatticeTranslator(SectionLattice):
 
     wakefield_enable: bool = True
     """Flag to enable structure wakefields on accelerating cavities."""
+
+    tw_focusing: bool = True
+    """Flag to use travelling-wave focusing for TravellingWave cavities;
+    see :attr:`~laura.translator.converters.cavity.RFCavityTranslator.tw_focusing`."""
 
     opal_version: str = "202210"
     """Version of OPAL to write for; propagated to the elements, which use it
@@ -854,6 +857,12 @@ class SectionLatticeTranslator(SectionLattice):
             if sim is not None and hasattr(sim, "wakefield_enable"):
                 sim.wakefield_enable = False
 
+    def _apply_tw_focusing(self, elem_dict: dict) -> None:
+        """Pass :attr:`~tw_focusing` on to the translated cavities."""
+        for d in elem_dict.values():
+            if isinstance(d, RFCavityTranslator):
+                d.tw_focusing = self.tw_focusing
+
     def to_elegant(self, charge: float | None = None, Brho: float = 0.0) -> str:
         """
         Create an ELEGANT-compatible input file based on the lattice information.
@@ -880,6 +889,7 @@ class SectionLatticeTranslator(SectionLattice):
         )
         elem_dict = self._translate(section_with_drifts.values())
         self._apply_wakefield_enable(elem_dict)
+        self._apply_tw_focusing(elem_dict)
         fix_ring_reference(elem_dict, self.geometry)
         string = ""
         if charge:
@@ -1223,6 +1233,7 @@ class SectionLatticeTranslator(SectionLattice):
         self._check_elements_supported("cheetah")
 
         elem_dict = self._translate(self.create_drifts().values())
+        self._apply_tw_focusing(elem_dict)
         segment = []
         segments = False
         for element in elem_dict.values():
