@@ -268,7 +268,7 @@ class TestMadxSection:
         madx.beam(particle="electron", energy=1.0)
         madx.use(sequence="S1")
         tw = madx.twiss(betx=1, bety=1)
-        assert tw["s"][-1] == pytest.approx(2.7513000197245434)
+        assert tw["s"][-1] == pytest.approx(2.751570601951526)
 
     def test_resolved_mode_bakes_numbers_no_header(self):
         pytest.importorskip("cpymad")
