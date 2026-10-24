@@ -17,6 +17,7 @@ prefixes:
   dcterms: http://purl.org/dc/terms/
   obo: http://purl.obolibrary.org/obo/
   xsd: http://www.w3.org/2001/XMLSchema#
+  pals: https://pals-project.readthedocs.io/
 
 default_prefix: laura
 default_range: string
@@ -454,36 +455,55 @@ classes:
     is_a: SimulationElement
     description: Simulation attributes for Twiss-matching points.
     class_uri: laura:TwissMatchSimulationElement
+    close_mappings:
+      - pals:TwissParamGroup
+    # beta/alpha are close, not exact: PALS uses normal modes a/b, LAURA x/y
     attributes:
       beta_x:
+        close_mappings:
+          - pals:beta_a
         range: float
         description: Horizontal beta.
         ifabsent: float(1.0)
       beta_y:
+        close_mappings:
+          - pals:beta_b
         range: float
         description: Vertical beta.
         ifabsent: float(1.0)
       alpha_x:
+        close_mappings:
+          - pals:alpha_a
         range: float
         description: Horizontal alpha.
         ifabsent: float(0.0)
       alpha_y:
+        close_mappings:
+          - pals:alpha_b
         range: float
         description: Vertical alpha.
         ifabsent: float(0.0)
       eta_x:
+        exact_mappings:
+          - pals:eta_x
         range: float
         description: Horizontal dispersion.
         ifabsent: float(0.0)
       eta_y:
+        exact_mappings:
+          - pals:eta_y
         range: float
         description: Vertical dispersion.
         ifabsent: float(0.0)
       eta_xp:
+        exact_mappings:
+          - pals:etap_x
         range: float
         description: Horizontal dispersion derivative.
         ifabsent: float(0.0)
       eta_yp:
+        exact_mappings:
+          - pals:etap_y
         range: float
         description: Vertical dispersion derivative.
         ifabsent: float(0.0)

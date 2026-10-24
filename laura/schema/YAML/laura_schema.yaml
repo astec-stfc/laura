@@ -18,6 +18,7 @@ prefixes:
   dcterms: http://purl.org/dc/terms/
   obo: http://purl.obolibrary.org/obo/
   xsd: http://www.w3.org/2001/XMLSchema#
+  pals: https://pals-project.readthedocs.io/
 
 default_prefix: laura
 default_range: string
@@ -163,6 +164,8 @@ slots:
     description: Number of cells.
     ifabsent: float(1)
     minimum_value: 0
+    exact_mappings:
+      - pals:num_cells
 
   design_gamma:
     range: float
@@ -184,6 +187,8 @@ slots:
     minimum_value: 0.0
     unit:
       ucum_code: Hz
+    exact_mappings:
+      - pals:frequency
 
   crest:
     range: float
@@ -415,6 +420,8 @@ classes:
       ``hardware_type``.
     tree_root: true
     class_uri: laura:AcceleratorElement
+    close_mappings:
+      - pals:Component
     attributes:
       name:
         identifier: true
@@ -457,6 +464,8 @@ classes:
           in YAML. Accepts a single string or a list of strings.
         aliases:
           - name_alias
+        exact_mappings:
+          - pals:alias
       subelement:
         range: string
         description: >-
@@ -535,6 +544,8 @@ classes:
       Accelerator element with a well-defined physical position and
       orientation in the beamline.
     class_uri: laura:PhysicalAcceleratorElement
+    close_mappings:
+      - pals:PhysicalComponent
     attributes:
       physical:
         range: PhysicalElement

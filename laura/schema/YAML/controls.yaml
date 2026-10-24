@@ -16,6 +16,7 @@ prefixes:
   dcterms: http://purl.org/dc/terms/
   obo:     http://purl.obolibrary.org/obo/
   xsd:     http://www.w3.org/2001/XMLSchema#
+  pals:    https://pals-project.readthedocs.io/
 
 default_prefix: laura
 default_range: string
@@ -115,6 +116,8 @@ classes:
       A single process-variable entry mapping a logical name to a
       control-system PV identifier.
     class_uri: laura:ControlVariable
+    close_mappings:
+      - pals:Signal
     attributes:
       identifier:
         range: string
@@ -133,6 +136,8 @@ classes:
         ifabsent: string(Arb. Units)
         description: Physical units string (e.g., ``A``, ``T/m``).
       description:
+        close_mappings:
+          - pals:native_description
         range: string
         ifabsent: string(Default Description)
         description: Human-readable description.

@@ -534,3 +534,36 @@ def test_an_overlapping_element_is_dropped_not_shifted():
     facility = _facility(document)
     assert "Q-OVER" not in facility
     assert facility["OVERLAP_drift_1"]["length"] == pytest.approx(2.0)
+
+
+@pytest.mark.parametrize("length", [0.0, 0.2], ids=["marker", "drift"])
+def test_a_generic_element_round_trips(tmp_path, length):
+    from laura.models.element import PhysicalBaseElement
+
+    # a name ending in "P" is read by the PALS parser as a parameter group
+    pump = PhysicalBaseElement(
+        name="PUMP1",
+        hardware_type="VacuumPump",
+        hardware_class="Vacuum",
+        machine_area="SEC",
+        physical={"length": length, "middle": Position(z=1.0)},
+    )
+    section = SectionLattice(
+        name="GENERIC",
+        order=["PUMP1", "Q1"],
+        elements=ElementList(
+            elements={"PUMP1": pump, "Q1": quad("Q1", 2, 0.2, middle=Position(z=3))}
+        ),
+    )
+    path = tmp_path / "generic.pals.yaml"
+    path.write_text(SectionLatticeTranslator.from_section(section).to_pals())
+    with pytest.warns(UserWarning, match="generic PhysicalBaseElement"):
+        returned = PalsLatticeImporter(
+            source_file=str(path)
+        ).create_laura_element_dictionary()["PUMP1"]
+    assert (type(returned), returned.hardware_type, returned.hardware_class) == (
+        PhysicalBaseElement,
+        "VacuumPump",
+        "Vacuum",
+    )
+    assert returned.physical.length == pytest.approx(length)

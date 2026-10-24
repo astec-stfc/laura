@@ -7,15 +7,16 @@ version: "0.1.0"
 license: Apache Software License 2.0
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  pals: https://pals-project.readthedocs.io/
 
 default_prefix: laura
 default_range: string
@@ -25,12 +26,15 @@ imports:
 
 classes:
 
-# -- Diagnostics Objects ------------------------------------------------------------
+  # -- Diagnostics Objects ------------------------------------------------------------
 
   Diagnostic:
     is_a: PhysicalAcceleratorElement
     description: Base class for all beam-diagnostic instruments.
     class_uri: laura:Diagnostic
+    close_mappings:
+      - pals:DiagnosticDevice
+      - pals:Instrument
     slot_usage:
       simulation:
         range: DiagnosticSimulationElement
@@ -45,6 +49,10 @@ classes:
     is_a: Diagnostic
     description: Beam-position monitor (BPM).
     class_uri: laura:BeamPositionMonitor
+    exact_mappings:
+      - pals:BeamPositionMonitor
+    broad_mappings:
+      - pals:Instrument
     slot_usage:
       hardware_type:
         equals_string: Beam_Position_Monitor
@@ -59,6 +67,8 @@ classes:
     is_a: Diagnostic
     description: Beam-arrival-time monitor (BAM).
     class_uri: laura:BeamArrivalMonitor
+    broad_mappings:
+      - pals:Instrument
     slot_usage:
       hardware_type:
         equals_string: Beam_Arrival_Monitor
@@ -73,6 +83,9 @@ classes:
     is_a: Diagnostic
     description: "Bunch-length monitor (BLM / CDR detector)."
     class_uri: laura:BunchLengthMonitor
+    # not pals:RadiationMonitor: LAURA's BLM measures bunch length, not losses
+    broad_mappings:
+      - pals:Instrument
     slot_usage:
       hardware_type:
         equals_string: Bunch_Length_Monitor
@@ -87,6 +100,8 @@ classes:
     is_a: Diagnostic
     description: Camera-based beam-profile monitor.
     class_uri: laura:Camera
+    broad_mappings:
+      - pals:Instrument
     slot_usage:
       hardware_type:
         equals_string: Camera
@@ -101,6 +116,9 @@ classes:
     is_a: Diagnostic
     description: Scintillator or OTR screen with an associated camera.
     class_uri: laura:Screen
+    broad_mappings:
+      - pals:BeamProfileMonitor
+      - pals:Instrument
     slot_usage:
       hardware_type:
         equals_string: Screen
@@ -118,6 +136,9 @@ classes:
       transverse profile. Not to be confused with ``Wire``, the current-carrying
       beam-beam compensation element.
     class_uri: laura:WireScanner
+    broad_mappings:
+      - pals:BeamProfileMonitor
+      - pals:Instrument
     slot_usage:
       hardware_type:
         equals_string: WireScanner
@@ -126,6 +147,8 @@ classes:
     is_a: Diagnostic
     description: Base class for charge-measurement diagnostics.
     class_uri: laura:ChargeDiagnostic
+    broad_mappings:
+      - pals:Instrument
     slot_usage:
       hardware_type:
         equals_string: ChargeDiagnostic
@@ -140,6 +163,8 @@ classes:
     is_a: ChargeDiagnostic
     description: Wall-current monitor (WCM) for non-destructive charge measurement.
     class_uri: laura:WallCurrentMonitor
+    broad_mappings:
+      - pals:Instrument
     slot_usage:
       hardware_type:
         equals_string: Wall_Current_Monitor
@@ -148,6 +173,8 @@ classes:
     is_a: ChargeDiagnostic
     description: Faraday cup for destructive charge measurement.
     class_uri: laura:FaradayCupMonitor
+    broad_mappings:
+      - pals:Instrument
     slot_usage:
       hardware_type:
         equals_string: Faraday_Cup_Monitor
@@ -158,6 +185,8 @@ classes:
       Integrated current transformer (ICT) for non-destructive single-shot
       charge measurement.
     class_uri: laura:IntegratedCurrentTransformer
+    broad_mappings:
+      - pals:Instrument
     slot_usage:
       hardware_type:
         equals_string: Integrated_Current_Transformer
@@ -166,6 +195,8 @@ classes:
     is_a: Diagnostic
     description: Photon intensity monitor.
     class_uri: laura:PhotonMonitor
+    broad_mappings:
+      - pals:Instrument
     slot_usage:
       hardware_type:
         equals_string: Photon_Monitor
@@ -178,7 +209,7 @@ classes:
         in_subset:
           - diagnostic_properties
 
-# -- Diagnostics Elements ------------------------------------------------------------
+  # -- Diagnostics Elements ------------------------------------------------------------
 
   DiagnosticElement:
     description: >-
@@ -301,27 +332,27 @@ classes:
         range: integer
         description: Beam centroid index in x.
         ifabsent: int(0)
-        aliases: [X_POS]
+        aliases: [ X_POS ]
       y:
         range: integer
         description: Beam centroid index in y.
         ifabsent: int(1)
-        aliases: [Y_POS]
+        aliases: [ Y_POS ]
       x_sigma:
         range: integer
         description: Beam sigma index in x.
         ifabsent: int(2)
-        aliases: [X_SIGMA_POS]
+        aliases: [ X_SIGMA_POS ]
       y_sigma:
         range: integer
         description: Beam sigma index in y.
         ifabsent: int(3)
-        aliases: [Y_SIGMA_POS]
+        aliases: [ Y_SIGMA_POS ]
       covariance:
         range: integer
         description: Beam covariance index.
         ifabsent: int(4)
-        aliases: [COV_POS]
+        aliases: [ COV_POS ]
 
   CameraPixelResultsNames:
     description: >-
@@ -332,27 +363,27 @@ classes:
         range: string
         description: Beam centroid name in x.
         ifabsent: string(X)
-        aliases: [X_NAME]
+        aliases: [ X_NAME ]
       y:
         range: string
         description: Beam centroid name in y.
         ifabsent: string(Y)
-        aliases: [Y_NAME]
+        aliases: [ Y_NAME ]
       x_sigma:
         range: string
         description: Beam sigma name in x.
         ifabsent: string(X_SIGMA)
-        aliases: [X_SIGMA_NAME]
+        aliases: [ X_SIGMA_NAME ]
       y_sigma:
         range: string
         description: Beam sigma name in y.
         ifabsent: string(Y_SIGMA)
-        aliases: [Y_SIGMA_NAME]
+        aliases: [ Y_SIGMA_NAME ]
       covariance:
         range: string
         description: Beam covariance name.
         ifabsent: string(COV)
-        aliases: [COV_NAME]
+        aliases: [ COV_NAME ]
 
   CameraMask:
     description: >-
@@ -375,7 +406,7 @@ classes:
         range: boolean
         description: If True, use maximum mask radius constraints.
         ifabsent: "True"
-        aliases: [USE_MASK_RAD_LIMITS]
+        aliases: [ USE_MASK_RAD_LIMITS ]
 
   CameraSensor:
     description: >-
@@ -386,27 +417,27 @@ classes:
         range: integer
         description: Raw sensor pixel count in x.
         ifabsent: int(2160)
-        aliases: [BINARY_NUM_PIX_X]
+        aliases: [ BINARY_NUM_PIX_X ]
       y_pixels:
         range: integer
         description: Raw sensor pixel count in y.
         ifabsent: int(2560)
-        aliases: [BINARY_NUM_PIX_Y]
+        aliases: [ BINARY_NUM_PIX_Y ]
       x_scale_factor:
         range: integer
         description: Pixel binning factor in x.
         ifabsent: int(2)
-        aliases: [X_PIX_SCALE_FACTOR]
+        aliases: [ X_PIX_SCALE_FACTOR ]
       y_scale_factor:
         range: integer
         description: Pixel binning factor in y.
         ifabsent: int(2)
-        aliases: [Y_PIX_SCALE_FACTOR]
+        aliases: [ Y_PIX_SCALE_FACTOR ]
       beam_pixel_average:
         range: float
         description: Average pixel value for beam detection.
         ifabsent: float(97.2)
-        aliases: [AVG_PIXEL_VALUE_FOR_BEAM]
+        aliases: [ AVG_PIXEL_VALUE_FOR_BEAM ]
       middle:
         range: float
         multivalued: true

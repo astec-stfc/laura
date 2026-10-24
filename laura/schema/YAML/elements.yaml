@@ -7,15 +7,16 @@ version: "0.1.0"
 license: Apache Software License 2.0
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  pals: https://pals-project.readthedocs.io/
 
 default_prefix: laura
 default_range: string
@@ -31,10 +32,10 @@ enums:
   ApertureShapeEnum:
     description: Cross-sectional shape of a beam-pipe aperture.
     permissible_values:
-      circular:    {}
-      rectangular: {}
-      elliptical:  {}
-      planar:      {}
+      circular: { }
+      rectangular: { }
+      elliptical: { }
+      planar: { }
       scraper:
         description: >-
           Scraper jaws rather than a fixed pipe cross-section.
@@ -66,6 +67,10 @@ classes:
       Virtual Twiss-parameter matching point -- a zero-length marker that
       defines the desired optical functions at a location in the lattice.
     class_uri: laura:TwissMatch
+    close_mappings:
+      - pals:Match
+    related_mappings:
+      - pals:BeginningEle
     slot_usage:
       hardware_type:
         equals_string: TwissMatch
@@ -76,6 +81,8 @@ classes:
     is_a: PhysicalAcceleratorElement
     description: Transfer-map element with zero-, first-, and second-order coefficients.
     class_uri: laura:MatrixTransform
+    close_mappings:
+      - pals:Taylor
     slot_usage:
       hardware_type:
         equals_string: MatrixTransform
@@ -97,6 +104,8 @@ classes:
     abstract: true
     description: Base class for horizontal and vertical AC-dipole tune exciters.
     class_uri: laura:ACDipole
+    close_mappings:
+      - pals:ACKicker
     slot_usage:
       simulation:
         range: ACDipoleSimulationElement
@@ -105,6 +114,8 @@ classes:
     is_a: ACDipole
     description: Horizontally deflecting AC-dipole tune exciter.
     class_uri: laura:Horizontal_AC_Dipole
+    broad_mappings:
+      - pals:ACKicker
     slot_usage:
       hardware_type:
         equals_string: Horizontal_AC_Dipole
@@ -113,6 +124,8 @@ classes:
     is_a: ACDipole
     description: Vertically deflecting AC-dipole tune exciter.
     class_uri: laura:Vertical_AC_Dipole
+    broad_mappings:
+      - pals:ACKicker
     slot_usage:
       hardware_type:
         equals_string: Vertical_AC_Dipole
@@ -131,6 +144,8 @@ classes:
     is_a: PhysicalAcceleratorElement
     description: Weak-strong beam-beam interaction element.
     class_uri: laura:BeamBeam
+    exact_mappings:
+      - pals:BeamBeam
     slot_usage:
       hardware_type:
         equals_string: BeamBeam
@@ -159,6 +174,8 @@ classes:
     is_a: PhysicalAcceleratorElement
     description: Vacuum-pressure gauge.
     class_uri: laura:VacuumGauge
+    broad_mappings:
+      - pals:SupportingFacilityComponent
     slot_usage:
       hardware_type:
         equals_string: VacuumGauge
@@ -181,6 +198,8 @@ classes:
     is_a: PhysicalAcceleratorElement
     description: Beam or laser shutter with interlock logic.
     class_uri: laura:Shutter
+    broad_mappings:
+      - pals:SupportingFacilityComponent
     slot_usage:
       hardware_type:
         equals_string: Shutter
@@ -248,6 +267,8 @@ classes:
     is_a: PhysicalAcceleratorElement
     description: Vacuum gate valve.
     class_uri: laura:Valve
+    broad_mappings:
+      - pals:SupportingFacilityComponent
     slot_usage:
       hardware_type:
         equals_string: Valve
@@ -262,6 +283,8 @@ classes:
       Virtual survey marker -- a zero-length reference point used for
       alignment.
     class_uri: laura:Marker
+    exact_mappings:
+      - pals:Marker
     slot_usage:
       hardware_type:
         equals_string: Marker
@@ -270,6 +293,10 @@ classes:
     is_a: PhysicalAcceleratorElement
     description: Mechanical aperture restriction in the beam pipe.
     class_uri: laura:Aperture
+    # NARAD's Aperture kind; the PALS writer emits a Mask
+    close_mappings:
+      - pals:Aperture
+      - pals:Mask
     slot_usage:
       hardware_type:
         equals_string: Aperture
@@ -282,6 +309,9 @@ classes:
     is_a: Aperture
     description: Movable collimator jaw (extends Aperture).
     class_uri: laura:Collimator
+    broad_mappings:
+      - pals:Aperture
+      - pals:Mask
     slot_usage:
       hardware_type:
         equals_string: Collimator
@@ -290,6 +320,8 @@ classes:
     is_a: PhysicalAcceleratorElement
     description: Field-free drift space between elements.
     class_uri: laura:Drift
+    exact_mappings:
+      - pals:Drift
     slot_usage:
       hardware_type:
         equals_string: Drift
@@ -300,6 +332,8 @@ classes:
     is_a: StandardElement
     description: Experimental-hall lighting element.
     class_uri: laura:Lighting
+    broad_mappings:
+      - pals:SupportingFacilityComponent
     slot_usage:
       hardware_type:
         equals_string: Lighting
@@ -314,6 +348,8 @@ classes:
       Generic power-supply unit providing control/setpoint-driven outputs
       (for example current/voltage) to other accelerator components.
     class_uri: laura:PowerSupply
+    broad_mappings:
+      - pals:SupportingFacilityComponent
     slot_usage:
       hardware_type:
         equals_string: PowerSupply

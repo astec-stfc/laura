@@ -28,6 +28,7 @@ NO_TYPE = {"name": "NOTYPE", "machine_area": "SEC"}
 
 UNREGISTERED = {
     "name": "UNREG",
+    "hardware_class": "Vacuum",
     "hardware_type": "UnknownWidgetFoo",
     "machine_area": "SEC",
 }
@@ -43,10 +44,14 @@ INVALID = {
 
 BAD_ELEMENTS = [
     pytest.param(NO_TYPE, "no_hardware_type", id="no_hardware_type"),
+    pytest.param(INVALID, "validation_error", id="validation_error"),
+]
+
+#: Loaded as a generic element by default; a failure only when strict.
+STRICT_ONLY = [
     pytest.param(
         UNREGISTERED, "unregistered_hardware_type", id="unregistered_hardware_type"
     ),
-    pytest.param(INVALID, "validation_error", id="validation_error"),
 ]
 
 # Inheritance resolves on the raw dict above ``interpret_YAML_Element``, so its
@@ -60,11 +65,6 @@ CYCLE = {
 
 BAD_DOCUMENTS = [
     pytest.param({"NOTYPE": NO_TYPE}, "no_hardware_type", id="no_hardware_type"),
-    pytest.param(
-        {"UNREG": UNREGISTERED},
-        "unregistered_hardware_type",
-        id="unregistered_hardware_type",
-    ),
     pytest.param({"BADLEN": INVALID}, "validation_error", id="validation_error"),
     pytest.param({"ORPHAN": ORPHAN}, "missing_parent", id="missing_parent"),
     pytest.param(CYCLE, "inheritance_cycle", id="inheritance_cycle"),
@@ -100,7 +100,7 @@ def test_failure_is_recorded_on_the_errors_list(data, reason):
     assert data["name"] in str(errors[0])
 
 
-@pytest.mark.parametrize("data,reason", BAD_ELEMENTS)
+@pytest.mark.parametrize("data,reason", BAD_ELEMENTS + STRICT_ONLY)
 def test_strict_raises_instead_of_skipping(data, reason):
     with pytest.raises(ElementLoadError) as exc:
         interpret_YAML_Element(data, strict=True)
@@ -126,6 +126,26 @@ def test_a_good_element_records_nothing():
     assert errors == []
 
 
+@pytest.mark.parametrize(
+    "data, generic",
+    [
+        (UNREGISTERED, "Element"),
+        (
+            {**UNREGISTERED, "physical": {"length": 0.0, "s": 1.0}},
+            "PhysicalBaseElement",
+        ),
+    ],
+)
+def test_an_unregistered_type_loads_as_a_generic_element(data, generic):
+    errors = []
+    element = interpret_YAML_Element(data, errors=errors)
+    assert (type(element).__name__, element.hardware_type) == (
+        generic,
+        "UnknownWidgetFoo",
+    )
+    assert errors == []
+
+
 def test_element_file_records_its_filename(tmp_path):
     errors = []
     path = _write(tmp_path, INVALID)
@@ -145,12 +165,8 @@ def test_combined_file_reports_every_failure(tmp_path):
     )
     errors = []
     results = read_YAML_Combined_File(combined, errors=errors)
-    assert sum(1 for r in results if r is not None) == 1
-    assert {e.reason for e in errors} == {
-        "no_hardware_type",
-        "unregistered_hardware_type",
-        "validation_error",
-    }
+    assert sum(1 for r in results if r is not None) == 2  # Q1 and the generic UNREG
+    assert {e.reason for e in errors} == {"no_hardware_type", "validation_error"}
 
 
 @pytest.mark.parametrize("document,reason", BAD_DOCUMENTS)

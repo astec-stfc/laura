@@ -7,15 +7,16 @@ version: "0.1.0"
 license: Apache Software License 2.0
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  pals: https://pals-project.readthedocs.io/
 
 default_prefix: laura
 default_range: string
@@ -73,7 +74,7 @@ classes:
         ifabsent: float(0)
         description: Rotation about the horizontal (x) axis [rad].
         minimum_value: -3.141592653589793
-        maximum_value:  3.141592653589793
+        maximum_value: 3.141592653589793
         unit:
           ucum_code: rad
       psi:
@@ -81,7 +82,7 @@ classes:
         ifabsent: float(0)
         description: Rotation about the longitudinal (z) axis [rad].
         minimum_value: -3.141592653589793
-        maximum_value:  3.141592653589793
+        maximum_value: 3.141592653589793
         unit:
           ucum_code: rad
       theta:
@@ -89,13 +90,15 @@ classes:
         ifabsent: float(0)
         description: Rotation about the vertical (y) axis [rad].
         minimum_value: -3.141592653589793
-        maximum_value:  3.141592653589793
+        maximum_value: 3.141592653589793
         unit:
           ucum_code: rad
 
   ElementPositionError:
     description: Alignment position and rotation errors for a physically-located element.
     class_uri: laura:ElementPositionError
+    close_mappings:
+      - pals:BodyShiftParamGroup
     attributes:
       position:
         range: Position
@@ -161,6 +164,9 @@ classes:
       Physical placement data: position, rotation, length, and associated
       survey / alignment-error information.
     class_uri: laura:PhysicalElement
+    close_mappings:
+      - pals:FloorParamGroup
+      - pals:LongitudinalPlacementParamGroup
     in_subset:
       - physical_properties
     attributes:
@@ -188,6 +194,8 @@ classes:
         range: ElementSurvey
         description: Survey-measured position and rotation.
       length:
+        exact_mappings:
+          - pals:length
         range: float
         ifabsent: float(0)
         description: Effective length along the beam axis [m].
@@ -211,6 +219,8 @@ classes:
         in_subset:
           - physical_properties
       s:
+        close_mappings:
+          - pals:s_position
         range: float
         description: >-
           Arc-length position [m] along the design trajectory (s=0 at the

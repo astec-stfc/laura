@@ -566,9 +566,11 @@ class SectionLatticeTranslator(SectionLattice):
         for element in superimposed:
             target_type = target_types[element.name]
             if target_type == "drift":
-                raise ValueError(
-                    f"Bmad cannot superimpose drift-like element {element.name!r}"
+                warn(
+                    f"Bmad cannot superimpose drift-like element {element.name!r}; "
+                    "it is defined but left out of the lattice."
                 )
+                continue
             start, end = s_bounds(element)
             position = (start + end) / 2 if element.name in thin_kickers else start
             offset = position - lattice_start

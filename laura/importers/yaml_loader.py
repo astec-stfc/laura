@@ -14,7 +14,7 @@ from yaml import CSafeLoader as Loader
 from ..models.control import ControlVariable
 
 # Import elements before building registry
-from ..models.element import ELEMENT_REGISTRY
+from ..models.element import ELEMENT_REGISTRY, Element, PhysicalBaseElement
 
 _log = logging.getLogger("laura.loader")
 
@@ -369,6 +369,8 @@ class LazyAdapterDict(dict):
 
 
 ADAPTERS = LazyAdapterDict()
+
+_GENERIC_ADAPTERS: dict = {}
 
 # ── Optional JSON Schema validation ──────────────────────────────────────────
 
@@ -898,21 +900,28 @@ def interpret_yaml_element(
     adapter = ADAPTERS.get(hw_type)
     if adapter is None:
         name = elem.get("name", "<unknown>")
+        if strict:
+            _record_load_failure(
+                ElementLoadError(
+                    name,
+                    "unregistered_hardware_type",
+                    f"unregistered hardware_type '{hw_type}'",
+                    hardware_type=hw_type,
+                    filename=filename,
+                ),
+                errors,
+                strict,
+            )
+        generic = PhysicalBaseElement if "physical" in elem else Element
         _log.warning(
-            "Skipping element '%s': unregistered hardware_type '%s'", name, hw_type
+            "Loading element '%s' as a generic %s: unregistered hardware_type '%s'",
+            name,
+            generic.__name__,
+            hw_type,
         )
-        _record_load_failure(
-            ElementLoadError(
-                name,
-                "unregistered_hardware_type",
-                f"unregistered hardware_type '{hw_type}'",
-                hardware_type=hw_type,
-                filename=filename,
-            ),
-            errors,
-            strict,
-        )
-        return None
+        if generic not in _GENERIC_ADAPTERS:
+            _GENERIC_ADAPTERS[generic] = TypeAdapter(generic)
+        adapter = _GENERIC_ADAPTERS[generic]
 
     controls = elem.get("controls")
     if isinstance(controls, dict) and "schema_" in controls:

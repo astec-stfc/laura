@@ -16,6 +16,7 @@ prefixes:
   dcterms: http://purl.org/dc/terms/
   obo: http://purl.obolibrary.org/obo/
   xsd: http://www.w3.org/2001/XMLSchema#
+  pals: https://pals-project.readthedocs.io/
 
 default_prefix: laura
 default_range: string
@@ -103,6 +104,8 @@ classes:
       An ordered list of element names defining a contiguous beamline
       section.
     class_uri: laura:SectionLattice
+    close_mappings:
+      - pals:BeamLine
     attributes:
       name:
         identifier: true
@@ -119,6 +122,8 @@ classes:
           than per-machine because a forked branch may differ from its
           parent.
       reference_energy:
+        exact_mappings:
+          - pals:E_tot_ref
         range: float
         required: false
         description: Reference total energy of the design particle [eV].
@@ -162,6 +167,8 @@ classes:
       An ordered list of section names defining a beamline layout
       (a contiguous sequence of sections).
     class_uri: laura:MachineLayout
+    close_mappings:
+      - pals:Lattice
     attributes:
       name:
         identifier: true
@@ -171,6 +178,8 @@ classes:
         range: string
         description: Name of the master lattice this layout belongs to.
       particle:
+        close_mappings:
+          - pals:species_ref
         range: string
         required: false
         description: >-
@@ -197,6 +206,8 @@ classes:
     class_uri: laura:MachineModel
     attributes:
       particle:
+        close_mappings:
+          - pals:species_ref
         range: string
         required: false
         description: >-

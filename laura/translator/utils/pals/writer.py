@@ -5,9 +5,9 @@ Two things the standard offers are deliberately not used:
 
 ``placement`` / ``superimpose``
     A PALS line item can be positioned by an offset from another item rather
-    than by the running sum of the lengths ahead of it, which would let a
-    lattice be written without drifts at all. Here, gaps are written as
-    explicit ``Drift`` elements, from ``SectionLattice.createDrifts()``.
+    than by the running sum of the lengths ahead of it.
+    Here, gaps are written as
+    explicit ``Drift`` elements, from ``SectionLattice.create_drifts()``.
 
 ``BeamLine`` nesting
     LAURA has no sub-line concept to nest with, so each section is written flat.
@@ -22,6 +22,7 @@ from warnings import warn
 import numpy as np
 import yaml
 
+from ....models.element import ELEMENT_REGISTRY
 from .kinds import LAURA_TYPE_EXTENSION, laura_type_to_pals_kind, pals_kind_round_trips
 
 __all__ = [
@@ -421,6 +422,8 @@ def pals_element_body(element: Any) -> Dict[str, Any]:
             body["BodyShiftP"] = shift
     if not pals_kind_round_trips(hardware_type):
         body[LAURA_TYPE_EXTENSION] = {"hardware_type": hardware_type}
+        if hardware_type not in ELEMENT_REGISTRY:
+            body[LAURA_TYPE_EXTENSION]["hardware_class"] = element.hardware_class
     return body
 
 

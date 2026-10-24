@@ -49,19 +49,51 @@ def test_every_element_has_a_schema_class(hardware_type):
     )
 
 
-def test_hardware_type_constraints_match_the_registry():
-    """Catches a schema class pinning a ``hardware_type`` no Python class answers to."""
-    unknown: list[tuple[str, str, str]] = []
+def _pinned_hardware_types():
+    """Yield ``(filename, class_name, class_def, hardware_type)`` per pinning class."""
     for path in sorted(SCHEMA_DIR.glob("*.yaml")):
         doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         for class_name, class_def in (doc.get("classes") or {}).items():
             constraint = (
                 ((class_def or {}).get("slot_usage") or {}).get("hardware_type") or {}
             ).get("equals_string")
-            if constraint is not None and constraint not in ELEMENT_REGISTRY:
-                unknown.append((path.name, class_name, constraint))
+            if constraint is not None:
+                yield path.name, class_name, class_def, constraint
+
+
+def test_hardware_type_constraints_match_the_registry():
+    """Catches a schema class pinning a ``hardware_type`` no Python class answers to."""
+    unknown = [
+        (f, c, v) for f, c, _, v in _pinned_hardware_types() if v not in ELEMENT_REGISTRY
+    ]
     assert not unknown, "schema pins hardware_type values no Python class provides: " + ", ".join(
         f"{f}:{c} -> '{v}'" for f, c, v in unknown
+    )
+
+
+def test_schema_mappings_name_the_pals_kind_the_writer_emits():
+    """Catches the PALS type rules and the schema's ``pals:`` mappings drifting apart."""
+    rules_path = (
+        SCHEMA_DIR.parent.parent
+        / "translator"
+        / "conversion_rules"
+        / "types"
+        / "type_conversion_rules.yaml"
+    )
+    kinds = yaml.safe_load(rules_path.read_text(encoding="utf-8"))["pals"]
+    missing = []
+    for f, c, class_def, hardware_type in _pinned_hardware_types():
+        if hardware_type not in kinds:
+            continue
+        mapped = {
+            term
+            for key in ("exact", "close", "broad", "narrow", "related")
+            for term in class_def.get(f"{key}_mappings") or []
+        }
+        if f"pals:{kinds[hardware_type]}" not in mapped:
+            missing.append(f"{f}:{c} -> pals:{kinds[hardware_type]}")
+    assert not missing, "schema classes missing the PALS kind they export as: " + ", ".join(
+        missing
     )
 
 

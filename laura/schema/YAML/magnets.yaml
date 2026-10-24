@@ -16,6 +16,7 @@ prefixes:
   dcterms: http://purl.org/dc/terms/
   obo:     http://purl.obolibrary.org/obo/
   xsd:     http://www.w3.org/2001/XMLSchema#
+  pals:    https://pals-project.readthedocs.io/
 
 default_prefix: laura
 default_range: string
@@ -30,6 +31,8 @@ classes:
 
   DipoleMagnet:
     is_a: MagneticElement
+    close_mappings:
+      - pals:BendParamGroup
     slot_usage:
       order:
         ifabsent: int(0)
@@ -37,6 +40,8 @@ classes:
 
   Dipole:
     is_a: Magnet
+    exact_mappings:
+      - pals:Bend
     slot_usage:
       magnetic:
         range: DipoleMagnet
@@ -53,6 +58,8 @@ classes:
 
   Quadrupole:
     is_a: Magnet
+    exact_mappings:
+      - pals:Quadrupole
     slot_usage:
       magnetic:
         range: QuadrupoleMagnet
@@ -72,6 +79,8 @@ classes:
     is_a: Magnet
     description: Sextupole chromaticity-correction magnet.
     class_uri: laura:Sextupole
+    exact_mappings:
+      - pals:Sextupole
     slot_usage:
       magnetic:
         range: SextupoleMagnet
@@ -91,6 +100,8 @@ classes:
     is_a: Magnet
     description: Octupole magnet.
     class_uri: laura:Octupole
+    exact_mappings:
+      - pals:Octupole
     slot_usage:
       magnetic:
         range: OctupoleMagnet
@@ -140,6 +151,9 @@ classes:
     is_a: Dipole
     description: Horizontal steering corrector.
     class_uri: laura:HorizontalCorrector
+    # a PALS Kicker steers in both planes
+    broad_mappings:
+      - pals:Kicker
     slot_usage:
       magnetic:
         range: Corrector_Magnet
@@ -151,6 +165,8 @@ classes:
     is_a: Dipole
     description: Vertical steering corrector.
     class_uri: laura:VerticalCorrector
+    broad_mappings:
+      - pals:Kicker
     slot_usage:
       magnetic:
         range: Corrector_Magnet
@@ -176,6 +192,9 @@ classes:
       Combined horizontal/vertical steering corrector, naming the two
       single-plane correctors it stands in for.
     class_uri: laura:CombinedCorrector
+    # close: the kicks agree, but LAURA keeps a calibration per plane
+    close_mappings:
+      - pals:Kicker
     slot_usage:
       magnetic:
         range: CombinedCorrectorMagnet
@@ -255,6 +274,8 @@ classes:
       Solenoid field model, including systematic and random field errors and
       the current-to-field calibration.
     class_uri: laura:Solenoid_Magnet
+    close_mappings:
+      - pals:SolenoidParamGroup
     attributes:
       length:
         range: float
@@ -290,6 +311,8 @@ classes:
     is_a: Magnet
     description: Solenoid focusing magnet.
     class_uri: laura:Solenoid
+    exact_mappings:
+      - pals:Solenoid
     slot_usage:
       magnetic:
         range: Solenoid_Magnet
@@ -314,6 +337,9 @@ classes:
     is_a: Magnet
     description: Magnet combining coaxial solenoid and quadrupole fields.
     class_uri: laura:CombinedSolenoidQuadrupole
+    # PALS has no combined element; the writer exports it as a Solenoid
+    related_mappings:
+      - pals:Solenoid
     slot_usage:
       magnetic:
         range: CombinedSolenoidQuadrupoleMagnet
@@ -376,6 +402,8 @@ classes:
     is_a: Magnet
     description: Wiggler / undulator insertion device.
     class_uri: laura:Wiggler
+    exact_mappings:
+      - pals:Wiggler
     slot_usage:
       magnetic:
         range: Wiggler_Magnet
@@ -419,6 +447,8 @@ classes:
     is_a: Magnet
     description: Non-linear integrable-optics lens.
     class_uri: laura:NonLinearLens
+    broad_mappings:
+      - pals:Magnet
     slot_usage:
       magnetic:
         range: NonLinearLensMagnet

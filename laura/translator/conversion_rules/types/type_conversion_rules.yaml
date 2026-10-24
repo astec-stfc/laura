@@ -224,6 +224,7 @@ pals:
   Wall_Current_Monitor: Instrument
   Faraday_Cup_Monitor: Instrument
   Integrated_Current_Transformer: Instrument
+  WireScanner: Instrument
   Aperture: Mask
   Collimator: Mask
   RFCavity: RFCavity

@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional
 from warnings import warn
 
 from pydantic import ConfigDict, PrivateAttr
-from scipy.constants import speed_of_light
+from scipy.constants import physical_constants, speed_of_light
 
 import laura.models.element as LAURA_elements
 from laura.models.element_list import (
@@ -36,9 +36,9 @@ from laura.models.element_list import (
 from ...utils.functions import merge_layout_elements, number_repeated_names
 from ...utils.pals import (
     LAURA_TYPE_EXTENSION,
+    PALS_TWISS_COMPONENTS,
     PalsBranch,
     PalsDocument,
-    PALS_TWISS_COMPONENTS,
     PalsElement,
     laura_type_to_pals_kind,
     pals_kind_to_laura_type,
@@ -46,20 +46,13 @@ from ...utils.pals import (
 )
 from .importer import LatticeImporter, section_entry
 
-#: Parsed but never turned into a LAURA element. Drifts are regenerated from
-#: resolved arc-length gaps by ``SectionLattice.createDrifts()``; ``Placeholder``
-#: is the ``branch_end`` sentinel every expanded branch carries. ``BeginningEle``
-#: is a branch's reference state, read into the section rather than placed as an
-#: element, and is handled by :meth:`PalsLatticeImporter._beginning_twiss` --
-#: it is the one kind that can still yield an element, from its ``TwissP``.
+#: Parsed but never turned into a LAURA element.
 _SILENTLY_SKIPPED_KINDS = ("Drift", "Placeholder")
 
 #: PALS kinds LAURA has no representation for at all.
 _UNSUPPORTED_KINDS = ("Converter", "Feedback", "Girder", "UnionEle")
 
-#: Kinds that survive import in a reduced form, and what is lost. A kind
-#: resolved by :func:`pals_kind_to_laura_type` to something other than its
-#: natural type belongs here or the loss goes unannounced.
+#: Kinds that survive import in a reduced form, and what is lost.
 _LOSSY_CONVERSIONS = {
     "Fork": "the branch it forks to; the fork point is kept as a Marker",
     "Patch": "its coordinate transform; LAURA has no patch element",
@@ -72,12 +65,7 @@ _LOSSY_CONVERSIONS = {
     "ACKicker": "its time dependence; kept as a horizontal AC dipole",
 }
 
-#: ``BmadP.Bmad_key`` refinements. PALS collapses a plane-specific corrector
-#: onto one ``Kicker`` kind and every diagnostic onto ``Instrument``; a document
-#: written out of Bmad carries the original key in its extension group, which
-#: recovers the distinction without guessing. Only consulted for the two kinds
-#: that are genuinely ambiguous, so a stray ``Bmad_key`` cannot retype an
-#: element wholesale.
+#: ``BmadP.Bmad_key`` refinements.
 _BMAD_KEY_REFINEMENT = {
     "Kicker": {
         "hkicker": "Horizontal_Corrector",
@@ -183,6 +171,20 @@ def _charge_number(species: str) -> Optional[int]:
     return None
 
 
+_REST_ENERGY = {
+    name: physical_constants[f"{particle} mass energy equivalent in MeV"][0] * 1e6
+    for name, particle in (
+        ("electron", "electron"),
+        ("positron", "electron"),
+        ("anti-electron", "electron"),
+        ("proton", "proton"),
+        ("anti-proton", "proton"),
+        ("muon", "muon"),
+        ("anti-muon", "muon"),
+    )
+}
+
+
 def _normalisation(element: PalsElement) -> Optional[float]:
     """Factor turning a PALS field into its normalised strength, or ``None``.
 
@@ -190,12 +192,7 @@ def _normalisation(element: PalsElement) -> Optional[float]:
     given as ``pc_ref`` in eV and the charge as a multiple of ``e``, the
     magnetic rigidity is ``pc_ref / (c * charge)``, so the factor is
     ``charge * c / pc_ref``. Both are propagated onto every element by
-    expansion, so the conversion is exact and local — checked against
-    ``iota.pals.yaml``, whose quadrupoles carry ``Kn1`` and ``Bn1`` together
-    and agree to every digit under this factor.
-
-    Returns ``None`` when the branch has no reference (a document may leave it
-    out) or the species is neither a name this knows nor a charge-suffixed ion.
+    expansion, so the conversion is exact and local.
     """
     reference = element.group("ReferenceP")
     momentum = _number(reference.get("pc_ref"))
@@ -213,9 +210,7 @@ def _multipole_orders(
     Values come back integrated and normalised, which is what LAURA stores.
     PALS offers four spellings of the same pole: normalised or not (``KnN`` /
     ``BnN``) and per metre or integrated (a trailing ``L``). Expansion fills in
-    whichever the document did not write, so all four usually arrive and agree;
-    the normalised pair is read first and the field pair only fills a gap,
-    which keeps the ``factor`` out of the common path.
+    whichever the document did not write.
 
     Returns the orders alongside the field keys that could not be normalised
     because :func:`_normalisation` had nothing to work with.
@@ -277,10 +272,6 @@ def _multipoles(
 
     converted: Dict[str, Any] = {"multipoles": multipoles} if multipoles else {}
 
-    # PALS tilts each order of the field separately and LAURA holds one tilt for
-    # the whole magnet, so a single tilt -- which is what a rotated magnet has,
-    # and all a magnet written out of LAURA can have -- comes across as that
-    # one. Several different ones do not.
     tilted = sorted(
         key for key in group if key.startswith("tilt") and _number(group[key])
     )
@@ -314,20 +305,15 @@ def _multipoles(
 
 def _corrector(magnetic: Dict[str, Any], hardware_type: str) -> tuple:
     """Move a kicker's order-0 multipole into LAURA's per-plane kick angles.
-
     PALS gives a kicker its deflection as a multipole; LAURA's
     ``Corrector_Magnet`` holds an angle per plane and no multipoles at all, so
     the pole has to be carried across rather than stored. A deflection is
     measured the opposite way round from a bend's -- a positive ``Kn0L`` bends
     towards negative ``x``, a positive horizontal kick towards positive ``x`` --
-    so the normal component changes sign and the skew one does not. That is the
-    same convention LAURA already reads Xsuite's ``knl[0]``/``ksl[0]`` with, and
-    the one the PALS reference translators use for MAD-X's ``hkick``/``vkick``.
+    so the normal component changes sign and the skew one does not.
 
     A single-plane corrector that turns out to carry the other plane's pole is
-    widened to a combined one, which is the only way to keep both. Returns the
-    rewritten magnetic block, the hardware type and any higher-order poles the
-    corrector model cannot hold.
+    widened to a combined one, which is the only way to keep both. 
     """
     poles = magnetic.get("multipoles", {})
     pole = poles.pop("K0L", None) or {}
@@ -374,9 +360,6 @@ def _bend(element: PalsElement) -> Dict[str, Any]:
     if angle is not None:
         multipoles["K0L"] = {"normal": angle, "order": 0}
 
-    # e1/e2 are radians in PALS, and every LAURA importer hands a native
-    # radian edge angle to these fields unconverted, so do the same here
-    # rather than being the one code that disagrees.
     geometry = str(bend.get("ref_geometry", "ARC")).upper()
     for pals_key, laura_key in (
         ("e1", "entrance_edge_angle"),
@@ -384,12 +367,6 @@ def _bend(element: PalsElement) -> Dict[str, Any]:
     ):
         value = _number(bend.get(pals_key))
         if value is None:
-            # Expansion normally fills e1/e2 in from the rectangular pair, but
-            # the sector angle is recoverable if it did not. The offset between
-            # the two depends on which end the reference frame is fixed to:
-            # half the bend angle under ARC/CHORD, the whole angle at the free
-            # end under ENTRANCE_COORDS/EXIT_COORDS, and nothing at the fixed
-            # one (BendP docs, e1/e2).
             rectangular = _number(bend.get(f"{pals_key}_rect"))
             if rectangular is not None and angle is not None:
                 if geometry in ("ARC", "CHORD"):
@@ -419,10 +396,6 @@ def _bend(element: PalsElement) -> Dict[str, Any]:
         product = _number(bend.get(pals_key))
         if not product:
             continue
-        # PALS states one number where LAURA holds two: `edgeN_int` *is* the
-        # `fint * hgap` product (BendP docs), and nothing in the document says
-        # how it divides. Only the product enters the edge kick, so it is
-        # preserved exactly by pinning the half gap to 1 m.
         magnetic[fint_key] = product
         magnetic[gap_key] = 2.0
         warn(
@@ -452,11 +425,8 @@ def _body_shift(element: PalsElement) -> Dict[str, Any]:
     """Convert ``BodyShiftP`` to a LAURA ``physical.error``.
 
     The three rotations are named for the axis they turn about, and LAURA's are
-    not, so the mapping is composed from two measured conversions rather than
-    read off the names: PALSParserPy's ``to_bmad`` writes ``x_rot`` as Bmad
-    ``y_pitch`` *negated*, ``y_rot`` as ``x_pitch``, and ``z_rot`` as ``tilt``;
-    LAURA's Bmad importer then takes ``phi = -y_pitch``, ``theta = -x_pitch``
-    and ``psi = roll``. Composing gives ``phi = x_rot``, ``theta = -y_rot``,
+    not, so the mapping is composed from two measured conversions. 
+    Composing gives ``phi = x_rot``, ``theta = -y_rot``,
     ``psi = z_rot``.
     """
     shift = element.group("BodyShiftP")
@@ -500,9 +470,6 @@ def _aperture(element: PalsElement) -> Dict[str, Any]:
             if low is not None and high is not None:
                 width = high - low
             elif low is not None or high is not None:
-                # A limit on one side only, which PALS allows and LAURA's single
-                # full width cannot express. Mirroring the limit keeps the stated
-                # side right and is the least surprising of the wrong answers.
                 one_sided.append(axis)
                 width = 2.0 * abs(low if low is not None else high)
         if width:
@@ -546,18 +513,13 @@ def _cell_length(frequency: float, cavity: Dict[str, Any]) -> float:
     """The length of one cell, from the cavity's frequency and its mode.
 
     PALS states a cavity's frequency but never its mode, so this is an
-    assumption about the mode and nothing more: a travelling-wave structure is
-    read as 2*pi/3 (`lambda/3`, the S-band linac standard) and everything else
-    as pi (`lambda/2`). The `structure_type` discriminator is the same one the
-    field amplitude needs just below. Taking `lambda/2` for *every* cavity,
-    which is what this did before, makes a travelling-wave cell half as long
-    again as it should be.
+    assumption about the mode and nothing more. 
+    The `structure_type` discriminator is the same one the
+    field amplitude needs just below.
 
-    The tempting alternative -- `L_active/num_cells`, which would be geometry
-    rather than a guess -- is not available. The parser's bookkeeper derives
-    `L_active` as the element length whenever the document omits it, exactly as
-    it derives `voltage` from `gradient`, so a stated active length cannot be
-    told from a defaulted one; and `length/num_cells` under-reads a real cavity,
+    The parser's bookkeeper derives
+    `L_active` as the element length whenever the document omits it; 
+    and `length/num_cells` under-reads a real cavity,
     whose physical length also holds couplers and end cells.
     """
     order = 3.0 if cavity.get("structure_type") == "TravellingWave" else 2.0
@@ -594,18 +556,8 @@ def _cavity(element: PalsElement) -> Dict[str, Dict[str, Any]]:
     cavity["n_cells"] = n_cells
     phase = _number(rf.get("phase"))
     if phase is not None:
-        # PALS states phase in rad/2pi (turns) and the reference translator
-        # copies it straight to Bmad's phi0; LAURA's Bmad importer reads a
-        # phi0 as -360*phi0 degrees, so the same negation applies here.
         cavity["phase"] = -360.0 * phase
 
-    # A LAURA field amplitude is a voltage for a standing-wave cavity but a
-    # gradient for a travelling-wave one, which is the same split PALS makes.
-    # Which of the pair to read is decided by the structure type and not by
-    # which one the document states: the parser's bookkeeper derives the other
-    # (`voltage = gradient * L_active`), so both are nearly always present, and
-    # reading the voltage of a travelling-wave cavity scales the amplitude by
-    # the active length every time the lattice is read.
     voltage = _number(rf.get("voltage"))
     gradient = _number(rf.get("gradient"))
     if cavity.get("structure_type") == "TravellingWave":
@@ -687,9 +639,6 @@ class PalsLatticeImporter(LatticeImporter):
                 )
             self.document = parse_pals_file(self.source_file)
             for problem in self.document.errors:
-                # Expansion reports an ERROR without necessarily giving up on
-                # the document -- bta.pals.yaml raises 21 and still expands --
-                # so these are surfaced, not raised.
                 warn(f"PALS expansion problem: {problem}")
         return self.document
 
@@ -752,14 +701,19 @@ class PalsLatticeImporter(LatticeImporter):
             if species:
                 reference["particle"] = str(species)
             energy = _number(group.get("E_tot_ref"))
-            if energy is None:
-                energy = _number(group.get("pc_ref"))
+            momentum = _number(group.get("pc_ref"))
+            if energy is None and momentum is not None:
+                rest = _REST_ENERGY.get(str(species or "").strip().lower())
+                if rest is None:
+                    warn(
+                        f"PALS branch {branch.name!r} gives pc_ref but not "
+                        f"E_tot_ref, and the mass of {species!r} is not known "
+                        "here, so no reference energy was set."
+                    )
+                else:
+                    energy = (momentum**2 + rest**2) ** 0.5
             if energy is not None:
                 reference["reference_energy"] = energy
-        # `periodic` asks whether periodic optics are appropriate, which is the
-        # same linac-vs-ring distinction LAURA's geometry enum draws, though
-        # PALS is explicit that it does not assert the ends join. PALS documents
-        # its default as false, so a branch that is silent is an open one.
         reference["geometry"] = "closed" if branch.attributes.get("periodic") else "open"
         return reference
 
@@ -786,7 +740,7 @@ class PalsLatticeImporter(LatticeImporter):
         kind = element.kind
         if kind == "BeginningEle":
             return self._beginning_twiss(numbered_name, element)
-        if kind in _SILENTLY_SKIPPED_KINDS:
+        if kind in _SILENTLY_SKIPPED_KINDS and not element.group(LAURA_TYPE_EXTENSION):
             return None
         if kind in _UNSUPPORTED_KINDS:
             self._warn_once(
@@ -822,9 +776,6 @@ class PalsLatticeImporter(LatticeImporter):
 
         length = element.length
         if length < 0.0:
-            # PALS does not forbid a negative length (an expression can produce
-            # one), LAURA's physical model does. Keeping the exit face and
-            # zeroing the length leaves everything downstream where PALS put it.
             warn(
                 f"PALS element {numbered_name!r} has a negative length "
                 f"({length}); LAURA cannot hold one, so it was imported as a "
@@ -844,6 +795,14 @@ class PalsLatticeImporter(LatticeImporter):
             },
         }
         data["physical"].update(_body_shift(element))
+        floor = element.group("FloorP")
+        if floor.get("user_set"):  # a computed placement only restates `s`
+            data["physical"]["survey"] = {
+                "position": {key: floor.get(key) or 0.0 for key in "xyz"},
+                "rotation": {
+                    key: floor.get(key) or 0.0 for key in ("theta", "phi", "psi")
+                },
+            }
         data.update(_aperture(element))
         data.update(_cavity(element))
 
@@ -851,9 +810,6 @@ class PalsLatticeImporter(LatticeImporter):
         if kind == "Bend":
             magnetic = _bend(element)
         elif kind == "Solenoid":
-            # LAURA's S0L is the integrated field [T*m], as it is coming from
-            # MAD-X and Xsuite, so `Bsol` is taken as is and `Ksol` needs the
-            # branch reference to un-normalise it.
             solenoid = element.group("SolenoidP")
             field = _number(solenoid.get("Bsol"))
             if field is None:
@@ -901,16 +857,19 @@ class PalsLatticeImporter(LatticeImporter):
                 "has no multipass concept, so each pass is a separate element.",
             )
 
-        try:
-            element_class = LAURA_elements.ELEMENT_REGISTRY.get(
-                hardware_type
-            ) or getattr(LAURA_elements, hardware_type)
-        except AttributeError:
-            warn(
-                f"LAURA has no element class {hardware_type!r} for PALS "
-                f"{kind} {numbered_name!r}; skipping."
+        element_class = LAURA_elements.ELEMENT_REGISTRY.get(hardware_type) or getattr(
+            LAURA_elements, hardware_type, None
+        )
+        if element_class is None:
+            self._warn_once(
+                hardware_type,
+                f"LAURA has no element class {hardware_type!r}; {numbered_name!r} "
+                "was imported as a generic PhysicalBaseElement.",
             )
-            return None
+            element_class = LAURA_elements.PhysicalBaseElement
+            data["hardware_class"] = element.group(LAURA_TYPE_EXTENSION).get(
+                "hardware_class", "Generic"
+            )
         return element_class(**data)
 
     def _beginning_twiss(
@@ -983,14 +942,13 @@ class PalsLatticeImporter(LatticeImporter):
         """Recover a subtype the kind cannot express, from an extension group.
 
         A document LAURA wrote states the type outright in its own extension
-        group, which is exact; one that came out of Bmad carries the original
-        Bmad key, which distinguishes the two families PALS collapses. The
+        group, which is exact. The
         LAURA hint wins where both are present.
 
         It is honoured only when LAURA still has the type named and the type
-        agrees with the kind it is written on -- either because that is the
-        kind LAURA exports it as, or because the type has no kind of its own
-        and was written out as the ``Marker`` or ``Drift`` that stood in for it.
+        agrees with the kind it is written on.
+        On such a stand-in a type LAURA does not have is kept too, and becomes a
+        generic element.
         """
         stated = str(element.group(LAURA_TYPE_EXTENSION).get("hardware_type", ""))
         if stated and laura_type_to_pals_kind(stated) in (kind, None):
@@ -998,6 +956,8 @@ class PalsLatticeImporter(LatticeImporter):
                 LAURA_elements, stated
             ):
                 return stated
+            if kind in ("Marker", "Drift"):
+                return stated  # the kind only stood in; keep the type, generically
             warn(
                 f"PALS element {element.name!r} states a LAURA hardware type "
                 f"{stated!r} that this version of LAURA does not have; the type "
@@ -1093,7 +1053,7 @@ class PalsLatticeImporter(LatticeImporter):
         skipped: List[str] = []
 
         for pals_lattice in document.lattices:
-            layout = PalsLatticeImporter(
+            layout = type(self)(
                 document=document,
                 lattice=pals_lattice.name,
                 machine_area=self.machine_area,

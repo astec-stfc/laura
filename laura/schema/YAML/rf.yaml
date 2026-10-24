@@ -16,6 +16,7 @@ prefixes:
   dcterms: http://purl.org/dc/terms/
   obo:     http://purl.obolibrary.org/obo/
   xsd:     http://www.w3.org/2001/XMLSchema#
+  pals:    https://pals-project.readthedocs.io/
 
 default_prefix: laura
 default_range: string
@@ -31,6 +32,8 @@ classes:
     is_a: PhysicalAcceleratorElement
     description: Accelerating RF cavity.
     class_uri: laura:RFCavity
+    exact_mappings:
+      - pals:RFCavity
     slot_usage:
       hardware_type:
         equals_string: RFCavity
@@ -47,6 +50,9 @@ classes:
     is_a: RFCavity
     description: Transverse-deflecting (streak) RF cavity.
     class_uri: laura:RFDeflectingCavity
+    # PALS has no separate deflecting-cavity kind
+    close_mappings:
+      - pals:CrabCavity
     slot_usage:
       hardware_type:
         equals_string: RFDeflectingCavity
@@ -61,6 +67,8 @@ classes:
     is_a: RFCavity
     description: Transverse-deflecting crab cavity for crossing-angle compensation.
     class_uri: laura:CrabCavity
+    exact_mappings:
+      - pals:CrabCavity
     slot_usage:
       hardware_type:
         equals_string: CrabCavity
@@ -75,6 +83,9 @@ classes:
     is_a: PhysicalAcceleratorElement
     description: "Passive wakefield structure (dielectric, corrugated, etc.)."
     class_uri: laura:Wakefield
+    # PALS has no wakefield element; the writer exports it as a Drift
+    related_mappings:
+      - pals:Drift
     slot_usage:
       hardware_type:
         equals_string: Wakefield
@@ -89,6 +100,8 @@ classes:
     is_a: StandardElement
     description: Low-level RF (LLRF) controller.
     class_uri: laura:LowLevelRF
+    broad_mappings:
+      - pals:SupportingFacilityComponent
     slot_usage:
       hardware_type:
         equals_string: Low_Level_RF
@@ -101,6 +114,8 @@ classes:
     is_a: StandardElement
     description: RF modulator (klystron driver) element.
     class_uri: laura:RFModulator
+    broad_mappings:
+      - pals:SupportingFacilityComponent
     slot_usage:
       hardware_type:
         equals_string: RFModulator
@@ -113,6 +128,8 @@ classes:
     is_a: StandardElement
     description: RF protection system element.
     class_uri: laura:RFProtection
+    broad_mappings:
+      - pals:SupportingFacilityComponent
     slot_usage:
       hardware_type:
         equals_string: RFProtection
@@ -125,6 +142,8 @@ classes:
     is_a: StandardElement
     description: RF timing heartbeat / signal-monitor element.
     class_uri: laura:RFHeartbeat
+    broad_mappings:
+      - pals:SupportingFacilityComponent
     slot_usage:
       hardware_type:
         equals_string: RFHeartbeat
@@ -137,6 +156,8 @@ classes:
     is_a: StandardElement
     description: Proportional-integral-derivative (PID) feedback controller.
     class_uri: laura:PID
+    broad_mappings:
+      - pals:SupportingFacilityComponent
     slot_usage:
       hardware_type:
         equals_string: PID
@@ -148,6 +169,8 @@ classes:
   RFCavityElement:
     description: RF cavity accelerating-structure parameters.
     class_uri: laura:RFCavityElement
+    close_mappings:
+      - pals:RFParamGroup
     in_subset:
       - rf_properties
     slots:
