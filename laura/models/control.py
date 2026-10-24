@@ -50,9 +50,15 @@ def eval_expr(expr, context):
     if isinstance(expr, str):
         return resolve_path(context, expr)
 
-    op = OPS[expr["op"]]
     args = [eval_expr(a, context) for a in expr["args"]]
-    return op(*args)
+    if "call" in expr:
+        # A public method on the element, e.g. ``magnetic.current_to_k`` for a
+        # calibration curve; ``key`` picks one entry of a dict result.
+        if any(part.startswith("_") for part in expr["call"].split(".")):
+            raise ValueError(f"Cannot call private attribute '{expr['call']}'")
+        result = resolve_path(context, expr["call"])(*args)
+        return result[expr["key"]] if "key" in expr else result
+    return OPS[expr["op"]](*args)
 
 
 _DOTTED_PATH = re.compile(r"[A-Za-z_]\w*(\.[A-Za-z_]\w*)*")
@@ -184,7 +190,13 @@ class ControlVariable(_ControlVariableBase):
     """
 
     expression: dict | None = None  # expression graph
-    """Expression defining how to compute the value to set at the target."""
+    """Expression defining how to compute the value to set at the target.
+
+    Either ``{"op": <add|sub|mul|truediv|pow>, "args": [...]}``, or
+    calling a method on the element, e.g.::
+
+        {"call": "magnetic.current_to_k", "args": ["current", "momentum"], "key": "KL"}
+    """
 
     states: Dict | None = None
     """Possible state mapping enums."""
@@ -484,15 +496,18 @@ class ControlsInformation(_ControlsInformationBase):
         raise TypeError(f"variables must be a dict, got {type(v)}")
 
     @staticmethod
-    def build_context(element):
+    def build_context(element, **extra):
         ctx = {k: v.value for k, v in element.controls.variables.items()}
         for param in ["magnetic", "physical", "cavity", "simulation"]:
             if hasattr(element, param):
                 ctx.update({param: getattr(element, param)})
+        ctx.update(extra)
         return ctx
 
-    def apply(self, element):
-        ctx = self.build_context(element)
+    def apply(self, element, **context):
+        """Set each variable's `target` from its `expression`. ``context`` adds
+        symbols the element doesn't hold."""
+        ctx = self.build_context(element, **context)
 
         for cv in element.controls.variables.values():
             cv.apply(element, ctx)

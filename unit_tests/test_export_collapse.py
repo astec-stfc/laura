@@ -538,3 +538,49 @@ class TestBothTogether:
         )
         for name in ("summary.yaml", "_sections.yaml"):
             assert (second / name).read_text() == (first / name).read_text()
+
+
+def _quad_with_controls(name, s):
+    return {
+        "name": name,
+        "hardware_class": "Magnet",
+        "hardware_type": "Quadrupole",
+        "machine_area": "INJ",
+        "physical": {"length": 0.1, "s": s},
+        "magnetic": {"length": 0.1, "k1l": 0.5},
+        "controls": {
+            "variables": {
+                "current": {
+                    "identifier": f"{name}:SETI",
+                    "protocol": "CA",
+                    "target": "magnetic.k1l",
+                    "expression": {"op": "mul", "args": ["current", 2.0]},
+                },
+                "status": {"identifier": f"{name}:STAT", "protocol": "CA"},
+            }
+        },
+    }
+
+
+class TestExtractSchemas:
+    def test_shared_controls_go_to_a_schema_and_load_back(self, tmp_path):
+        source = tmp_path / "source"
+        elements = _write(
+            source / "elements.yaml",
+            {"Q1": _quad_with_controls("Q1", 0.0), "Q2": _quad_with_controls("Q2", 1.0)},
+        )
+        sections = _write(source / "sections.yaml", {"sections": {"INJ": ["Q1", "Q2"]}})
+        layouts = _write(source / "layouts.yaml", SEQUENTIAL_LAYOUTS)
+        machine = _load(elements, sections, layouts)
+
+        dest = tmp_path / "tree"
+        export_machine(str(dest), machine, overwrite=True, extract_schemas=True)
+
+        quads = dest / "Magnet" / "Quadrupole"
+        schema = _read(quads / "_schema.yaml")["variables"]
+        assert schema["current"]["identifier"] == "{name}:SETI"
+        assert _read(quads / "Q1.yaml")["controls"] == {"schema": "_schema.yaml"}
+
+        reloaded = _load(str(dest), sections, layouts)
+        for name in ("Q1", "Q2"):
+            assert reloaded[name].controls.variables == machine[name].controls.variables

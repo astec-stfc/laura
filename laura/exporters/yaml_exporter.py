@@ -29,6 +29,7 @@ from ..models.element_list import (
 )
 from ..models.magnetic import MagneticElement
 from ..translator.utils.fields import FieldMap
+from ..utils.controls_schema_extract import extract_schemas as _extract_schemas
 from .yaml_tidy import externalise_shared_fields, family_templates, rounded
 
 _log = logging.getLogger("laura.exporter.yaml")
@@ -943,6 +944,7 @@ def export_machine(
     field_directory: Optional[str] = None,
     field_reference: Optional[str] = None,
     auto_templates: bool = False,
+    extract_schemas: bool = False,
 ) -> None:
     """Export each element to its own YAML file.
 
@@ -998,6 +1000,10 @@ def export_machine(
         ``inherits_from`` it plus what differs (see
         `laura.exporters.yaml_tidy.family_templates`). Elements that already
         inherit from something are left to `collapse_inheritance`.
+    extract_schemas:
+        If True, write the controls variables shared by the elements in each
+        directory once, as a ``_schema.yaml`` there (see
+        `laura.utils.controls_schema_extract`).
     """
     os.makedirs(path, exist_ok=True)
     schema_root, template_root, namespace = _export_roots(
@@ -1079,6 +1085,8 @@ def export_machine(
                 _copy_controls_schema(elem, schema_root, directory, copied_schemas)
             if collapse_inheritance and copy_templates:
                 _copy_templates(dump, namespace, path, copied_templates)
+    if extract_schemas:
+        _extract_schemas(path, apply=True)
     if position_mode == "sequential" and write_sections:
         export_machine_sections(path, machine, aliases=aliases)
 
