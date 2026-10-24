@@ -78,6 +78,7 @@ URI: [laura:eta_yp](https://w3id.org/laura/eta_yp)
 | ---  | ---  |
 | self | laura:eta_yp |
 | native | laura:eta_yp |
+| exact | pals:etap_y |
 
 
 
@@ -89,6 +90,8 @@ URI: [laura:eta_yp](https://w3id.org/laura/eta_yp)
 name: eta_yp
 description: Vertical dispersion derivative.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:etap_y
 rank: 1000
 ifabsent: float(0.0)
 owner: TwissMatchSimulationElement

@@ -393,6 +393,14 @@ export interface ControlVariable {
     readback?: string,
     /** Name of the set-point variable this readback follows. */
     setpoint?: string,
+    /** What the variable is to its element (e.g., ``Setpoint``, ``Readback``, ``MaximumLimit``), in NARAD's ``SignalRoleEnum`` terms. */
+    role?: string,
+    /** The quantity the variable carries, independent of its PV name (e.g., ``MagnetCurrentSetpoint``), in NARAD's ``CanonicalSignalTypeEnum`` terms. */
+    canonical_type?: string,
+    /** The physical kind of quantity (e.g., ``ElectricCurrent``), in NARAD's ``QuantityKindEnum`` terms. */
+    quantity_kind?: string,
+    /** How the variable is reached, where ``protocol`` names only the control system (e.g., ``EPICS Channel Access``). */
+    access_protocol?: string,
     /** Signal generating this variable's value over time, as ``{function: <import path>, **kwargs}`` -- see ``laura.utils.signals``. Stored with ``function`` as a fully qualified import path so it resolves without LAURA. */
     update?: string,
     /** Response model describing how this variable's readback follows its set-point, as ``{model: <import path>, **kwargs}`` -- see ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or ``setpoint``. */
@@ -971,7 +979,7 @@ export interface TwissMatchSimulationElement extends SimulationElement {
 
 
 /**
- * Zero- through third-order transfer-map coefficients for a matrix transform element, in Bmad's phase-space coordinates (x, px, y, py, z, pz): z = -beta c dt, positive ahead of the reference, and pz = dp/p0. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+ * Zero- through third-order transfer-map coefficients for a matrix transform element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0.
  */
 export interface MatrixTransformSimulationElement extends SimulationElement {
     /** Whether to apply the transfer map. */

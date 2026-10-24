@@ -263,6 +263,7 @@ URI: [laura:Wakefield](https://w3id.org/laura/Wakefield)
 | ---  | ---  |
 | self | laura:Wakefield |
 | native | laura:Wakefield |
+| related | pals:Drift |
 
 
 
@@ -280,6 +281,8 @@ URI: [laura:Wakefield](https://w3id.org/laura/Wakefield)
 name: Wakefield
 description: Passive wakefield structure (dielectric, corrugated, etc.).
 from_schema: https://w3id.org/laura/schema
+related_mappings:
+- pals:Drift
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -311,6 +314,8 @@ class_uri: laura:Wakefield
 name: Wakefield
 description: Passive wakefield structure (dielectric, corrugated, etc.).
 from_schema: https://w3id.org/laura/schema
+related_mappings:
+- pals:Drift
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -471,6 +476,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Wakefield
     domain_of:

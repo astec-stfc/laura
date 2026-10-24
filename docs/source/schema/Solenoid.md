@@ -276,6 +276,7 @@ URI: [laura:Solenoid](https://w3id.org/laura/Solenoid)
 | ---  | ---  |
 | self | laura:Solenoid |
 | native | laura:Solenoid |
+| exact | pals:Solenoid |
 
 
 
@@ -293,6 +294,8 @@ URI: [laura:Solenoid](https://w3id.org/laura/Solenoid)
 name: Solenoid
 description: Solenoid focusing magnet.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Solenoid
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -314,6 +317,8 @@ class_uri: laura:Solenoid
 name: Solenoid
 description: Solenoid focusing magnet.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Solenoid
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -484,6 +489,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Solenoid
     domain_of:

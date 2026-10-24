@@ -251,6 +251,7 @@ URI: [laura:MatrixTransform](https://w3id.org/laura/MatrixTransform)
 | ---  | ---  |
 | self | laura:MatrixTransform |
 | native | laura:MatrixTransform |
+| close | pals:Taylor |
 
 
 
@@ -268,6 +269,8 @@ URI: [laura:MatrixTransform](https://w3id.org/laura/MatrixTransform)
 name: MatrixTransform
 description: Transfer-map element with zero-, first-, and second-order coefficients.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Taylor
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -288,6 +291,8 @@ class_uri: laura:MatrixTransform
 name: MatrixTransform
 description: Transfer-map element with zero-, first-, and second-order coefficients.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Taylor
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -437,6 +442,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: MatrixTransform
     domain_of:

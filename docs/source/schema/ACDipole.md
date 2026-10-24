@@ -262,6 +262,7 @@ URI: [laura:ACDipole](https://w3id.org/laura/ACDipole)
 | ---  | ---  |
 | self | laura:ACDipole |
 | native | laura:ACDipole |
+| close | pals:ACKicker |
 
 
 
@@ -279,6 +280,8 @@ URI: [laura:ACDipole](https://w3id.org/laura/ACDipole)
 name: ACDipole
 description: Base class for horizontal and vertical AC-dipole tune exciters.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:ACKicker
 is_a: PhysicalAcceleratorElement
 abstract: true
 slot_usage:
@@ -297,6 +300,8 @@ class_uri: laura:ACDipole
 name: ACDipole
 description: Base class for horizontal and vertical AC-dipole tune exciters.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:ACKicker
 is_a: PhysicalAcceleratorElement
 abstract: true
 slot_usage:
@@ -443,6 +448,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: ACDipole
     domain_of:

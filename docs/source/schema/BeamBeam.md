@@ -251,6 +251,7 @@ URI: [laura:BeamBeam](https://w3id.org/laura/BeamBeam)
 | ---  | ---  |
 | self | laura:BeamBeam |
 | native | laura:BeamBeam |
+| exact | pals:BeamBeam |
 
 
 
@@ -268,6 +269,8 @@ URI: [laura:BeamBeam](https://w3id.org/laura/BeamBeam)
 name: BeamBeam
 description: Weak-strong beam-beam interaction element.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:BeamBeam
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -288,6 +291,8 @@ class_uri: laura:BeamBeam
 name: BeamBeam
 description: Weak-strong beam-beam interaction element.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:BeamBeam
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -437,6 +442,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: BeamBeam
     domain_of:

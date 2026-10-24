@@ -131,6 +131,7 @@ URI: [laura:RFCavityElement](https://w3id.org/laura/RFCavityElement)
 | ---  | ---  |
 | self | laura:RFCavityElement |
 | native | laura:RFCavityElement |
+| close | pals:RFParamGroup |
 
 
 
@@ -150,6 +151,8 @@ description: RF cavity accelerating-structure parameters.
 in_subset:
 - rf_properties
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:RFParamGroup
 slots:
 - cell_length
 - coupling_cell_length
@@ -215,6 +218,8 @@ description: RF cavity accelerating-structure parameters.
 in_subset:
 - rf_properties
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:RFParamGroup
 attributes:
   structure_type:
     name: structure_type
@@ -317,6 +322,8 @@ attributes:
     name: frequency
     description: Operating frequency [Hz].
     from_schema: https://w3id.org/laura/schema
+    exact_mappings:
+    - pals:frequency
     rank: 1000
     ifabsent: float(2998500000.0)
     owner: RFCavityElement
@@ -333,6 +340,8 @@ attributes:
     name: n_cells
     description: Number of cells.
     from_schema: https://w3id.org/laura/schema
+    exact_mappings:
+    - pals:num_cells
     rank: 1000
     ifabsent: float(1)
     owner: RFCavityElement

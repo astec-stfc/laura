@@ -3613,6 +3613,20 @@
       "additionalProperties": false,
       "description": "A single process-variable entry mapping a logical name to a control-system PV identifier.",
       "properties": {
+        "access_protocol": {
+          "description": "How the variable is reached, where ``protocol`` names only the control system (e.g., ``EPICS Channel Access``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "canonical_type": {
+          "description": "The quantity the variable carries, independent of its PV name (e.g., ``MagnetCurrentSetpoint``), in NARAD's ``CanonicalSignalTypeEnum`` terms.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "control_type": {
           "$ref": "#/$defs/ControlTypeEnum",
           "description": "Kind of quantity this variable carries. Accepted in YAML as ``type``."
@@ -3663,6 +3677,13 @@
             "null"
           ]
         },
+        "quantity_kind": {
+          "description": "The physical kind of quantity (e.g., ``ElectricCurrent``), in NARAD's ``QuantityKindEnum`` terms.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "read_only": {
           "description": "Whether the variable is read-only.",
           "type": [
@@ -3672,6 +3693,13 @@
         },
         "readback": {
           "description": "Name of the readback variable this set-point drives.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "description": "What the variable is to its element (e.g., ``Setpoint``, ``Readback``, ``MaximumLimit``), in NARAD's ``SignalRoleEnum`` terms.",
           "type": [
             "string",
             "null"
@@ -9990,7 +10018,7 @@
     },
     "MatrixTransformSimulationElement": {
       "additionalProperties": false,
-      "description": "Zero- through third-order transfer-map coefficients for a matrix transform element, in Bmad's phase-space coordinates (x, px, y, py, z, pz): z = -beta c dt, positive ahead of the reference, and pz = dp/p0. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.",
+      "description": "Zero- through third-order transfer-map coefficients for a matrix transform element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0.",
       "properties": {
         "apply": {
           "description": "Whether to apply the transfer map.",

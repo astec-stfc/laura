@@ -277,6 +277,7 @@ URI: [laura:HorizontalCorrector](https://w3id.org/laura/HorizontalCorrector)
 | ---  | ---  |
 | self | laura:HorizontalCorrector |
 | native | laura:HorizontalCorrector |
+| broad | pals:Kicker |
 
 
 
@@ -294,6 +295,8 @@ URI: [laura:HorizontalCorrector](https://w3id.org/laura/HorizontalCorrector)
 name: HorizontalCorrector
 description: Horizontal steering corrector.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Kicker
 is_a: Dipole
 slot_usage:
   magnetic:
@@ -315,6 +318,8 @@ class_uri: laura:HorizontalCorrector
 name: HorizontalCorrector
 description: Horizontal steering corrector.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Kicker
 is_a: Dipole
 slot_usage:
   magnetic:
@@ -485,6 +490,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: HorizontalCorrector
     domain_of:

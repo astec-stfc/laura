@@ -96,6 +96,7 @@ URI: [laura:Multipole](https://w3id.org/laura/Multipole)
 | ---  | ---  |
 | self | laura:Multipole |
 | native | laura:Multipole |
+| close | pals:MultipoleParameterGroup |
 
 
 
@@ -114,6 +115,8 @@ name: Multipole
 description: Individual multipole field component, characterised by order and integrated
   normal / skew strengths at a reference radius.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:MultipoleParameterGroup
 attributes:
   order:
     name: order
@@ -181,6 +184,8 @@ name: Multipole
 description: Individual multipole field component, characterised by order and integrated
   normal / skew strengths at a reference radius.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:MultipoleParameterGroup
 attributes:
   order:
     name: order

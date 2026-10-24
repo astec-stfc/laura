@@ -294,6 +294,10 @@ class ControlVariable(Base):
     states = Column(Text())
     readback = Column(Text())
     setpoint = Column(Text())
+    role = Column(Text())
+    canonical_type = Column(Text())
+    quantity_kind = Column(Text())
+    access_protocol = Column(Text())
     update = Column(Text())
     dynamics = Column(Text())
     ControlsInformation_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
@@ -305,7 +309,7 @@ class ControlVariable(Base):
     
 
     def __repr__(self):
-        return f"ControlVariable(id={self.id},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},element_dtype={self.element_dtype},states={self.states},readback={self.readback},setpoint={self.setpoint},update={self.update},dynamics={self.dynamics},ControlsInformation_id={self.ControlsInformation_id},)"
+        return f"ControlVariable(id={self.id},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},element_dtype={self.element_dtype},states={self.states},readback={self.readback},setpoint={self.setpoint},role={self.role},canonical_type={self.canonical_type},quantity_kind={self.quantity_kind},access_protocol={self.access_protocol},update={self.update},dynamics={self.dynamics},ControlsInformation_id={self.ControlsInformation_id},)"
 
 
 
@@ -8068,7 +8072,7 @@ class TwissMatchSimulationElement(SimulationElement):
 
 class MatrixTransformSimulationElement(SimulationElement):
     """
-    Zero- through third-order transfer-map coefficients for a matrix transform element, in Bmad's phase-space coordinates (x, px, y, py, z, pz): z = -beta c dt, positive ahead of the reference, and pz = dp/p0. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+    Zero- through third-order transfer-map coefficients for a matrix transform element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0.
     """
     __tablename__ = 'MatrixTransformSimulationElement'
 

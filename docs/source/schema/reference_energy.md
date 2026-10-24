@@ -94,6 +94,7 @@ URI: [laura:reference_energy](https://w3id.org/laura/reference_energy)
 | ---  | ---  |
 | self | laura:reference_energy |
 | native | laura:reference_energy |
+| exact | pals:E_tot_ref |
 
 
 
@@ -105,6 +106,8 @@ URI: [laura:reference_energy](https://w3id.org/laura/reference_energy)
 name: reference_energy
 description: Reference total energy of the design particle [eV].
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:E_tot_ref
 rank: 1000
 owner: SectionLattice
 domain_of:

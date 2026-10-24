@@ -78,6 +78,7 @@ URI: [laura:eta_xp](https://w3id.org/laura/eta_xp)
 | ---  | ---  |
 | self | laura:eta_xp |
 | native | laura:eta_xp |
+| exact | pals:etap_x |
 
 
 
@@ -89,6 +90,8 @@ URI: [laura:eta_xp](https://w3id.org/laura/eta_xp)
 name: eta_xp
 description: Horizontal dispersion derivative.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:etap_x
 rank: 1000
 ifabsent: float(0.0)
 owner: TwissMatchSimulationElement

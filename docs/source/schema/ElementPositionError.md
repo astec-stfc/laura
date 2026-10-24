@@ -104,6 +104,7 @@ URI: [laura:ElementPositionError](https://w3id.org/laura/ElementPositionError)
 | ---  | ---  |
 | self | laura:ElementPositionError |
 | native | laura:ElementPositionError |
+| close | pals:BodyShiftParamGroup |
 
 
 
@@ -121,6 +122,8 @@ URI: [laura:ElementPositionError](https://w3id.org/laura/ElementPositionError)
 name: ElementPositionError
 description: Alignment position and rotation errors for a physically-located element.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:BodyShiftParamGroup
 attributes:
   position:
     name: position
@@ -154,6 +157,8 @@ class_uri: laura:ElementPositionError
 name: ElementPositionError
 description: Alignment position and rotation errors for a physically-located element.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:BodyShiftParamGroup
 attributes:
   position:
     name: position

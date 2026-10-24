@@ -296,6 +296,7 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | ---  | ---  |
 | self | laura:AcceleratorElement |
 | native | laura:AcceleratorElement |
+| close | pals:Component |
 
 
 
@@ -314,6 +315,8 @@ name: AcceleratorElement
 description: Root base class for all LAURA accelerator elements.  Every lattice element
   is an instance of a concrete subclass identified by ``hardware_type``.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Component
 attributes:
   name:
     name: name
@@ -381,6 +384,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     domain_of:
     - AcceleratorElement
@@ -459,6 +464,8 @@ name: AcceleratorElement
 description: Root base class for all LAURA accelerator elements.  Every lattice element
   is an instance of a concrete subclass identified by ``hardware_type``.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Component
 attributes:
   name:
     name: name
@@ -532,6 +539,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: AcceleratorElement
     domain_of:

@@ -149,6 +149,7 @@ URI: [laura:Solenoid_Magnet](https://w3id.org/laura/Solenoid_Magnet)
 | ---  | ---  |
 | self | laura:Solenoid_Magnet |
 | native | laura:SolenoidMagnet |
+| close | pals:SolenoidParamGroup |
 
 
 
@@ -167,6 +168,8 @@ name: Solenoid_Magnet
 description: Solenoid field model, including systematic and random field errors and
   the current-to-field calibration.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:SolenoidParamGroup
 attributes:
   length:
     name: length
@@ -254,6 +257,8 @@ name: Solenoid_Magnet
 description: Solenoid field model, including systematic and random field errors and
   the current-to-field calibration.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:SolenoidParamGroup
 attributes:
   length:
     name: length

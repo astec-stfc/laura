@@ -259,9 +259,7 @@ def _multipoles(
     )
     multipoles: Dict[str, Dict[str, Any]] = {}
     unconvertible = [
-        key
-        for key in unconvertible
-        if int(key[2:].rstrip("L")) not in skip_orders
+        key for key in unconvertible if int(key[2:].rstrip("L")) not in skip_orders
     ]
     for order, components in sorted(orders.items()):
         if order in skip_orders:
@@ -313,7 +311,7 @@ def _corrector(magnetic: Dict[str, Any], hardware_type: str) -> tuple:
     so the normal component changes sign and the skew one does not.
 
     A single-plane corrector that turns out to carry the other plane's pole is
-    widened to a combined one, which is the only way to keep both. 
+    widened to a combined one, which is the only way to keep both.
     """
     poles = magnetic.get("multipoles", {})
     pole = poles.pop("K0L", None) or {}
@@ -425,7 +423,7 @@ def _body_shift(element: PalsElement) -> Dict[str, Any]:
     """Convert ``BodyShiftP`` to a LAURA ``physical.error``.
 
     The three rotations are named for the axis they turn about, and LAURA's are
-    not, so the mapping is composed from two measured conversions. 
+    not, so the mapping is composed from two measured conversions.
     Composing gives ``phi = x_rot``, ``theta = -y_rot``,
     ``psi = z_rot``.
     """
@@ -513,12 +511,12 @@ def _cell_length(frequency: float, cavity: Dict[str, Any]) -> float:
     """The length of one cell, from the cavity's frequency and its mode.
 
     PALS states a cavity's frequency but never its mode, so this is an
-    assumption about the mode and nothing more. 
+    assumption about the mode and nothing more.
     The `structure_type` discriminator is the same one the
     field amplitude needs just below.
 
     The parser's bookkeeper derives
-    `L_active` as the element length whenever the document omits it; 
+    `L_active` as the element length whenever the document omits it;
     and `length/num_cells` under-reads a real cavity,
     whose physical length also holds couplers and end cells.
     """
@@ -714,7 +712,9 @@ class PalsLatticeImporter(LatticeImporter):
                     energy = (momentum**2 + rest**2) ** 0.5
             if energy is not None:
                 reference["reference_energy"] = energy
-        reference["geometry"] = "closed" if branch.attributes.get("periodic") else "open"
+        reference["geometry"] = (
+            "closed" if branch.attributes.get("periodic") else "open"
+        )
         return reference
 
     def create_laura_element_dictionary(
@@ -755,7 +755,9 @@ class PalsLatticeImporter(LatticeImporter):
             hardware_type = self._multipole_type(element)
         hardware_type = self._refine(kind, element, hardware_type)
         if not hardware_type:
-            warn(f"Unrecognised PALS element kind {kind!r} for {numbered_name!r}; skipping.")
+            warn(
+                f"Unrecognised PALS element kind {kind!r} for {numbered_name!r}; skipping."
+            )
             return None
         if kind in _LOSSY_CONVERSIONS:
             self._warn_once(
@@ -975,9 +977,7 @@ class PalsLatticeImporter(LatticeImporter):
         self._warned_kinds.add(key)
         warn(message)
 
-    def create_section(
-        self, branch: Optional[str] = None
-    ) -> Dict[str, SectionLattice]:
+    def create_section(self, branch: Optional[str] = None) -> Dict[str, SectionLattice]:
         """Build one :class:`SectionLattice` from a PALS branch.
 
         Returns nothing for a branch that holds only drifts and reference
@@ -1021,8 +1021,7 @@ class PalsLatticeImporter(LatticeImporter):
             sections.update(self.create_section(branch_name))
         if not sections:
             raise ValueError(
-                f"No branch of PALS lattice {lattice.name!r} produced a LAURA "
-                "section."
+                f"No branch of PALS lattice {lattice.name!r} produced a LAURA section."
             )
         particles = {
             self._reference.get(branch_name, {}).get("particle")

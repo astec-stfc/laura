@@ -177,6 +177,7 @@ URI: [laura:TwissMatchSimulationElement](https://w3id.org/laura/TwissMatchSimula
 | ---  | ---  |
 | self | laura:TwissMatchSimulationElement |
 | native | laura:TwissMatchSimulationElement |
+| close | pals:TwissParamGroup |
 
 
 
@@ -194,12 +195,16 @@ URI: [laura:TwissMatchSimulationElement](https://w3id.org/laura/TwissMatchSimula
 name: TwissMatchSimulationElement
 description: Simulation attributes for Twiss-matching points.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:TwissParamGroup
 is_a: SimulationElement
 attributes:
   beta_x:
     name: beta_x
     description: Horizontal beta.
     from_schema: https://w3id.org/laura/schema/simulation
+    close_mappings:
+    - pals:beta_a
     rank: 1000
     ifabsent: float(1.0)
     domain_of:
@@ -209,6 +214,8 @@ attributes:
     name: beta_y
     description: Vertical beta.
     from_schema: https://w3id.org/laura/schema/simulation
+    close_mappings:
+    - pals:beta_b
     rank: 1000
     ifabsent: float(1.0)
     domain_of:
@@ -218,6 +225,8 @@ attributes:
     name: alpha_x
     description: Horizontal alpha.
     from_schema: https://w3id.org/laura/schema/simulation
+    close_mappings:
+    - pals:alpha_a
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -227,6 +236,8 @@ attributes:
     name: alpha_y
     description: Vertical alpha.
     from_schema: https://w3id.org/laura/schema/simulation
+    close_mappings:
+    - pals:alpha_b
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -236,6 +247,8 @@ attributes:
     name: eta_x
     description: Horizontal dispersion.
     from_schema: https://w3id.org/laura/schema/simulation
+    exact_mappings:
+    - pals:eta_x
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -245,6 +258,8 @@ attributes:
     name: eta_y
     description: Vertical dispersion.
     from_schema: https://w3id.org/laura/schema/simulation
+    exact_mappings:
+    - pals:eta_y
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -254,6 +269,8 @@ attributes:
     name: eta_xp
     description: Horizontal dispersion derivative.
     from_schema: https://w3id.org/laura/schema/simulation
+    exact_mappings:
+    - pals:etap_x
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -263,6 +280,8 @@ attributes:
     name: eta_yp
     description: Vertical dispersion derivative.
     from_schema: https://w3id.org/laura/schema/simulation
+    exact_mappings:
+    - pals:etap_y
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -289,12 +308,16 @@ class_uri: laura:TwissMatchSimulationElement
 name: TwissMatchSimulationElement
 description: Simulation attributes for Twiss-matching points.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:TwissParamGroup
 is_a: SimulationElement
 attributes:
   beta_x:
     name: beta_x
     description: Horizontal beta.
     from_schema: https://w3id.org/laura/schema/simulation
+    close_mappings:
+    - pals:beta_a
     rank: 1000
     ifabsent: float(1.0)
     owner: TwissMatchSimulationElement
@@ -305,6 +328,8 @@ attributes:
     name: beta_y
     description: Vertical beta.
     from_schema: https://w3id.org/laura/schema/simulation
+    close_mappings:
+    - pals:beta_b
     rank: 1000
     ifabsent: float(1.0)
     owner: TwissMatchSimulationElement
@@ -315,6 +340,8 @@ attributes:
     name: alpha_x
     description: Horizontal alpha.
     from_schema: https://w3id.org/laura/schema/simulation
+    close_mappings:
+    - pals:alpha_a
     rank: 1000
     ifabsent: float(0.0)
     owner: TwissMatchSimulationElement
@@ -325,6 +352,8 @@ attributes:
     name: alpha_y
     description: Vertical alpha.
     from_schema: https://w3id.org/laura/schema/simulation
+    close_mappings:
+    - pals:alpha_b
     rank: 1000
     ifabsent: float(0.0)
     owner: TwissMatchSimulationElement
@@ -335,6 +364,8 @@ attributes:
     name: eta_x
     description: Horizontal dispersion.
     from_schema: https://w3id.org/laura/schema/simulation
+    exact_mappings:
+    - pals:eta_x
     rank: 1000
     ifabsent: float(0.0)
     owner: TwissMatchSimulationElement
@@ -345,6 +376,8 @@ attributes:
     name: eta_y
     description: Vertical dispersion.
     from_schema: https://w3id.org/laura/schema/simulation
+    exact_mappings:
+    - pals:eta_y
     rank: 1000
     ifabsent: float(0.0)
     owner: TwissMatchSimulationElement
@@ -355,6 +388,8 @@ attributes:
     name: eta_xp
     description: Horizontal dispersion derivative.
     from_schema: https://w3id.org/laura/schema/simulation
+    exact_mappings:
+    - pals:etap_x
     rank: 1000
     ifabsent: float(0.0)
     owner: TwissMatchSimulationElement
@@ -365,6 +400,8 @@ attributes:
     name: eta_yp
     description: Vertical dispersion derivative.
     from_schema: https://w3id.org/laura/schema/simulation
+    exact_mappings:
+    - pals:etap_y
     rank: 1000
     ifabsent: float(0.0)
     owner: TwissMatchSimulationElement

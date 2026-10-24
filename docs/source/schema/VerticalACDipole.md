@@ -252,6 +252,7 @@ URI: [laura:Vertical_AC_Dipole](https://w3id.org/laura/Vertical_AC_Dipole)
 | ---  | ---  |
 | self | laura:Vertical_AC_Dipole |
 | native | laura:VerticalACDipole |
+| broad | pals:ACKicker |
 
 
 
@@ -269,6 +270,8 @@ URI: [laura:Vertical_AC_Dipole](https://w3id.org/laura/Vertical_AC_Dipole)
 name: Vertical_AC_Dipole
 description: Vertically deflecting AC-dipole tune exciter.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:ACKicker
 is_a: ACDipole
 slot_usage:
   hardware_type:
@@ -286,6 +289,8 @@ class_uri: laura:Vertical_AC_Dipole
 name: Vertical_AC_Dipole
 description: Vertically deflecting AC-dipole tune exciter.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:ACKicker
 is_a: ACDipole
 slot_usage:
   hardware_type:
@@ -432,6 +437,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Vertical_AC_Dipole
     domain_of:

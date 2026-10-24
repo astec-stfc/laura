@@ -237,6 +237,7 @@ URI: [laura:PID](https://w3id.org/laura/PID)
 | ---  | ---  |
 | self | laura:PID |
 | native | laura:PID |
+| broad | pals:SupportingFacilityComponent |
 
 
 
@@ -254,6 +255,8 @@ URI: [laura:PID](https://w3id.org/laura/PID)
 name: PID
 description: Proportional-integral-derivative (PID) feedback controller.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:SupportingFacilityComponent
 is_a: StandardElement
 slot_usage:
   hardware_type:
@@ -280,6 +283,8 @@ class_uri: laura:PID
 name: PID
 description: Proportional-integral-derivative (PID) feedback controller.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:SupportingFacilityComponent
 is_a: StandardElement
 slot_usage:
   hardware_type:
@@ -413,6 +418,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: PID
     domain_of:

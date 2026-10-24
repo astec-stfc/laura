@@ -167,6 +167,7 @@ Name: laura_schema
 | Slot | Description |
 | --- | --- |
 | [a](a.md) | Quadratic saturation coefficient |
+| [access_protocol](access_protocol.md) | How the variable is reached, where ``protocol`` names only the control system... |
 | [alias](alias.md) | Human-readable aliases for the element |
 | [allow_long_beam](allow_long_beam.md) | Allow beams longer than the wakefield |
 | [alpha_x](alpha_x.md) | Horizontal alpha |
@@ -186,6 +187,7 @@ Name: laura_schema
 | [bunched_beam](bunched_beam.md) | Use bunched beam mode |
 | [c_matrix](c_matrix.md) | C-matrix (zeroth-order transfer vector) |
 | [camera_name](camera_name.md) | Name of the associated camera element |
+| [canonical_type](canonical_type.md) | The quantity the variable carries, independent of its PV name (e |
 | [cavity](cavity.md) | RF structure parameters |
 | [cavity_forward](cavity_forward.md) | Timing for cavity forward power |
 | [cavity_probe](cavity_probe.md) | Timing for cavity probe |
@@ -435,6 +437,7 @@ Name: laura_schema
 | [pulse_energy](pulse_energy.md) | Laser pulse energy [J] |
 | [quadratic_roll_off_x](quadratic_roll_off_x.md) | Quadratic field roll-off in x [1/m^2] |
 | [quadratic_roll_off_y](quadratic_roll_off_y.md) | Quadratic field roll-off in y [1/m^2] |
+| [quantity_kind](quantity_kind.md) | The physical kind of quantity (e |
 | [r_matrix](r_matrix.md) | R-matrix (first-order transfer matrix) |
 | [r_max](r_max.md) | Radial extent of the simulation box [m] |
 | [r_max_plasma](r_max_plasma.md) | Maximum radial extension of the plasma column |
@@ -452,6 +455,7 @@ Name: laura_schema
 | [reference_energy](reference_energy.md) | Reference total energy of the design particle [eV] |
 | [reference_placement](reference_placement.md) | Place this element relative to another element's frame instead of using absol... |
 | [right](right.md) | Right sense value |
+| [role](role.md) | What the variable is to its element (e |
 | [rotation](rotation.md) | Angular misalignment error [rad] |
 | [s](s.md) | Arc-length position [m] along the design trajectory (s=0 at the global origin... |
 | [S0L](S0L.md) | Integrated solenoid field, order 0 [T |

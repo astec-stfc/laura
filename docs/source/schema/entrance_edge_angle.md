@@ -110,6 +110,7 @@ Value must satisfy at least one of:
 | ---  | ---  |
 | self | laura:entrance_edge_angle |
 | native | laura:entrance_edge_angle |
+| exact | pals:e1 |
 
 
 
@@ -124,6 +125,8 @@ in_subset:
 - functional_parameters
 - bend_angle_reference
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:e1
 rank: 1000
 owner: MagneticElement
 domain_of:

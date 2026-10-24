@@ -144,6 +144,7 @@ URI: [laura:alias](https://w3id.org/laura/alias)
 | ---  | ---  |
 | self | laura:alias |
 | native | laura:alias |
+| exact | pals:alias |
 
 
 
@@ -158,6 +159,8 @@ description: Human-readable aliases for the element. Populated from ``name_alias
 from_schema: https://w3id.org/laura/schema
 aliases:
 - name_alias
+exact_mappings:
+- pals:alias
 rank: 1000
 owner: AcceleratorElement
 domain_of:

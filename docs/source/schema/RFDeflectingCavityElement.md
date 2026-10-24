@@ -240,6 +240,8 @@ attributes:
     name: frequency
     description: Operating frequency [Hz].
     from_schema: https://w3id.org/laura/schema
+    exact_mappings:
+    - pals:frequency
     rank: 1000
     ifabsent: float(2998500000.0)
     owner: RFDeflectingCavityElement
@@ -256,6 +258,8 @@ attributes:
     name: n_cells
     description: Number of cells.
     from_schema: https://w3id.org/laura/schema
+    exact_mappings:
+    - pals:num_cells
     rank: 1000
     ifabsent: float(1)
     owner: RFDeflectingCavityElement

@@ -201,6 +201,34 @@ classes:
       setpoint:
         range: string
         description: Name of the set-point variable this readback follows.
+      role:
+        exact_mappings:
+          - pals:signal_role
+        range: string
+        description: >-
+          What the variable is to its element (e.g., ``Setpoint``,
+          ``Readback``, ``MaximumLimit``), in NARAD's ``SignalRoleEnum`` terms.
+      canonical_type:
+        exact_mappings:
+          - pals:canonical_signal_type
+        range: string
+        description: >-
+          The quantity the variable carries, independent of its PV name (e.g.,
+          ``MagnetCurrentSetpoint``), in NARAD's ``CanonicalSignalTypeEnum`` terms.
+      quantity_kind:
+        exact_mappings:
+          - pals:quantity_kind
+        range: string
+        description: >-
+          The physical kind of quantity (e.g., ``ElectricCurrent``), in NARAD's
+          ``QuantityKindEnum`` terms.
+      access_protocol:
+        exact_mappings:
+          - pals:access_protocol
+        range: string
+        description: >-
+          How the variable is reached, where ``protocol`` names only the
+          control system (e.g., ``EPICS Channel Access``).
       update:
         range: string
         description: >-

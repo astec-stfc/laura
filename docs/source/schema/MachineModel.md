@@ -137,6 +137,8 @@ attributes:
       text rather than an enum because the accepted set includes arbitrary ions (e.g.
       ``#12C+3``) alongside the fundamental particles.
     from_schema: https://w3id.org/laura/schema/machine
+    close_mappings:
+    - pals:species_ref
     domain_of:
     - MachineLayout
     - MachineModel
@@ -189,6 +191,8 @@ attributes:
       text rather than an enum because the accepted set includes arbitrary ions (e.g.
       ``#12C+3``) alongside the fundamental particles.
     from_schema: https://w3id.org/laura/schema/machine
+    close_mappings:
+    - pals:species_ref
     owner: MachineModel
     domain_of:
     - MachineLayout

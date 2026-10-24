@@ -225,6 +225,7 @@ URI: [laura:PowerSupply](https://w3id.org/laura/PowerSupply)
 | ---  | ---  |
 | self | laura:PowerSupply |
 | native | laura:PowerSupply |
+| broad | pals:SupportingFacilityComponent |
 
 
 
@@ -243,6 +244,8 @@ name: PowerSupply
 description: Generic power-supply unit providing control/setpoint-driven outputs (for
   example current/voltage) to other accelerator components.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:SupportingFacilityComponent
 is_a: StandardElement
 slot_usage:
   hardware_type:
@@ -261,6 +264,8 @@ name: PowerSupply
 description: Generic power-supply unit providing control/setpoint-driven outputs (for
   example current/voltage) to other accelerator components.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:SupportingFacilityComponent
 is_a: StandardElement
 slot_usage:
   hardware_type:
@@ -385,6 +390,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: PowerSupply
     domain_of:

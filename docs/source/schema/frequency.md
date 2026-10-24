@@ -97,6 +97,7 @@ URI: [laura:frequency](https://w3id.org/laura/frequency)
 | ---  | ---  |
 | self | laura:frequency |
 | native | laura:frequency |
+| exact | pals:frequency |
 
 
 
@@ -108,6 +109,8 @@ URI: [laura:frequency](https://w3id.org/laura/frequency)
 name: frequency
 description: Operating frequency [Hz].
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:frequency
 rank: 1000
 ifabsent: float(2998500000.0)
 domain_of:

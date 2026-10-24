@@ -1,7 +1,7 @@
 # Class: MatrixTransformSimulationElement 
 
 
-_Zero- through third-order transfer-map coefficients for a matrix transform element, in Bmad's phase-space coordinates (x, px, y, py, z, pz): z = -beta c dt, positive ahead of the reference, and pz = dp/p0. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model._
+_Zero- through third-order transfer-map coefficients for a matrix transform element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0._
 
 
 
@@ -229,9 +229,7 @@ URI: [laura:MatrixTransformSimulationElement](https://w3id.org/laura/MatrixTrans
 ```yaml
 name: MatrixTransformSimulationElement
 description: 'Zero- through third-order transfer-map coefficients for a matrix transform
-  element, in Bmad''s phase-space coordinates (x, px, y, py, z, pz): z = -beta c dt,
-  positive ahead of the reference, and pz = dp/p0. Each coefficient collection accepts
-  the dense form or the named coefficient mapping understood by the Python model.'
+  element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0.'
 from_schema: https://w3id.org/laura/schema
 is_a: SimulationElement
 attributes:
@@ -296,9 +294,7 @@ class_uri: laura:MatrixTransformSimulationElement
 ```yaml
 name: MatrixTransformSimulationElement
 description: 'Zero- through third-order transfer-map coefficients for a matrix transform
-  element, in Bmad''s phase-space coordinates (x, px, y, py, z, pz): z = -beta c dt,
-  positive ahead of the reference, and pz = dp/p0. Each coefficient collection accepts
-  the dense form or the named coefficient mapping understood by the Python model.'
+  element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0.'
 from_schema: https://w3id.org/laura/schema
 is_a: SimulationElement
 attributes:

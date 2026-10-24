@@ -78,6 +78,7 @@ URI: [laura:beta_x](https://w3id.org/laura/beta_x)
 | ---  | ---  |
 | self | laura:beta_x |
 | native | laura:beta_x |
+| close | pals:beta_a |
 
 
 
@@ -89,6 +90,8 @@ URI: [laura:beta_x](https://w3id.org/laura/beta_x)
 name: beta_x
 description: Horizontal beta.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:beta_a
 rank: 1000
 ifabsent: float(1.0)
 owner: TwissMatchSimulationElement

@@ -276,6 +276,7 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
 | ---  | ---  |
 | self | laura:Sextupole |
 | native | laura:Sextupole |
+| exact | pals:Sextupole |
 
 
 
@@ -293,6 +294,8 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
 name: Sextupole
 description: Sextupole chromaticity-correction magnet.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Sextupole
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -314,6 +317,8 @@ class_uri: laura:Sextupole
 name: Sextupole
 description: Sextupole chromaticity-correction magnet.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Sextupole
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -484,6 +489,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Sextupole
     domain_of:

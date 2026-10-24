@@ -276,6 +276,7 @@ URI: [laura:CombinedSolenoidQuadrupole](https://w3id.org/laura/CombinedSolenoidQ
 | ---  | ---  |
 | self | laura:CombinedSolenoidQuadrupole |
 | native | laura:CombinedSolenoidQuadrupole |
+| related | pals:Solenoid |
 
 
 
@@ -293,6 +294,8 @@ URI: [laura:CombinedSolenoidQuadrupole](https://w3id.org/laura/CombinedSolenoidQ
 name: CombinedSolenoidQuadrupole
 description: Magnet combining coaxial solenoid and quadrupole fields.
 from_schema: https://w3id.org/laura/schema
+related_mappings:
+- pals:Solenoid
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -314,6 +317,8 @@ class_uri: laura:CombinedSolenoidQuadrupole
 name: CombinedSolenoidQuadrupole
 description: Magnet combining coaxial solenoid and quadrupole fields.
 from_schema: https://w3id.org/laura/schema
+related_mappings:
+- pals:Solenoid
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -484,6 +489,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: CombinedSolenoidQuadrupole
     domain_of:

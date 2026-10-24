@@ -264,6 +264,7 @@ URI: [laura:Quadrupole](https://w3id.org/laura/Quadrupole)
 | ---  | ---  |
 | self | laura:Quadrupole |
 | native | laura:Quadrupole |
+| exact | pals:Quadrupole |
 
 
 
@@ -280,6 +281,8 @@ URI: [laura:Quadrupole](https://w3id.org/laura/Quadrupole)
 ```yaml
 name: Quadrupole
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Quadrupole
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -299,6 +302,8 @@ slot_usage:
 ```yaml
 name: Quadrupole
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Quadrupole
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -469,6 +474,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Quadrupole
     domain_of:

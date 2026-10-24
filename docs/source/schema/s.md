@@ -87,6 +87,7 @@ URI: [laura:s](https://w3id.org/laura/s)
 | ---  | ---  |
 | self | laura:s |
 | native | laura:s |
+| close | pals:s_position |
 
 
 
@@ -100,6 +101,8 @@ description: Arc-length position [m] along the design trajectory (s=0 at the glo
   origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``)
   and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:s_position
 rank: 1000
 owner: PhysicalElement
 domain_of:

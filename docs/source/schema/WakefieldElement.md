@@ -152,6 +152,8 @@ attributes:
     name: n_cells
     description: Number of cells.
     from_schema: https://w3id.org/laura/schema
+    exact_mappings:
+    - pals:num_cells
     rank: 1000
     ifabsent: float(1)
     owner: WakefieldElement

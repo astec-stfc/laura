@@ -277,6 +277,7 @@ URI: [laura:VerticalCorrector](https://w3id.org/laura/VerticalCorrector)
 | ---  | ---  |
 | self | laura:VerticalCorrector |
 | native | laura:VerticalCorrector |
+| broad | pals:Kicker |
 
 
 
@@ -294,6 +295,8 @@ URI: [laura:VerticalCorrector](https://w3id.org/laura/VerticalCorrector)
 name: VerticalCorrector
 description: Vertical steering corrector.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Kicker
 is_a: Dipole
 slot_usage:
   magnetic:
@@ -315,6 +318,8 @@ class_uri: laura:VerticalCorrector
 name: VerticalCorrector
 description: Vertical steering corrector.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Kicker
 is_a: Dipole
 slot_usage:
   magnetic:
@@ -485,6 +490,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: VerticalCorrector
     domain_of:

@@ -264,6 +264,8 @@ URI: [laura:BeamPositionMonitor](https://w3id.org/laura/BeamPositionMonitor)
 | ---  | ---  |
 | self | laura:BeamPositionMonitor |
 | native | laura:BeamPositionMonitor |
+| exact | pals:BeamPositionMonitor |
+| broad | pals:Instrument |
 
 
 
@@ -281,6 +283,10 @@ URI: [laura:BeamPositionMonitor](https://w3id.org/laura/BeamPositionMonitor)
 name: BeamPositionMonitor
 description: Beam-position monitor (BPM).
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:BeamPositionMonitor
+broad_mappings:
+- pals:Instrument
 is_a: Diagnostic
 slot_usage:
   hardware_type:
@@ -315,6 +321,10 @@ class_uri: laura:BeamPositionMonitor
 name: BeamPositionMonitor
 description: Beam-position monitor (BPM).
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:BeamPositionMonitor
+broad_mappings:
+- pals:Instrument
 is_a: Diagnostic
 slot_usage:
   hardware_type:
@@ -478,6 +488,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: BeamPositionMonitor
     domain_of:

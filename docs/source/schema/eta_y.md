@@ -78,6 +78,7 @@ URI: [laura:eta_y](https://w3id.org/laura/eta_y)
 | ---  | ---  |
 | self | laura:eta_y |
 | native | laura:eta_y |
+| exact | pals:eta_y |
 
 
 
@@ -89,6 +90,8 @@ URI: [laura:eta_y](https://w3id.org/laura/eta_y)
 name: eta_y
 description: Vertical dispersion.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:eta_y
 rank: 1000
 ifabsent: float(0.0)
 owner: TwissMatchSimulationElement

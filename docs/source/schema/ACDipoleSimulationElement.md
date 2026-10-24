@@ -299,6 +299,8 @@ attributes:
     name: frequency
     description: Drive frequency [Hz].
     from_schema: https://w3id.org/laura/schema
+    exact_mappings:
+    - pals:frequency
     rank: 1000
     ifabsent: float(0.0)
     owner: ACDipoleSimulationElement

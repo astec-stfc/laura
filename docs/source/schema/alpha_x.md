@@ -78,6 +78,7 @@ URI: [laura:alpha_x](https://w3id.org/laura/alpha_x)
 | ---  | ---  |
 | self | laura:alpha_x |
 | native | laura:alpha_x |
+| close | pals:alpha_a |
 
 
 
@@ -89,6 +90,8 @@ URI: [laura:alpha_x](https://w3id.org/laura/alpha_x)
 name: alpha_x
 description: Horizontal alpha.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:alpha_a
 rank: 1000
 ifabsent: float(0.0)
 owner: TwissMatchSimulationElement

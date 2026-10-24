@@ -116,6 +116,7 @@ URI: [laura:SectionLattice](https://w3id.org/laura/SectionLattice)
 | ---  | ---  |
 | self | laura:SectionLattice |
 | native | laura:SectionLattice |
+| close | pals:BeamLine |
 
 
 
@@ -133,6 +134,8 @@ URI: [laura:SectionLattice](https://w3id.org/laura/SectionLattice)
 name: SectionLattice
 description: An ordered list of element names defining a contiguous beamline section.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:BeamLine
 attributes:
   name:
     name: name
@@ -167,6 +170,8 @@ attributes:
     name: reference_energy
     description: Reference total energy of the design particle [eV].
     from_schema: https://w3id.org/laura/schema/machine
+    exact_mappings:
+    - pals:E_tot_ref
     rank: 1000
     domain_of:
     - SectionLattice
@@ -206,6 +211,8 @@ class_uri: laura:SectionLattice
 name: SectionLattice
 description: An ordered list of element names defining a contiguous beamline section.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:BeamLine
 attributes:
   name:
     name: name
@@ -244,6 +251,8 @@ attributes:
     name: reference_energy
     description: Reference total energy of the design particle [eV].
     from_schema: https://w3id.org/laura/schema/machine
+    exact_mappings:
+    - pals:E_tot_ref
     rank: 1000
     owner: SectionLattice
     domain_of:

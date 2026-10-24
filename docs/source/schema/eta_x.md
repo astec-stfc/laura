@@ -78,6 +78,7 @@ URI: [laura:eta_x](https://w3id.org/laura/eta_x)
 | ---  | ---  |
 | self | laura:eta_x |
 | native | laura:eta_x |
+| exact | pals:eta_x |
 
 
 
@@ -89,6 +90,8 @@ URI: [laura:eta_x](https://w3id.org/laura/eta_x)
 name: eta_x
 description: Horizontal dispersion.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:eta_x
 rank: 1000
 ifabsent: float(0.0)
 owner: TwissMatchSimulationElement

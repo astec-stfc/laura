@@ -209,7 +209,7 @@ URI: [laura:IntegratedCurrentTransformer](https://w3id.org/laura/IntegratedCurre
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [diagnostic](diagnostic.md) | 0..1 <br/> [ChargeDiagnosticElement](ChargeDiagnosticElement.md) | Instrument-specific diagnostic parameters | [ChargeDiagnostic](ChargeDiagnostic.md), [Diagnostic](Diagnostic.md) |
+| [diagnostic](diagnostic.md) | 0..1 <br/> [ChargeDiagnosticElement](ChargeDiagnosticElement.md) | Instrument-specific diagnostic parameters | [Diagnostic](Diagnostic.md), [ChargeDiagnostic](ChargeDiagnostic.md) |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture of the element | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
@@ -265,6 +265,7 @@ URI: [laura:IntegratedCurrentTransformer](https://w3id.org/laura/IntegratedCurre
 | ---  | ---  |
 | self | laura:IntegratedCurrentTransformer |
 | native | laura:IntegratedCurrentTransformer |
+| broad | pals:Instrument |
 
 
 
@@ -283,6 +284,8 @@ name: IntegratedCurrentTransformer
 description: Integrated current transformer (ICT) for non-destructive single-shot
   charge measurement.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Instrument
 is_a: ChargeDiagnostic
 slot_usage:
   hardware_type:
@@ -301,6 +304,8 @@ name: IntegratedCurrentTransformer
 description: Integrated current transformer (ICT) for non-destructive single-shot
   charge measurement.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Instrument
 is_a: ChargeDiagnostic
 slot_usage:
   hardware_type:
@@ -464,6 +469,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: IntegratedCurrentTransformer
     domain_of:

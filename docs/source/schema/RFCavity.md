@@ -272,6 +272,7 @@ URI: [laura:RFCavity](https://w3id.org/laura/RFCavity)
 | ---  | ---  |
 | self | laura:RFCavity |
 | native | laura:RFCavity |
+| exact | pals:RFCavity |
 
 
 
@@ -289,6 +290,8 @@ URI: [laura:RFCavity](https://w3id.org/laura/RFCavity)
 name: RFCavity
 description: Accelerating RF cavity.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:RFCavity
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -323,6 +326,8 @@ class_uri: laura:RFCavity
 name: RFCavity
 description: Accelerating RF cavity.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:RFCavity
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -486,6 +491,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: RFCavity
     domain_of:

@@ -540,6 +540,10 @@ type ControlVariable
     states: String
     readback: String
     setpoint: String
+    role: String
+    canonicalType: String
+    quantityKind: String
+    accessProtocol: String
     update: String
     dynamics: String
   }

@@ -229,6 +229,7 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | ---  | ---  |
 | self | laura:PhysicalElement |
 | native | laura:PhysicalElement |
+| close | pals:FloorParamGroup, pals:LongitudinalPlacementParamGroup |
 
 
 
@@ -249,6 +250,9 @@ description: 'Physical placement data: position, rotation, length, and associate
 in_subset:
 - physical_properties
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:FloorParamGroup
+- pals:LongitudinalPlacementParamGroup
 attributes:
   middle:
     name: middle
@@ -310,6 +314,8 @@ attributes:
     name: length
     description: Effective length along the beam axis [m].
     from_schema: https://w3id.org/laura/schema/geometry
+    exact_mappings:
+    - pals:length
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -352,6 +358,8 @@ attributes:
       origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``)
       and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly.
     from_schema: https://w3id.org/laura/schema/geometry
+    close_mappings:
+    - pals:s_position
     rank: 1000
     domain_of:
     - PhysicalElement
@@ -383,6 +391,9 @@ description: 'Physical placement data: position, rotation, length, and associate
 in_subset:
 - physical_properties
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:FloorParamGroup
+- pals:LongitudinalPlacementParamGroup
 attributes:
   middle:
     name: middle
@@ -450,6 +461,8 @@ attributes:
     name: length
     description: Effective length along the beam axis [m].
     from_schema: https://w3id.org/laura/schema/geometry
+    exact_mappings:
+    - pals:length
     rank: 1000
     ifabsent: float(0)
     owner: PhysicalElement
@@ -495,6 +508,8 @@ attributes:
       origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``)
       and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly.
     from_schema: https://w3id.org/laura/schema/geometry
+    close_mappings:
+    - pals:s_position
     rank: 1000
     owner: PhysicalElement
     domain_of:

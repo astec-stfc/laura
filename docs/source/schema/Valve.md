@@ -263,6 +263,7 @@ URI: [laura:Valve](https://w3id.org/laura/Valve)
 | ---  | ---  |
 | self | laura:Valve |
 | native | laura:Valve |
+| broad | pals:SupportingFacilityComponent |
 
 
 
@@ -280,6 +281,8 @@ URI: [laura:Valve](https://w3id.org/laura/Valve)
 name: Valve
 description: Vacuum gate valve.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:SupportingFacilityComponent
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -306,6 +309,8 @@ class_uri: laura:Valve
 name: Valve
 description: Vacuum gate valve.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:SupportingFacilityComponent
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -461,6 +466,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Valve
     domain_of:

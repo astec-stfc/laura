@@ -288,6 +288,7 @@ URI: [laura:Wiggler](https://w3id.org/laura/Wiggler)
 | ---  | ---  |
 | self | laura:Wiggler |
 | native | laura:Wiggler |
+| exact | pals:Wiggler |
 
 
 
@@ -305,6 +306,8 @@ URI: [laura:Wiggler](https://w3id.org/laura/Wiggler)
 name: Wiggler
 description: Wiggler / undulator insertion device.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Wiggler
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -339,6 +342,8 @@ class_uri: laura:Wiggler
 name: Wiggler
 description: Wiggler / undulator insertion device.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Wiggler
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -522,6 +527,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Wiggler
     domain_of:

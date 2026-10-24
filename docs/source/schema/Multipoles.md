@@ -160,6 +160,7 @@ URI: [laura:MultipoleList](https://w3id.org/laura/MultipoleList)
 | ---  | ---  |
 | self | laura:MultipoleList |
 | native | laura:Multipoles |
+| close | pals:MagneticMultipoleParamGroup |
 
 
 
@@ -178,6 +179,8 @@ name: Multipoles
 description: Complete set of integrated multipole strengths up to decapole order,
   as named slots for efficient element look-up.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:MagneticMultipoleParamGroup
 attributes:
   K0L:
     name: K0L
@@ -232,6 +235,8 @@ name: Multipoles
 description: Complete set of integrated multipole strengths up to decapole order,
   as named slots for efficient element look-up.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:MagneticMultipoleParamGroup
 attributes:
   K0L:
     name: K0L

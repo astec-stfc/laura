@@ -276,6 +276,7 @@ URI: [laura:Dipole](https://w3id.org/laura/Dipole)
 | ---  | ---  |
 | self | laura:Dipole |
 | native | laura:Dipole |
+| exact | pals:Bend |
 
 
 
@@ -292,6 +293,8 @@ URI: [laura:Dipole](https://w3id.org/laura/Dipole)
 ```yaml
 name: Dipole
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Bend
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -311,6 +314,8 @@ slot_usage:
 ```yaml
 name: Dipole
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Bend
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -481,6 +486,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Dipole
     domain_of:

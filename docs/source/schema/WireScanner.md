@@ -264,6 +264,7 @@ URI: [laura:WireScanner](https://w3id.org/laura/WireScanner)
 | ---  | ---  |
 | self | laura:WireScanner |
 | native | laura:WireScanner |
+| broad | pals:BeamProfileMonitor, pals:Instrument |
 
 
 
@@ -283,6 +284,9 @@ description: 'Wire scanner: thin wires stepped through the beam to measure its t
   profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation
   element.'
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:BeamProfileMonitor
+- pals:Instrument
 is_a: Diagnostic
 slot_usage:
   hardware_type:
@@ -302,6 +306,9 @@ description: 'Wire scanner: thin wires stepped through the beam to measure its t
   profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation
   element.'
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:BeamProfileMonitor
+- pals:Instrument
 is_a: Diagnostic
 slot_usage:
   hardware_type:
@@ -466,6 +473,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: WireScanner
     domain_of:

@@ -263,6 +263,7 @@ URI: [laura:Shutter](https://w3id.org/laura/Shutter)
 | ---  | ---  |
 | self | laura:Shutter |
 | native | laura:Shutter |
+| broad | pals:SupportingFacilityComponent |
 
 
 
@@ -280,6 +281,8 @@ URI: [laura:Shutter](https://w3id.org/laura/Shutter)
 name: Shutter
 description: Beam or laser shutter with interlock logic.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:SupportingFacilityComponent
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -306,6 +309,8 @@ class_uri: laura:Shutter
 name: Shutter
 description: Beam or laser shutter with interlock logic.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:SupportingFacilityComponent
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -461,6 +466,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Shutter
     domain_of:

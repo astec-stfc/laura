@@ -313,6 +313,7 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
 | ---  | ---  |
 | self | laura:PhysicalAcceleratorElement |
 | native | laura:PhysicalAcceleratorElement |
+| close | pals:PhysicalComponent |
 
 
 
@@ -331,6 +332,8 @@ name: PhysicalAcceleratorElement
 description: Accelerator element with a well-defined physical position and orientation
   in the beamline.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:PhysicalComponent
 is_a: Element
 attributes:
   physical:
@@ -366,6 +369,8 @@ name: PhysicalAcceleratorElement
 description: Accelerator element with a well-defined physical position and orientation
   in the beamline.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:PhysicalComponent
 is_a: Element
 attributes:
   physical:
@@ -507,6 +512,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: PhysicalAcceleratorElement
     domain_of:

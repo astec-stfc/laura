@@ -276,6 +276,7 @@ URI: [laura:Octupole](https://w3id.org/laura/Octupole)
 | ---  | ---  |
 | self | laura:Octupole |
 | native | laura:Octupole |
+| exact | pals:Octupole |
 
 
 
@@ -293,6 +294,8 @@ URI: [laura:Octupole](https://w3id.org/laura/Octupole)
 name: Octupole
 description: Octupole magnet.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Octupole
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -314,6 +317,8 @@ class_uri: laura:Octupole
 name: Octupole
 description: Octupole magnet.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Octupole
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -484,6 +489,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Octupole
     domain_of:

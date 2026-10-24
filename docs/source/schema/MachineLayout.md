@@ -104,6 +104,7 @@ URI: [laura:MachineLayout](https://w3id.org/laura/MachineLayout)
 | ---  | ---  |
 | self | laura:MachineLayout |
 | native | laura:MachineLayout |
+| close | pals:Lattice |
 
 
 
@@ -122,6 +123,8 @@ name: MachineLayout
 description: An ordered list of section names defining a beamline layout (a contiguous
   sequence of sections).
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Lattice
 attributes:
   name:
     name: name
@@ -147,6 +150,8 @@ attributes:
       value. Free text rather than an enum because the accepted set includes arbitrary
       ions (e.g. ``#12C+3``) alongside the fundamental particles.
     from_schema: https://w3id.org/laura/schema/machine
+    close_mappings:
+    - pals:species_ref
     rank: 1000
     domain_of:
     - MachineLayout
@@ -186,6 +191,8 @@ name: MachineLayout
 description: An ordered list of section names defining a beamline layout (a contiguous
   sequence of sections).
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Lattice
 attributes:
   name:
     name: name
@@ -214,6 +221,8 @@ attributes:
       value. Free text rather than an enum because the accepted set includes arbitrary
       ions (e.g. ``#12C+3``) alongside the fundamental particles.
     from_schema: https://w3id.org/laura/schema/machine
+    close_mappings:
+    - pals:species_ref
     rank: 1000
     owner: MachineLayout
     domain_of:

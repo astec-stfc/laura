@@ -290,6 +290,7 @@ URI: [laura:Diagnostic](https://w3id.org/laura/Diagnostic)
 | ---  | ---  |
 | self | laura:Diagnostic |
 | native | laura:Diagnostic |
+| close | pals:DiagnosticDevice, pals:Instrument |
 
 
 
@@ -307,6 +308,9 @@ URI: [laura:Diagnostic](https://w3id.org/laura/Diagnostic)
 name: Diagnostic
 description: Base class for all beam-diagnostic instruments.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:DiagnosticDevice
+- pals:Instrument
 is_a: PhysicalAcceleratorElement
 slot_usage:
   simulation:
@@ -342,6 +346,9 @@ class_uri: laura:Diagnostic
 name: Diagnostic
 description: Base class for all beam-diagnostic instruments.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:DiagnosticDevice
+- pals:Instrument
 is_a: PhysicalAcceleratorElement
 slot_usage:
   simulation:
@@ -505,6 +512,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Diagnostic
     domain_of:

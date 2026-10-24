@@ -251,6 +251,8 @@ URI: [laura:TwissMatch](https://w3id.org/laura/TwissMatch)
 | ---  | ---  |
 | self | laura:TwissMatch |
 | native | laura:TwissMatch |
+| related | pals:BeginningEle |
+| close | pals:Match |
 
 
 
@@ -269,6 +271,10 @@ name: TwissMatch
 description: Virtual Twiss-parameter matching point -- a zero-length marker that defines
   the desired optical functions at a location in the lattice.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Match
+related_mappings:
+- pals:BeginningEle
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -290,6 +296,10 @@ name: TwissMatch
 description: Virtual Twiss-parameter matching point -- a zero-length marker that defines
   the desired optical functions at a location in the lattice.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Match
+related_mappings:
+- pals:BeginningEle
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -439,6 +449,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: TwissMatch
     domain_of:

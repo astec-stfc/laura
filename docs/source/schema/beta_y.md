@@ -78,6 +78,7 @@ URI: [laura:beta_y](https://w3id.org/laura/beta_y)
 | ---  | ---  |
 | self | laura:beta_y |
 | native | laura:beta_y |
+| close | pals:beta_b |
 
 
 
@@ -89,6 +90,8 @@ URI: [laura:beta_y](https://w3id.org/laura/beta_y)
 name: beta_y
 description: Vertical beta.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:beta_b
 rank: 1000
 ifabsent: float(1.0)
 owner: TwissMatchSimulationElement

@@ -257,6 +257,7 @@ URI: [laura:Aperture](https://w3id.org/laura/Aperture)
 | ---  | ---  |
 | self | laura:Aperture |
 | native | laura:Aperture |
+| close | pals:Aperture, pals:Mask |
 
 
 
@@ -274,6 +275,9 @@ URI: [laura:Aperture](https://w3id.org/laura/Aperture)
 name: Aperture
 description: Mechanical aperture restriction in the beam pipe.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Aperture
+- pals:Mask
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -300,6 +304,9 @@ class_uri: laura:Aperture
 name: Aperture
 description: Mechanical aperture restriction in the beam pipe.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Aperture
+- pals:Mask
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -444,6 +451,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Aperture
     domain_of:

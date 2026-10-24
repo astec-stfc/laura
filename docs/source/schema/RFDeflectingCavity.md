@@ -264,6 +264,7 @@ URI: [laura:RFDeflectingCavity](https://w3id.org/laura/RFDeflectingCavity)
 | ---  | ---  |
 | self | laura:RFDeflectingCavity |
 | native | laura:RFDeflectingCavity |
+| close | pals:CrabCavity |
 
 
 
@@ -281,6 +282,8 @@ URI: [laura:RFDeflectingCavity](https://w3id.org/laura/RFDeflectingCavity)
 name: RFDeflectingCavity
 description: Transverse-deflecting (streak) RF cavity.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:CrabCavity
 is_a: RFCavity
 slot_usage:
   hardware_type:
@@ -311,6 +314,8 @@ class_uri: laura:RFDeflectingCavity
 name: RFDeflectingCavity
 description: Transverse-deflecting (streak) RF cavity.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:CrabCavity
 is_a: RFCavity
 slot_usage:
   hardware_type:
@@ -470,6 +475,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: RFDeflectingCavity
     domain_of:

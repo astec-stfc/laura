@@ -302,6 +302,7 @@ URI: [laura:Magnet](https://w3id.org/laura/Magnet)
 | ---  | ---  |
 | self | laura:Magnet |
 | native | laura:Magnet |
+| exact | pals:Magnet |
 
 
 
@@ -321,6 +322,8 @@ description: Base class for all magnetic focusing and bending elements. (Named `
   in the schema to avoid collision with the ``magnetic`` composition-model class;
   maps to ``Magnet`` in Python.)
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Magnet
 is_a: PhysicalAcceleratorElement
 slot_usage:
   simulation:
@@ -359,6 +362,8 @@ description: Base class for all magnetic focusing and bending elements. (Named `
   in the schema to avoid collision with the ``magnetic`` composition-model class;
   maps to ``Magnet`` in Python.)
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Magnet
 is_a: PhysicalAcceleratorElement
 slot_usage:
   simulation:
@@ -524,6 +529,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Magnet
     domain_of:

@@ -222,6 +222,7 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
 | ---  | ---  |
 | self | laura:DipoleMagnet |
 | native | laura:DipoleMagnet |
+| close | pals:BendParamGroup |
 
 
 
@@ -238,6 +239,8 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
 ```yaml
 name: DipoleMagnet
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:BendParamGroup
 is_a: MagneticElement
 slot_usage:
   order:
@@ -254,6 +257,8 @@ slot_usage:
 ```yaml
 name: DipoleMagnet
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:BendParamGroup
 is_a: MagneticElement
 slot_usage:
   order:
@@ -368,6 +373,8 @@ attributes:
     - functional_parameters
     - bend_angle_reference
     from_schema: https://w3id.org/laura/schema/magnetic
+    exact_mappings:
+    - pals:e1
     rank: 1000
     owner: DipoleMagnet
     domain_of:
@@ -385,6 +392,8 @@ attributes:
     - functional_parameters
     - bend_angle_reference
     from_schema: https://w3id.org/laura/schema/magnetic
+    exact_mappings:
+    - pals:e2
     rank: 1000
     owner: DipoleMagnet
     domain_of:

@@ -264,6 +264,7 @@ URI: [laura:BeamArrivalMonitor](https://w3id.org/laura/BeamArrivalMonitor)
 | ---  | ---  |
 | self | laura:BeamArrivalMonitor |
 | native | laura:BeamArrivalMonitor |
+| broad | pals:Instrument |
 
 
 
@@ -281,6 +282,8 @@ URI: [laura:BeamArrivalMonitor](https://w3id.org/laura/BeamArrivalMonitor)
 name: BeamArrivalMonitor
 description: Beam-arrival-time monitor (BAM).
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Instrument
 is_a: Diagnostic
 slot_usage:
   hardware_type:
@@ -315,6 +318,8 @@ class_uri: laura:BeamArrivalMonitor
 name: BeamArrivalMonitor
 description: Beam-arrival-time monitor (BAM).
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Instrument
 is_a: Diagnostic
 slot_usage:
   hardware_type:
@@ -478,6 +483,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: BeamArrivalMonitor
     domain_of:

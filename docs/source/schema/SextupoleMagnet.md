@@ -369,6 +369,8 @@ attributes:
     - functional_parameters
     - bend_angle_reference
     from_schema: https://w3id.org/laura/schema/magnetic
+    exact_mappings:
+    - pals:e1
     rank: 1000
     owner: SextupoleMagnet
     domain_of:
@@ -386,6 +388,8 @@ attributes:
     - functional_parameters
     - bend_angle_reference
     from_schema: https://w3id.org/laura/schema/magnetic
+    exact_mappings:
+    - pals:e2
     rank: 1000
     owner: SextupoleMagnet
     domain_of:

@@ -19,6 +19,10 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
  classDiagram
     class ControlVariable
     click ControlVariable href "../ControlVariable/"
+      ControlVariable : access_protocol
+        
+      ControlVariable : canonical_type
+        
       ControlVariable : control_type
         
           
@@ -53,9 +57,13 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
         
       ControlVariable : protocol
         
+      ControlVariable : quantity_kind
+        
       ControlVariable : read_only
         
       ControlVariable : readback
+        
+      ControlVariable : role
         
       ControlVariable : setpoint
         
@@ -105,6 +113,10 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
 | [states](states.md) | 0..1 <br/> [String](String.md) | Mapping of state name to underlying control-system value, for ``control_type:... | direct |
 | [readback](readback.md) | 0..1 <br/> [String](String.md) | Name of the readback variable this set-point drives | direct |
 | [setpoint](setpoint.md) | 0..1 <br/> [String](String.md) | Name of the set-point variable this readback follows | direct |
+| [role](role.md) | 0..1 <br/> [String](String.md) | What the variable is to its element (e | direct |
+| [canonical_type](canonical_type.md) | 0..1 <br/> [String](String.md) | The quantity the variable carries, independent of its PV name (e | direct |
+| [quantity_kind](quantity_kind.md) | 0..1 <br/> [String](String.md) | The physical kind of quantity (e | direct |
+| [access_protocol](access_protocol.md) | 0..1 <br/> [String](String.md) | How the variable is reached, where ``protocol`` names only the control system... | direct |
 | [update](update.md) | 0..1 <br/> [String](String.md) | Signal generating this variable's value over time, as ``{function: <import pa... | direct |
 | [dynamics](dynamics.md) | 0..1 <br/> [String](String.md) | Response model describing how this variable's readback follows its set-point,... | direct |
 
@@ -149,6 +161,7 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
 | ---  | ---  |
 | self | laura:ControlVariable |
 | native | laura:ControlVariable |
+| close | pals:Signal |
 
 
 
@@ -167,6 +180,8 @@ name: ControlVariable
 description: A single process-variable entry mapping a logical name to a control-system
   PV identifier.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Signal
 attributes:
   identifier:
     name: identifier
@@ -207,6 +222,8 @@ attributes:
     name: description
     description: Human-readable description.
     from_schema: https://w3id.org/laura/schema/controls
+    close_mappings:
+    - pals:native_description
     rank: 1000
     ifabsent: string(Default Description)
     domain_of:
@@ -309,6 +326,50 @@ attributes:
     name: setpoint
     description: Name of the set-point variable this readback follows.
     from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    domain_of:
+    - ControlVariable
+    range: string
+  role:
+    name: role
+    description: What the variable is to its element (e.g., ``Setpoint``, ``Readback``,
+      ``MaximumLimit``), in NARAD's ``SignalRoleEnum`` terms.
+    from_schema: https://w3id.org/laura/schema/controls
+    exact_mappings:
+    - pals:signal_role
+    rank: 1000
+    domain_of:
+    - ControlVariable
+    range: string
+  canonical_type:
+    name: canonical_type
+    description: The quantity the variable carries, independent of its PV name (e.g.,
+      ``MagnetCurrentSetpoint``), in NARAD's ``CanonicalSignalTypeEnum`` terms.
+    from_schema: https://w3id.org/laura/schema/controls
+    exact_mappings:
+    - pals:canonical_signal_type
+    rank: 1000
+    domain_of:
+    - ControlVariable
+    range: string
+  quantity_kind:
+    name: quantity_kind
+    description: The physical kind of quantity (e.g., ``ElectricCurrent``), in NARAD's
+      ``QuantityKindEnum`` terms.
+    from_schema: https://w3id.org/laura/schema/controls
+    exact_mappings:
+    - pals:quantity_kind
+    rank: 1000
+    domain_of:
+    - ControlVariable
+    range: string
+  access_protocol:
+    name: access_protocol
+    description: How the variable is reached, where ``protocol`` names only the control
+      system (e.g., ``EPICS Channel Access``).
+    from_schema: https://w3id.org/laura/schema/controls
+    exact_mappings:
+    - pals:access_protocol
     rank: 1000
     domain_of:
     - ControlVariable
@@ -346,6 +407,8 @@ name: ControlVariable
 description: A single process-variable entry mapping a logical name to a control-system
   PV identifier.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Signal
 attributes:
   identifier:
     name: identifier
@@ -390,6 +453,8 @@ attributes:
     name: description
     description: Human-readable description.
     from_schema: https://w3id.org/laura/schema/controls
+    close_mappings:
+    - pals:native_description
     rank: 1000
     ifabsent: string(Default Description)
     owner: ControlVariable
@@ -502,6 +567,54 @@ attributes:
     name: setpoint
     description: Name of the set-point variable this readback follows.
     from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    owner: ControlVariable
+    domain_of:
+    - ControlVariable
+    range: string
+  role:
+    name: role
+    description: What the variable is to its element (e.g., ``Setpoint``, ``Readback``,
+      ``MaximumLimit``), in NARAD's ``SignalRoleEnum`` terms.
+    from_schema: https://w3id.org/laura/schema/controls
+    exact_mappings:
+    - pals:signal_role
+    rank: 1000
+    owner: ControlVariable
+    domain_of:
+    - ControlVariable
+    range: string
+  canonical_type:
+    name: canonical_type
+    description: The quantity the variable carries, independent of its PV name (e.g.,
+      ``MagnetCurrentSetpoint``), in NARAD's ``CanonicalSignalTypeEnum`` terms.
+    from_schema: https://w3id.org/laura/schema/controls
+    exact_mappings:
+    - pals:canonical_signal_type
+    rank: 1000
+    owner: ControlVariable
+    domain_of:
+    - ControlVariable
+    range: string
+  quantity_kind:
+    name: quantity_kind
+    description: The physical kind of quantity (e.g., ``ElectricCurrent``), in NARAD's
+      ``QuantityKindEnum`` terms.
+    from_schema: https://w3id.org/laura/schema/controls
+    exact_mappings:
+    - pals:quantity_kind
+    rank: 1000
+    owner: ControlVariable
+    domain_of:
+    - ControlVariable
+    range: string
+  access_protocol:
+    name: access_protocol
+    description: How the variable is reached, where ``protocol`` names only the control
+      system (e.g., ``EPICS Channel Access``).
+    from_schema: https://w3id.org/laura/schema/controls
+    exact_mappings:
+    - pals:access_protocol
     rank: 1000
     owner: ControlVariable
     domain_of:

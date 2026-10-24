@@ -276,6 +276,7 @@ URI: [laura:NonLinearLens](https://w3id.org/laura/NonLinearLens)
 | ---  | ---  |
 | self | laura:NonLinearLens |
 | native | laura:NonLinearLens |
+| broad | pals:Magnet |
 
 
 
@@ -293,6 +294,8 @@ URI: [laura:NonLinearLens](https://w3id.org/laura/NonLinearLens)
 name: NonLinearLens
 description: Non-linear integrable-optics lens.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Magnet
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -314,6 +317,8 @@ class_uri: laura:NonLinearLens
 name: NonLinearLens
 description: Non-linear integrable-optics lens.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Magnet
 is_a: Magnet
 slot_usage:
   magnetic:
@@ -484,6 +489,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: NonLinearLens
     domain_of:

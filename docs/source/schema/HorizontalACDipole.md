@@ -252,6 +252,7 @@ URI: [laura:Horizontal_AC_Dipole](https://w3id.org/laura/Horizontal_AC_Dipole)
 | ---  | ---  |
 | self | laura:Horizontal_AC_Dipole |
 | native | laura:HorizontalACDipole |
+| broad | pals:ACKicker |
 
 
 
@@ -269,6 +270,8 @@ URI: [laura:Horizontal_AC_Dipole](https://w3id.org/laura/Horizontal_AC_Dipole)
 name: Horizontal_AC_Dipole
 description: Horizontally deflecting AC-dipole tune exciter.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:ACKicker
 is_a: ACDipole
 slot_usage:
   hardware_type:
@@ -286,6 +289,8 @@ class_uri: laura:Horizontal_AC_Dipole
 name: Horizontal_AC_Dipole
 description: Horizontally deflecting AC-dipole tune exciter.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:ACKicker
 is_a: ACDipole
 slot_usage:
   hardware_type:
@@ -432,6 +437,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Horizontal_AC_Dipole
     domain_of:

@@ -251,6 +251,7 @@ URI: [laura:Drift](https://w3id.org/laura/Drift)
 | ---  | ---  |
 | self | laura:Drift |
 | native | laura:Drift |
+| exact | pals:Drift |
 
 
 
@@ -268,6 +269,8 @@ URI: [laura:Drift](https://w3id.org/laura/Drift)
 name: Drift
 description: Field-free drift space between elements.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Drift
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -288,6 +291,8 @@ class_uri: laura:Drift
 name: Drift
 description: Field-free drift space between elements.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Drift
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -437,6 +442,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Drift
     domain_of:

@@ -251,6 +251,7 @@ URI: [laura:Marker](https://w3id.org/laura/Marker)
 | ---  | ---  |
 | self | laura:Marker |
 | native | laura:Marker |
+| exact | pals:Marker |
 
 
 
@@ -268,6 +269,8 @@ URI: [laura:Marker](https://w3id.org/laura/Marker)
 name: Marker
 description: Virtual survey marker -- a zero-length reference point used for alignment.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Marker
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -285,6 +288,8 @@ class_uri: laura:Marker
 name: Marker
 description: Virtual survey marker -- a zero-length reference point used for alignment.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:Marker
 is_a: PhysicalAcceleratorElement
 slot_usage:
   hardware_type:
@@ -431,6 +436,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Marker
     domain_of:

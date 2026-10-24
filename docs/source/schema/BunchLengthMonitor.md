@@ -264,6 +264,7 @@ URI: [laura:BunchLengthMonitor](https://w3id.org/laura/BunchLengthMonitor)
 | ---  | ---  |
 | self | laura:BunchLengthMonitor |
 | native | laura:BunchLengthMonitor |
+| broad | pals:Instrument |
 
 
 
@@ -281,6 +282,8 @@ URI: [laura:BunchLengthMonitor](https://w3id.org/laura/BunchLengthMonitor)
 name: BunchLengthMonitor
 description: Bunch-length monitor (BLM / CDR detector).
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Instrument
 is_a: Diagnostic
 slot_usage:
   hardware_type:
@@ -315,6 +318,8 @@ class_uri: laura:BunchLengthMonitor
 name: BunchLengthMonitor
 description: Bunch-length monitor (BLM / CDR detector).
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Instrument
 is_a: Diagnostic
 slot_usage:
   hardware_type:
@@ -478,6 +483,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: BunchLengthMonitor
     domain_of:

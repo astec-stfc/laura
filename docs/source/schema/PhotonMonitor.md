@@ -264,6 +264,7 @@ URI: [laura:PhotonMonitor](https://w3id.org/laura/PhotonMonitor)
 | ---  | ---  |
 | self | laura:PhotonMonitor |
 | native | laura:PhotonMonitor |
+| broad | pals:Instrument |
 
 
 
@@ -281,6 +282,8 @@ URI: [laura:PhotonMonitor](https://w3id.org/laura/PhotonMonitor)
 name: PhotonMonitor
 description: Photon intensity monitor.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Instrument
 is_a: Diagnostic
 slot_usage:
   hardware_type:
@@ -318,6 +321,8 @@ class_uri: laura:PhotonMonitor
 name: PhotonMonitor
 description: Photon intensity monitor.
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Instrument
 is_a: Diagnostic
 slot_usage:
   hardware_type:
@@ -484,6 +489,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: PhotonMonitor
     domain_of:

@@ -86,6 +86,7 @@ URI: [laura:n_cells](https://w3id.org/laura/n_cells)
 | ---  | ---  |
 | self | laura:n_cells |
 | native | laura:n_cells |
+| exact | pals:num_cells |
 
 
 
@@ -97,6 +98,8 @@ URI: [laura:n_cells](https://w3id.org/laura/n_cells)
 name: n_cells
 description: Number of cells.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:num_cells
 rank: 1000
 ifabsent: float(1)
 domain_of:

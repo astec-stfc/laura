@@ -264,6 +264,7 @@ URI: [laura:CrabCavity](https://w3id.org/laura/CrabCavity)
 | ---  | ---  |
 | self | laura:CrabCavity |
 | native | laura:CrabCavity |
+| exact | pals:CrabCavity |
 
 
 
@@ -281,6 +282,8 @@ URI: [laura:CrabCavity](https://w3id.org/laura/CrabCavity)
 name: CrabCavity
 description: Transverse-deflecting crab cavity for crossing-angle compensation.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:CrabCavity
 is_a: RFCavity
 slot_usage:
   hardware_type:
@@ -311,6 +314,8 @@ class_uri: laura:CrabCavity
 name: CrabCavity
 description: Transverse-deflecting crab cavity for crossing-angle compensation.
 from_schema: https://w3id.org/laura/schema
+exact_mappings:
+- pals:CrabCavity
 is_a: RFCavity
 slot_usage:
   hardware_type:
@@ -470,6 +475,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: CrabCavity
     domain_of:

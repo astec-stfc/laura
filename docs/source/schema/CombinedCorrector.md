@@ -283,6 +283,7 @@ URI: [laura:CombinedCorrector](https://w3id.org/laura/CombinedCorrector)
 | ---  | ---  |
 | self | laura:CombinedCorrector |
 | native | laura:CombinedCorrector |
+| close | pals:Kicker |
 
 
 
@@ -301,6 +302,8 @@ name: CombinedCorrector
 description: Combined horizontal/vertical steering corrector, naming the two single-plane
   correctors it stands in for.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Kicker
 is_a: Dipole
 slot_usage:
   magnetic:
@@ -340,6 +343,8 @@ name: CombinedCorrector
 description: Combined horizontal/vertical steering corrector, naming the two single-plane
   correctors it stands in for.
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:Kicker
 is_a: Dipole
 slot_usage:
   magnetic:
@@ -528,6 +533,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: CombinedCorrector
     domain_of:

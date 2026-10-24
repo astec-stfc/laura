@@ -252,6 +252,7 @@ URI: [laura:Collimator](https://w3id.org/laura/Collimator)
 | ---  | ---  |
 | self | laura:Collimator |
 | native | laura:Collimator |
+| broad | pals:Aperture, pals:Mask |
 
 
 
@@ -269,6 +270,9 @@ URI: [laura:Collimator](https://w3id.org/laura/Collimator)
 name: Collimator
 description: Movable collimator jaw (extends Aperture).
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Aperture
+- pals:Mask
 is_a: Aperture
 slot_usage:
   hardware_type:
@@ -286,6 +290,9 @@ class_uri: laura:Collimator
 name: Collimator
 description: Movable collimator jaw (extends Aperture).
 from_schema: https://w3id.org/laura/schema
+broad_mappings:
+- pals:Aperture
+- pals:Mask
 is_a: Aperture
 slot_usage:
   hardware_type:
@@ -430,6 +437,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
+    exact_mappings:
+    - pals:alias
     rank: 1000
     owner: Collimator
     domain_of:
