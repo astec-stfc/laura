@@ -272,7 +272,7 @@ attributes:
     description: Order of the symplectic integrator.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
-    ifabsent: int(4)
+    ifabsent: int(6)
     domain_of:
     - MagnetSimulationElement
     range: integer
@@ -434,7 +434,7 @@ attributes:
     description: Order of the symplectic integrator.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
-    ifabsent: int(4)
+    ifabsent: int(6)
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement

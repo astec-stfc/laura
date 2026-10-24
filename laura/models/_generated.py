@@ -834,7 +834,7 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Enable coherent synchrotron radiation."""
     csr_bins: int = Field(default=100, description="""Number of longitudinal bins for the CSR mesh.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(100)'} })
     """Number of longitudinal bins for the CSR mesh."""
-    integration_order: int = Field(default=4, description="""Order of the symplectic integrator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(4)'} })
+    integration_order: int = Field(default=6, description="""Order of the symplectic integrator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(6)'} })
     """Order of the symplectic integrator."""
     nonlinear: Optional[bool] = Field(default=None, description="""Include higher-order (sextupole+) field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
     """Include higher-order (sextupole+) field components."""
@@ -2373,14 +2373,14 @@ class _PlasmaElementBase(ConfiguredBaseModel):
 class _DipoleMagnetBase(_MagneticElementBase):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/laura/schema/magnetic',
          'slot_usage': {'order': {'equals_number': 0,
-                                  'ifabsent': '0',
+                                  'ifabsent': 'int(0)',
                                   'name': 'order'}}})
 
     order: int = Field(default=0, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=0, ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
                        'MagneticElement',
                        'Corrector_Magnet',
                        'Solenoid_Magnet'],
-         'ifabsent': '0'} })
+         'ifabsent': 'int(0)'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
     """Whether the magnet is rotated 45? to produce a skew field component."""
@@ -2452,14 +2452,14 @@ class _DipoleMagnetBase(_MagneticElementBase):
 class _QuadrupoleMagnetBase(_MagneticElementBase):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/laura/schema/magnetic',
          'slot_usage': {'order': {'equals_number': 1,
-                                  'ifabsent': '1',
+                                  'ifabsent': 'int(1)',
                                   'name': 'order'}}})
 
     order: int = Field(default=1, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=1, ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
                        'MagneticElement',
                        'Corrector_Magnet',
                        'Solenoid_Magnet'],
-         'ifabsent': '1'} })
+         'ifabsent': 'int(1)'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
     """Whether the magnet is rotated 45? to produce a skew field component."""
@@ -2534,14 +2534,14 @@ class _SextupoleMagnetBase(_MagneticElementBase):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/laura/schema/magnetic',
          'slot_usage': {'order': {'equals_number': 2,
-                                  'ifabsent': '2',
+                                  'ifabsent': 'int(2)',
                                   'name': 'order'}}})
 
     order: int = Field(default=2, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=2, ge=2, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
                        'MagneticElement',
                        'Corrector_Magnet',
                        'Solenoid_Magnet'],
-         'ifabsent': '2'} })
+         'ifabsent': 'int(2)'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
     """Whether the magnet is rotated 45? to produce a skew field component."""
@@ -2618,14 +2618,14 @@ class _OctupoleMagnetBase(_MagneticElementBase):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/laura/schema/magnetic',
          'slot_usage': {'order': {'equals_number': 3,
-                                  'ifabsent': '3',
+                                  'ifabsent': 'int(3)',
                                   'name': 'order'}}})
 
     order: int = Field(default=3, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=3, ge=3, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
                        'MagneticElement',
                        'Corrector_Magnet',
                        'Solenoid_Magnet'],
-         'ifabsent': '3'} })
+         'ifabsent': 'int(3)'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
     """Whether the magnet is rotated 45? to produce a skew field component."""
@@ -2730,7 +2730,7 @@ class _CorrectorMagnetBase(ConfiguredBaseModel):
 
 class _SolenoidFieldsBase(ConfiguredBaseModel):
     """
-    Solenoid integrated axial field components ``S0L``–``S12L`` [T.m].
+    Solenoid integrated axial field components ``S0L``�``S12L`` [T.m].
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:SolenoidFields',
          'from_schema': 'https://w3id.org/laura/schema/magnetic'})
