@@ -367,7 +367,7 @@ export interface ControlVariable {
     identifier?: string,
     /** Data type, held as a Python type and serialised by name (e.g., ``float``, ``int``, ``str``). */
     dtype?: string,
-    /** Control-system protocol (e.g., ``EPICS``, ``Tango``). */
+    /** How the variable is reached (e.g., ``CA``, ``PVA``); NARAD's ``access_protocol`` spells these out (``EPICS Channel Access``). */
     protocol?: string,
     /** Physical units string (e.g., ``A``, ``T/m``). */
     units?: string,
@@ -399,8 +399,6 @@ export interface ControlVariable {
     canonical_type?: string,
     /** The physical kind of quantity (e.g., ``ElectricCurrent``), in NARAD's ``QuantityKindEnum`` terms. */
     quantity_kind?: string,
-    /** How the variable is reached, where ``protocol`` names only the control system (e.g., ``EPICS Channel Access``). */
-    access_protocol?: string,
     /** Signal generating this variable's value over time, as ``{function: <import path>, **kwargs}`` -- see ``laura.utils.signals``. Stored with ``function`` as a fully qualified import path so it resolves without LAURA. */
     update?: string,
     /** Response model describing how this variable's readback follows its set-point, as ``{model: <import path>, **kwargs}`` -- see ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or ``setpoint``. */

@@ -3613,13 +3613,6 @@
       "additionalProperties": false,
       "description": "A single process-variable entry mapping a logical name to a control-system PV identifier.",
       "properties": {
-        "access_protocol": {
-          "description": "How the variable is reached, where ``protocol`` names only the control system (e.g., ``EPICS Channel Access``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "canonical_type": {
           "description": "The quantity the variable carries, independent of its PV name (e.g., ``MagnetCurrentSetpoint``), in NARAD's ``CanonicalSignalTypeEnum`` terms.",
           "type": [
@@ -3671,7 +3664,7 @@
           ]
         },
         "protocol": {
-          "description": "Control-system protocol (e.g., ``EPICS``, ``Tango``).",
+          "description": "How the variable is reached (e.g., ``CA``, ``PVA``); NARAD's ``access_protocol`` spells these out (``EPICS Channel Access``).",
           "type": [
             "string",
             "null"

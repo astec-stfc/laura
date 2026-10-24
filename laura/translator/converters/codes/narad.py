@@ -90,6 +90,13 @@ _PREDICATES = {
 
 _DATA_TYPES = {"String": str, "Integer": int, "Boolean": bool, "FloatArray": list}
 
+#: LAURA ``protocol`` (the transport) -> NARAD's free-text ``access_protocol``.
+_ACCESS_PROTOCOLS = {"CA": "EPICS Channel Access", "PVA": "EPICS PV Access"}
+_PROTOCOLS = {
+    **{text: protocol for protocol, text in _ACCESS_PROTOCOLS.items()},
+    "EPICS_ChannelAccess": "CA",  # a SourceSystemEnum value
+}
+
 #: Groups whose keys are already PALS's.
 _PALS_GROUPS = (
     "BendP",
@@ -210,9 +217,10 @@ def _variable(signal: Dict[str, Any]) -> Dict[str, Any]:
     """A NARAD ``Signal`` as a LAURA control variable."""
     data_type = signal.get("native_data_type")
     role = signal.get("signal_role")
+    protocol = signal.get("access_protocol") or signal.get("source_system", "")
     variable = {
         "identifier": _name(signal["id"]),
-        "protocol": signal.get("source_system", ""),
+        "protocol": _PROTOCOLS.get(protocol, protocol),
         "units": signal.get("native_unit"),
         "description": signal.get("native_description"),
         "read_only": role not in ("Setpoint", "Command"),
@@ -221,7 +229,6 @@ def _variable(signal: Dict[str, Any]) -> Dict[str, Any]:
         "role": role,
         "canonical_type": signal.get("canonical_signal_type"),
         "quantity_kind": signal.get("quantity_kind"),
-        "access_protocol": signal.get("access_protocol"),
     }
     variable.update(_extras(signal.get("MetaP")))
     if "type" in variable:  # LAURA's own word for it, from the export
@@ -555,12 +562,10 @@ _POSITION_FIELDS = (
 
 # Control variable field -> the NARAD ``Signal`` slot holding it.
 _SIGNAL_SLOTS = {
-    "protocol": "source_system",
     "units": "native_unit",
     "description": "native_description",
     "canonical_type": "canonical_signal_type",
     "quantity_kind": "quantity_kind",
-    "access_protocol": "access_protocol",
 }
 
 _NARAD_DATA_TYPES = {
@@ -781,6 +786,12 @@ def _signals(element: Any, missing: set) -> tuple:
         for field, slot in _SIGNAL_SLOTS.items():
             if data.get(field) is not None:
                 signal[slot] = data.pop(field)
+        protocol = data.pop("protocol", None)
+        if protocol:
+            signal["access_protocol"] = _ACCESS_PROTOCOLS.get(protocol, protocol)
+            signal["source_system"] = (
+                "EPICS" if protocol in _ACCESS_PROTOCOLS else protocol
+            )
         dtype = data.pop("dtype", "float")
         data_type = _NARAD_DATA_TYPES.get(dtype)
         if data.get("type") == "waveform":

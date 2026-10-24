@@ -1,7 +1,7 @@
 # Slot: protocol 
 
 
-_Control-system protocol (e.g., ``EPICS``, ``Tango``)._
+_How the variable is reached (e.g., ``CA``, ``PVA``); NARAD's ``access_protocol`` spells these out (``EPICS Channel Access``)._
 
 
 
@@ -77,6 +77,7 @@ URI: [laura:protocol](https://w3id.org/laura/protocol)
 | ---  | ---  |
 | self | laura:protocol |
 | native | laura:protocol |
+| close | pals:access_protocol |
 
 
 
@@ -86,8 +87,11 @@ URI: [laura:protocol](https://w3id.org/laura/protocol)
 <details>
 ```yaml
 name: protocol
-description: Control-system protocol (e.g., ``EPICS``, ``Tango``).
+description: How the variable is reached (e.g., ``CA``, ``PVA``); NARAD's ``access_protocol``
+  spells these out (``EPICS Channel Access``).
 from_schema: https://w3id.org/laura/schema
+close_mappings:
+- pals:access_protocol
 rank: 1000
 owner: ControlVariable
 domain_of:

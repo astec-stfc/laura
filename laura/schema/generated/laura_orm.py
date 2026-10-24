@@ -297,7 +297,6 @@ class ControlVariable(Base):
     role = Column(Text())
     canonical_type = Column(Text())
     quantity_kind = Column(Text())
-    access_protocol = Column(Text())
     update = Column(Text())
     dynamics = Column(Text())
     ControlsInformation_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
@@ -309,7 +308,7 @@ class ControlVariable(Base):
     
 
     def __repr__(self):
-        return f"ControlVariable(id={self.id},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},element_dtype={self.element_dtype},states={self.states},readback={self.readback},setpoint={self.setpoint},role={self.role},canonical_type={self.canonical_type},quantity_kind={self.quantity_kind},access_protocol={self.access_protocol},update={self.update},dynamics={self.dynamics},ControlsInformation_id={self.ControlsInformation_id},)"
+        return f"ControlVariable(id={self.id},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},element_dtype={self.element_dtype},states={self.states},readback={self.readback},setpoint={self.setpoint},role={self.role},canonical_type={self.canonical_type},quantity_kind={self.quantity_kind},update={self.update},dynamics={self.dynamics},ControlsInformation_id={self.ControlsInformation_id},)"
 
 
 

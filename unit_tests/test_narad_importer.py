@@ -73,6 +73,7 @@ _SIGNALS = [
         "id": "inst:MBEND.STAT",
         "signal_role": "Readback",
         "source_system": "EPICS",
+        "access_protocol": "EPICS Channel Access",
         "native_data_type": "String",
         "native_unit": "none",
         "alias": ["status"],
@@ -255,6 +256,8 @@ def test_signals_become_controls_keyed_by_alias(elements):
         str,
         "string",
     )
+    # the transport, where there is one, rather than the control system
+    assert status.protocol == "CA"
 
 
 def test_first_reference_becomes_the_design_optics(elements):

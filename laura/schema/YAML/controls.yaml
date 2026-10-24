@@ -129,8 +129,12 @@ classes:
           Data type, held as a Python type and serialised by name
           (e.g., ``float``, ``int``, ``str``).
       protocol:
+        close_mappings:
+          - pals:access_protocol
         range: string
-        description: Control-system protocol (e.g., ``EPICS``, ``Tango``).
+        description: >-
+          How the variable is reached (e.g., ``CA``, ``PVA``); NARAD's
+          ``access_protocol`` spells these out (``EPICS Channel Access``).
       units:
         range: string
         ifabsent: string(Arb. Units)
@@ -222,13 +226,6 @@ classes:
         description: >-
           The physical kind of quantity (e.g., ``ElectricCurrent``), in NARAD's
           ``QuantityKindEnum`` terms.
-      access_protocol:
-        exact_mappings:
-          - pals:access_protocol
-        range: string
-        description: >-
-          How the variable is reached, where ``protocol`` names only the
-          control system (e.g., ``EPICS Channel Access``).
       update:
         range: string
         description: >-

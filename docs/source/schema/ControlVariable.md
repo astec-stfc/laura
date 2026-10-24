@@ -19,8 +19,6 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
  classDiagram
     class ControlVariable
     click ControlVariable href "../ControlVariable/"
-      ControlVariable : access_protocol
-        
       ControlVariable : canonical_type
         
       ControlVariable : control_type
@@ -100,7 +98,7 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
 | ---  | --- | --- | --- |
 | [identifier](identifier.md) | 0..1 <br/> [String](String.md) | Protocol-specific PV name (e | direct |
 | [dtype](dtype.md) | 0..1 <br/> [String](String.md) | Data type, held as a Python type and serialised by name (e | direct |
-| [protocol](protocol.md) | 0..1 <br/> [String](String.md) | Control-system protocol (e | direct |
+| [protocol](protocol.md) | 0..1 <br/> [String](String.md) | How the variable is reached (e | direct |
 | [units](units.md) | 0..1 <br/> [String](String.md) | Physical units string (e | direct |
 | [description](description.md) | 0..1 <br/> [String](String.md) | Human-readable description | direct |
 | [read_only](read_only.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the variable is read-only | direct |
@@ -116,7 +114,6 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
 | [role](role.md) | 0..1 <br/> [String](String.md) | What the variable is to its element (e | direct |
 | [canonical_type](canonical_type.md) | 0..1 <br/> [String](String.md) | The quantity the variable carries, independent of its PV name (e | direct |
 | [quantity_kind](quantity_kind.md) | 0..1 <br/> [String](String.md) | The physical kind of quantity (e | direct |
-| [access_protocol](access_protocol.md) | 0..1 <br/> [String](String.md) | How the variable is reached, where ``protocol`` names only the control system... | direct |
 | [update](update.md) | 0..1 <br/> [String](String.md) | Signal generating this variable's value over time, as ``{function: <import pa... | direct |
 | [dynamics](dynamics.md) | 0..1 <br/> [String](String.md) | Response model describing how this variable's readback follows its set-point,... | direct |
 
@@ -203,8 +200,11 @@ attributes:
     range: string
   protocol:
     name: protocol
-    description: Control-system protocol (e.g., ``EPICS``, ``Tango``).
+    description: How the variable is reached (e.g., ``CA``, ``PVA``); NARAD's ``access_protocol``
+      spells these out (``EPICS Channel Access``).
     from_schema: https://w3id.org/laura/schema/controls
+    close_mappings:
+    - pals:access_protocol
     rank: 1000
     domain_of:
     - ControlVariable
@@ -359,17 +359,6 @@ attributes:
     from_schema: https://w3id.org/laura/schema/controls
     exact_mappings:
     - pals:quantity_kind
-    rank: 1000
-    domain_of:
-    - ControlVariable
-    range: string
-  access_protocol:
-    name: access_protocol
-    description: How the variable is reached, where ``protocol`` names only the control
-      system (e.g., ``EPICS Channel Access``).
-    from_schema: https://w3id.org/laura/schema/controls
-    exact_mappings:
-    - pals:access_protocol
     rank: 1000
     domain_of:
     - ControlVariable
@@ -432,8 +421,11 @@ attributes:
     range: string
   protocol:
     name: protocol
-    description: Control-system protocol (e.g., ``EPICS``, ``Tango``).
+    description: How the variable is reached (e.g., ``CA``, ``PVA``); NARAD's ``access_protocol``
+      spells these out (``EPICS Channel Access``).
     from_schema: https://w3id.org/laura/schema/controls
+    close_mappings:
+    - pals:access_protocol
     rank: 1000
     owner: ControlVariable
     domain_of:
@@ -603,18 +595,6 @@ attributes:
     from_schema: https://w3id.org/laura/schema/controls
     exact_mappings:
     - pals:quantity_kind
-    rank: 1000
-    owner: ControlVariable
-    domain_of:
-    - ControlVariable
-    range: string
-  access_protocol:
-    name: access_protocol
-    description: How the variable is reached, where ``protocol`` names only the control
-      system (e.g., ``EPICS Channel Access``).
-    from_schema: https://w3id.org/laura/schema/controls
-    exact_mappings:
-    - pals:access_protocol
     rank: 1000
     owner: ControlVariable
     domain_of:

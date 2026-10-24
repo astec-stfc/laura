@@ -682,8 +682,8 @@ class _ControlVariableBase(ConfiguredBaseModel):
     """Protocol-specific PV name (e.g., EPICS PV address)."""
     dtype: str = Field(default="float", description="""Data type, held as a Python type and serialised by name (e.g., ``float``, ``int``, ``str``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable'], 'ifabsent': 'string(float)'} })
     """Data type, held as a Python type and serialised by name (e.g., ``float``, ``int``, ``str``)."""
-    protocol: Optional[str] = Field(default=None, description="""Control-system protocol (e.g., ``EPICS``, ``Tango``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
-    """Control-system protocol (e.g., ``EPICS``, ``Tango``)."""
+    protocol: Optional[str] = Field(default=None, description="""How the variable is reached (e.g., ``CA``, ``PVA``); NARAD's ``access_protocol`` spells these out (``EPICS Channel Access``).""", json_schema_extra = { "linkml_meta": {'close_mappings': ['pals:access_protocol'], 'domain_of': ['ControlVariable']} })
+    """How the variable is reached (e.g., ``CA``, ``PVA``); NARAD's ``access_protocol`` spells these out (``EPICS Channel Access``)."""
     units: str = Field(default="Arb. Units", description="""Physical units string (e.g., ``A``, ``T/m``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable'], 'ifabsent': 'string(Arb. Units)'} })
     """Physical units string (e.g., ``A``, ``T/m``)."""
     description: str = Field(default="Default Description", description="""Human-readable description.""", json_schema_extra = { "linkml_meta": {'close_mappings': ['pals:native_description'],
@@ -721,8 +721,6 @@ class _ControlVariableBase(ConfiguredBaseModel):
     """The quantity the variable carries, independent of its PV name (e.g., ``MagnetCurrentSetpoint``), in NARAD's ``CanonicalSignalTypeEnum`` terms."""
     quantity_kind: Optional[str] = Field(default=None, description="""The physical kind of quantity (e.g., ``ElectricCurrent``), in NARAD's ``QuantityKindEnum`` terms.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable'], 'exact_mappings': ['pals:quantity_kind']} })
     """The physical kind of quantity (e.g., ``ElectricCurrent``), in NARAD's ``QuantityKindEnum`` terms."""
-    access_protocol: Optional[str] = Field(default=None, description="""How the variable is reached, where ``protocol`` names only the control system (e.g., ``EPICS Channel Access``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable'], 'exact_mappings': ['pals:access_protocol']} })
-    """How the variable is reached, where ``protocol`` names only the control system (e.g., ``EPICS Channel Access``)."""
     update: Optional[str] = Field(default=None, description="""Signal generating this variable's value over time, as ``{function: <import path>, **kwargs}`` -- see ``laura.utils.signals``. Stored with ``function`` as a fully qualified import path so it resolves without LAURA.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Signal generating this variable's value over time, as ``{function: <import path>, **kwargs}`` -- see ``laura.utils.signals``. Stored with ``function`` as a fully qualified import path so it resolves without LAURA."""
     dynamics: Optional[str] = Field(default=None, description="""Response model describing how this variable's readback follows its set-point, as ``{model: <import path>, **kwargs}`` -- see ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or ``setpoint``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })

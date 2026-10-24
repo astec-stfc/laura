@@ -105,6 +105,11 @@ def test_signals_state_role_and_data_type(exported):
         "Readback",
         "String",
     )
+    assert (status["source_system"], status["access_protocol"]) == (
+        "EPICS",
+        "EPICS Channel Access",
+    )
+    assert setpoint["source_system"] == "EPICS"
 
 
 def test_control_fields_narad_lacks_travel_in_meta(machine):

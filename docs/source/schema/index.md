@@ -167,7 +167,6 @@ Name: laura_schema
 | Slot | Description |
 | --- | --- |
 | [a](a.md) | Quadratic saturation coefficient |
-| [access_protocol](access_protocol.md) | How the variable is reached, where ``protocol`` names only the control system... |
 | [alias](alias.md) | Human-readable aliases for the element |
 | [allow_long_beam](allow_long_beam.md) | Allow beams longer than the wakefield |
 | [alpha_x](alpha_x.md) | Horizontal alpha |
@@ -430,7 +429,7 @@ Name: laura_schema
 | [profile_type](profile_type.md) | Transverse intensity profile model |
 | [prot_type](prot_type.md) | Protection system type |
 | [protection](protection.md) | RF protection parameters |
-| [protocol](protocol.md) | Control-system protocol (e |
+| [protocol](protocol.md) | How the variable is reached (e |
 | [psi](psi.md) | Rotation about the longitudinal (z) axis [rad] |
 | [psl](psl.md) | Skew multipole phases [deg], dipole through decapole |
 | [pulse_duration_fwhm](pulse_duration_fwhm.md) | Pulse duration at FWHM [s] |
