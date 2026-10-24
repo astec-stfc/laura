@@ -1,7 +1,7 @@
 import json
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 from warnings import warn
 
 import numpy as np
@@ -32,13 +32,14 @@ from ..utils.bmad import (
 )
 from ..utils.fields import FieldMap
 from ..utils.functions import (
-    cavity_energy_gain,
     bmad_functional_definitions,
+    cavity_energy_gain,
     elegant_functional_definitions,
     functional_fields,
     madx_functional_definitions,
     sanitize_string,
 )
+from ..utils.pals import PalsBeamLine, pals_document, pals_safe_names
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
@@ -52,6 +53,7 @@ from .codes import (
     gpt_unsupported,
     ocelot_unsupported,
     opal_unsupported,
+    pals_unsupported,
     wake_t_unsupported,
     xsuite_unsupported,
 )
@@ -61,6 +63,27 @@ from .diagnostic import DiagnosticTranslator
 from .magnet import MagnetTranslator, SolenoidTranslator
 from .matrix import MatrixTransformTranslator, madx_gamma
 from .wake import WakefieldTranslator
+
+
+def _s_bounds(element) -> tuple:
+    """Arc-length positions of an element's entrance and exit faces.
+
+    ``physical.s`` is the middle of the element, and is only set once
+    ``resolve_positions`` has run; before that the trajectory, or failing that
+    the raw z of the middle, is the best available answer.
+    """
+    physical = element.physical
+    middle = physical.s
+    if middle is None:
+        trajectory = getattr(physical, "_trajectory", None)
+        middle = (
+            trajectory.s_at_xyz(physical.middle)
+            if trajectory is not None
+            else physical.middle.z
+        )
+    half_length = physical.length / 2
+    return middle - half_length, middle + half_length
+
 
 unsupported_elements = {
     "bmad": bmad_unsupported,
@@ -72,6 +95,7 @@ unsupported_elements = {
     "gpt": gpt_unsupported,
     "ocelot": ocelot_unsupported,
     "opal": opal_unsupported,
+    "pals": pals_unsupported,
     "wake_t": wake_t_unsupported,
     "xsuite": xsuite_unsupported,
 }
@@ -362,57 +386,38 @@ class SectionLatticeTranslator(SectionLattice):
                     header += f"beginning[{attribute}] = {value}\n"
         return header
 
-    def _bmad_body(
-        self, geometry: str, *, multipass: bool = False, starts_lattice: bool = True
-    ) -> BmadBody:
+    def _split_backbone(self, starts_lattice: bool = True) -> Tuple[Any, list, list]:
         """
-        This section's Bmad element definitions and its one ``line``, split from
-        the header so a parent can put several sections in one file.
+        Split this section into the elements a line holds end to end and the
+        ones that have to sit on top of them.
 
         Parameters
         ----------
-        geometry: str
-            ``open`` or ``closed``, handed to every element that reads it.
-        multipass: bool
-            Write ``line[multipass]``, so Bmad makes a lord and one slave per
-            traversal rather than repeating the elements.
         starts_lattice: bool
             Whether this section starts the lattice, so that a leading
-            `TwissMatch` gives its beginning Twiss rather than being an element
-            of the line.
+            `TwissMatch` seeds the line rather than being an element of it.
+
+        Returns
+        -------
+        tuple
+            The leading `TwissMatch` or ``None``, the backbone elements,
+            and the superimposed elements in section order.
         """
-        self._check_elements_supported("bmad")
         all_elements = list(self.elements.elements.values())
         ordered_elements = self._get_all_elements()
 
-        has_origin = bool(
+        seed = None
+        if (
             starts_lattice
             and ordered_elements
             and ordered_elements[0].hardware_type == "TwissMatch"
-        )
-        origin = None
-        if has_origin:
+        ):
             seed = ordered_elements[0]
             ordered_elements = ordered_elements[1:]
             all_elements = [
                 element for element in all_elements if element.name != seed.name
             ]
-            origin = seed.simulation
-
         by_name = {element.name: element for element in all_elements}
-
-        def s_bounds(element):
-            physical = element.physical
-            middle = physical.s
-            if middle is None:
-                trajectory = getattr(physical, "_trajectory", None)
-                middle = (
-                    trajectory.s_at_xyz(physical.middle)
-                    if trajectory is not None
-                    else physical.middle.z
-                )
-            half_length = physical.length / 2
-            return middle - half_length, middle + half_length
 
         def logical_corrector_part(element):
             parent = by_name.get(element.subelement)
@@ -433,12 +438,42 @@ class SectionLatticeTranslator(SectionLattice):
         for element in ordered_elements:
             if element.name in superimposed_names:
                 continue
-            start, end = s_bounds(element)
+            start, end = _s_bounds(element)
             if previous_end is not None and start < previous_end - 1e-12:
                 superimposed_names.add(element.name)
             else:
                 backbone.append(element)
                 previous_end = end
+
+        superimposed = [
+            element for element in all_elements if element.name in superimposed_names
+        ]
+        return seed, backbone, superimposed
+
+    def _bmad_body(
+        self, geometry: str, *, multipass: bool = False, starts_lattice: bool = True
+    ) -> BmadBody:
+        """
+        This section's Bmad element definitions and its one ``line``, split from
+        the header so a parent can put several sections in one file.
+
+        Parameters
+        ----------
+        geometry: str
+            ``open`` or ``closed``, handed to every element that reads it.
+        multipass: bool
+            Write ``line[multipass]``, so Bmad makes a lord and one slave per
+            traversal rather than repeating the elements.
+        starts_lattice: bool
+            Whether this section starts the lattice, so that a leading
+            `TwissMatch` gives its beginning Twiss rather than being an element
+            of the line.
+        """
+        self._check_elements_supported("bmad")
+        seed, backbone, superimposed = self._split_backbone(starts_lattice)
+        has_origin = seed is not None
+        origin = seed.simulation if has_origin else None
+        s_bounds = _s_bounds
 
         if not backbone:
             raise ValueError(
@@ -473,9 +508,6 @@ class SectionLatticeTranslator(SectionLattice):
             if key in patches:
                 ordered_members.append(patches[key])
 
-        superimposed = [
-            element for element in all_elements if element.name in superimposed_names
-        ]
         elements = self._translate(
             [
                 *(element for key, element in section.items() if key not in superseded),
@@ -532,7 +564,6 @@ class SectionLatticeTranslator(SectionLattice):
         lattice_start = s_bounds(backbone[0])[0] - lead
         superpositions = ""
         for element in superimposed:
-            translator = elements[element.name]
             target_type = target_types[element.name]
             if target_type == "drift":
                 raise ValueError(
@@ -557,6 +588,94 @@ class SectionLatticeTranslator(SectionLattice):
             name=name,
             renames=renames,
         )
+
+    def _pals_beamline(self, particle: str | None = None) -> PalsBeamLine:
+        """
+        Build this section's PALS branch: its definitions and its line.
+
+        Kept apart from :meth:`to_pals` because a PALS document holds a whole
+        machine, so a layout writes one branch per section into a single
+        document rather than one document per section..
+
+        Parameters
+        ----------
+        particle: str | None
+            Reference species for the branch.
+
+        Returns
+        -------
+        PalsBeamLine
+            The branch, ready for
+            :func:`~laura.translator.utils.pals.pals_document`.
+        """
+        self._check_elements_supported("pals")
+        seed, backbone, superimposed = self._split_backbone()
+        initial_twiss = seed.simulation if seed is not None else None
+        begin_name = seed.name if seed is not None else None
+
+        if not backbone:
+            raise ValueError("A PALS branch needs at least one element")
+        if superimposed:
+            warn(
+                "PALS cannot superimpose elements; "
+                f"{', '.join(sorted(element.name for element in superimposed))} "
+                f"was not written into section {self.name!r}."
+            )
+
+        section = self.model_copy(
+            update={"order": [element.name for element in backbone]}
+        ).create_drifts(
+            csr_enable=self.csr_enable,
+            lsc_enable=self.lsc_enable,
+            lsc_bins=self.lsc_bins,
+            keep_diagnostic_length=True,
+        )
+        elements = translate_elements(
+            section.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        start = max(_s_bounds(backbone[0])[0], 0.0)
+
+        renames = pals_safe_names(
+            [*elements, self.name, *([begin_name] if begin_name else [])]
+        )
+        definitions: Dict[str, Any] = {}
+        line: list = []
+        for name, translator in elements.items():
+            translator.name = renames.get(name, name)
+            definitions.update(translator.to_pals())
+            line.append(translator.name)
+
+        geometry = getattr(self.geometry, "value", self.geometry) or "open"
+        return PalsBeamLine(
+            name=renames.get(self.name, self.name),
+            definitions=definitions,
+            line=line,
+            periodic=str(geometry).lower() == "closed",
+            particle=particle,
+            energy=self.reference_energy,
+            twiss=initial_twiss,
+            begin_name=renames.get(begin_name, begin_name),
+            s_position=start,
+        )
+
+    def to_pals(self, particle: str | None = None) -> str:
+        """
+        Create a PALS document holding this section as a single-branch lattice.
+
+        Parameters
+        ----------
+        particle: str | None
+            Reference species for the branch.
+
+        Returns
+        -------
+        str
+            The contents of a ``*.pals.yaml`` file.
+        """
+        beamline = self._pals_beamline(particle=particle)
+        return pals_document([beamline], f"{beamline.name}_lattice")
 
     def to_astra(self) -> str:
         """

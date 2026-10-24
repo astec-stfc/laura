@@ -38,6 +38,7 @@ from ..utils.alignment import arc_point, sagitta, to_frame
 from ..utils.bmad import bmad_misalignment
 from ..utils.fields import FieldMap
 from ..utils.functions import check_value, expand_substitution, sanitize_string
+from ..utils.pals import pals_element_body
 
 _ASTRA_ROTATION_SIGN = {"x": -1.0, "y": -1.0, "z": 1.0}
 """Sign taking a LAURA ``Rotation`` component into ASTRA's ``*_xrot`` family."""
@@ -1489,6 +1490,19 @@ class BaseElementTranslator(PhysicalBaseElement):
         of one element can be compared on the values that reached the file.
         """
         return dict((self.__pydantic_private__ or {}).get("_bmad_written", {}))
+
+    def to_pals(self) -> Dict[str, Any]:
+        """
+        Generate the PALS facility entry for this element.
+
+        Returns
+        -------
+        dict
+            ``{name: body}``, where the body holds the element's PALS ``kind``,
+            its ``length`` and its parameter groups.
+        """
+        self.start_write()
+        return {self.name: pals_element_body(self)}
 
     def _write_astra_dictionary(self, d: dict, n: int | None = 1) -> str:
         """

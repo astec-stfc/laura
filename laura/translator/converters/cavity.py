@@ -163,9 +163,7 @@ class RFCavityTranslator(BaseElementTranslator):
         )
         voltage = parameters.get("voltage")
         if voltage is not None and self.structure_type == "TravellingWave":
-            factor = abs(
-                (self.get_cells() + 3.8) * self.cavity.cell_length * (1 / np.sqrt(2))
-            )
+            factor = self.voltage_factor()
             parameters["voltage"] = (
                 f"({voltage}) * {factor}"
                 if not self._resolve_functional and self.is_functional(voltage)

@@ -16,6 +16,7 @@ from .codes.importer import infer_geometry
 from .converter import translate_elements
 from .fanout import ContainerTranslator, wrap_lattice_line
 from .section import SectionLatticeTranslator, fix_ring_reference
+from ..utils.pals import pals_document
 
 bmad_per_pass_attributes = {"phi0": "phi0_multipass"}
 """Attributes a Bmad multipass *slave* can hold on its own, and the name Bmad
@@ -258,6 +259,30 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
     def _children(self) -> Iterator[Tuple[str, SectionLatticeTranslator]]:
         for section in self.sections.values():
             yield section.name, self._section_translator(section)
+
+    def to_pals(self, particle: str | None = None) -> str:
+        """
+        Create one PALS document holding the whole layout.
+
+        Unlike the other exporters this does not write a file per section: a
+        PALS ``Lattice`` is a set of branches, which is exactly what a layout's
+        sections are, so they all belong in one document.
+
+        Parameters
+        ----------
+        particle: str | None
+            Reference species, if the layout does not name one itself.
+
+        Returns
+        -------
+        str
+            The contents of a ``*.pals.yaml`` file.
+        """
+        particle = self.particle or particle
+        beamlines = [
+            section._pals_beamline(particle=particle) for _, section in self._children()
+        ]
+        return pals_document(beamlines, self.name)
 
     def _translate_section(self, section) -> Dict[str, Any]:
         """
