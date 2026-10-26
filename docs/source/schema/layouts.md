@@ -95,6 +95,7 @@ domain_of:
 - MachineModel
 range: MachineLayout
 multivalued: true
+inlined: true
 
 ```
 </details></div>

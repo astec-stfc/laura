@@ -39,7 +39,7 @@ URI: [laura:exit_edge_angle](https://w3id.org/laura/exit_edge_angle)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md) |
+| Range | [Any](Any.md)&nbsp;or&nbsp;<br />[Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) |
 | Domain Of | [MagneticElement](MagneticElement.md) |
 
 ### Cardinality and Requirements
@@ -131,7 +131,7 @@ rank: 1000
 owner: MagneticElement
 domain_of:
 - MagneticElement
-range: string
+range: Any
 unit:
   ucum_code: rad
 any_of:

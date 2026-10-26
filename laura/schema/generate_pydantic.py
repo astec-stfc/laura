@@ -187,6 +187,13 @@ def _rename_classes(content: str, model_names: set[str]) -> str:
         content,
     )
 
+    # ── Pattern 4b: dict[str, Xxx] (inlined slots keyed by identifier) ───────
+    content = re.sub(
+        r"dict\[str, (\w+)\]",
+        lambda m: f"dict[str, {new_name(m.group(1))}]",
+        content,
+    )
+
     # ── Pattern 5: model_rebuild() calls at module level ─────────────────────
     # ``Xxx.model_rebuild()``
     content = re.sub(
@@ -237,10 +244,11 @@ def _parse_schema_info(
     set[str],
     dict[str, list[str]],
     dict[str, dict[str, list[str]]],
+    dict[str, dict[str, str]],
 ]:
     """Read the schema YAML and extract field-level metadata.
 
-    Returns a five-tuple:
+    Returns a six-tuple:
 
     * ``defaults``       – ``{field_name: python_literal_str}`` for slots with
                             ``ifabsent``.  First definition wins (class order in
@@ -259,12 +267,15 @@ def _parse_schema_info(
                             ``global_aliases`` so that the same slot name defined
                             in several classes (e.g. ``type`` in every diagnostic
                             sub-class) gets the correct alias for each class.
+    * ``renames``        – ``{class_name: {alias: slot_name}}`` for slots with
+                            an ``alias:`` (serialised name).
     """
     defaults: dict[str, str] = {}
     multivalued: set[str] = set()
     dict_valued: set[str] = set()
     global_aliases: dict[str, list[str]] = {}
     class_aliases: dict[str, dict[str, list[str]]] = {}
+    renames: dict[str, dict[str, str]] = {}
 
     seen_paths: set[Path] = set()
 
@@ -311,6 +322,8 @@ def _parse_schema_info(
                         and slot_def.get("inlined_as_list") is False
                     ):
                         dict_valued.add(slot_name)
+                if alias := slot_def.get("alias"):
+                    renames.setdefault(class_name, {})[alias] = slot_name
                 slot_aliases = slot_def.get("aliases")
                 if slot_aliases:
                     aliases_list = list(slot_aliases)
@@ -327,7 +340,7 @@ def _parse_schema_info(
 
     _visit(Path(schema_path))
 
-    return defaults, multivalued, dict_valued, global_aliases, class_aliases
+    return defaults, multivalued, dict_valued, global_aliases, class_aliases, renames
 
 
 def _apply_schema_fixes(content: str, schema_path: str) -> str:
@@ -350,7 +363,7 @@ def _apply_schema_fixes(content: str, schema_path: str) -> str:
     An ``AliasChoices`` import is spliced into the pydantic import block if
     any field requires it.
     """
-    defaults, multivalued, dict_valued, global_aliases, class_aliases = (
+    defaults, multivalued, dict_valued, global_aliases, class_aliases, renames = (
         _parse_schema_info(schema_path)
     )
 
@@ -373,6 +386,11 @@ def _apply_schema_fixes(content: str, schema_path: str) -> str:
             class_aliases.get(current_class_orig, {}) if current_class_orig else {}
         )
         merged_aliases = {**global_aliases, **per_class}
+
+        # gen-pydantic names a field by its slot's ``alias`` (the serialised
+        # name); keep the slot name in Python, with ``aliases`` accepting both.
+        for alias, slot_name in renames.get(current_class_orig, {}).items():
+            line = re.sub(rf"^( {{4}}){alias}:", rf"\g<1>{slot_name}:", line)
 
         line = _fix_field_line(line, defaults, multivalued, dict_valued, merged_aliases)
         if "AliasChoices(" in line:
@@ -429,6 +447,17 @@ def _fix_field_line(
             line = line.replace("default=None,", "default_factory=list,", 1)
         line = _inject_alias_choices(line, field_name, aliases)
         return line
+
+    # ── Optional[dict[str, T]] = Field(default=None, …) — gen-pydantic's own
+    # form when T has an identifier or key slot ─────────────────────────────
+    optdict_m = re.match(
+        r"^( {4})(\w+): Optional\[(dict\[str, \w+\])\] = Field\(default=None, ",
+        line,
+    )
+    if optdict_m and optdict_m.group(2) in multivalued:
+        line = line.replace(f"Optional[{optdict_m.group(3)}]", optdict_m.group(3), 1)
+        line = line.replace("default=None,", "default_factory=dict,", 1)
+        return _inject_alias_choices(line, optdict_m.group(2), aliases)
 
     # ── Optional[T] = Field(…) ───────────────────────────────────────────────
     opt_m = re.match(

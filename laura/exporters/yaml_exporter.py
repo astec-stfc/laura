@@ -148,6 +148,13 @@ def _clean_export_data(data: dict, ele: PhysicalElement) -> dict:
         if hasattr(ele, "magnetic") and isinstance(ele.magnetic, MagneticElement):
             data["magnetic"]["order"] = ele.magnetic.order
 
+    if (
+        isinstance(data.get("simulation"), dict)
+        and getattr(ele, "simulation", None) is not None
+    ):
+        for name in type(ele.simulation).model_computed_fields:
+            data["simulation"].pop(name, None)
+
     # --- Empty alias (Aliases([]) serialises as {} or []) ---
     alias = data.get("alias")
     if isinstance(alias, (dict, list)) and not alias:

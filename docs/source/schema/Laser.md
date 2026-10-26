@@ -417,6 +417,7 @@ attributes:
     owner: Laser
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

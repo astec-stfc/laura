@@ -424,6 +424,7 @@ attributes:
     owner: BeamPositionMonitor
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

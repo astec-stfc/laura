@@ -231,6 +231,7 @@ classes:
       entrance_edge_angle:
         exact_mappings:
           - pals:e1
+        range: Any
         any_of:
           - range: float
           - range: string
@@ -243,6 +244,7 @@ classes:
       exit_edge_angle:
         exact_mappings:
           - pals:e2
+        range: Any
         any_of:
           - range: float
           - range: string

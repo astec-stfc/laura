@@ -1,3 +1,4 @@
+export type ControlVariableName = string;
 export type TwissMatchName = string;
 export type MatrixTransformName = string;
 export type ElectrostaticSeparatorName = string;
@@ -363,6 +364,8 @@ export interface PhysicalElement {
  * A single process-variable entry mapping a logical name to a control-system PV identifier.
  */
 export interface ControlVariable {
+    /** Logical name: the variable's key under ``variables``, so not written inside the variable itself. */
+    name: string,
     /** Protocol-specific PV name (e.g., EPICS PV address). */
     identifier?: string,
     /** Data type, held as a Python type and serialised by name (e.g., ``float``, ``int``, ``str``). */
@@ -376,9 +379,9 @@ export interface ControlVariable {
     /** Whether the variable is read-only. */
     read_only?: boolean,
     /** Last-read value. Scalar for most control types; a list for ``waveform``. */
-    value?: string,
-    /** Kind of quantity this variable carries. Accepted in YAML as ``type``. */
-    control_type?: string,
+    value?: Any,
+    /** Kind of quantity this variable carries. Written in YAML as ``type``. */
+    type?: string,
     /** Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value. */
     target?: string,
     /** Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``. */
@@ -386,7 +389,7 @@ export interface ControlVariable {
     /** Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container. */
     element_dtype?: string,
     /** Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those. */
-    shape?: string[],
+    shape?: Any[],
     /** Mapping of state name to underlying control-system value, for ``control_type: state``. */
     states?: string,
     /** Name of the readback variable this set-point drives. */
@@ -411,7 +414,7 @@ export interface ControlVariable {
  */
 export interface ControlsInformation {
     /** Named control variables keyed by logical name. */
-    variables?: ControlVariable[],
+    variables?: {[index: ControlVariableName]: ControlVariable },
 }
 
 
@@ -690,11 +693,11 @@ export interface MachineModel {
     /** Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles. */
     particle?: string,
     /** All elements in the machine, keyed by name. */
-    elements?: AcceleratorElementName[],
+    elements?: {[index: AcceleratorElementName]: AcceleratorElement },
     /** All named beamline sections. */
-    sections?: SectionLatticeName[],
+    sections?: {[index: SectionLatticeName]: SectionLattice },
     /** All named beamline layouts. */
-    layouts?: MachineLayoutName[],
+    layouts?: {[index: MachineLayoutName]: MachineLayout },
 }
 
 
@@ -1170,9 +1173,9 @@ export interface MagneticElement {
     /** Power-supply settle time after a change [s]. */
     settle_time?: number,
     /** Fringe-field entrance edge angle [rad]. */
-    entrance_edge_angle?: string,
+    entrance_edge_angle?: Any,
     /** Fringe-field exit edge angle [rad]. */
-    exit_edge_angle?: string,
+    exit_edge_angle?: Any,
     /** Full gap between pole faces [m]. */
     gap?: number,
     /** Magnet bore radius [m]. */
@@ -2180,6 +2183,13 @@ export interface NonLinearLensMagnet {
  * Non-linear integrable-optics lens.
  */
 export interface NonLinearLens extends Magnet {
+}
+
+
+/**
+ * Any value; the slot's ``any_of`` says which.
+ */
+export interface Any {
 }
 
 

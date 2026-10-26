@@ -354,6 +354,7 @@ attributes:
     owner: LowLevelRF
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

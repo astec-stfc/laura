@@ -169,6 +169,9 @@ class ControlVariable(_ControlVariableBase):
         print(element.magnetic.k1l)  # Should reflect the updated value based on the control variable
     """
 
+    name: str | None = None
+    """The variable's key under ``variables``."""
+
     identifier: str
     """Unique identifier for the control variable."""
 

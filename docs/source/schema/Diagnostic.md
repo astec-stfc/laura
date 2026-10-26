@@ -449,6 +449,7 @@ attributes:
     owner: Diagnostic
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

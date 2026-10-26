@@ -426,6 +426,7 @@ attributes:
     owner: HorizontalCorrector
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

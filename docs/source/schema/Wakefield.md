@@ -412,6 +412,7 @@ attributes:
     owner: Wakefield
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

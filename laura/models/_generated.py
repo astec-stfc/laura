@@ -678,6 +678,11 @@ class _ControlVariableBase(ConfiguredBaseModel):
          'close_mappings': ['pals:Signal'],
          'from_schema': 'https://w3id.org/laura/schema/controls'})
 
+    name: str = Field(default=..., description="""Logical name: the variable's key under ``variables``, so not written inside the variable itself.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
+    """Logical name: the variable's key under ``variables``, so not written inside the variable itself."""
     identifier: Optional[str] = Field(default=None, description="""Protocol-specific PV name (e.g., EPICS PV address).""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Protocol-specific PV name (e.g., EPICS PV address)."""
     dtype: str = Field(default="float", description="""Data type, held as a Python type and serialised by name (e.g., ``float``, ``int``, ``str``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable'], 'ifabsent': 'string(float)'} })
@@ -695,10 +700,10 @@ class _ControlVariableBase(ConfiguredBaseModel):
     value: Optional[Union[float, int, str]] = Field(default=None, description="""Last-read value. Scalar for most control types; a list for ``waveform``.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'integer'}, {'range': 'string'}],
          'domain_of': ['ControlVariable']} })
     """Last-read value. Scalar for most control types; a list for ``waveform``."""
-    control_type: Optional[ControlTypeEnum] = Field(default=ControlTypeEnum.statistical, description="""Kind of quantity this variable carries. Accepted in YAML as ``type``.""", validation_alias=AliasChoices('control_type', 'type'), json_schema_extra = { "linkml_meta": {'aliases': ['type'],
+    control_type: Optional[ControlTypeEnum] = Field(default=ControlTypeEnum.statistical, description="""Kind of quantity this variable carries. Written in YAML as ``type``.""", validation_alias=AliasChoices('control_type', 'type'), json_schema_extra = { "linkml_meta": {'aliases': ['type'],
          'domain_of': ['ControlVariable'],
          'ifabsent': 'string(statistical)'} })
-    """Kind of quantity this variable carries. Accepted in YAML as ``type``."""
+    """Kind of quantity this variable carries. Written in YAML as ``type``."""
     target: Optional[str] = Field(default=None, description="""Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value."""
     expression: Optional[str] = Field(default=None, description="""Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
@@ -836,7 +841,10 @@ class _SectionLatticeBase(ConfiguredBaseModel):
          'close_mappings': ['pals:BeamLine'],
          'from_schema': 'https://w3id.org/laura/schema/machine'})
 
-    name: str = Field(default=..., description="""Unique section name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique section name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique section name."""
     master_lattice: Optional[str] = Field(default=None, description="""Name of the master lattice this section belongs to.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
     """Name of the master lattice this section belongs to."""
@@ -875,7 +883,10 @@ class _MachineLayoutBase(ConfiguredBaseModel):
          'close_mappings': ['pals:Lattice'],
          'from_schema': 'https://w3id.org/laura/schema/machine'})
 
-    name: str = Field(default=..., description="""Unique layout name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique layout name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique layout name."""
     master_lattice: Optional[str] = Field(default=None, description="""Name of the master lattice this layout belongs to.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
     """Name of the master lattice this layout belongs to."""
@@ -898,11 +909,11 @@ class _MachineModelBase(ConfiguredBaseModel):
     particle: Optional[str] = Field(default=None, description="""Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.""", json_schema_extra = { "linkml_meta": {'close_mappings': ['pals:species_ref'],
          'domain_of': ['MachineLayout', 'MachineModel']} })
     """Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles."""
-    elements: list[str] = Field(default_factory=list, description="""All elements in the machine, keyed by name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
+    elements: dict[str, _AcceleratorElementBase] = Field(default_factory=dict, description="""All elements in the machine, keyed by name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
     """All elements in the machine, keyed by name."""
-    sections: list[str] = Field(default_factory=list, description="""All named beamline sections.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })
+    sections: dict[str, _SectionLatticeBase] = Field(default_factory=dict, description="""All named beamline sections.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })
     """All named beamline sections."""
-    layouts: list[str] = Field(default_factory=list, description="""All named beamline layouts.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineModel']} })
+    layouts: dict[str, _MachineLayoutBase] = Field(default_factory=dict, description="""All named beamline layouts.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineModel']} })
     """All named beamline layouts."""
 
 
@@ -3861,7 +3872,10 @@ class _AcceleratorElementBase(ConfiguredBaseModel):
          'from_schema': 'https://w3id.org/laura/schema',
          'tree_root': True})
 
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -3908,7 +3922,10 @@ class _StandardElementBase(_AcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -3960,7 +3977,10 @@ class _LightingBase(_StandardElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4012,7 +4032,10 @@ class _PowerSupplyBase(_StandardElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4066,7 +4089,10 @@ class _LowLevelRFBase(_StandardElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4120,7 +4146,10 @@ class _RFModulatorBase(_StandardElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4174,7 +4203,10 @@ class _RFProtectionBase(_StandardElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4228,7 +4260,10 @@ class _RFHeartbeatBase(_StandardElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4282,7 +4317,10 @@ class _PIDBase(_StandardElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4341,7 +4379,10 @@ class _LaserEnergyMeterBase(_StandardElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4400,7 +4441,10 @@ class _LaserHalfWavePlateBase(_StandardElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4459,7 +4503,10 @@ class _LaserMirrorBase(_StandardElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4516,7 +4563,10 @@ class _LaserAttenuatorBase(_StandardElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4564,7 +4614,10 @@ class _ElementBase(_StandardElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4617,7 +4670,10 @@ class _PhysicalAcceleratorElementBase(_ElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4675,7 +4731,10 @@ class _TwissMatchBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4734,7 +4793,10 @@ class _MatrixTransformBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4792,7 +4854,10 @@ class _ElectrostaticSeparatorBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4850,7 +4915,10 @@ class _ACDipoleBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4905,7 +4973,10 @@ class _HorizontalACDipoleBase(_ACDipoleBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -4962,7 +5033,10 @@ class _VerticalACDipoleBase(_ACDipoleBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5020,7 +5094,10 @@ class _WireBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5079,7 +5156,10 @@ class _BeamBeamBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5137,7 +5217,10 @@ class _RFMultipoleBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5193,7 +5276,10 @@ class _StageBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5250,7 +5336,10 @@ class _VacuumGaugeBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5314,7 +5403,10 @@ class _LaserBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5373,7 +5465,10 @@ class _ShutterBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5432,7 +5527,10 @@ class _ValveBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5489,7 +5587,10 @@ class _MarkerBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5546,7 +5647,10 @@ class _ApertureBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5603,7 +5707,10 @@ class _CollimatorBase(_ApertureBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5662,7 +5769,10 @@ class _DriftBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5723,7 +5833,10 @@ class _MagnetBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5783,7 +5896,10 @@ class _RFCavityBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5843,7 +5959,10 @@ class _RFDeflectingCavityBase(_RFCavityBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5903,7 +6022,10 @@ class _CrabCavityBase(_RFCavityBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -5964,7 +6086,10 @@ class _WakefieldBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6031,7 +6156,10 @@ class _DiagnosticBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6097,7 +6225,10 @@ class _BeamPositionMonitorBase(_DiagnosticBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6164,7 +6295,10 @@ class _BeamArrivalMonitorBase(_DiagnosticBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6231,7 +6365,10 @@ class _BunchLengthMonitorBase(_DiagnosticBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6298,7 +6435,10 @@ class _CameraBase(_DiagnosticBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6365,7 +6505,10 @@ class _ScreenBase(_DiagnosticBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6432,7 +6575,10 @@ class _WireScannerBase(_DiagnosticBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6499,7 +6645,10 @@ class _ChargeDiagnosticBase(_DiagnosticBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6566,7 +6715,10 @@ class _WallCurrentMonitorBase(_ChargeDiagnosticBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6633,7 +6785,10 @@ class _FaradayCupMonitorBase(_ChargeDiagnosticBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6700,7 +6855,10 @@ class _IntegratedCurrentTransformerBase(_ChargeDiagnosticBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6769,7 +6927,10 @@ class _PhotonMonitorBase(_DiagnosticBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6836,7 +6997,10 @@ class _PlasmaBase(_PhysicalAcceleratorElementBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6895,7 +7059,10 @@ class _DipoleBase(_MagnetBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -6954,7 +7121,10 @@ class _QuadrupoleBase(_MagnetBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -7017,7 +7187,10 @@ class _SextupoleBase(_MagnetBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -7080,7 +7253,10 @@ class _OctupoleBase(_MagnetBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -7143,7 +7319,10 @@ class _HorizontalCorrectorBase(_DipoleBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -7206,7 +7385,10 @@ class _VerticalCorrectorBase(_DipoleBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -7274,7 +7456,10 @@ class _CombinedCorrectorBase(_DipoleBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -7337,7 +7522,10 @@ class _SolenoidBase(_MagnetBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -7401,7 +7589,10 @@ class _CombinedSolenoidQuadrupoleBase(_MagnetBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -7471,7 +7662,10 @@ class _WigglerBase(_MagnetBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
@@ -7535,7 +7729,10 @@ class _NonLinearLensBase(_MagnetBase):
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
     """Unique element name within the machine."""
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""

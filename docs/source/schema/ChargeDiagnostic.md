@@ -431,6 +431,7 @@ attributes:
     owner: ChargeDiagnostic
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

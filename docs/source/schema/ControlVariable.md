@@ -53,6 +53,8 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
         
       ControlVariable : identifier
         
+      ControlVariable : name
+        
       ControlVariable : protocol
         
       ControlVariable : quantity_kind
@@ -67,6 +69,15 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
         
       ControlVariable : shape
         
+          
+    
+        
+        
+        ControlVariable --> "*" Any : shape
+        click Any href "../Any/"
+    
+
+        
       ControlVariable : states
         
       ControlVariable : target
@@ -76,6 +87,15 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
       ControlVariable : update
         
       ControlVariable : value
+        
+          
+    
+        
+        
+        ControlVariable --> "0..1" Any : value
+        click Any href "../Any/"
+    
+
         
       
 ```
@@ -96,18 +116,19 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
+| [name](name.md) | 1 <br/> [String](String.md) | Logical name: the variable's key under ``variables``, so not written inside t... | direct |
 | [identifier](identifier.md) | 0..1 <br/> [String](String.md) | Protocol-specific PV name (e | direct |
 | [dtype](dtype.md) | 0..1 <br/> [String](String.md) | Data type, held as a Python type and serialised by name (e | direct |
 | [protocol](protocol.md) | 0..1 <br/> [String](String.md) | How the variable is reached (e | direct |
 | [units](units.md) | 0..1 <br/> [String](String.md) | Physical units string (e | direct |
 | [description](description.md) | 0..1 <br/> [String](String.md) | Human-readable description | direct |
 | [read_only](read_only.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the variable is read-only | direct |
-| [value](value.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md)&nbsp;or&nbsp;<br />[Integer](Integer.md) | Last-read value | direct |
+| [value](value.md) | 0..1 <br/> [Any](Any.md)&nbsp;or&nbsp;<br />[Float](Float.md)&nbsp;or&nbsp;<br />[Integer](Integer.md)&nbsp;or&nbsp;<br />[String](String.md) | Last-read value | direct |
 | [control_type](control_type.md) | 0..1 <br/> [ControlTypeEnum](ControlTypeEnum.md) | Kind of quantity this variable carries | direct |
 | [target](target.md) | 0..1 <br/> [String](String.md) | Dotted attribute path on the owning element that ``expression`` writes to (e | direct |
 | [expression](expression.md) | 0..1 <br/> [String](String.md) | Expression graph computing the value written to ``target``, as nested mapping... | direct |
 | [element_dtype](element_dtype.md) | 0..1 <br/> [NumericDtypeEnum](NumericDtypeEnum.md) | Numeric type of the value, or of one element of the array for ``control_type:... | direct |
-| [shape](shape.md) | * <br/> [String](String.md)&nbsp;or&nbsp;<br />[Integer](Integer.md) | Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` f... | direct |
+| [shape](shape.md) | * <br/> [Any](Any.md)&nbsp;or&nbsp;<br />[Integer](Integer.md)&nbsp;or&nbsp;<br />[String](String.md) | Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` f... | direct |
 | [states](states.md) | 0..1 <br/> [String](String.md) | Mapping of state name to underlying control-system value, for ``control_type:... | direct |
 | [readback](readback.md) | 0..1 <br/> [String](String.md) | Name of the readback variable this set-point drives | direct |
 | [setpoint](setpoint.md) | 0..1 <br/> [String](String.md) | Name of the set-point variable this readback follows | direct |
@@ -180,6 +201,18 @@ from_schema: https://w3id.org/laura/schema
 close_mappings:
 - pals:Signal
 attributes:
+  name:
+    name: name
+    description: 'Logical name: the variable''s key under ``variables``, so not written
+      inside the variable itself.'
+    from_schema: https://w3id.org/laura/schema/controls
+    key: true
+    domain_of:
+    - AcceleratorElement
+    - ControlVariable
+    - SectionLattice
+    - MachineLayout
+    range: string
   identifier:
     name: identifier
     description: Protocol-specific PV name (e.g., EPICS PV address).
@@ -245,19 +278,20 @@ attributes:
     rank: 1000
     domain_of:
     - ControlVariable
-    range: string
+    range: Any
     any_of:
     - range: float
     - range: integer
     - range: string
   control_type:
     name: control_type
-    description: Kind of quantity this variable carries. Accepted in YAML as ``type``.
+    description: Kind of quantity this variable carries. Written in YAML as ``type``.
     from_schema: https://w3id.org/laura/schema/controls
     aliases:
     - type
     rank: 1000
     ifabsent: string(statistical)
+    alias: type
     domain_of:
     - ControlVariable
     range: ControlTypeEnum
@@ -300,7 +334,7 @@ attributes:
     domain_of:
     - ControlVariable
     - ApertureElement
-    range: string
+    range: Any
     multivalued: true
     any_of:
     - range: integer
@@ -399,6 +433,20 @@ from_schema: https://w3id.org/laura/schema
 close_mappings:
 - pals:Signal
 attributes:
+  name:
+    name: name
+    description: 'Logical name: the variable''s key under ``variables``, so not written
+      inside the variable itself.'
+    from_schema: https://w3id.org/laura/schema/controls
+    key: true
+    owner: ControlVariable
+    domain_of:
+    - AcceleratorElement
+    - ControlVariable
+    - SectionLattice
+    - MachineLayout
+    range: string
+    required: true
   identifier:
     name: identifier
     description: Protocol-specific PV name (e.g., EPICS PV address).
@@ -471,19 +519,20 @@ attributes:
     owner: ControlVariable
     domain_of:
     - ControlVariable
-    range: string
+    range: Any
     any_of:
     - range: float
     - range: integer
     - range: string
   control_type:
     name: control_type
-    description: Kind of quantity this variable carries. Accepted in YAML as ``type``.
+    description: Kind of quantity this variable carries. Written in YAML as ``type``.
     from_schema: https://w3id.org/laura/schema/controls
     aliases:
     - type
     rank: 1000
     ifabsent: string(statistical)
+    alias: type
     owner: ControlVariable
     domain_of:
     - ControlVariable
@@ -531,7 +580,7 @@ attributes:
     domain_of:
     - ControlVariable
     - ApertureElement
-    range: string
+    range: Any
     multivalued: true
     any_of:
     - range: integer

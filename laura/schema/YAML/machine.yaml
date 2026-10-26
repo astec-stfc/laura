@@ -217,13 +217,16 @@ classes:
           particles.
       elements:
         multivalued: true
+        inlined: true
         range: AcceleratorElement
         description: All elements in the machine, keyed by name.
       sections:
         multivalued: true
+        inlined: true
         range: SectionLattice
         description: All named beamline sections.
       layouts:
         multivalued: true
+        inlined: true
         range: MachineLayout
         description: All named beamline layouts.

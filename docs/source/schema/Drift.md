@@ -378,6 +378,7 @@ attributes:
     owner: Drift
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

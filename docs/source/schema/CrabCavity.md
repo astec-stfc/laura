@@ -411,6 +411,7 @@ attributes:
     owner: CrabCavity
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

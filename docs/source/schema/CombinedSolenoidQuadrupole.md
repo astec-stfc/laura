@@ -425,6 +425,7 @@ attributes:
     owner: CombinedSolenoidQuadrupole
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

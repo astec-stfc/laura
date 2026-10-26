@@ -34,7 +34,25 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
         
       DipoleMagnet : entrance_edge_angle
         
+          
+    
+        
+        
+        DipoleMagnet --> "0..1" Any : entrance_edge_angle
+        click Any href "../Any/"
+    
+
+        
       DipoleMagnet : exit_edge_angle
+        
+          
+    
+        
+        
+        DipoleMagnet --> "0..1" Any : exit_edge_angle
+        click Any href "../Any/"
+    
+
         
       DipoleMagnet : exit_gap
         
@@ -160,8 +178,8 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
 | [field_integral_coefficients](field_integral_coefficients.md) | 0..1 <br/> [FieldIntegral](FieldIntegral.md) | Polynomial calibration of integrated field vs | [MagneticElement](MagneticElement.md) |
 | [linear_saturation_coefficients](linear_saturation_coefficients.md) | 0..1 <br/> [LinearSaturationFit](LinearSaturationFit.md) | Bi-linear saturation calibration | [MagneticElement](MagneticElement.md) |
 | [settle_time](settle_time.md) | 0..1 <br/> [Float](Float.md) | Power-supply settle time after a change [s] | [MagneticElement](MagneticElement.md) |
-| [entrance_edge_angle](entrance_edge_angle.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md) | Fringe-field entrance edge angle [rad] | [MagneticElement](MagneticElement.md) |
-| [exit_edge_angle](exit_edge_angle.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md) | Fringe-field exit edge angle [rad] | [MagneticElement](MagneticElement.md) |
+| [entrance_edge_angle](entrance_edge_angle.md) | 0..1 <br/> [Any](Any.md)&nbsp;or&nbsp;<br />[Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Fringe-field entrance edge angle [rad] | [MagneticElement](MagneticElement.md) |
+| [exit_edge_angle](exit_edge_angle.md) | 0..1 <br/> [Any](Any.md)&nbsp;or&nbsp;<br />[Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Fringe-field exit edge angle [rad] | [MagneticElement](MagneticElement.md) |
 | [gap](gap.md) | 0..1 <br/> [Float](Float.md) | Full gap between pole faces [m] | [MagneticElement](MagneticElement.md) |
 | [bore](bore.md) | 0..1 <br/> [Float](Float.md) | Magnet bore radius [m] | [MagneticElement](MagneticElement.md) |
 | [plane](plane.md) | 0..1 <br/> [BendingPlaneEnum](BendingPlaneEnum.md) | Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combin... | [MagneticElement](MagneticElement.md) |
@@ -379,7 +397,7 @@ attributes:
     owner: DipoleMagnet
     domain_of:
     - MagneticElement
-    range: string
+    range: Any
     unit:
       ucum_code: rad
     any_of:
@@ -398,7 +416,7 @@ attributes:
     owner: DipoleMagnet
     domain_of:
     - MagneticElement
-    range: string
+    range: Any
     unit:
       ucum_code: rad
     any_of:

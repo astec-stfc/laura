@@ -380,6 +380,7 @@ attributes:
     owner: LaserAttenuator
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

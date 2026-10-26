@@ -354,6 +354,7 @@ attributes:
     owner: RFProtection
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

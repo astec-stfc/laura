@@ -7,16 +7,16 @@ version: "0.1.0"
 license: Apache Software License 2.0
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
-  pals:    https://pals-project.readthedocs.io/
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  pals: https://pals-project.readthedocs.io/
 
 default_prefix: laura
 default_range: string
@@ -119,6 +119,12 @@ classes:
     close_mappings:
       - pals:Signal
     attributes:
+      name:
+        key: true
+        range: string
+        description: >-
+          Logical name: the variable's key under ``variables``, so not written
+          inside the variable itself.
       identifier:
         range: string
         description: Protocol-specific PV name (e.g., EPICS PV address).
@@ -150,7 +156,7 @@ classes:
         ifabsent: "True"
         description: Whether the variable is read-only.
       value:
-        range: string
+        range: Any
         any_of:
           - range: float
           - range: integer
@@ -159,10 +165,11 @@ classes:
           Last-read value. Scalar for most control types; a list for
           ``waveform``.
       control_type:
+        alias: type
         range: ControlTypeEnum
         ifabsent: string(statistical)
         description: >-
-          Kind of quantity this variable carries. Accepted in YAML as ``type``.
+          Kind of quantity this variable carries. Written in YAML as ``type``.
         aliases:
           - type
       target:
@@ -184,7 +191,7 @@ classes:
           ``control_type: waveform``. Distinct from ``dtype``, which names the
           Python container.
       shape:
-        range: string
+        range: Any
         multivalued: true
         any_of:
           - range: integer

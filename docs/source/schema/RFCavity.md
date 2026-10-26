@@ -427,6 +427,7 @@ attributes:
     owner: RFCavity
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

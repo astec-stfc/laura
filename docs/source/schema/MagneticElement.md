@@ -42,7 +42,25 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
         
       MagneticElement : entrance_edge_angle
         
+          
+    
+        
+        
+        MagneticElement --> "0..1" Any : entrance_edge_angle
+        click Any href "../Any/"
+    
+
+        
       MagneticElement : exit_edge_angle
+        
+          
+    
+        
+        
+        MagneticElement --> "0..1" Any : exit_edge_angle
+        click Any href "../Any/"
+    
+
         
       MagneticElement : exit_gap
         
@@ -178,8 +196,8 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
 | [field_integral_coefficients](field_integral_coefficients.md) | 0..1 <br/> [FieldIntegral](FieldIntegral.md) | Polynomial calibration of integrated field vs | direct |
 | [linear_saturation_coefficients](linear_saturation_coefficients.md) | 0..1 <br/> [LinearSaturationFit](LinearSaturationFit.md) | Bi-linear saturation calibration | direct |
 | [settle_time](settle_time.md) | 0..1 <br/> [Float](Float.md) | Power-supply settle time after a change [s] | direct |
-| [entrance_edge_angle](entrance_edge_angle.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md) | Fringe-field entrance edge angle [rad] | direct |
-| [exit_edge_angle](exit_edge_angle.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md) | Fringe-field exit edge angle [rad] | direct |
+| [entrance_edge_angle](entrance_edge_angle.md) | 0..1 <br/> [Any](Any.md)&nbsp;or&nbsp;<br />[Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Fringe-field entrance edge angle [rad] | direct |
+| [exit_edge_angle](exit_edge_angle.md) | 0..1 <br/> [Any](Any.md)&nbsp;or&nbsp;<br />[Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Fringe-field exit edge angle [rad] | direct |
 | [gap](gap.md) | 0..1 <br/> [Float](Float.md) | Full gap between pole faces [m] | direct |
 | [bore](bore.md) | 0..1 <br/> [Float](Float.md) | Magnet bore radius [m] | direct |
 | [plane](plane.md) | 0..1 <br/> [BendingPlaneEnum](BendingPlaneEnum.md) | Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combin... | direct |
@@ -369,6 +387,7 @@ attributes:
     rank: 1000
     domain_of:
     - MagneticElement
+    range: Any
     unit:
       ucum_code: rad
     any_of:
@@ -386,6 +405,7 @@ attributes:
     rank: 1000
     domain_of:
     - MagneticElement
+    range: Any
     unit:
       ucum_code: rad
     any_of:
@@ -708,7 +728,7 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
-    range: string
+    range: Any
     unit:
       ucum_code: rad
     any_of:
@@ -727,7 +747,7 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
-    range: string
+    range: Any
     unit:
       ucum_code: rad
     any_of:

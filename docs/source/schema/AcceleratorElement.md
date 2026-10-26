@@ -326,6 +326,7 @@ attributes:
     identifier: true
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string
@@ -476,6 +477,7 @@ attributes:
     owner: AcceleratorElement
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

@@ -421,6 +421,7 @@ attributes:
     owner: Screen
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

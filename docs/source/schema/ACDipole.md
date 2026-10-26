@@ -385,6 +385,7 @@ attributes:
     owner: ACDipole
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

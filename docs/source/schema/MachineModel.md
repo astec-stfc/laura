@@ -153,6 +153,7 @@ attributes:
     - MachineModel
     range: AcceleratorElement
     multivalued: true
+    inlined: true
   sections:
     name: sections
     description: All named beamline sections.
@@ -162,6 +163,7 @@ attributes:
     - MachineModel
     range: SectionLattice
     multivalued: true
+    inlined: true
   layouts:
     name: layouts
     description: All named beamline layouts.
@@ -171,6 +173,7 @@ attributes:
     - MachineModel
     range: MachineLayout
     multivalued: true
+    inlined: true
 class_uri: laura:MachineModel
 
 ```
@@ -209,6 +212,7 @@ attributes:
     - MachineModel
     range: AcceleratorElement
     multivalued: true
+    inlined: true
   sections:
     name: sections
     description: All named beamline sections.
@@ -219,6 +223,7 @@ attributes:
     - MachineModel
     range: SectionLattice
     multivalued: true
+    inlined: true
   layouts:
     name: layouts
     description: All named beamline layouts.
@@ -229,6 +234,7 @@ attributes:
     - MachineModel
     range: MachineLayout
     multivalued: true
+    inlined: true
 class_uri: laura:MachineModel
 
 ```

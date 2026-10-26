@@ -74,6 +74,7 @@ Name: laura_schema
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFHeartbeat](RFHeartbeat.md) | RF timing heartbeat / signal-monitor element |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFModulator](RFModulator.md) | RF modulator (klystron driver) element |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFProtection](RFProtection.md) | RF protection system element |
+| [Any](Any.md) | Any value; the slot's ``any_of`` says which |
 | [ApertureElement](ApertureElement.md) | Transverse aperture geometry for drift-space checks and collimators |
 | [CameraMask](CameraMask.md) | Camera analysis mask parameters |
 | [CameraPixelResultsIndices](CameraPixelResultsIndices.md) | Indices into camera pixel-analysis result arrays |

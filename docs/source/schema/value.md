@@ -33,7 +33,7 @@ URI: [laura:value](https://w3id.org/laura/value)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md)&nbsp;or&nbsp;<br />[Integer](Integer.md) |
+| Range | [Any](Any.md)&nbsp;or&nbsp;<br />[Float](Float.md)&nbsp;or&nbsp;<br />[Integer](Integer.md)&nbsp;or&nbsp;<br />[String](String.md) |
 | Domain Of | [ControlVariable](ControlVariable.md) |
 
 ### Cardinality and Requirements
@@ -103,7 +103,7 @@ rank: 1000
 owner: ControlVariable
 domain_of:
 - ControlVariable
-range: string
+range: Any
 any_of:
 - range: float
 - range: integer

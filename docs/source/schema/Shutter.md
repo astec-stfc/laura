@@ -402,6 +402,7 @@ attributes:
     owner: Shutter
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

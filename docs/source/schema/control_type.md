@@ -1,7 +1,7 @@
 # Slot: control_type 
 
 
-_Kind of quantity this variable carries. Accepted in YAML as ``type``._
+_Kind of quantity this variable carries. Written in YAML as ``type``._
 
 
 
@@ -10,6 +10,8 @@ _Kind of quantity this variable carries. Accepted in YAML as ``type``._
 
 
 URI: [laura:control_type](https://w3id.org/laura/control_type)
+Alias: type
+
 <!-- no inheritance hierarchy -->
 
 
@@ -92,12 +94,13 @@ URI: [laura:control_type](https://w3id.org/laura/control_type)
 <details>
 ```yaml
 name: control_type
-description: Kind of quantity this variable carries. Accepted in YAML as ``type``.
+description: Kind of quantity this variable carries. Written in YAML as ``type``.
 from_schema: https://w3id.org/laura/schema
 aliases:
 - type
 rank: 1000
 ifabsent: string(statistical)
+alias: type
 owner: ControlVariable
 domain_of:
 - ControlVariable

@@ -367,6 +367,7 @@ attributes:
     owner: LaserMirror
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

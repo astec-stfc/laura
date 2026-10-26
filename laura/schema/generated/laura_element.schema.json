@@ -527,6 +527,129 @@
       "title": "AcceleratorElement",
       "type": "object"
     },
+    "AcceleratorElement__identifier_optional": {
+      "additionalProperties": false,
+      "description": "Root base class for all LAURA accelerator elements.  Every lattice element is an instance of a concrete subclass identified by ``hardware_type``.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "hardware_class"
+      ],
+      "title": "AcceleratorElement",
+      "type": "object"
+    },
+    "Any": {
+      "additionalProperties": true,
+      "description": "Any value; the slot's ``any_of`` says which.",
+      "title": "Any",
+      "type": [
+        "null",
+        "boolean",
+        "object",
+        "number",
+        "string"
+      ]
+    },
     "Aperture": {
       "additionalProperties": false,
       "description": "Mechanical aperture restriction in the beam pipe.",
@@ -3387,8 +3510,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -3402,8 +3524,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -3620,10 +3741,6 @@
             "null"
           ]
         },
-        "control_type": {
-          "$ref": "#/$defs/ControlTypeEnum",
-          "description": "Kind of quantity this variable carries. Accepted in YAML as ``type``."
-        },
         "description": {
           "description": "Human-readable description.",
           "type": [
@@ -3662,6 +3779,10 @@
             "string",
             "null"
           ]
+        },
+        "name": {
+          "description": "Logical name: the variable's key under ``variables``, so not written inside the variable itself.",
+          "type": "string"
         },
         "protocol": {
           "description": "How the variable is reached (e.g., ``CA``, ``PVA``); NARAD's ``access_protocol`` spells these out (``EPICS Channel Access``).",
@@ -3708,6 +3829,7 @@
         "shape": {
           "description": "Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those.",
           "items": {
+            "$ref": "#/$defs/Any",
             "anyOf": [
               {
                 "type": "integer"
@@ -3715,8 +3837,7 @@
               {
                 "type": "string"
               }
-            ],
-            "type": "string"
+            ]
           },
           "type": [
             "array",
@@ -3736,6 +3857,10 @@
             "string",
             "null"
           ]
+        },
+        "type": {
+          "$ref": "#/$defs/ControlTypeEnum",
+          "description": "Kind of quantity this variable carries. Written in YAML as ``type``."
         },
         "units": {
           "description": "Physical units string (e.g., ``A``, ``T/m``).",
@@ -3766,10 +3891,180 @@
               "type": "null"
             }
           ],
-          "description": "Last-read value. Scalar for most control types; a list for ``waveform``.",
-          "type": "string"
+          "description": "Last-read value. Scalar for most control types; a list for ``waveform``."
         }
       },
+      "required": [
+        "name"
+      ],
+      "title": "ControlVariable",
+      "type": "object"
+    },
+    "ControlVariable__identifier_optional": {
+      "additionalProperties": false,
+      "description": "A single process-variable entry mapping a logical name to a control-system PV identifier.",
+      "properties": {
+        "canonical_type": {
+          "description": "The quantity the variable carries, independent of its PV name (e.g., ``MagnetCurrentSetpoint``), in NARAD's ``CanonicalSignalTypeEnum`` terms.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "Human-readable description.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dtype": {
+          "description": "Data type, held as a Python type and serialised by name (e.g., ``float``, ``int``, ``str``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dynamics": {
+          "description": "Response model describing how this variable's readback follows its set-point, as ``{model: <import path>, **kwargs}`` -- see ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or ``setpoint``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "element_dtype": {
+          "$ref": "#/$defs/NumericDtypeEnum",
+          "description": "Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container."
+        },
+        "expression": {
+          "description": "Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "identifier": {
+          "description": "Protocol-specific PV name (e.g., EPICS PV address).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Logical name: the variable's key under ``variables``, so not written inside the variable itself.",
+          "type": "string"
+        },
+        "protocol": {
+          "description": "How the variable is reached (e.g., ``CA``, ``PVA``); NARAD's ``access_protocol`` spells these out (``EPICS Channel Access``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "quantity_kind": {
+          "description": "The physical kind of quantity (e.g., ``ElectricCurrent``), in NARAD's ``QuantityKindEnum`` terms.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "read_only": {
+          "description": "Whether the variable is read-only.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "readback": {
+          "description": "Name of the readback variable this set-point drives.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "description": "What the variable is to its element (e.g., ``Setpoint``, ``Readback``, ``MaximumLimit``), in NARAD's ``SignalRoleEnum`` terms.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "setpoint": {
+          "description": "Name of the set-point variable this readback follows.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shape": {
+          "description": "Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those.",
+          "items": {
+            "$ref": "#/$defs/Any",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "states": {
+          "description": "Mapping of state name to underlying control-system value, for ``control_type: state``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target": {
+          "description": "Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "$ref": "#/$defs/ControlTypeEnum",
+          "description": "Kind of quantity this variable carries. Written in YAML as ``type``."
+        },
+        "units": {
+          "description": "Physical units string (e.g., ``A``, ``T/m``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "update": {
+          "description": "Signal generating this variable's value over time, as ``{function: <import path>, **kwargs}`` -- see ``laura.utils.signals``. Stored with ``function`` as a fully qualified import path so it resolves without LAURA.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Last-read value. Scalar for most control types; a list for ``waveform``."
+        }
+      },
+      "required": [],
       "title": "ControlVariable",
       "type": "object"
     },
@@ -3778,12 +4073,19 @@
       "description": "Collection of process-variable definitions for an element's control interface.",
       "properties": {
         "variables": {
-          "description": "Named control variables keyed by logical name.",
-          "items": {
-            "$ref": "#/$defs/ControlVariable"
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ControlVariable__identifier_optional"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
+          "description": "Named control variables keyed by logical name.",
           "type": [
-            "array",
+            "object",
             "null"
           ]
         }
@@ -3843,8 +4145,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -3858,8 +4159,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -4949,8 +5249,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -4964,8 +5263,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -8834,12 +9132,40 @@
       "title": "MachineLayout",
       "type": "object"
     },
-    "MachineModel": {
+    "MachineLayout__identifier_optional": {
       "additionalProperties": false,
-      "description": "Top-level container for a complete accelerator lattice: elements, sections, layouts, and named lattice configurations.",
+      "description": "An ordered list of section names defining a beamline layout (a contiguous sequence of sections).",
       "properties": {
-        "elements": {
-          "description": "All elements in the machine, keyed by name.",
+        "master_lattice": {
+          "description": "Name of the master lattice this layout belongs to.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Unique layout name.",
+          "type": "string"
+        },
+        "particle": {
+          "description": "Design particle species for this layout, overriding the machine-wide value. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "passes": {
+          "description": "The beam order, one entry per section traversal. Distinct from sections, which is keyed by name and so cannot express a section entered twice.",
+          "items": {
+            "$ref": "#/$defs/LayoutPass"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "sections": {
+          "description": "Ordered list of section names.",
           "items": {
             "type": "string"
           },
@@ -8847,14 +9173,48 @@
             "array",
             "null"
           ]
+        }
+      },
+      "required": [],
+      "title": "MachineLayout",
+      "type": "object"
+    },
+    "MachineModel": {
+      "additionalProperties": false,
+      "description": "Top-level container for a complete accelerator lattice: elements, sections, layouts, and named lattice configurations.",
+      "properties": {
+        "elements": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/AcceleratorElement__identifier_optional"
+              },
+              {
+                "$ref": "#/$defs/HardwareClassEnum",
+                "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+              }
+            ]
+          },
+          "description": "All elements in the machine, keyed by name.",
+          "type": [
+            "object",
+            "null"
+          ]
         },
         "layouts": {
-          "description": "All named beamline layouts.",
-          "items": {
-            "type": "string"
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MachineLayout__identifier_optional"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
+          "description": "All named beamline layouts.",
           "type": [
-            "array",
+            "object",
             "null"
           ]
         },
@@ -8866,12 +9226,19 @@
           ]
         },
         "sections": {
-          "description": "All named beamline sections.",
-          "items": {
-            "type": "string"
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SectionLattice__identifier_optional"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
+          "description": "All named beamline sections.",
           "type": [
-            "array",
+            "object",
             "null"
           ]
         }
@@ -9410,8 +9777,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -9425,8 +9791,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -10890,8 +11255,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -10905,8 +11269,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -12916,8 +13279,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -12931,8 +13293,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -15489,6 +15850,59 @@
       "title": "SectionLattice",
       "type": "object"
     },
+    "SectionLattice__identifier_optional": {
+      "additionalProperties": false,
+      "description": "An ordered list of element names defining a contiguous beamline section.",
+      "properties": {
+        "elements": {
+          "description": "Ordered list of element names in this section.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "geometry": {
+          "$ref": "#/$defs/LatticeGeometryEnum",
+          "description": "Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent."
+        },
+        "master_lattice": {
+          "description": "Name of the master lattice this section belongs to.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Unique section name.",
+          "type": "string"
+        },
+        "reference_energy": {
+          "description": "Reference total energy of the design particle [eV].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "space_charge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpaceChargeSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Resolution of the collective-field calculation over this section."
+        }
+      },
+      "required": [],
+      "title": "SectionLattice",
+      "type": "object"
+    },
     "Sextupole": {
       "additionalProperties": false,
       "description": "Sextupole chromaticity-correction magnet.",
@@ -15753,8 +16167,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -15768,8 +16181,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",

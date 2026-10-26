@@ -392,6 +392,7 @@ attributes:
     owner: StandardElement
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

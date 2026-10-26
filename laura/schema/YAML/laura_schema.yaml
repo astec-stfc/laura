@@ -345,6 +345,10 @@ slots:
 
 classes:
 
+  Any:
+    class_uri: linkml:Any
+    description: Any value; the slot's ``any_of`` says which.
+
   # -- Electrical -------------------------------------------------------------
 
   ElectricalElement:

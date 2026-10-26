@@ -409,6 +409,7 @@ attributes:
     owner: WireScanner
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

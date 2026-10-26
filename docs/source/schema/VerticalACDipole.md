@@ -373,6 +373,7 @@ attributes:
     owner: Vertical_AC_Dipole
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string
