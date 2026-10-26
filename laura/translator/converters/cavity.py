@@ -515,7 +515,7 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         import xtrack as xt
 
-        L, voltage = cavity.length, cavity.voltage
+        L, voltage = cavity.length, cavity.voltage  # noqa N803
         cos_phi = np.sin(cavity.phase + np.radians(cavity.lag))
         gain = voltage * cos_phi
         p1 = p0c + gain
