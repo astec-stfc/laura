@@ -8,13 +8,13 @@ description = "A standardized lattice format for particle accelerators"
 readme = "README.md"
 dynamic = ["version"]
 authors = [
-    {name = "James Jones", email = "james.jones@stfc.ac.uk"},
+    { name = "James Jones", email = "james.jones@stfc.ac.uk" },
 ]
 maintainers = [
-    {name = "James Jones", email = "james.jones@stfc.ac.uk"},
-    {name = "Alex Brynes", email = "alexander.brynes@stfc.ac.uk"},
-    {name = "Mark Johnson", email = "mark.johnson@stfc.ac.uk"},
-    {name = "Matt King", email = "matthew.king@stfc.ac.uk"},
+    { name = "James Jones", email = "james.jones@stfc.ac.uk" },
+    { name = "Alex Brynes", email = "alexander.brynes@stfc.ac.uk" },
+    { name = "Mark Johnson", email = "mark.johnson@stfc.ac.uk" },
+    { name = "Matt King", email = "matthew.king@stfc.ac.uk" },
 ]
 
 dependencies = [
@@ -103,6 +103,7 @@ test = [
     "rdflib>=7.0",
     "sqlalchemy>=2.0",
     "jsonschema>=4.0",
+    "soliday.sdds",
 ]
 
 docs = [
@@ -160,6 +161,7 @@ full = [
     "jsonschema>=4.0",
     "rdflib>=7.0",
     "sqlalchemy>=2.0",
+    "soliday.sdds",
 ]
 
 [project.urls]
@@ -195,13 +197,13 @@ classmethod-decorators = [
     "model_validator",
 ]
 extend-ignore-names = [
-    "Kn",    # multipole strength, order n
-    "KnL",   # integrated multipole strength
-    "Rx",    # rotation matrix about x
-    "Ry",    # rotation matrix about y
-    "Rz",    # rotation matrix about z
-    "Brho",  # magnetic rigidity, B-rho
-    "P_Q",   # reference momentum over charge
+    "Kn", # multipole strength, order n
+    "KnL", # integrated multipole strength
+    "Rx", # rotation matrix about x
+    "Ry", # rotation matrix about y
+    "Rz", # rotation matrix about z
+    "Brho", # magnetic rigidity, B-rho
+    "P_Q", # reference momentum over charge
 ]
 
 [tool.pytest.ini_options]

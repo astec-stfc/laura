@@ -15,21 +15,26 @@ Classes:
 
 import os
 import warnings
+from typing import List, Literal
+
 import numpy as np
-from .field_parameter import FieldParameter
-from laura.models.constants import speed_of_light
 from pydantic import (
     BaseModel,
     ConfigDict,
     model_validator,
 )
-from typing import Literal, List
-from . import astra  # noqa E402
-from . import gdf  # noqa E402
-from . import hdf5  # noqa E402
-from . import sdds  # noqa E402
-from . import opal  # noqa E402
-from . import rftrack  # noqa E402
+
+from laura.models.constants import speed_of_light
+
+from . import (
+    astra,  # noqa E402
+    gdf,  # noqa E402
+    hdf5,  # noqa E402
+    opal,  # noqa E402
+    rftrack,  # noqa E402
+    sdds,  # noqa E402
+)
+from .field_parameter import FieldParameter
 
 allowed_fields = [
     "1DElectroStatic",
@@ -373,7 +378,11 @@ class FieldMap(BaseModel):
                 _output_location = self._output_location
         basefilename = os.path.basename(self.filename)
         pre, _ = os.path.splitext(basefilename)
-        return os.path.relpath(os.path.join(_output_location, pre + extension))
+        path = os.path.join(_output_location, pre + extension)
+        try:
+            return os.path.relpath(path)
+        except ValueError:
+            return os.path.abspath(path)
 
     def get_field_data(self, code: str) -> np.ndarray | None:
         """
