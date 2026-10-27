@@ -44,7 +44,7 @@ from .control import set_attr_by_path
 from .element import BaseElement, Diagnostic, Drift, PhysicalBaseElement
 from .exceptions import LatticeError
 from .magnetic import brho
-from .physical import PhysicalElement, Position, Rotation
+from .physical import PhysicalElement, Position, Rotation, DriftPhysicalElement
 from .reversal import reverse_element
 from .simulation import DriftSimulationElement
 from .trajectory import Trajectory
@@ -248,6 +248,11 @@ def load_functional_definitions(
         return data or {}
     raise ValueError("functional_definitions must be a path, dict, or None")
 
+
+def signed_gap(prev: PhysicalElement, start) -> float:
+    """Distance along the beam from the exit of ``prev`` to ``start``, negative where they overlap."""
+    step = np.asarray(start) - np.asarray(prev.end.array)
+    return float(np.copysign(np.linalg.norm(step), step @ prev.end_rotation_matrix[:, 2]))
 
 def insert_drifts(
     elements: Dict[str, Any],
@@ -1091,8 +1096,8 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
                 continue
 
             gap = (
-                float(np.linalg.norm(start_arr - prev_end))
-                if prev_end is not None
+                signed_gap(prev_phys, start_arr)
+                if prev_phys is not None
                 else float(np.linalg.norm(start_arr))
             )
             s_elem_start = current_s + gap
@@ -1118,7 +1123,7 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
             phys.s = s_elem_mid
 
             current_s = s_elem_end
-            prev_end = end_arr
+            prev_phys = phys
             elements_to_wire.append(phys)
 
         traj = Trajectory(np.array(s_list), np.array(pos_list), np.array(rot_list))
