@@ -1,6 +1,7 @@
 from laura.models.rf import WakefieldElement
 from laura.models.simulation import WakefieldSimulationElement
 
+from ..utils.fields import FieldMap
 from .base import BaseElementTranslator
 
 
@@ -15,6 +16,48 @@ class WakefieldTranslator(BaseElementTranslator):
 
     simulation: WakefieldSimulationElement
     """Wakefield simulation attributes."""
+
+    def to_elegant(self) -> str:
+        """
+        Writes the wakefield element string for ELEGANT, as an ``rfcw`` with no voltage:
+        ELEGANT's ``wake`` element has no length, and ``rfcw`` scales the per-cell wake
+        by ``l / cell_length``, so it is applied once per cell, as in ASTRA and GPT.
+
+        Returns
+        -------
+        str
+            String representation of the element for ELEGANT
+        """
+        self.start_write()
+        length = self.physical.length
+        wake = self.simulation.wakefield_definition
+        if not (
+            isinstance(wake, FieldMap)
+            and self.simulation.scale_kick > 0
+            and getattr(self.simulation, "wakefield_enable", True)
+        ):
+            return f"{self.name}: drift, l = {length};\n"
+        if not length:
+            raise ValueError(f"Wakefield {self.name} has no length")
+        filename = self.generate_field_file_name(wake, code="elegant")
+        columns = [
+            col
+            for col in ("Wx", "Wy", "Wz")
+            if getattr(getattr(wake, col, None), "value", None) is not None
+        ]
+        wakefile = (
+            "zwakefile"
+            if columns == ["Wz"]
+            else "wakefile"
+            if "Wz" in columns
+            else "trwakefile"
+        )
+        return (
+            f"{self.name}: rfcw, l = {length}, volt = 0, cell_length = {length / self.cavity.n_cells},&\n"
+            f' {wakefile} = "{filename}", tcolumn = "t", '
+            + ", ".join(f'{col.lower()}column = "{col}"' for col in columns)
+            + ", n_bins = 0;\n"
+        )
 
     def to_bmad(self) -> str:
         """
@@ -185,16 +228,19 @@ class WakefieldTranslator(BaseElementTranslator):
             self.simulation, "wakefield_enable", True
         ):
             zcolumn = "z"
-            wzcolumn = "Wz"
-            wxcolumn = (
-                "Wx"
-                if self.simulation.wakefield_definition.Wx.value is not None
+            wake = self.simulation.wakefield_definition
+            wxcolumn, wycolumn, wzcolumn = (
+                col
+                if getattr(getattr(wake, col, None), "value", None) is not None
                 else ""
+                for col in ("Wx", "Wy", "Wz")
             )
-            wycolumn = (
-                "Wy"
-                if self.simulation.wakefield_definition.Wy.value is not None
-                else ""
+            # GPT takes wakes per metre over L, and a positive Wz accelerates;
+            # LAURA's are per cell, with a positive Wz an energy loss
+            factors = "".join(
+                f', "FieldFactor{col}", {sign / self.cavity.cell_length}'
+                for col, sign in ((wxcolumn, 1), (wycolumn, 1), (wzcolumn, -1))
+                if col
             )
             for n in range(int(self.cavity.n_cells)):
                 ccs_label, value_text = self.ccs.ccs_text(
@@ -203,7 +249,7 @@ class WakefieldTranslator(BaseElementTranslator):
                         field_ref_pos[1],
                         field_ref_pos[2]
                         + self.cavity.coupling_cell_length
-                        + n * self.cavity.cell_length,
+                        + (n + 0.5) * self.cavity.cell_length,
                     ],
                     list(self.physical.rotation.model_dump().values()),
                 )

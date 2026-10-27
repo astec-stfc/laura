@@ -601,10 +601,16 @@ class SectionLatticeTranslator(SectionLattice):
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
                         counter[key] += e.aperture.number_of_elements
+                    elif isinstance(e, WakefieldTranslator):
+                        counter[key] += int(e.cavity.n_cells)
                     else:
                         counter[key] += 1
-                    if hasattr(e.simulation, "wakefield_definition") and isinstance(
-                        e.simulation.wakefield_definition, (str, FieldMap)
+                    if (
+                        not isinstance(e, WakefieldTranslator)
+                        and hasattr(e.simulation, "wakefield_definition")
+                        and isinstance(
+                            e.simulation.wakefield_definition, (str, FieldMap)
+                        )
                     ):
                         w = WakefieldTranslator(
                             name=e.name + "_wake",
@@ -716,6 +722,7 @@ class SectionLatticeTranslator(SectionLattice):
                     ),
                     directory=element.directory,
                 )
+                w.ccs = element.ccs  # model_post_init resets ccs to the origin
                 fulltext += w.to_gpt(Brho, **kwargs)
             ccs = deepcopy(element.ccs)
             if (
@@ -776,6 +783,7 @@ class SectionLatticeTranslator(SectionLattice):
             An OPAL-compatible input file.
         """
         self._check_elements_supported("opal")
+        self._warn_dropped_wakes("OPAL")
         check_dict = [
             "option",
             "distribution",
@@ -856,6 +864,29 @@ class SectionLatticeTranslator(SectionLattice):
             sim = getattr(d, "simulation", None)
             if sim is not None and hasattr(sim, "wakefield_enable"):
                 sim.wakefield_enable = False
+
+    def _warn_dropped_wakes(self, code: str) -> None:
+        """
+        Warn that ``code`` is written without the structure wakefields that are
+        switched on, since LAURA doesn't export wakes to it.
+
+        Parameters
+        ----------
+        code: str
+            Name of the code being written
+        """
+        if not self.wakefield_enable:
+            return
+        names = [
+            e.name
+            for e in self.elements.elements.values()
+            if getattr(getattr(e, "simulation", None), "wakefield_definition", None)
+            and getattr(e.simulation, "wakefield_enable", True)
+        ]
+        if names:
+            warn(
+                f"{code} is written without structure wakefields; dropped on {', '.join(names)}"
+            )
 
     def _apply_tw_focusing(self, elem_dict: dict) -> None:
         """Pass :attr:`~tw_focusing` on to the translated cavities."""
@@ -1231,6 +1262,7 @@ class SectionLatticeTranslator(SectionLattice):
         from cheetah import Segment
 
         self._check_elements_supported("cheetah")
+        self._warn_dropped_wakes("Cheetah")
 
         elem_dict = self._translate(self.create_drifts().values())
         self._apply_tw_focusing(elem_dict)
@@ -1289,6 +1321,7 @@ class SectionLatticeTranslator(SectionLattice):
         import xtrack as xt
 
         self._check_elements_supported("xsuite")
+        self._warn_dropped_wakes("Xsuite")
 
         if not isinstance(env, xt.Environment):
             env = xt.Environment()
@@ -1497,6 +1530,7 @@ class SectionLatticeTranslator(SectionLattice):
             into a ``<name>_errors`` macro, to ``exec`` after each ``USE``
             (done here when ``beam`` is given).
         """
+        self._warn_dropped_wakes("MAD-X")
         elem_dict = self._translate(self.create_drifts().values())
         svals = self.get_s_values(as_dict=True, at_entrance=True)
         exit_svals = self.get_s_values(as_dict=True, at_entrance=False)
