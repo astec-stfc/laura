@@ -1,3 +1,14 @@
+import re
+from collections import Counter
+from warnings import warn
+
+import numpy as np
+
+from laura.models.constants import speed_of_light
+
+from ..units import UnitValue
+from .field_parameter import FieldParameter
+from .sdds import write_sdds_field_file
 from collections import Counter
 from warnings import warn
 
@@ -103,9 +114,7 @@ def write_opal_field_file(
         if self.start_cell_z is not None:
             lo, hi = opal_tw_window(self, frequency)
             if lo < zdata.min() - 1e-9 or hi > zdata.max() + 1e-9:
-                raise ValueError(
-                    f"TW map spans {zdata.min()}-{zdata.max()} m, OPAL needs {lo}-{hi} m"
-                )
+                raise ValueError(f"TW map spans {zdata.min()}-{zdata.max()} m, OPAL needs {lo}-{hi} m")
             dz = (zdata.max() - zdata.min()) / (len(zdata) - 1)
             znew = np.linspace(lo, hi, int(round((hi - lo) / dz)) + 1)
             zdata, ezdata = znew - lo, np.interp(znew, zdata, ezdata)

@@ -6,6 +6,7 @@ from laura.models.simulation import RFCavitySimulationElement
 from laura.translator.utils.fields import FieldMap
 from laura.translator.utils.fields.opal import opal_tw_window
 from laura.translator.utils.fields.gdf import gpt_tw_mockup
+from laura.translator.utils.fields.opal import opal_tw_window
 
 from ..converters import (
     elements_bmad,
@@ -716,17 +717,26 @@ class RFCavityTranslator(BaseElementTranslator):
             return ""
         if not self.field_amplitude:
             return ""
-        for key, value in self._dump_items(
-            self._convert_keyword_opal,
-            elements_opal[etype],
-            unique=False,
-            overrides=self._opal_alignment(),
-        ):
-            if key == "lag":
-                value = -value * np.pi / 180
-            if key in ("freq", "volt"):
-                value = value / 1e6
-            wholestring += f", {key} = {self._flag(value)}"
+        for key, value in self.full_dump().items():
+            if (
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convert_keyword_opal(key) in elements_opal[etype]
+            ):
+                if value is not None:
+                    key = self._convert_keyword_opal(key)
+                    if key == "lag":
+                        value = -value * np.pi / 180
+                    if key == "freq":
+                        value = value / 1e6
+                    if key == "volt":
+                        value = value / 1e6
+                    val = 1 if value is True else value
+                    val = 0 if value is False else val
+                    if val is not None:
+                        tmpstring = ", " + key + " = " + str(val)
+                        wholestring += tmpstring
         if isinstance(self.simulation.field_definition, FieldMap):
             wholestring += f', fmapfn = "{self.generate_field_file_name(self.simulation.field_definition, code="opal")}"'
             if self.structure_type == "TravellingWave":

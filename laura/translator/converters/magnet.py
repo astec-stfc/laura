@@ -5,6 +5,7 @@ from warnings import warn
 import numpy as np
 from pydantic import computed_field, field_validator, model_validator
 
+from laura.models.constants import speed_of_light
 from laura.models.magnetic import (
     CombinedCorrectorMagnet,
     CombinedSolenoidQuadrupoleMagnet,
@@ -1222,6 +1223,12 @@ class SolenoidTranslator(BaseElementTranslator):
                     - np.asarray(self.physical.start.array)
                 )
             )
+            sval += float(
+                np.linalg.norm(
+                    self.get_field_reference_position()
+                    - np.asarray(self.physical.start.array)
+                )
+            )
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
@@ -1342,11 +1349,12 @@ class CorrectorTranslator(BaseElementTranslator):
         return self.magnetic.vertical_kick
 
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
-        if not self.physical.length:
-            if self.hangle or self.vangle:
-                warn(f"OPAL has no thin corrector; {self.name}'s kick is dropped")
-            return ""
-        return super().to_opal(sval, designenergy)
+        if self.physical.length:
+            return super().to_opal(sval, designenergy)
+        length = speed_of_light * self.opal_time_step
+        thin = self.model_copy(deep=True)
+        thin.physical.length = thin.magnetic.length = length
+        return BaseElementTranslator.to_opal(thin, sval - length / 2, designenergy)
 
     def to_ocelot(self) -> object:
         """

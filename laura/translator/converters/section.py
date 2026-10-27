@@ -808,8 +808,12 @@ class SectionLatticeTranslator(SectionLattice):
         elem_dict = self._translate()
         written = []
         svals = self.get_resolved_s_values(as_dict=True, at_entrance=True)
+        dt = self.opal_headers["track"].DT
+        # with staged steps, the longest one fits a thin element into every stage
+        dt = max(dt) if isinstance(dt, (list, tuple)) else dt
         for d in elem_dict.values():
             d.opal_version = self.opal_version
+            d.opal_time_step = float(dt)
             if isinstance(d, RFCavityTranslator):
                 energy += cavity_energy_gain(d)
             if d.subelement:
