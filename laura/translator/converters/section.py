@@ -1,7 +1,7 @@
 import json
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional
 from warnings import warn
 
 import numpy as np
@@ -154,6 +154,12 @@ class SectionLatticeTranslator(SectionLattice):
     tw_focusing: bool = True
     """Flag to use travelling-wave focusing for TravellingWave cavities;
     see :attr:`~laura.translator.converters.cavity.RFCavityTranslator.tw_focusing`."""
+
+    cheetah_tracking_method: Literal["auto", "linear", "second_order"] = "auto"
+    """Tracking method for Cheetah's drifts, quadrupoles and dipoles. ``second_order`` is
+    better but slower. ``auto`` writes ``linear``, for
+    :func:`~laura.translator.converters.codes.cheetah.choose_cheetah_tracking_method`
+    to raise to ``second_order`` if the beam needs it."""
 
     opal_version: str = "202210"
     """Version of OPAL to write for; propagated to the elements, which use it
@@ -1259,6 +1265,7 @@ class SectionLatticeTranslator(SectionLattice):
         Segment
             A Cheetah `Segment` object.
         """
+        import cheetah
         from cheetah import Segment
 
         self._check_elements_supported("cheetah")
@@ -1283,6 +1290,10 @@ class SectionLatticeTranslator(SectionLattice):
             full_segment = Segment(elements=segment, name=self.name)
         else:
             raise ValueError(f"No cheetah elements added for {self.name}")
+        method = self.cheetah_tracking_method.replace("auto", "linear")
+        for elem in full_segment.flattened().elements:
+            if isinstance(elem, (cheetah.Drift, cheetah.Quadrupole, cheetah.Dipole)):
+                elem.tracking_method = method
 
         if save:
             full_segment.to_lattice_json(filepath=f"{self.directory}/{self.name}.json")
@@ -1331,6 +1342,7 @@ class SectionLatticeTranslator(SectionLattice):
             ).items():
                 env[name] = value
         elem_dict = self._translate(self.create_drifts().values())
+        self._apply_tw_focusing(elem_dict)
 
         def _is_symbolic(val: Any) -> bool:
             if isinstance(val, str):
@@ -1351,6 +1363,7 @@ class SectionLatticeTranslator(SectionLattice):
         )
         line = env.new_line()
         element_types = {}
+        p0c = particle_ref.p0c[0] if isinstance(particle_ref, xt.Particles) else None
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
                 if isinstance(element, ACDipoleTranslator):
