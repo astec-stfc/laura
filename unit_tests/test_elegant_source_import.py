@@ -404,3 +404,49 @@ def test_bare_per_metre_strength_symbol_is_integrated(tmp_path):
     assert importer.functional_definitions["kx"] == pytest.approx(0.2)
     assert elements["Q4"].magnetic.multipoles.K1L.normal == pytest.approx(0.1)
     assert elements["Q5"].magnetic.multipoles.K1L.normal == pytest.approx(0.05)
+
+
+def test_the_command_file_given_to_elegant_has_no_backslashes(tmp_path, monkeypatch):
+    """elegant processes escapes inside quoted strings, so ``rootname`` of
+    ``C:\...\newBST`` read ``\n`` as a newline and no beamline named ``n...``,
+    ``t...`` or ``r...`` could be imported on Windows."""
+    import subprocess
+
+    from laura.translator.converters.codes import elegant
+
+    seen = []
+
+    def fake_run(command, **kwargs):
+        seen.append(open(command[1]).read())
+        raise subprocess.CalledProcessError(1, command, "", "stop here")
+
+    monkeypatch.setattr(elegant.subprocess, "run", fake_run)
+    importer = _lte(tmp_path, "d1: drift, l=1\nnewBST: line=(d1,d1,d1,d1,d1,d1)\n")
+    with pytest.raises(ValueError, match="could not load beamline 'newBST'"):
+        importer.create_machine_model()
+    assert seen
+    for text in seen:
+        assert "\\" not in text
+        assert 'rootname = "' in text and "newBST" in text
+
+
+@_needs_elegant
+def test_a_kicker_keeps_its_length(tmp_path):
+    """``l`` of a KICKER never reached the combined corrector's magnetic length
+    (its introspected defaults hold only the two planes), so every exporter wrote
+    the kicker with ``l = 0`` and the ring came out shorter by their sum."""
+    importer = _lte(
+        tmp_path,
+        "k1: kicker, l=0.19\nd1: drift, l=1\nmachine: line=(k1,d1,k1)\n",
+    )
+    kickers = [
+        element
+        for element in _layout_elements(importer)
+        if type(element).__name__ == "CombinedCorrector"
+    ]
+    assert kickers
+    for kicker in kickers:
+        assert kicker.physical.length == pytest.approx(0.19)
+        assert kicker.magnetic.length == pytest.approx(0.19)
+        assert kicker.magnetic.horizontal.length == pytest.approx(0.19)
+        assert kicker.magnetic.vertical.length == pytest.approx(0.19)

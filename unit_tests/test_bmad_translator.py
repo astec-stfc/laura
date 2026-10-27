@@ -1418,3 +1418,43 @@ def test_bmad_skew_magnet_writes_its_strength_into_bmads_skew_slot(
     """Bmad's skew slot is ``a1``; ``k1`` keeps the element's real normal component."""
     text = _bmad(cls(name="M-S", machine_area="S", magnetic=magnetic))
     _assert_terms(text, present, absent)
+
+
+def _closed_bmad(element):
+    """The element as written into a closed (ring) Bmad lattice, where cavities are rfcavities."""
+    translator = next(iter(translate_elements([element], directory=".").values()))
+    translator.bmad_geometry = "closed"
+    return translator.to_bmad()
+
+
+def _cavity(frequency, voltage):
+    return RFCavity(
+        name="CAV",
+        machine_area="S",
+        physical={"length": 0.8},
+        cavity={"phase": 0, "frequency": frequency},
+        simulation={"field_amplitude": voltage},
+    )
+
+
+def test_a_cavity_that_is_off_is_written_to_bmad_as_a_drift():
+    """Tao cannot find a closed orbit through an ``rfcavity`` with
+    ``rf_frequency = 0`` (la_geev fails on NaN maps), so a cavity with neither
+    voltage nor frequency has to leave as the drift it is."""
+    with pytest.warns(UserWarning, match="written to Bmad as a drift"):
+        text = _closed_bmad(_cavity(0.0, 0.0))
+    assert text.startswith("CAV: drift")
+    assert "l = 0.8" in text
+    assert "rf_frequency" not in text
+
+
+def test_a_cavity_that_is_on_stays_an_rfcavity_in_bmad():
+    text = _closed_bmad(_cavity(5e8, 1e6))
+    assert text.startswith("CAV: rfcavity")
+    assert "rf_frequency = 500000000.0" in text
+
+
+def test_a_zero_frequency_cavity_with_voltage_warns_but_is_kept():
+    with pytest.warns(UserWarning, match="zero frequency"):
+        text = _closed_bmad(_cavity(0.0, 1e6))
+    assert text.startswith("CAV: rfcavity")

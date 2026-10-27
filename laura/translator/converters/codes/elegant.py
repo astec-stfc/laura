@@ -278,15 +278,17 @@ class ElegantLatticeImporter(LatticeImporter):
             saved = directory / f"{name}.lte"
 
             def _write_command(output_seq: int) -> None:
+                # POSIX separators: elegant processes escapes inside quoted
+                # strings, so a Windows "...\newBST" would read "\n" as a newline.
                 command.write_text(
                     "&run_setup\n"
-                    f' lattice = "{Path(self.source_file).resolve()}",\n'
+                    f' lattice = "{Path(self.source_file).resolve().as_posix()}",\n'
                     f' use_beamline = "{name}",\n'
-                    f' rootname = "{root}",\n'
+                    f' rootname = "{root.as_posix()}",\n'
                     " p_central_mev = 100,\n"
                     "&end\n"
                     "&save_lattice\n"
-                    f' filename = "{saved}",\n'
+                    f' filename = "{saved.as_posix()}",\n'
                     f" output_seq = {output_seq},\n"
                     " suppress_defaults = 0,\n"
                     "&end\n"
@@ -468,6 +470,12 @@ class ElegantLatticeImporter(LatticeImporter):
             v = self._convert_ele_phase_to_phase(v)
             if vtype == "Solenoid":
                 v = self._convert_b_to_s0l(v, elem_length)
+            if vtype == "Combined_Corrector":
+                # A combined corrector's introspected magnetic defaults hold only its
+                # two planes, so the generic keyword mapping never places ``l`` and the
+                # magnetic length stays 0 (exporters write the kicker with ``l = 0``).
+                # The model shares a flat ``length`` between both planes.
+                v.setdefault("magnetic", {}).setdefault("length", elem_length)
 
             physical = {
                 "s": cumulative_s,
