@@ -17,7 +17,7 @@ See [element-er.md](element-er.md) for the full class diagram.
 The schema defines three abstract layers before reaching concrete elements:
 
 ```
-AcceleratorElement              ← schema root  (Python: baseElement)
+AcceleratorElement              ← schema root  (Python: BaseElement)
 │   name, hardware_class, hardware_type, hardware_model,
 │   machine_area, virtual_name, alias, subelement
 │
@@ -94,7 +94,7 @@ familiar from accelerator-physics code:
 
 | Schema class | Python wrapper | Module |
 |---|---|---|
-| `AcceleratorElement` | `baseElement` | `laura.models.element` |
+| `AcceleratorElement` | `BaseElement` | `laura.models.element` |
 | `StandardElement` + `Element` | `Element` | `laura.models.element` |
 | `PhysicalAcceleratorElement` | `PhysicalBaseElement` | `laura.models.element` |
 | `HorizontalCorrector` | `Horizontal_Corrector` | `laura.models.element` |
@@ -127,10 +127,10 @@ from ._generated import (
     ...
 )
 
-class baseElement(CascadingAccessMixin, _AcceleratorElementBase, IgnoreExtra):
+class BaseElement(CascadingAccessMixin, _AcceleratorElementBase, IgnoreExtra):
     ...
 
-class Element(baseElement, _ElementBase):
+class Element(BaseElement, _ElementBase):
     ...
 
 class PhysicalBaseElement(Element, _PhysicalAcceleratorElementBase):
@@ -173,7 +173,7 @@ The critical distinction:
 
 ## Custom Attribute Access
 
-`baseElement` mixes in `CascadingAccessMixin` which implements
+`BaseElement` mixes in `CascadingAccessMixin` which implements
 `__getattr__`/`__setattr__` to search nested Pydantic sub-models:
 
 ```python

@@ -1,38 +1,23 @@
 import math
 import re
 import os
-from collections import Counter as OccurrenceCounter
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
-from laura.models.element import Magnet
 from laura.utils.dict_utils import numpy_scalar_to_python
-from laura.models.baseModels import IgnoreExtra
+from laura.models.base_models import IgnoreExtra
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, get_args, get_origin
-from .fields import field
-
-
-def number_repeated_names(names: list[str]) -> list[str]:
-    """Append ``.n`` only to names that occur more than once."""
-    keys = [name.lower() for name in names]
-    totals = OccurrenceCounter(keys)
-    seen = OccurrenceCounter()
-    numbered = []
-    for name, key in zip(names, keys):
-        seen[key] += 1
-        numbered.append(f"{name}.{seen[key]}" if totals[key] > 1 else name)
-    return numbered
+from .fields import FieldMap
+from laura.utils.naming import number_repeated_names  # noqa: F401 (re-exported)
 
 
 def same_element_placement(left: Any, right: Any) -> bool:
     """True if two :class:`~laura.models.element.Element` objects occupy the
     same physical placement (position, orientation, length).
 
-    Used by ``create_machine_model`` on the reverse-direction importers
-    (Bmad/Elegant/MAD-X) to decide whether a name shared across independent
-    layouts is a genuine share (e.g. a common injector line) or a name
-    collision that needs a per-layout copy.
+    Used by ``create_machine_model`` on the reverse-direction importers to
+    tell a genuine shared element from a name collision across layouts.
     """
     a, b = left.physical, right.physical
     if (a.middle is None) != (b.middle is None):
@@ -69,17 +54,13 @@ def merge_layout_elements(
     """Merge one section's elements into a cross-layout ``elements`` dict,
     mutating both ``elements`` and ``section_definitions[section_name]``.
 
-    Shared by every reverse-direction importer's ``create_machine_model``
-    (Bmad/Elegant/MAD-X). An element already present under the same name is
-    reused as-is when it occupies the same placement
-    (:func:`same_element_placement`); otherwise it's copied under a
-    ``name__suffix`` name (numbered further on repeat collisions), because
-    :class:`~laura.models.elementList.MachineModel` stores one placement per
-    name. A subelement (``element.is_subelement()``) whose parent was
-    renamed is renamed to match and re-pointed at the parent's new name,
-    even when its own placement happens to coincide with an existing
-    element's -- this only ever applies to Bmad's Kicker H/V-corrector
-    split; it's a no-op for importers that never set ``subelement``.
+    Shared by the reverse-direction importers' ``create_machine_model``. An
+    element already present under the same name is reused when it occupies
+    the same placement (:func:`same_element_placement`); otherwise it is
+    copied as ``name__suffix`` (numbered on repeat collisions), because
+    :class:`~laura.models.element_list.MachineModel` stores one placement per
+    name. A subelement whose parent was renamed is renamed to match (only
+    Bmad's Kicker H/V-corrector split sets ``subelement``).
 
     Parameters
     ----------
@@ -193,6 +174,38 @@ def bmad_functional_definitions(definitions: Dict | None = None) -> str:
     return "".join(f"{name} = {value}\n" for name, value in definitions.items())
 
 
+def functional_fields(element: BaseModel) -> Dict[str, str]:
+    """``{"magnetic.multipoles.K1L.normal": "kx", ...}`` for every field of
+    ``element`` naming a functional definition.
+
+    For codes with no expression system (Ocelot), so the symbols can ride on
+    the native object and :func:`apply_functional_fields` can restore them.
+    """
+    found = {}
+    if not IgnoreExtra.functional_definitions:
+        return found
+
+    def walk(value: Any, path: str) -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                walk(item, f"{path}.{key}" if path else str(key))
+        elif isinstance(value, str) and value in IgnoreExtra.functional_definitions:
+            found[path] = value
+
+    walk(element.model_dump(), "")
+    return found
+
+
+def apply_functional_fields(data: Dict, fields: Dict[str, str]) -> None:
+    """Write :func:`functional_fields` output back into an element dict."""
+    for path, symbol in fields.items():
+        *parents, leaf = path.split(".")
+        target = data
+        for key in parents:
+            target = target.setdefault(key, {})
+        target[leaf] = symbol
+
+
 def sanitize_string(string: str) -> str:
     """
     Replaces hyphens in a string with underscores.
@@ -244,7 +257,7 @@ def convert_numpy_types(v):
             return [convert_numpy_types(li) for li in v]
         except TypeError:
             return float(v)
-    elif isinstance(v, field):
+    elif isinstance(v, FieldMap):
         return convert_numpy_types(v.model_dump())
     return numpy_scalar_to_python(v)
 
@@ -301,12 +314,10 @@ def introspect_model_defaults(
     ----------
     resolve_optional: bool
         A field typed ``Optional[SomeModel]`` with no ``default_factory`` (e.g.
-        ``physical: Optional[PhysicalElement] = None``) has a class-level
-        default of ``None`` -- there is no instance to recurse into. When
-        ``False`` (the default, preserving prior behaviour) such a field's
-        entry is just ``None``. When ``True``, its declared type is unwrapped
-        and introspected directly (using ``SomeModel``'s own field defaults)
-        instead of stopping at ``None``.
+        A field typed ``Optional[SomeModel]`` with no ``default_factory``
+        has a class-level default of ``None``. When ``False`` (default) its
+        entry is ``None``; when ``True``, ``SomeModel`` is unwrapped and its
+        own field defaults are introspected.
     """
     result = {}
 
@@ -371,7 +382,10 @@ def path_function(a):
         return os.path.abspath(a)
     return "./"
 
-def expand_substitution(self, param, master_lattice="./", subs=None, elements=None, absolute=False):
+
+def expand_substitution(
+    self, param, master_lattice="./", subs=None, elements=None, absolute=False
+):
     subs = subs or {}
     elements = elements or {}
     if isinstance(param, str):
@@ -387,7 +401,6 @@ def expand_substitution(self, param, master_lattice="./", subs=None, elements=No
                 replaced_str = replaced_str.replace(key, subs[key])
             if os.path.exists(replaced_str):
                 replaced_str = path_function(replaced_str).replace("\\", "/")
-                # print('\tpath exists', replaced_str)
             for e in elements.keys():
                 if e in replaced_str:
                     print("Element is in string!", e, replaced_str)
@@ -398,7 +411,7 @@ def expand_substitution(self, param, master_lattice="./", subs=None, elements=No
         return param
 
 
-def checkValue(self, d, default=None):
+def check_value(self, d, default=None):
     if isinstance(d, dict):
         if "type" in d and d["type"] == "list":
             if "default" in d:
@@ -415,7 +428,9 @@ def checkValue(self, d, default=None):
             return (
                 d["value"]
                 if d["value"] is not None
-                else d["default"] if "default" in d else default
+                else d["default"]
+                if "default" in d
+                else default
             )
     elif isinstance(d, str):
         return (
@@ -430,21 +445,32 @@ def tw_cavity_energy_gain(cavity):
     Estimate energy gain in a travelling-wave RF cavity.
 
     Parameters:
-        cavity (laura.models.element.RFCavity): RFCavity element
+        cavity (RFCavityTranslator): travelling-wave cavity translator
 
     Returns:
         float: Estimated energy gain [eV]
     """
 
     # Approximate effective accelerating gradient
-    E_acc = cavity.field_amplitude * np.sin(
-        np.pi * cavity.mode_numerator * 2 / cavity.mode_denominator / 2
+    e_acc = cavity.field_amplitude * np.sin(
+        np.pi * cavity.cavity.mode_numerator / cavity.cavity.mode_denominator
     )
 
     # Total cavity length
-    L_total = cavity.n_cells * cavity.cell_length
+    l_total = cavity.cavity.n_cells * cavity.cavity.cell_length
 
     # Energy gain in MeV (since 1 MV/m * 1 m = 1 MeV for charge = e)
-    delta_W = E_acc * L_total * np.cos(np.pi * cavity.phase / 180)
+    delta_w = e_acc * l_total * np.cos(np.pi * cavity.phase / 180)
 
-    return delta_W
+    return delta_w
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "checkValue": "check_value",
+    },
+)

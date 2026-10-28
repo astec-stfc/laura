@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate laura/models/_generated.py from laura/schema/laura_schema.yaml.
+"""Generate laura/models/_generated.py from laura/schema/YAML/laura_schema.yaml.
 
 Class names are given a ``_`` prefix and ``Base`` suffix
 (e.g., ``Quadrupole`` → ``_QuadrupoleBase``) to avoid conflicts
@@ -70,6 +70,7 @@ _HEADER = """\
 
 # ── Step 1: run gen-pydantic ──────────────────────────────────────────────────
 
+
 def _run_gen_pydantic(schema_path: str) -> str:
     """Invoke gen-pydantic and return its stdout as a string."""
     # Locate gen-pydantic next to the active Python interpreter.
@@ -92,16 +93,21 @@ def _run_gen_pydantic(schema_path: str) -> str:
         # description (en dashes, Greek letters, the ohm sign) comes back as
         # mojibake and is written into _generated.py that way.
         encoding="utf-8",
+        # gen-pydantic's own stderr/stdout isn't guaranteed to be valid UTF-8
+        # (e.g. cp1252 en-dashes from a dependency's warning text). Without
+        # this, a bad byte crashes the background reader thread, which
+        # silently empties the captured output instead of raising here --
+        # surfacing as a confusing `NoneType` error much further downstream.
+        errors="replace",
     )
     if result.returncode != 0:
         sys.stderr.write(result.stderr)
-        raise RuntimeError(
-            f"gen-pydantic failed with exit code {result.returncode}"
-        )
+        raise RuntimeError(f"gen-pydantic failed with exit code {result.returncode}")
     return result.stdout
 
 
 # ── Step 2: collect schema-defined class names ────────────────────────────────
+
 
 def _collect_schema_classes(
     content: str,
@@ -132,15 +138,13 @@ def _collect_schema_classes(
 
 # ── Step 3: apply renaming ────────────────────────────────────────────────────
 
+
 def _rename_classes(content: str, model_names: set[str]) -> str:
     """
     Rename every schema model class (those in *model_names*) to ``_XxxBase``
     throughout *content*.
 
-    Enum names are intentionally absent from *model_names* so they are left
-    unchanged.  String literals inside ``json_schema_extra`` dict values are
-    also left unchanged because they appear as quoted strings, not bare
-    identifiers, and the targeted patterns below do not match quoted strings.
+    Enums and quoted strings (e.g. in ``json_schema_extra``) are left unchanged.
     """
 
     def new_name(n: str) -> str:
@@ -151,9 +155,7 @@ def _rename_classes(content: str, model_names: set[str]) -> str:
     def _replace_class_def(m: re.Match) -> str:
         cls_name = new_name(m.group(1))
         # Rename each base class identifier
-        new_bases = re.sub(
-            r"\b(\w+)\b", lambda bm: new_name(bm.group(1)), m.group(2)
-        )
+        new_bases = re.sub(r"\b(\w+)\b", lambda bm: new_name(bm.group(1)), m.group(2))
         return f"class {cls_name}({new_bases}):"
 
     content = re.sub(
@@ -202,6 +204,7 @@ def _rename_classes(content: str, model_names: set[str]) -> str:
 
 # ── Step 4: apply ifabsent defaults, fix multivalued, inject AliasChoices ────
 
+
 def _parse_ifabsent(value: str) -> str | None:
     """Convert a LinkML ifabsent directive to a Python literal string.
 
@@ -228,7 +231,13 @@ def _parse_ifabsent(value: str) -> str | None:
 
 def _parse_schema_info(
     schema_path: str,
-) -> tuple[dict[str, str], set[str], set[str], dict[str, list[str]], dict[str, dict[str, list[str]]]]:
+) -> tuple[
+    dict[str, str],
+    set[str],
+    set[str],
+    dict[str, list[str]],
+    dict[str, dict[str, list[str]]],
+]:
     """Read the schema YAML and extract field-level metadata.
 
     Returns a five-tuple:
@@ -297,7 +306,10 @@ def _parse_schema_info(
                         defaults[slot_name] = parsed
                 if slot_def.get("multivalued"):
                     multivalued.add(slot_name)
-                    if slot_def.get("inlined") and slot_def.get("inlined_as_list") is False:
+                    if (
+                        slot_def.get("inlined")
+                        and slot_def.get("inlined_as_list") is False
+                    ):
                         dict_valued.add(slot_name)
                 slot_aliases = slot_def.get("aliases")
                 if slot_aliases:
@@ -321,28 +333,26 @@ def _parse_schema_info(
 def _apply_schema_fixes(content: str, schema_path: str) -> str:
     """Post-process the renamed generated code.
 
-    Three transformations are applied, line by line:
+    Applied line by line:
 
-    1. **ifabsent defaults** – ``Optional[T] = Field(default=None, …)``
-       becomes ``T = Field(default=<value>, …)`` for fields listed in the
-       schema with ``ifabsent:``.
+    1. **ifabsent defaults** – ``Optional`` is dropped from primitive-typed
+       fields that have an ``ifabsent:`` default.
 
-    2. **multivalued lists** – ``Optional[list[T]] = Field(default=None, …)``
-       becomes ``list[T] = Field(default_factory=list, …)`` for all
-       ``multivalued: true`` fields.
+    2. **multivalued** – ``Optional[list[T]] = Field(default=None, …)``
+       becomes ``list[T]`` with ``default_factory=list``, or
+       ``dict[str, T]`` with ``default_factory=dict`` for dict-valued slots.
 
-    3. **AliasChoices** – for fields with LinkML ``aliases:``, a
-       ``validation_alias=AliasChoices(field_name, *aliases)`` keyword
-       argument is injected into the ``Field(…)`` call immediately before
-       the ``json_schema_extra`` argument.  The alias map is resolved
-       *per-class* so that slots with the same name in different schema
-       classes (e.g. ``type`` in every diagnostic sub-class) each get
-       their own correct alias rather than the first-class alias.
+    3. **AliasChoices** – fields with LinkML ``aliases:`` get
+       ``validation_alias=AliasChoices(field_name, *aliases)`` before
+       ``json_schema_extra``, resolved per class (e.g. ``type`` in each
+       diagnostic sub-class).
 
     An ``AliasChoices`` import is spliced into the pydantic import block if
     any field requires it.
     """
-    defaults, multivalued, dict_valued, global_aliases, class_aliases = _parse_schema_info(schema_path)
+    defaults, multivalued, dict_valued, global_aliases, class_aliases = (
+        _parse_schema_info(schema_path)
+    )
 
     needs_alias_choices = False
 
@@ -359,7 +369,9 @@ def _apply_schema_fixes(content: str, schema_path: str) -> str:
             current_class_orig = hdr.group(1)
 
         # Choose the most specific alias map available for this class
-        per_class = class_aliases.get(current_class_orig, {}) if current_class_orig else {}
+        per_class = (
+            class_aliases.get(current_class_orig, {}) if current_class_orig else {}
+        )
         merged_aliases = {**global_aliases, **per_class}
 
         line = _fix_field_line(line, defaults, multivalued, dict_valued, merged_aliases)
@@ -408,7 +420,9 @@ def _fix_field_line(
         field_name = optlist_m.group(2)
         if field_name in dict_valued:
             inner = optlist_m.group(3)
-            line = re.sub(r"Optional\[list\[(\w+)\]\]", f"dict[str, {inner}]", line, count=1)
+            line = re.sub(
+                r"Optional\[list\[(\w+)\]\]", f"dict[str, {inner}]", line, count=1
+            )
             line = line.replace("default=None,", "default_factory=dict,", 1)
         elif field_name in multivalued:
             line = re.sub(r"Optional\[list\[(\w+)\]\]", r"list[\1]", line, count=1)
@@ -425,7 +439,11 @@ def _fix_field_line(
         field_name = opt_m.group(2)
         field_type = opt_m.group(3)
 
-        if field_name in defaults and field_type in _PRIMITIVE_TYPES and "default=None" not in line:
+        if (
+            field_name in defaults
+            and field_type in _PRIMITIVE_TYPES
+            and "default=None" not in line
+        ):
             line = re.sub(r"Optional\[(\w+)\]", r"\1", line, count=1)
 
         line = _inject_alias_choices(line, field_name, aliases)
@@ -460,7 +478,9 @@ def _inject_alias_choices(
     alias_kwarg = f"validation_alias=AliasChoices({args}), "
     # Inject just before json_schema_extra (or before closing paren if absent)
     if ", json_schema_extra" in line:
-        line = line.replace(", json_schema_extra", f", {alias_kwarg}json_schema_extra", 1)
+        line = line.replace(
+            ", json_schema_extra", f", {alias_kwarg}json_schema_extra", 1
+        )
     elif line.rstrip().endswith(")"):
         line = line.rstrip()[:-1] + f", {alias_kwarg})"
     return line
@@ -482,17 +502,13 @@ def _inject_alias_choices_import(content: str) -> str:
 
 # ── Step 5: mirror field descriptions as attribute docstrings ────────────────
 
+
 def _add_attribute_docstrings(content: str) -> str:
     """Repeat each field's ``description`` as a PEP 224 attribute docstring.
 
-    LinkML ``description:`` already reaches the generated code in two places:
-    class descriptions become class docstrings, and slot descriptions become
-    ``Field(description=...)``.  Plain ``sphinx.ext.autodoc`` does not render
-    the latter, but it does pick up a string literal placed directly after an
-    annotated assignment — so we emit one.
-
-    The module is parsed with ``ast`` rather than matched line-by-line because
-    the ``Field(...)`` calls span many lines and contain nested parentheses.
+    ``sphinx.ext.autodoc`` does not render ``Field(description=...)`` but does
+    pick up a string after an annotated assignment. Parsed with ``ast`` because
+    ``Field(...)`` calls span many lines.
     """
     lines = content.split("\n")
     # 1-based line number to insert after → docstring line
@@ -502,7 +518,9 @@ def _add_attribute_docstrings(content: str) -> str:
         if not isinstance(cls, ast.ClassDef):
             continue
         for node in cls.body:
-            if not isinstance(node, ast.AnnAssign) or not isinstance(node.value, ast.Call):
+            if not isinstance(node, ast.AnnAssign) or not isinstance(
+                node.value, ast.Call
+            ):
                 continue
             desc = next(
                 (
@@ -534,14 +552,10 @@ def _add_attribute_docstrings(content: str) -> str:
 #: subclass property shadowing an inherited field makes the property object
 #: itself the field default, which then fails validation.
 _PYDANTIC_EXCLUDED_SLOTS: dict[str, frozenset[str]] = {
-    # MagneticElement.angle is derived from multipoles.K0L so that a symbolic
-    # (functional) bend angle survives round-tripping and reads follow the
-    # global resolution mode. The Dipole/Quadrupole magnet bases repeat the slot
-    # and are excluded too, so the property stays usable if a wrapper is ever
-    # pointed at them.
     "_MagneticElementBase": frozenset({"angle"}),
     "_DipoleMagnetBase": frozenset({"angle"}),
     "_QuadrupoleMagnetBase": frozenset({"angle"}),
+    "_CorrectorMagnetBase": frozenset({"angle", "horizontal_kick", "vertical_kick"}),
 }
 
 

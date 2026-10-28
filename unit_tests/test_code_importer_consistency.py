@@ -26,17 +26,24 @@ def _class(filename, classname):
     return next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == classname)
 
 
+def _methods(importer):
+    """``{name: FunctionDef}`` for *importer*, including a ``LatticeImporter`` base."""
+    bodies = [importer.body]
+    if any(getattr(base, "id", None) == "LatticeImporter" for base in importer.bases):
+        bodies.insert(0, _class("importer.py", "LatticeImporter").body)
+    return {
+        node.name: node
+        for body in bodies
+        for node in body
+        if isinstance(node, ast.FunctionDef)
+    }
+
+
 def test_importers_share_the_same_lifecycle():
     for filename, classname in IMPORTERS.items():
-        importer = _class(filename, classname)
-        methods = {node.name for node in importer.body if isinstance(node, ast.FunctionDef)}
-        assert REQUIRED_METHODS <= methods
-        create_layout = next(
-            node
-            for node in importer.body
-            if isinstance(node, ast.FunctionDef) and node.name == "create_layout"
-        )
-        assert ast.unparse(create_layout.returns) == "MachineLayout"
+        methods = _methods(_class(filename, classname))
+        assert REQUIRED_METHODS <= set(methods)
+        assert ast.unparse(methods["create_layout"].returns) == "MachineLayout"
 
 
 def test_ocelot_type_collisions_have_explicit_generic_winners():

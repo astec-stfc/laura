@@ -61,12 +61,6 @@ def _write_wake(self, *, verbose: bool) -> str | None:
     if len(axis) != len(wake):
         raise ValueError("Bmad wake coordinate and Wz arrays must have equal lengths")
 
-    #if verbose and (self.Wx.value is not None or self.Wy.value is not None):
-    #    warn(
-    #        "Bmad exports the tabulated longitudinal short-range wake Wz; "
-    #        "sampled Wx/Wy require a transverse pseudo-mode fit and were omitted."
-    #    )
-
     rows = ",\n".join(
         f"      {_format(position)} {_format(value)}"
         for position, value in zip(axis, wake)
@@ -140,21 +134,15 @@ def write_bmad_field_file(
     verbose: bool = True,
 ) -> str | None:
     """
-    Generate the field data in a format that is suitable for Bmad, based on the
-    :class:`~laura.translator.utils.fields.field` object provided.
-
-    See the `Bmad manual`_ for more details.
-
-    This is then written to a text file.
-    The `field_type` parameter determines the format of the file.
-
-    A warning is raised if the field type is not supported (perhaps elevate to a `NotImplementedError`?)
+    Write the field data of a :class:`~laura.translator.utils.fields.FieldMap`
+    to a Bmad text file, in a format set by `field_type` (see the
+    `Bmad manual`_).
 
     .. _Bmad manual: https://www.classe.cornell.edu/bmad/manual.html
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object
     field_scale: float | None
         Used for scaling the overall field magnitude

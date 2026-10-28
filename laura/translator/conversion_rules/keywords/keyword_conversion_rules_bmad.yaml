@@ -7,12 +7,13 @@ general:
   integration_order: integrator_order
   deltaL: ds_step
   csrdz: csr_ds_step
+  fringe_model: fringe_type
 dipole:
   angle: angle
   half_gap: hgap
   edge_field_integral: fint
   exit_half_gap: hgapx
-  exit_edge_field_integral: fintx
+  edge_field_integral_exit: fintx
   tilt: ref_tilt
 quadrupole:
   k1l: k1
@@ -35,23 +36,26 @@ rfcavity:
   field_amplitude: voltage
   n_cells: n_cell
   structure_type: cavity_type
+  n_kicks: n_rf_steps
 rfdeflectingcavity:
   phase: phi0
   frequency: rf_frequency
   field_amplitude: voltage
+  n_kicks: n_rf_steps
 crabcavity:
   phase: phi0
   frequency: rf_frequency
   field_amplitude: voltage
+  n_kicks: n_rf_steps
 wiggler:
   peak_magnetic_field: b_max
   period: l_period
   num_periods: n_period
 solenoid:
-  ks: ks
+  field_amplitude: bs_field
 combinedsolenoidquadrupole:
   k1l: k1
-  ks: ks
+  field_amplitude: bs_field
 electrostaticseparator:
   field_amplitude: e_field
   horizontal_kick: hkick

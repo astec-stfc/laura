@@ -1,25 +1,13 @@
-"""``MachineLayout.passes`` is the beam order, one entry per traversal.
+"""``MachineLayout.passes``: beam order, one entry per traversal.
 
-``sections`` is keyed by name, so on its own it cannot say that a path enters
-a section twice. For *repetition* that is now handled before the layout exists
--- expansion gives each occurrence its own section -- but multipass is the case
-where the occurrences are deliberately the same section, one piece of
-hardware entered more than once, and no name-keyed structure can express it.
-``passes`` is what carries it.
-
-``multipass: N`` on a layout entry is the opt-in that separates the two
-readings.  Without it a repeated section is repetition, which is what the
-section level has always made of the same shape.
+``multipass: N`` marks the same hardware entered again; without it a repeated section is repetition.
 """
-
-import warnings
 
 import pytest
 
-from laura.models.element import Quadrupole
 from laura.models.elementList import MachineModel
-from laura.models.exceptions import LatticeError
 from laura.translator.converters.layout import MachineLayoutTranslator
+from unit_tests.helpers import quad, quiet
 
 SECTIONS = {
     "INJECTOR": ["INJ_Q"],
@@ -39,13 +27,7 @@ ERL = [
 
 def elements():
     return {
-        name: Quadrupole(
-            name=name,
-            hardware_class="Magnet",
-            machine_area="A",
-            magnetic={"magnetic_length": length, "k1l": 1.0},
-            physical={"length": length},
-        )
+        name: quad(name, length, 1.0, "A")
         for name, length in (
             ("INJ_Q", 0.2),
             ("LIN_C", 0.6),
@@ -55,12 +37,11 @@ def elements():
     }
 
 
-def machine(layout, sections=None):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+def machine(layout):
+    with quiet():
         return MachineModel(
             elements=elements(),
-            section={"sections": sections or SECTIONS},
+            section={"sections": SECTIONS},
             layout={"layouts": {"ERL": layout}, "default_layout": "ERL"},
         )
 
@@ -71,7 +52,6 @@ def erl():
 
 
 def traversal(model):
-    """``[(section, pass number)]`` in beam order."""
     return [(p.section, p.number) for p in model.lattices["ERL"].passes]
 
 
@@ -95,8 +75,7 @@ class TestPassesAreTheBeamOrder:
         ]
 
     def test_the_element_list_follows_the_passes(self, erl):
-        # Qualified because a multipass name is not an address: see
-        # test_layout_occurrences.py.
+        # A multipass name is not an address; see test_layout_occurrences.py.
         assert erl.lattices["ERL"].elements == [
             "INJ_Q",
             "LIN_C#1",
@@ -114,13 +93,12 @@ class TestPassesAreTheBeamOrder:
         ]
 
     def test_both_passes_are_the_same_hardware(self, erl):
-        # The point of multipass. Repetition deep-copies; this must not.
+        # Repetition deep-copies; multipass must not.
         erl.get_element("LIN_C").magnetic.k1l = 42.0
         assert erl.sections["LINAC"].elements.elements["LIN_C"].magnetic.k1l == 42.0
 
     def test_repetition_is_not_multipass(self):
-        # Expansion has already run, so the occurrences are separate sections
-        # and carry no pass number: they are devices, not passes.
+        # Expansion has already made the occurrences separate sections.
         model = machine(["INJECTOR", "LINAC", "LINAC", "DUMP"])
         assert traversal(model) == [
             ("INJECTOR", None),
@@ -136,8 +114,7 @@ class TestPassesAreTheBeamOrder:
 
 class TestDirectionIsPerPass:
     def test_a_pass_may_be_reversed_while_another_is_not(self):
-        # Refused for repetition -- two devices with one built backwards is not
-        # a machine -- but for multipass it is the recirculating case itself.
+        # Refused for repetition, but the recirculating case for multipass.
         model = machine(
             [
                 "INJECTOR",
@@ -153,38 +130,24 @@ class TestDirectionIsPerPass:
 
 
 class TestRefusesIncoherentMultipass:
-    def test_marking_only_some_occurrences_is_refused(self):
-        # Multipass is a claim about hardware, so it holds for every occurrence
-        # or none: a section cannot be two devices on one pass and one on the
-        # next.
-        with pytest.raises(ValueError, match="marks some occurrences"):
-            machine(["INJECTOR", {"LINAC": {"multipass": 1}}, "ARC", "LINAC"])
-
-    def test_a_section_entered_once_cannot_be_multipass(self):
-        with pytest.raises(ValueError, match="enters it only once"):
-            machine(["INJECTOR", {"LINAC": {"multipass": 1}}, "ARC"])
-
-    def test_pass_numbers_must_run_from_one(self):
-        with pytest.raises(ValueError, match=r"must be \[1, 2\]"):
-            machine(
-                [
-                    "INJECTOR",
-                    {"LINAC": {"multipass": 1}},
-                    "ARC",
-                    {"LINAC": {"multipass": 3}},
-                ]
-            )
-
-    def test_pass_numbers_must_not_repeat(self):
-        with pytest.raises(ValueError, match=r"must be \[1, 2\]"):
-            machine(
-                [
-                    "INJECTOR",
-                    {"LINAC": {"multipass": 1}},
-                    "ARC",
-                    {"LINAC": {"multipass": 1}},
-                ]
-            )
+    # Multipass is a claim about hardware, so it holds for every occurrence or none.
+    @pytest.mark.parametrize(
+        "second, match",
+        [
+            pytest.param("LINAC", "marks some occurrences", id="only-some-marked"),
+            pytest.param(None, "enters it only once", id="entered-once"),
+            pytest.param(
+                {"LINAC": {"multipass": 3}}, r"must be \[1, 2\]", id="not-from-one"
+            ),
+            pytest.param(
+                {"LINAC": {"multipass": 1}}, r"must be \[1, 2\]", id="repeated"
+            ),
+        ],
+    )
+    def test_incoherent_pass_marking_is_refused(self, second, match):
+        layout = ["INJECTOR", {"LINAC": {"multipass": 1}}, "ARC"]
+        with pytest.raises(ValueError, match=match):
+            machine(layout + ([second] if second else []))
 
     @pytest.mark.parametrize("bad", [0, -1, 1.5, True, "2"])
     def test_a_pass_number_must_be_a_counting_number(self, bad):
@@ -199,16 +162,12 @@ class TestRefusesIncoherentMultipass:
             )
 
     def test_an_unknown_option_is_still_refused(self):
-        # Guards the widened option set: adding 'multipass' must not turn the
-        # entry parser into one that accepts anything.
         with pytest.raises(TypeError, match="multipass"):
             machine(["INJECTOR", {"LINAC": {"nonsense": 1}}])
 
 
 class TestNameKeyedLookups:
-    """Occurrence addressing is what makes these answerable: see
-    ``test_layout_occurrences.py``.  Here only that the path is answerable
-    at all, and where it still is not."""
+    """Occurrence addressing is covered in ``test_layout_occurrences.py``."""
 
     def test_getting_the_element_still_works(self, erl):
         assert erl.get_element("LIN_C").name == "LIN_C"
@@ -219,12 +178,7 @@ class TestNameKeyedLookups:
         assert model.elements_between(start="INJ_Q", end="DMP_Q", path="ERL")
 
     def test_export_writes_one_section_per_pass(self, erl):
-        """It used to refuse outright; Tier-1 flatten replaced that.
-
-        The passes are the same section, so export has to give each one a
-        distinct name before a name-keyed ``sections`` dict can hold both.
-        Covered properly in ``test_layout_export_flatten.py``.
-        """
+        """Covered properly in ``test_layout_export_flatten.py``."""
         translator = MachineLayoutTranslator.from_layout(erl.lattices["ERL"])
         assert list(translator.sections) == [
             "INJECTOR",

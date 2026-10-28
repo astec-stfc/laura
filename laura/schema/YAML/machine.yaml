@@ -44,6 +44,60 @@ enums:
 
 classes:
 
+  SpaceChargeSettings:
+    description: >-
+      How finely a code should resolve CSR and space charge over one section.
+
+      On the section: a bunch compressor is run with one
+      binning and the linac around it with another. 
+      The switches that turn the effects on stay per-element, as
+      they can vary.
+
+      All fields is optional; absence means "use the code's defaults".
+    class_uri: laura:SpaceChargeSettings
+    attributes:
+      number_of_bins:
+        range: integer
+        required: false
+        minimum_value: 1
+        description: >-
+          Longitudinal bins the bunch is divided into to build the collective
+          field.
+      step_size:
+        range: float
+        required: false
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+        description: >-
+          Distance between collective-field recalculations.
+      chamber_height:
+        range: float
+        required: false
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+        description: >-
+          Full height of the vacuum chamber for CSR shielding.
+      shield_images:
+        range: integer
+        required: false
+        minimum_value: 0
+        description: >-
+          Number of image charges to sum when modelling wall shielding.
+      bin_span:
+        range: integer
+        required: false
+        minimum_value: 1
+        description: >-
+          Width of a particle's deposition kernel, counted in bins.
+      sigma_cutoff:
+        range: float
+        required: false
+        minimum_value: 0.0
+        description: >-
+          Transverse beam size below which a slice is treated as having none.
+
   SectionLattice:
     description: >-
       An ordered list of element names defining a contiguous beamline
@@ -71,6 +125,11 @@ classes:
         minimum_value: 0.0
         unit:
           ucum_code: eV
+      space_charge:
+        range: SpaceChargeSettings
+        required: false
+        description: >-
+          Resolution of the collective-field calculation over this section.
       elements:
         multivalued: true
         range: string

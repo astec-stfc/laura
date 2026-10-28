@@ -56,9 +56,9 @@ _BMAD_LEAD_TOLERANCE = 1e-9
 def bmad_leading_drift(name: str, lead: float) -> tuple:
     """Re-emit the run-up between a section's start and its first element.
 
-    ``createDrifts()`` only fills the gaps *between* elements, so a section
-    whose first element does not sit at s=0 used to export a lattice physically
-    shorter than the one it came from.
+    ``createDrifts()`` only fills the gaps *between* elements, so without this
+    a section whose first element does not sit at s=0 exports a shorter
+    lattice.
 
     Returns the definition line and the line-member name, or ``("", None)`` when
     there is no meaningful gap to fill.

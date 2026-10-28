@@ -1,23 +1,11 @@
-"""``NAME#N`` addresses one traversal of a multipass element.
-
-A multipass path enters one device more than once, so the device's name is not
-an address: ``LIN_A`` names the hardware, ``LIN_A#2`` names the second time the
-beam reaches it.  PALS spells it the same way.
-
-The oracle is repetition.  ``[INJ, LINAC, ARC, LINAC, DUMP]`` without
-``multipass`` is two linacs, which LAURA already lays end to end; with it, one
-linac traversed twice.  The beam covers the same ground either way, so the two
-must agree on every arc length, and differ only in whether the second traversal
-is a separate device.
-"""
-
-import warnings
+"""``NAME#N`` addresses one traversal of a multipass element, as in PALS."""
 
 import pytest
 
-from laura.models.element import Drift, Quadrupole
+from laura.models.element import Drift
 from laura.models.elementList import MachineModel, split_occurrence
 from laura.models.exceptions import LatticeError
+from unit_tests.helpers import quad, quiet
 
 SECTIONS = {
     "INJECTOR": ["INJ_Q"],
@@ -41,13 +29,7 @@ SINGLE = ["INJECTOR", "LINAC", "ARC", "DUMP"]
 
 def elements():
     magnets = {
-        name: Quadrupole(
-            name=name,
-            hardware_class="Magnet",
-            machine_area="A",
-            magnetic={"magnetic_length": length, "k1l": 1.0},
-            physical={"length": length},
-        )
+        name: quad(name, length, 1.0, "A")
         for name, length in (
             ("INJ_Q", 0.2),
             ("LIN_A", 0.2),
@@ -66,8 +48,7 @@ def elements():
 
 
 def machine(layout):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         return MachineModel(
             elements=elements(),
             section={"sections": SECTIONS},
@@ -125,8 +106,7 @@ class TestTheElementListIsAddressable:
         ]
 
     def test_repetition_is_untouched(self):
-        # Expansion has already made the occurrences distinct devices, so
-        # there is nothing left for a selector to disambiguate.
+        # Expansion already made the occurrences distinct devices.
         names = machine(REPETITION).lattices["ERL"].elements
         assert not any("#" in name for name in names)
         assert names[1:3] == ["LIN_A.1", "LIN_B.1"]
@@ -152,15 +132,14 @@ class TestArcLengthsReportEveryPass:
         )
 
     def test_it_agrees_with_repetition(self):
-        # The oracle: two linacs and one linac twice put the beam through the
-        # same metres, so only the keys may differ.
+        # Two linacs and one linac twice cover the same metres; only the keys differ.
         multipass = machine(MULTIPASS).lattices["ERL"].arc_lengths()
         repetition = machine(REPETITION).lattices["ERL"].arc_lengths()
         assert list(multipass.values()) == pytest.approx(list(repetition.values()))
 
     def test_the_path_is_longer_than_its_sections(self, erl):
-        # The composed frames chain each section once, which is one linac
-        # short; arc_lengths is the only view that has both passes.
+        # Composed frames chain each section once, one linac short; only arc_lengths has
+        # both passes.
         assert erl.arc_lengths()["DMP_Q"] == pytest.approx(1.8)
         assert erl.sections["DUMP"].elements.elements["DMP_Q"].physical.s < 1.8
 
@@ -170,8 +149,7 @@ class TestArcLengthsReportEveryPass:
         )
 
     def test_its_keys_are_the_names_the_path_reports(self, erl):
-        # arc_lengths does its own walk, so this is what keeps the two
-        # numberings from drifting apart.
+        # arc_lengths walks separately, so this keeps the numberings in step.
         assert list(erl.arc_lengths()) == erl.elements
 
     def test_a_third_pass_is_numbered_in_beam_order(self):
@@ -213,19 +191,21 @@ class TestDirectionIsTakenPerPass:
         assert self.there_and_back().arc_lengths()["DMP_Q"] == pytest.approx(1.8)
 
     def test_an_explicit_argument_still_overrides(self):
-        # Documented behaviour: the argument replaces the path's directions
-        # outright rather than merging with them.
+        # The argument replaces the path's directions rather than merging.
         lengths = self.there_and_back().arc_lengths(direction={})
         assert (lengths["LIN_A#2"], lengths["LIN_B#2"]) == pytest.approx((1.2, 1.4))
 
 
 class TestLookupNeedsToKnowWhichPass:
-    def test_a_bare_ambiguous_name_is_refused(self, erl):
-        with pytest.raises(LatticeError, match="enters 'LIN_A' 2 times"):
-            erl.elements_between(start="LIN_A", end="DMP_Q")
-
-    def test_the_refusal_offers_the_addresses(self, erl):
-        with pytest.raises(LatticeError, match=r"LIN_A#1, LIN_A#2"):
+    @pytest.mark.parametrize(
+        "match",
+        [
+            pytest.param("enters 'LIN_A' 2 times", id="refused"),
+            pytest.param(r"LIN_A#1, LIN_A#2", id="offers-the-addresses"),
+        ],
+    )
+    def test_a_bare_ambiguous_name_is_refused(self, erl, match):
+        with pytest.raises(LatticeError, match=match):
             erl.elements_between(start="LIN_A", end="DMP_Q")
 
     def test_a_bare_unambiguous_name_still_works(self, erl):

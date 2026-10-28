@@ -1,7 +1,7 @@
-laura.Exporters package
+laura.exporters package
 =======================
 
-.. automodule:: laura.Exporters
+.. automodule:: laura.exporters
    :members:
    :undoc-members:
    :show-inheritance:
@@ -12,23 +12,23 @@ Submodules
 laura.Exporters.RDF module
 --------------------------
 
-.. automodule:: laura.Exporters.RDF
+.. automodule:: laura.exporters.rdf_exporter
    :members:
    :undoc-members:
    :show-inheritance:
 
-laura.Exporters.SQL module
---------------------------
+laura.exporters.sql_exporter module
+-----------------------------------
 
-.. automodule:: laura.Exporters.SQL
+.. automodule:: laura.exporters.sql_exporter
    :members:
    :undoc-members:
    :show-inheritance:
 
-laura.Exporters.YAML module
----------------------------
+laura.exporters.yaml_exporter module
+------------------------------------
 
-.. automodule:: laura.Exporters.YAML
+.. automodule:: laura.exporters.yaml_exporter
    :members:
    :undoc-members:
    :show-inheritance:

@@ -52,11 +52,11 @@ class ContainerTranslator:
     def to_astra(self) -> Dict[str, Any]:
         return self._fan_out("to_astra")
 
-    def to_ocelot(self, save: bool = False) -> Dict[str, Any]:
-        return self._fan_out("to_ocelot", save=save)
+    def to_ocelot(self, save: bool = False, Brho: float = 0.0) -> Dict[str, Any]:
+        return self._fan_out("to_ocelot", save=save, Brho=Brho)
 
-    def to_cheetah(self, save: bool = False) -> Dict[str, Any]:
-        return self._fan_out("to_cheetah", save=save)
+    def to_cheetah(self, save: bool = False, Brho: float = 0.0) -> Dict[str, Any]:
+        return self._fan_out("to_cheetah", save=save, Brho=Brho)
 
     def to_xsuite(
         self,
@@ -124,7 +124,10 @@ class ContainerTranslator:
         return self._fan_out("to_rftrack", P_Q=P_Q, save=save)
 
     def to_madx(
-        self, beam: Dict[str, Any] | None = None, refer: str = "entry"
+        self,
+        beam: Dict[str, Any] | None = None,
+        refer: str = "entry",
+        Brho: float = 0.0,
     ) -> Dict[str, Any]:
         """
         Create one MAD-X ``SEQUENCE`` per section, keyed by
@@ -142,6 +145,8 @@ class ContainerTranslator:
             :meth:`~laura.translator.converters.section.SectionLatticeTranslator.to_madx`.
         refer: str
             Element reference position, forwarded to every section.
+        Brho: float
+            Rigidity ``p / q`` [T*m], forwarded to every section.
         """
         return self._fan_out(
             "to_madx",
@@ -150,9 +155,12 @@ class ContainerTranslator:
                 "beam": beam.get(name) if isinstance(beam, dict) else None
             },
             refer=refer,
+            Brho=Brho,
         )
 
-    def _elegant_body(self, charge: float | None = None) -> Tuple[str, str]:
+    def _elegant_body(
+        self, charge: float | None = None, Brho: float = 0.0
+    ) -> Tuple[str, str]:
         """
         This container's elegant output as ``(definitions, lines)``, split so a
         parent can concatenate several containers' element definitions ahead of
@@ -164,23 +172,28 @@ class ContainerTranslator:
         """This container's Genesis element and ``LINE`` definitions."""
         raise NotImplementedError
 
-    def to_elegant(self, string: str = "", charge: float | None = None) -> str:
+    def to_elegant(
+        self, string: str = "", charge: float | None = None, Brho: float = 0.0
+    ) -> str:
         """
         Create an elegant-compatible lattice file.
 
-         Parameters
-         ----------
-         string: str
+        Parameters
+        ----------
+        string: str
             Placed ahead of element definitions
         charge: float, optional
             Adds a ``CHARGE`` element at the head of each ``LINE``.
+        Brho: float
+            Magnetic rigidity [T*m]; see
+            :meth:`~laura.translator.converters.section.SectionLatticeTranslator.to_elegant`.
 
         Returns
         -------
         str
             String for the ELEGANT lattice file
         """
-        definitions, lines = self._elegant_body(charge=charge)
+        definitions, lines = self._elegant_body(charge=charge, Brho=Brho)
         return (
             elegant_functional_definitions(self.functional_definitions)
             + string
@@ -193,8 +206,8 @@ class ContainerTranslator:
         Create a Genesis-compatible (v4) lattice file.
 
         Parameters
-         ----------
-         string: str
+        ----------
+        string: str
             Placed ahead of element definitions
 
         Returns

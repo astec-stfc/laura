@@ -100,7 +100,7 @@ class TestPalsElements:
         # PALS states the fint*hgap product; LAURA holds the two separately, so
         # the gap is pinned and the product kept as the integral.
         assert b1.magnetic.edge_field_integral == pytest.approx(0.02)
-        assert b1.magnetic.exit_edge_field_integral == pytest.approx(0.04)
+        assert b1.magnetic.edge_field_integral_exit == pytest.approx(0.04)
         assert b1.magnetic.gap == pytest.approx(2.0)
 
     def test_solenoid_strength_is_normalised_and_integrated(self, elements):

@@ -26,8 +26,8 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 from scipy.constants import speed_of_light
 
-import laura.models.element as LAURA_elements
-from laura.models.elementList import (
+import laura.models.element as laura_elements
+from laura.models.element_list import (
     ElementList,
     LayoutPass,
     MachineLayout,
@@ -36,7 +36,7 @@ from laura.models.elementList import (
 )
 from laura.models.magnetic import Multipoles
 
-from ....Exporters.YAML import PositionMode, export_machine_combined_file
+from ....exporters.yaml_exporter import PositionMode, export_machine_combined_file
 from .. import keyword_conversion_rules_pals
 from ...utils.functions import merge_layout_elements, number_repeated_names
 from ...utils.pals import (
@@ -416,7 +416,7 @@ def _bend(element: PalsElement) -> Dict[str, Any]:
 
     for pals_key, fint_key, gap_key in (
         ("edge1_int", "edge_field_integral", "gap"),
-        ("edge2_int", "exit_edge_field_integral", "exit_gap"),
+        ("edge2_int", "edge_field_integral_exit", "exit_gap"),
     ):
         product = _number(bend.get(pals_key))
         if not product:
@@ -430,7 +430,7 @@ def _bend(element: PalsElement) -> Dict[str, Any]:
             "kick is right, the individual values are not physical."
         )
     for exit_key, entrance_key in (
-        ("exit_edge_field_integral", "edge_field_integral"),
+        ("edge_field_integral_exit", "edge_field_integral"),
         ("exit_gap", "gap"),
     ):
         if exit_key in magnetic and magnetic.get(exit_key) == magnetic.get(
@@ -968,7 +968,7 @@ class PalsLatticeImporter(BaseModel):
                 "LAURA cannot represent; they were dropped.",
             )
         try:
-            element_class = getattr(LAURA_elements, hardware_type)
+            element_class = getattr(laura_elements, hardware_type)
         except AttributeError:
             warn(
                 f"LAURA has no element class {hardware_type!r} for PALS "
@@ -1003,7 +1003,7 @@ class PalsLatticeImporter(BaseModel):
                 "so the design optics were dropped."
             )
             return None
-        return LAURA_elements.TwissMatch(
+        return laura_elements.TwissMatch(
             name=numbered_name,
             hardware_type="TwissMatch",
             machine_area=self.machine_area,
@@ -1059,7 +1059,7 @@ class PalsLatticeImporter(BaseModel):
         """
         stated = str(element.group(LAURA_TYPE_EXTENSION).get("hardware_type", ""))
         if stated and laura_type_to_pals_kind(stated) in (kind, None):
-            if hasattr(LAURA_elements, stated):
+            if hasattr(laura_elements, stated):
                 return stated
             warn(
                 f"PALS element {element.name!r} states a LAURA hardware type "

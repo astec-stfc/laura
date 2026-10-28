@@ -2,23 +2,33 @@ from typing import List
 import numpy as np
 import easygdf
 from warnings import warn
-from .FieldParameter import FieldParameter
-from ..units import UnitValue
+from .field_parameter import require_rf, set_field
 from laura.models.constants import speed_of_light
+
+# field_type: (block names, drop repeated z samples via union)
+_GDF_BLOCKS = {
+    "LongitudinalWake": (("z", "Wz"), True),
+    "TransverseWake": (("z", "Wx", "Wy"), False),
+    "3DWake": (("z", "Wx", "Wy", "Wz"), False),
+    "1DMagnetoStatic": (("z", "Bz"), True),
+    "3DMagnetoStatic": (("x", "y", "z", "Bx", "By", "Bz"), False),
+}
+_GDF_WAKES = {
+    "LongitudinalWake": ("Wz",),
+    "TransverseWake": ("Wx", "Wy"),
+    "3DWake": ("Wx", "Wy", "Wz"),
+}
 
 
 def write_gdf_field_file(self) -> str:
     """
-    Generate the field data in a format that is suitable for GPT, based on the
-    :class:`~laura.translator.utils.fields.field` object provided.
-    This is then written to a GDF file.
-    The `field_type` parameter determines the format of the file.
-
-    A warning is raised if the field type is not supported (perhaps elevate to a `NotImplementedError`?)
+    Write the field data of a :class:`~laura.translator.utils.fields.FieldMap`
+    to a GPT GDF file, in a format set by `field_type`. Unsupported field
+    types raise a warning.
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object
 
     Returns
@@ -29,60 +39,16 @@ def write_gdf_field_file(self) -> str:
     gdf_file = self._output_filename(extension=".gdf")
     blocks = None
     zdata = self.z.value.val
-    if self.field_type == "LongitudinalWake":
-        wzdata = self.Wz.value.val
-        blocks = union(
-            [
-                {"name": "z", "value": zdata},
-                {"name": "Wz", "value": wzdata},
-            ]
-        )
-    elif self.field_type == "TransverseWake":
-        wxdata = self.Wx.value.val
-        wydata = self.Wy.value.val
-        blocks = [
-            {"name": "z", "value": zdata},
-            {"name": "Wx", "value": wxdata},
-            {"name": "Wy", "value": wydata},
-        ]
-    elif self.field_type == "3DWake":
-        wxdata = self.Wx.value.val
-        wydata = self.Wy.value.val
-        wzdata = self.Wz.value.val
-        blocks = [
-            {"name": "z", "value": zdata},
-            {"name": "Wx", "value": wxdata},
-            {"name": "Wy", "value": wydata},
-            {"name": "Wz", "value": wzdata},
-        ]
-    elif self.field_type == "1DMagnetoStatic":
-        bzdata = self.Bz.value.val
-        blocks = union(
-            [
-                {"name": "z", "value": zdata},
-                {"name": "Bz", "value": bzdata},
-            ]
-        )
-    elif self.field_type == "3DMagnetoStatic":
-        xdata = self.x.value.val
-        ydata = self.y.value.val
-        bxdata = self.Bx.value.val
-        bydata = self.By.value.val
-        bzdata = self.Bz.value.val
-        blocks = [
-            {"name": "x", "value": xdata},
-            {"name": "y", "value": ydata},
-            {"name": "z", "value": zdata},
-            {"name": "Bx", "value": bxdata},
-            {"name": "By", "value": bydata},
-            {"name": "Bz", "value": bzdata},
-        ]
+    if self.field_type in _GDF_BLOCKS:
+        names, unique_z = _GDF_BLOCKS[self.field_type]
+        blocks = [{"name": n, "value": getattr(self, n).value.val} for n in names]
+        if unique_z:
+            blocks = union(blocks)
     elif self.field_type == "1DElectroDynamic":
         ezdata = self.Ez.value.val
         fielddata = np.array([zdata, ezdata]).transpose()
         if self.cavity_type == "TravellingWave":
             startpos = list(zdata).index(self.start_cell_z)
-            # stoppos = list(zdata).index(self.end_cell_z)
             halfcell1 = 1.0 * fielddata[:startpos]
             halfcell2 = 1.0 * halfcell1[::-1]
             halfcell1[:, 1] /= max(halfcell1[:, 1])
@@ -90,20 +56,20 @@ def write_gdf_field_file(self) -> str:
             halfcell2[:, 1] /= max(halfcell2[:, 1])
             halfcell1end = halfcell1[-1, 0]
             zstep = zdata[1] - zdata[0]
-            lambdaRF = speed_of_light / self.frequency
+            lambda_rf = speed_of_light / self.frequency
             ncells = (self.n_cells - 1) * self.mode_numerator / self.mode_denominator
-            nsteps = int(np.floor((ncells) * lambdaRF / zstep))
-            middleRF = np.array(
+            nsteps = int(np.floor((ncells) * lambda_rf / zstep))
+            middle_rf = np.array(
                 [
                     [
                         (x * zstep + halfcell1end + zstep),
-                        np.cos((2 * np.pi / lambdaRF) * (x * zstep)),
+                        np.cos((2 * np.pi / lambda_rf) * (x * zstep)),
                     ]
                     for x in range(0, nsteps + 1)
                 ]
             )
-            halfcell2[:, 0] += middleRF[-1, 0] + zstep
-            zdata, ezdata = np.concatenate([halfcell1, middleRF, halfcell2]).transpose()
+            halfcell2[:, 0] += middle_rf[-1, 0] + zstep
+            zdata, ezdata = np.concatenate([halfcell1, middle_rf, halfcell2]).transpose()
         blocks = union(
             [
                 {"name": "z", "value": zdata},
@@ -113,8 +79,6 @@ def write_gdf_field_file(self) -> str:
     else:
         warn(f"Field type {self.field_type} not supported for GPT")
     if blocks is not None:
-        # print(blocks)
-        # print(union(blocks))
         easygdf.save(gdf_file, blocks)
     return gdf_file
 
@@ -144,6 +108,11 @@ def union(blocks: List) -> List:
     return blocks
 
 
+def _block(fdat: List, name: str):
+    """Return the value of the first GDF block called `name` (case-insensitive)."""
+    return [k["value"] for k in fdat if k["name"].lower() == name.lower()][0]
+
+
 def read_gdf_field_file(
     self,
     filename: str,
@@ -153,18 +122,18 @@ def read_gdf_field_file(
     normalize_b: bool = True,
 ):
     """
-    Read a GDF field file and convert it into a :class:`SimulationFramework.Modules.Fields.field` object
+    Read a GDF field file into a :class:`~laura.translator.utils.fields.FieldMap` object.
 
     Parameters
     ----------
-    self: :class:`~SimulationFramework.Modules.Fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object to be updated.
     filename: str
         The path to the GDF field file
     field_type: str
-        The name of the field, see :attr:`~SimulationFramework.Modules.Fields.allowed_fields`
+        The name of the field, see :attr:`~laura.translator.utils.fields.allowed_fields`
     cavity_type: str, optional
-        The type of RF cavity, see :attr:`~SimulationFramework.Modules.Fields.allowed_cavities`
+        The type of RF cavity, see :attr:`~laura.translator.utils.fields.hdf5.allowed_cavities`
     frequency: float, optional
         The frequency of the RF cavity.
     normalize_b: bool, optional
@@ -185,41 +154,23 @@ def read_gdf_field_file(
     """
     self.reset_dicts()
     setattr(self, "field_type", field_type)
-    if "Electro" in field_type:
-        if cavity_type is None:
-            raise ValueError(f"cavity_type must be provided for {field_type}")
-        else:
-            setattr(self, "cavity_type", cavity_type)
-        if frequency is None:
-            raise ValueError(f"frequency must be provided for {field_type}")
-        else:
-            setattr(self, "frequency", frequency)
+    require_rf(self, field_type, cavity_type, frequency)
     fdat = easygdf.load(filename)["blocks"]
     try:
-        zval = [k["value"] for k in fdat if k["name"].lower() == "z"][0]
+        zval = _block(fdat, "z")
     except Exception:
-        zval = [k["value"] * speed_of_light for k in fdat if k["name"].lower() == "t"][
-            0
-        ]
+        zval = _block(fdat, "t") * speed_of_light
     if field_type == "1DMagnetoStatic":
-        bzval = [k["value"] for k in fdat if k["name"].lower().capitalize() == "Bz"][0]
-        setattr(self, "z", FieldParameter(name="z", value=UnitValue(zval, units="m")))
-        setattr(
-            self,
-            "Bz",
-            FieldParameter(
-                name="Bz", value=UnitValue(bzval / np.max(bzval), units="T")
-            ),
-        )
+        bzval = _block(fdat, "Bz")
+        set_field(self, "z", zval, "m")
+        set_field(self, "Bz", bzval / np.max(bzval), "T")
     elif field_type == "3DMagnetoStatic":
-        xval = [k["value"] for k in fdat if k["name"].lower() == "x"][0]
-        yval = [k["value"] for k in fdat if k["name"].lower() == "y"][0]
-        bxval = [k["value"] for k in fdat if k["name"].lower().capitalize() == "Bx"][0]
-        byval = [k["value"] for k in fdat if k["name"].lower().capitalize() == "By"][0]
-        bzval = [k["value"] for k in fdat if k["name"].lower().capitalize() == "Bz"][0]
+        xval, yval, bxval, byval, bzval = (
+            _block(fdat, n) for n in ("x", "y", "Bx", "By", "Bz")
+        )
         # Normalise by the maximum *on-axis* Bz field
         if normalize_b:
-            normBz = max(
+            norm_bz = max(
                 [
                     abs(Bz)
                     for x, y, Bz in zip(xval, yval, bzval)
@@ -227,71 +178,25 @@ def read_gdf_field_file(
                 ]
             )
         else:
-            normBz = 1
-        setattr(self, "x", FieldParameter(name="x", value=UnitValue(xval, units="m")))
-        setattr(self, "y", FieldParameter(name="y", value=UnitValue(yval, units="m")))
-        setattr(self, "z", FieldParameter(name="z", value=UnitValue(zval, units="m")))
-        setattr(
-            self,
-            "Bx",
-            FieldParameter(name="Bx", value=UnitValue(bxval / normBz, units="T")),
-        )
-        setattr(
-            self,
-            "By",
-            FieldParameter(name="By", value=UnitValue(byval / normBz, units="T")),
-        )
-        setattr(
-            self,
-            "Bz",
-            FieldParameter(name="Bz", value=UnitValue(bzval / normBz, units="T")),
-        )
+            norm_bz = 1
+        set_field(self, "x", xval, "m")
+        set_field(self, "y", yval, "m")
+        set_field(self, "z", zval, "m")
+        set_field(self, "Bx", bxval / norm_bz, "T")
+        set_field(self, "By", byval / norm_bz, "T")
+        set_field(self, "Bz", bzval / norm_bz, "T")
     elif field_type == "1DElectroDynamic":
         if cavity_type == "StandingWave":
-            ezval = [
-                k["value"] for k in fdat if k["name"].lower().capitalize() == "Ez"
-            ][0]
-            setattr(
-                self, "z", FieldParameter(name="z", value=UnitValue(zval, units="m"))
-            )
-            setattr(
-                self,
-                "Ez",
-                FieldParameter(
-                    name="Ez", value=UnitValue(ezval / np.max(ezval), units="V/m")
-                ),
-            )
+            ezval = _block(fdat, "Ez")
+            set_field(self, "z", zval, "m")
+            set_field(self, "Ez", ezval / np.max(ezval), "V/m")
         elif cavity_type == "TravellingWave":
             raise NotImplementedError(f"{cavity_type} not implemented for GDF files")
-    elif field_type == "LongitudinalWake":
-        wzval = [k["value"] for k in fdat if k["name"].lower().capitalize() == "Wz"][0]
-        setattr(self, "z", FieldParameter(name="z", value=UnitValue(zval, units="m")))
-        setattr(
-            self, "Wz", FieldParameter(name="Wz", value=UnitValue(wzval, units="V/C"))
-        )
-    elif field_type == "TransverseWake":
-        wxval = [k["value"] for k in fdat if k["name"].lower().capitalize() == "Wx"][0]
-        wyval = [k["value"] for k in fdat if k["name"].lower().capitalize() == "Wy"][0]
-        setattr(self, "z", FieldParameter(name="z", value=UnitValue(zval, units="m")))
-        setattr(
-            self, "Wx", FieldParameter(name="Wx", value=UnitValue(wxval, units="V/C/m"))
-        )
-        setattr(
-            self, "Wy", FieldParameter(name="Wy", value=UnitValue(wyval, units="V/C/m"))
-        )
-    elif field_type == "3DWake":
-        wxval = [k["value"] for k in fdat if k["name"].lower().capitalize() == "Wx"][0]
-        wyval = [k["value"] for k in fdat if k["name"].lower().capitalize() == "Wy"][0]
-        wzval = [k["value"] for k in fdat if k["name"].lower().capitalize() == "Wz"][0]
-        setattr(self, "z", FieldParameter(name="z", value=UnitValue(zval, units="m")))
-        setattr(
-            self, "Wx", FieldParameter(name="Wx", value=UnitValue(wxval, units="V/C/m"))
-        )
-        setattr(
-            self, "Wy", FieldParameter(name="Wy", value=UnitValue(wyval, units="V/C/m"))
-        )
-        setattr(
-            self, "Wz", FieldParameter(name="Wz", value=UnitValue(wzval, units="V/C"))
-        )
+    elif field_type in _GDF_WAKES:
+        names = _GDF_WAKES[field_type]
+        values = [_block(fdat, n) for n in names]
+        set_field(self, "z", zval, "m")
+        for name, value in zip(names, values):
+            set_field(self, name, value, "V/C" if name == "Wz" else "V/C/m")
     else:
         raise NotImplementedError(f"{field_type} loading not implemented for GDF files")

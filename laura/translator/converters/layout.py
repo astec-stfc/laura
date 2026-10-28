@@ -1,19 +1,22 @@
 from typing import Any, Dict, Iterator, List, Tuple
 from warnings import warn
 
-from laura.models.elementList import (
+from laura.models.element_list import (
     LayoutPass,
     MachineLayout,
     SectionLattice,
     flatten_occurrence,
 )
-from laura.models.reversal import reverse_section
+from laura.models.exceptions import LatticeError
+from laura.models.reversal import _forget_placement, reverse_section
 
 from ..utils.functions import sanitize_string
 from ..utils.pals import PalsBeamLine, pals_document
+from .ac_dipole import ACDipoleTranslator
+from .codes.importer import infer_geometry
 from .converter import translate_elements
 from .fanout import ContainerTranslator, wrap_lattice_line
-from .section import SectionLatticeTranslator
+from .section import SectionLatticeTranslator, fix_ring_reference
 
 bmad_per_pass_attributes = {"phi0": "phi0_multipass"}
 """Attributes a Bmad multipass *slave* can hold on its own, and the name Bmad
@@ -27,7 +30,7 @@ written this way. That needs ``field_master``.
 
 class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
     """
-    Translator for a :class:`~laura.models.elementList.MachineLayout`.
+    Translator for a :class:`~laura.models.element_list.MachineLayout`.
 
     Its children are its sections, so every ``to_CODE`` method inherited from
     :class:`~laura.translator.converters.fanout.ContainerTranslator` returns
@@ -55,14 +58,14 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         Parameters
         ----------
         layout: MachineLayout
-            The :class:`~laura.models.elementList.MachineLayout` to translate.
+            The :class:`~laura.models.element_list.MachineLayout` to translate.
         multipass: bool
             Keep the passes as passes, rather than flattening them to one
             section each. Only :meth:`to_bmad_multipass` can use the result --
             every other backend needs one section per occurrence.
         """
         if multipass:
-            sections = dict(layout.model_copy().sections)
+            sections = cls._with_settings(layout, dict(layout.model_copy().sections))
         elif getattr(layout, "passes", None):
             sections = cls._flattened_passes(layout)
         else:
@@ -74,6 +77,7 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
                 sections[name] = reverse_section(
                     section, section.elements.elements, name=section.name
                 )
+            sections = cls._with_settings(layout, sections)
         return cls.model_validate(
             {
                 "name": layout.model_copy().name,
@@ -96,8 +100,9 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         of them sees it. Each pass gets its own deep copy, suffixed ``.N`` on
         the section and on every element in it.
 
-        Per pass, in order: reverse if the pass is backwards, resolve the
-        strengths that pass sees, then apply the author's ``overrides`` last.
+        Per pass, in order: reverse if the pass is backwards, apply the path's
+        ``settings``, resolve the strengths that pass sees, then apply the
+        author's ``overrides`` last.
 
         A single-pass or repetition layout arrives here with ``number`` unset
         and comes out unchanged but for reversal.
@@ -117,9 +122,31 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
             for base in layout.sections[entry.section].order:
                 element = registry.get(renamed.get(base, base))
                 if element is not None:
+                    layout.apply_settings(element, base)
                     layout.apply_pass_values(element, entry, base)
             sections[section.name] = section
         return sections
+
+    @staticmethod
+    def _with_settings(
+        layout: MachineLayout, sections: Dict[str, SectionLattice]
+    ) -> Dict[str, SectionLattice]:
+        """
+        ``sections``, each one ``layout``'s ``settings`` reach replaced by a copy
+        carrying them. The stored sections are shared with other beam paths
+        and are left as they are."""
+        settings = getattr(layout, "settings", None) or {}
+        if not settings:
+            return sections
+        result = dict(sections)
+        for name, section in sections.items():
+            if not settings.keys() & section.elements.elements.keys():
+                continue
+            section = MachineLayoutTranslator._numbered_copy(section, {})
+            for element_name, element in section.elements.elements.items():
+                layout.apply_settings(element, element_name)
+            result[name] = section
+        return result
 
     @staticmethod
     def _pass_names(section: SectionLattice, number: int | None) -> Dict[str, str]:
@@ -132,9 +159,7 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         if number is None:
             return {}
 
-        names = {
-            name: flatten_occurrence(name, number) for name in section.order
-        }
+        names = {name: flatten_occurrence(name, number) for name in section.order}
         names[section.name] = flatten_occurrence(section.name, number)
         return names
 
@@ -172,6 +197,53 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
             revolution_frequency=section.revolution_frequency,
         )
 
+    def as_section(self, name: str | None = None) -> SectionLatticeTranslator:
+        """The whole layout as one section, for exporting it as one lattice --
+        a ring split into sections, say -- through any section exporter.
+
+        Elements are re-placed at their :meth:`arc_lengths`, so gaps between
+        sections survive as drifts.
+        """
+        arc = self.arc_lengths()
+        elements, order = [], []
+        for section in self.sections.values():
+            registry = section.elements.elements
+            for element_name in section.order:
+                source = registry.get(element_name)
+                if source is None:
+                    continue
+                if element_name in order:
+                    raise LatticeError(
+                        f"'{element_name}' appears twice in layout '{self.name}', "
+                        "so it cannot be merged into one section."
+                    )
+                element = source.model_copy(deep=True)
+                phys = element.physical
+                _forget_placement(phys, keep_s=element_name in arc)
+                if element_name in arc:
+                    phys.s = arc[element_name] + (phys.length or 0.0) / 2.0
+                    phys.s_point = "middle"
+                elements.append(element)
+                order.append(element_name)
+        first = next(iter(self.sections.values()))
+        merged = SectionLattice(
+            name=name or self.name,
+            elements=elements,
+            order=order,
+            master_lattice=self.master_lattice,
+            functional_definitions=self.functional_definitions,
+            resolve_functional=self.resolve_functional,
+            revolution_frequency=self.revolution_frequency,
+            reference_energy=first.reference_energy,
+        )
+        registry = merged.elements.elements
+        merged._resolve_sequential_placement(registry)
+        merged.resolve_positions(registry)
+        if any(s.geometry == "closed" for s in self.sections.values()):
+            merged.geometry = "closed"
+        infer_geometry(merged)
+        return self._section_translator(merged)
+
     def _section_translator(self, section) -> SectionLatticeTranslator:
         """
         Build a :class:`SectionLatticeTranslator` for ``section``, handing it
@@ -199,21 +271,27 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
             directory=self.directory,
         )
 
-    def _elegant_body(self, charge: float | None = None) -> Tuple[str, str]:
+    def _elegant_body(
+        self, charge: float | None = None, Brho: float = 0.0
+    ) -> Tuple[str, str]:
         definitions = ""
         lines = ""
         for section in self.sections.values():
             elem_dict = self._translate_section(section)
+            fix_ring_reference(elem_dict, section.geometry)
             if charge:
                 definitions += f"{section.name}_Q: CHARGE, TOTAL = {charge};\n"
             for d in elem_dict.values():
-                definitions += d.to_elegant()
+                if isinstance(d, ACDipoleTranslator):
+                    definitions += d.to_elegant(Brho=Brho)
+                else:
+                    definitions += d.to_elegant()
 
             line = f"{section.name}: LINE = ("
             if charge:
                 line += f"{section.name}_Q, "
-            line += ", ".join(elem_dict.keys()) + ")"
-            lines += "\n" + wrap_lattice_line(line) + "\n\n\n"
+            line += f"{', '.join(elem_dict.keys())})"
+            lines += f"\n{wrap_lattice_line(line)}\n\n\n"
         return definitions, lines
 
     def to_pals(self, particle: str | None = None) -> str:
@@ -330,7 +408,7 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         Create one Bmad lattice file for this whole beam path, with a multipass
         section written as a Bmad multipass lord and one slave per traversal.
 
-        :meth:`to_bmad` flattensm, while this keeps the identity Bmad can hold: the
+        :meth:`to_bmad` flattens, while this keeps the identity Bmad can hold: the
         hardware is defined once, and ``NAME\\1``, ``NAME\\2`` are the beam's
         visits to it.
 
@@ -372,7 +450,11 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         first = translators[entries[0].section]
         geometry = getattr(first.geometry, "value", first.geometry) or "open"
         bodies = {
-            name: translator._bmad_body(geometry, multipass=name in shared)
+            name: translator._bmad_body(
+                geometry,
+                multipass=name in shared,
+                starts_lattice=name == entries[0].section,
+            )
             for name, translator in translators.items()
         }
 
@@ -462,5 +544,5 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
                 body += d.to_genesis(index=i)
 
             names = ", ".join(f"{i}{elem}" for i, elem in enumerate(elem_dict))
-            body += f"\n{section.name}: LINE = " + "{" + names + "};\n\n\n"
+            body += f"\n{section.name}: LINE = {{{names}}};\n\n\n"
         return body

@@ -36,6 +36,7 @@ export type BeamArrivalMonitorName = string;
 export type BunchLengthMonitorName = string;
 export type CameraName = string;
 export type ScreenName = string;
+export type WireScannerName = string;
 export type ChargeDiagnosticName = string;
 export type WallCurrentMonitorName = string;
 export type FaradayCupMonitorName = string;
@@ -120,6 +121,32 @@ export enum ControlTypeEnum {
     statistical = "statistical",
 };
 /**
+* Numeric storage type of a control variable's value, or of an individual element of a waveform's array.
+*/
+export enum NumericDtypeEnum {
+    
+    /** Signed 8-bit integer. */
+    int8 = "int8",
+    /** Signed 16-bit integer. */
+    int16 = "int16",
+    /** Signed 32-bit integer. */
+    int32 = "int32",
+    /** Signed 64-bit integer. */
+    int64 = "int64",
+    /** Unsigned 8-bit integer. */
+    uint8 = "uint8",
+    /** Unsigned 16-bit integer. */
+    uint16 = "uint16",
+    /** Unsigned 32-bit integer. */
+    uint32 = "uint32",
+    /** Unsigned 64-bit integer. */
+    uint64 = "uint64",
+    /** Single-precision float. */
+    float32 = "float32",
+    /** Double-precision float. */
+    float64 = "float64",
+};
+/**
 * Cross-sectional shape of a beam-pipe aperture.
 */
 export enum ApertureShapeEnum {
@@ -127,8 +154,22 @@ export enum ApertureShapeEnum {
     circular = "circular",
     rectangular = "rectangular",
     elliptical = "elliptical",
-    /** Scraper jaws rather than a fixed pipe cross-section.  */
+    planar = "planar",
+    /** Scraper jaws rather than a fixed pipe cross-section. */
     scraper = "scraper",
+};
+/**
+* Where along the element an aperture is checked. Following PALS ``ApertureP.location``.
+*/
+export enum ApertureLocationEnum {
+    
+    entrance_end = "entrance_end",
+    center = "center",
+    exit_end = "exit_end",
+    both_ends = "both_ends",
+    everywhere = "everywhere",
+    /** Defined but never checked -- distinct from ``active: false``, which switches off an aperture that is otherwise placed. */
+    nowhere = "nowhere",
 };
 /**
 * Whether the reference orbit closes on itself. Mirrors Bmad's ``parameter[geometry]``.
@@ -139,6 +180,18 @@ export enum LatticeGeometryEnum {
     open = "open",
     /** Recirculating machine such as a storage ring, for which closed orbits and periodic Twiss parameters are computed. */
     closed = "closed",
+};
+/**
+* How a sampled waveform behaves between the points it was sampled at.
+*/
+export enum WaveformInterpolationEnum {
+    
+    /** Straight line between neighbouring knots. What every tracking code does by default. */
+    linear = "linear",
+    /** Each knot's value holds until the next one, so the waveform is a staircase. */
+    hold = "hold",
+    /** Cubic spline through the knots, for a measured trace sampled too coarsely for straight lines. */
+    spline = "spline",
 };
 /**
 * Bending plane enum.
@@ -343,6 +396,10 @@ export interface ControlVariable {
     target?: string,
     /** Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``. */
     expression?: string,
+    /** Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container. */
+    element_dtype?: string,
+    /** Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those. */
+    shape?: string[],
     /** Mapping of state name to underlying control-system value, for ``control_type: state``. */
     states?: string,
     /** Name of the readback variable this set-point drives. */
@@ -493,8 +550,22 @@ export interface ApertureElement {
     horizontal_size?: number,
     /** Full vertical aperture [m]. */
     vertical_size?: number,
+    /** Horizontal offset of the aperture centre from the axis [m]. */
+    horizontal_center?: number,
+    /** Vertical offset of the aperture centre from the axis [m]. */
+    vertical_center?: number,
     /** Cross-sectional aperture shape. */
     shape?: string,
+    /** Where along the element the aperture is checked. */
+    location?: string,
+    /** Material of the aperture jaws or collimator body. */
+    material?: string,
+    /** Longitudinal thickness of the aperture material [m]. */
+    thickness?: number,
+    /** Whether the aperture is applied. False keeps the definition without checking against it. */
+    active?: boolean,
+    /** Whether the aperture follows the element's misalignment rather than staying on the design orbit. */
+    shifts_with_body?: boolean,
     /** Radius for circular apertures [m]. */
     radius?: number,
     /** Upstream / inner extent [m]. */
@@ -560,6 +631,27 @@ export interface PowerSupply extends StandardElement {
 
 
 /**
+ * How finely a code should resolve CSR and space charge over one section.
+On the section: a bunch compressor is run with one binning and the linac around it with another.  The switches that turn the effects on stay per-element, as they can vary.
+All fields is optional; absence means "use the code's defaults".
+ */
+export interface SpaceChargeSettings {
+    /** Longitudinal bins the bunch is divided into to build the collective field. */
+    number_of_bins?: number,
+    /** Distance between collective-field recalculations. */
+    step_size?: number,
+    /** Full height of the vacuum chamber for CSR shielding. */
+    chamber_height?: number,
+    /** Number of image charges to sum when modelling wall shielding. */
+    shield_images?: number,
+    /** Width of a particle's deposition kernel, counted in bins. */
+    bin_span?: number,
+    /** Transverse beam size below which a slice is treated as having none. */
+    sigma_cutoff?: number,
+}
+
+
+/**
  * An ordered list of element names defining a contiguous beamline section.
  */
 export interface SectionLattice {
@@ -571,8 +663,23 @@ export interface SectionLattice {
     geometry?: string,
     /** Reference total energy of the design particle [eV]. */
     reference_energy?: number,
+    /** Resolution of the collective-field calculation over this section. */
+    space_charge?: SpaceChargeSettings,
     /** Ordered list of element names in this section. */
     elements?: string[],
+}
+
+
+/**
+ * One traversal of one section by one beam path.
+ */
+export interface LayoutPass {
+    /** Name of the section traversed on this pass. */
+    section: string,
+    /** 1 if this pass traverses the section forwards, -1 if backwards. A property of the path, not of the section. */
+    direction?: number,
+    /** Multipass occurrence number, counting from 1. Absent for an ordinary single traversal and for repetition, where each occurrence is a separate device with its own section. */
+    number?: number,
 }
 
 
@@ -588,6 +695,8 @@ export interface MachineLayout {
     particle?: string,
     /** Ordered list of section names. */
     sections?: string[],
+    /** The beam order, one entry per section traversal. Distinct from sections, which is keyed by name and so cannot express a section entered twice. */
+    passes?: LayoutPass[],
 }
 
 
@@ -614,6 +723,19 @@ export interface MatrixValue {
 
 
 /**
+ * A pulse shape sampled at a sparse set of points, for a device whose strength is a program rather than a constant: an injection kicker, an extraction septum, a tune exciter driven from a measured trace. Only the knots are stored, and the value between them follows ``interpolation``.
+ */
+export interface SampledWaveform {
+    /** Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as ``factor``. */
+    time?: number[],
+    /** Strength at each of the times in ``time``, as a fraction of the element's nominal strength; 1.0 is full strength. */
+    factor?: number[],
+    /** How the strength behaves between the sampled knots. */
+    interpolation?: string,
+}
+
+
+/**
  * Base simulation attributes: field-map files, reference positions, and optional tracking controls for simulation codes.
  */
 export interface SimulationElement {
@@ -623,7 +745,7 @@ export interface SimulationElement {
     lsc_bins?: number,
     /** Whether coherent synchrotron radiation effects are enabled. */
     csr_enable?: boolean,
-    /** Whether longitudinal space-charge effects are enabled. */
+    /** Whether longitudinal space-charge effects are enabled. Off by default. */
     lsc_enable?: boolean,
     /** Phase-space tracking algorithm requested from the target code. */
     tracking_method?: string,
@@ -670,12 +792,14 @@ export interface MagnetSimulationElement extends SimulationElement {
     field_amplitude?: number,
     /** Number of longitudinal slices for thick-lens tracking. */
     n_slices?: number,
-    /** Per-simulation override of the magnet's fringe-field integral. Absent means "use ``MagneticElement.edge_field_integral``", which is what every element wants unless a study is deliberately varying the edge focussing independently of the magnet. It used to default to 0.5, and because the keyword converters strip the sub-model prefix before looking a name up, that default reached the exporters ahead of the magnet's own value and shadowed it: a magnet with ``edge_field_integral = 0.3`` exported ``fint = 0.5`` to MAD-X, ELEGANT, OPAL, Ocelot and Xsuite. Only Bmad escaped, because ``_bmad_parameters`` overwrites ``fint`` after the loop. */
+    /** Per-simulation override of the magnet's fringe-field integral. Absent means "use ``MagneticElement.edge_field_integral``". */
     edge_field_integral?: number,
-    /** Enable entrance-edge focussing effects. */
-    edge1_effects?: boolean,
-    /** Enable exit-edge focussing effects. */
-    edge2_effects?: boolean,
+    /** Entrance-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method. */
+    edge1_effects?: number,
+    /** Exit-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method. */
+    edge2_effects?: number,
+    /** Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code. */
+    fringe_model?: string,
     /** Enable synchrotron-radiation energy loss. */
     sr_enable?: boolean,
     /** Enable incoherent synchrotron-radiation emittance growth. */
@@ -686,7 +810,7 @@ export interface MagnetSimulationElement extends SimulationElement {
     nonlinear?: boolean,
     /** Half-width of the current-profile smoothing kernel. */
     smoothing_half_width?: number,
-    /** Polynomial order of the edge-field expansion. */
+    /** Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-order terms). Unset / default is second order. */
     edge_order?: number,
     /** Number of points used to smooth the field map [ASTRA]. */
     smooth_points?: number,
@@ -913,6 +1037,8 @@ export interface ACDipoleSimulationElement extends SimulationElement {
     phase?: number,
     /** Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp. */
     ramp?: number[],
+    /** Sampled pulse shape, for a device whose strength is a program rather than a sinusoid -- an injection kicker or an extraction septum. */
+    waveform?: SampledWaveform,
 }
 
 
@@ -1074,17 +1200,19 @@ export interface MagneticElement {
     width?: number,
     /** Global tilt about the beam axis [rad]. */
     tilt?: number,
-    /** Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise. */
+    /** Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals). */
     edge_field_integral?: number,
-    /** Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check. */
-    exit_edge_field_integral?: number,
-    /** Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``. */
+    /** Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly. */
+    edge_field_integral_entrance?: number,
+    /** Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly. */
+    edge_field_integral_exit?: number,
+    /** Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``. */
     exit_gap?: number,
     /** Coefficient controlling the fringe-field roll-off rate. */
     fringe_field_coefficient?: number,
     /** Peak field gradient [T/m] (quads) or peak field [T] (dipoles). */
     gradient?: number,
-    /** Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default. */
+    /** Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored. */
     angle?: number,
 }
 
@@ -1454,6 +1582,13 @@ export interface Camera extends Diagnostic {
 export interface Screen extends Diagnostic {
     /** Instrument-specific diagnostic parameters. */
     diagnostic?: ScreenDiagnosticElement,
+}
+
+
+/**
+ * Wire scanner: thin wires stepped through the beam to measure its transverse profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation element.
+ */
+export interface WireScanner extends Diagnostic {
 }
 
 
@@ -1872,18 +2007,12 @@ export interface Octupole extends Magnet {
 
 
 /**
- * Steering-corrector field, expressed as horizontal and vertical kicks rather than multipole coefficients.
+ * Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.
  */
-export interface CorrectorMagnet {
-    /** Magnetic length [m]. */
-    length?: number,
-    /** Multipole order (0, a dipole field). */
-    order?: number,
-    /** Roll of the corrector about the beam axis [rad]. */
-    tilt?: number,
-    /** Horizontal deflection [rad]. May be a functional expression. */
+export interface CorrectorMagnet extends DipoleMagnet {
+    /** Horizontal deflection [rad]. May be a functional expression. Derived from multipoles.K0L.normal. */
     horizontal_kick?: number,
-    /** Vertical deflection [rad]. May be a functional expression. */
+    /** Vertical deflection [rad]. May be a functional expression. Derived from multipoles.K0L.skew. */
     vertical_kick?: number,
 }
 
@@ -1899,6 +2028,17 @@ export interface HorizontalCorrector extends Dipole {
  * Vertical steering corrector.
  */
 export interface VerticalCorrector extends Dipole {
+}
+
+
+/**
+ * The pair of steering-corrector fields inside one combined corrector.
+ */
+export interface CombinedCorrectorMagnet {
+    /** Horizontal-plane corrector field, with its own calibration. */
+    horizontal?: CorrectorMagnet,
+    /** Vertical-plane corrector field, with its own calibration. */
+    vertical?: CorrectorMagnet,
 }
 
 
@@ -2103,6 +2243,8 @@ export interface AcceleratorElement {
     alias?: string[],
     /** If set, this element is a logical sub-component of the named parent element. */
     subelement?: string,
+    /** If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one. */
+    inherits_from?: string,
     /** Signal types this element consumes (e.g. ``[current, voltage]``). */
     inputs?: string,
     /** Signal types this element produces (e.g. ``[power, phase]``). */

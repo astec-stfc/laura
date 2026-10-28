@@ -1,74 +1,63 @@
-"""Tests for laura.models.diagnostic camera-sensor factories, Camera_Diagnostic_Type
-dispatch, and Screen_Diagnostic device-list coercion."""
+"""laura.models.diagnostic camera and screen models."""
 
 import pytest
 
 from laura.models.diagnostic import (
-    PCO_Camera_Sensor,
-    Manta_Camera_Sensor,
-    Camera_Diagnostic,
-    Camera_Diagnostic_Type,
-    PCO_Camera_Diagnostic,
-    Manta_Camera_Diagnostic,
-    Screen_Diagnostic,
+    pco_camera_sensor,
+    manta_camera_sensor,
+    CameraDiagnostic,
+    camera_diagnostic_type,
+    pco_camera_diagnostic,
+    manta_camera_diagnostic,
+    ScreenDiagnostic,
 )
-from laura.models.baseModels import DeviceList
+from laura.models.base_models import DeviceList
 
 
 class TestCameraSensorFactories:
     def test_pco_camera_sensor(self):
-        sensor = PCO_Camera_Sensor()
+        sensor = pco_camera_sensor()
         assert sensor.x_pixels == 2560
         assert sensor.bit_depth == 12
 
     def test_manta_camera_sensor(self):
-        sensor = Manta_Camera_Sensor()
+        sensor = manta_camera_sensor()
         assert sensor.x_pixels == 1936
         assert sensor.minimum == [136, 116]
 
 
 class TestCameraDiagnosticType:
-    def test_pco_dispatch(self):
-        cam = Camera_Diagnostic_Type(type="PCO")
-        assert cam.sensor.x_pixels == 2560
+    @pytest.mark.parametrize(
+        "camera_type, x_pixels",
+        [("PCO", 2560), ("Manta", 1936), ("Unknown", 1936)],
+        ids=["pco", "manta", "unknown_falls_back_to_manta"],
+    )
+    def test_dispatch(self, camera_type, x_pixels):
+        assert camera_diagnostic_type(type=camera_type).sensor.x_pixels == x_pixels
 
-    def test_manta_dispatch(self):
-        cam = Camera_Diagnostic_Type(type="Manta")
-        assert cam.sensor.x_pixels == 1936
-
-    def test_unknown_type_falls_back_to_manta(self):
-        cam = Camera_Diagnostic_Type(type="Unknown")
-        assert cam.sensor.x_pixels == 1936
-
-    def test_pco_camera_diagnostic_helper(self):
-        cam = PCO_Camera_Diagnostic()
-        assert isinstance(cam, Camera_Diagnostic)
-        assert cam.sensor.x_pixels == 2560
-
-    def test_manta_camera_diagnostic_helper(self):
-        cam = Manta_Camera_Diagnostic()
-        assert isinstance(cam, Camera_Diagnostic)
-        assert cam.sensor.x_pixels == 1936
+    @pytest.mark.parametrize(
+        "helper, x_pixels", [(pco_camera_diagnostic, 2560), (manta_camera_diagnostic, 1936)]
+    )
+    def test_camera_diagnostic_helper(self, helper, x_pixels):
+        cam = helper()
+        assert isinstance(cam, CameraDiagnostic)
+        assert cam.sensor.x_pixels == x_pixels
 
 
 class TestScreenDiagnosticDeviceCoercion:
-    def test_devices_from_csv_string(self):
-        s = Screen_Diagnostic(devices="A, B, C")
-        assert s.devices == ["A", "B", "C"]
-
-    def test_devices_from_list(self):
-        s = Screen_Diagnostic(devices=["A", "B"])
-        assert s.devices == ["A", "B"]
-
-    def test_devices_from_dict(self):
-        s = Screen_Diagnostic(devices={"devices": ["A"]})
-        assert s.devices == ["A"]
-
-    def test_devices_from_devicelist_instance(self):
-        dl = DeviceList(devices=["X"])
-        s = Screen_Diagnostic(devices=dl)
-        assert s.devices == ["X"]
+    @pytest.mark.parametrize(
+        "devices, expected",
+        [
+            ("A, B, C", ["A", "B", "C"]),
+            (["A", "B"], ["A", "B"]),
+            ({"devices": ["A"]}, ["A"]),
+            (DeviceList(devices=["X"]), ["X"]),
+        ],
+        ids=["csv_string", "list", "dict", "devicelist_instance"],
+    )
+    def test_devices_coerced(self, devices, expected):
+        assert ScreenDiagnostic(devices=devices).devices == expected
 
     def test_devices_invalid_type_raises(self):
         with pytest.raises(ValueError):
-            Screen_Diagnostic(devices=5)
+            ScreenDiagnostic(devices=5)

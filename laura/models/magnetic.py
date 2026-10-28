@@ -2,7 +2,6 @@ from typing import Any, ClassVar, Dict, List, Union
 
 import numpy as np
 from pydantic import (
-    BaseModel,
     ConfigDict,
     Field,
     NonNegativeFloat,
@@ -14,7 +13,10 @@ from pydantic import (
     model_validator,
 )
 
+from laura._compat import DeprecatedMethodAliases
+
 from ._generated import (
+    _CombinedCorrectorMagnetBase,
     _CombinedSolenoidQuadrupoleMagnetBase,
     _CorrectorMagnetBase,
     _FieldIntegralBase,
@@ -26,16 +28,16 @@ from ._generated import (
     _SolenoidMagnetBase,
     _WigglerMagnetBase,
 )
-from .baseModels import FunctionalMixin, IgnoreExtra, T, resolve_functional_parameter
+from .base_models import FunctionalMixin, IgnoreExtra, T, resolve_functional_parameter
 from .constants import pi, speed_of_light
 
 
-def Power(a, b):
+def power(a, b):
     return a**b
 
 
-def Sqrt(a):
-    return Power(a, 0.5)
+def sqrt(a):
+    return power(a, 0.5)
 
 
 def _coerce_field_integral(v: Union[str, List, dict, Any, None]) -> Any:
@@ -80,15 +82,14 @@ class Multipole(_MultipoleBase, FunctionalMixin):
     Single order magnetic multipole model.
 
     ``normal``/``skew`` accept the name of a functional definition as well as a
-    number; that widening and the ``functional`` marker both come from the
-    schema slot, so nothing needs restating here.
+    number.
     """
 
     pass
 
 
 multipoles = {
-    "K" + str(no) + "L": (Multipole, Field(default=Multipole(order=no), repr=False))
+    f"K{no!s}L": (Multipole, Field(default=Multipole(order=no), repr=False))
     for no in range(0, 5)
 }
 MultipolesData = create_model("Multipoles", **multipoles)
@@ -100,7 +101,7 @@ class Multipoles(MultipolesData):
     """
 
     @field_validator("*", mode="before")
-    def validate_Multipole(cls, v: Union[List, dict]) -> Multipole:
+    def validate_multipole(cls, v: Union[List, dict]) -> Multipole:
         if v is None:
             return Multipole()
         if isinstance(v, (list, tuple)):
@@ -118,19 +119,15 @@ class Multipoles(MultipolesData):
     def __str__(self):
         return " ".join(
             [
-                "K"
-                + str(i)
-                + "L=Multipole("
-                + getattr(self, "K" + str(i) + "L").__str__()
-                + ")"
+                f"K{i!s}L=Multipole({getattr(self, f'K{i!s}L').__str__()})"
                 for i in range(0, 5)
-                if _is_set(getattr(self, "K" + str(i) + "L").normal)
-                or _is_set(getattr(self, "K" + str(i) + "L").skew)
+                if _is_set(getattr(self, f"K{i!s}L").normal)
+                or _is_set(getattr(self, f"K{i!s}L").skew)
             ]
         )
 
     def __repr__(self):
-        return "Multipoles(" + self.__str__() + ")"
+        return f"Multipoles({self.__str__()})"
 
     @model_serializer
     def ser_model(self) -> Dict[str, Any]:
@@ -152,7 +149,7 @@ class Multipoles(MultipolesData):
             Union[int, float, str]: The normal component of the multipole strength,
             as stored (a number, or the name of a functional definition).
         """
-        return getattr(self, "K" + str(order) + "L").normal
+        return getattr(self, f"K{order!s}L").normal
 
     def skew(self, order: int) -> Union[int, float]:
         """
@@ -165,24 +162,25 @@ class Multipoles(MultipolesData):
             Union[int, float, str]: The skew component of the multipole strength,
             as stored (a number, or the name of a functional definition).
         """
-        return getattr(self, "K" + str(order) + "L").skew
+        return getattr(self, f"K{order!s}L").skew
 
     def __eq__(self, other) -> bool:
         return self.ser_model() == other
 
 
-class FieldIntegral(_FieldIntegralBase):
+class FieldIntegral(DeprecatedMethodAliases, _FieldIntegralBase):
     """
     Field integral coefficients model.
     """
 
-    def currentToK(self, current: float, energy: float) -> float:
+    _DEPRECATED_METHOD_ALIASES = {
+        "currentToK": "current_to_k",
+    }
+
+    def current_to_k(self, current: float, energy: float) -> float:
         """
-        Convert the current in the magnet to the normalized strength (K value).
-        The method calculates the normalized strength (K value) of the magnetic field
-        based on the provided current and energy. It uses the field integral coefficients
-        to compute the integrated field strength and applies a scaling factor based on
-        the speed of light and the beam energy.
+        Convert the current in the magnet to the normalized strength (K value),
+        via the field integral polynomial.
 
         Args:
             current (float): The current flowing through the magnet (in amperes).
@@ -202,10 +200,16 @@ class FieldIntegral(_FieldIntegralBase):
         return iter(self.coefficients)
 
 
-class LinearSaturationFit(_LinearSaturationFitBase):
+class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
     """
     Linear + saturation fit coefficients model.
     """
+
+    _DEPRECATED_METHOD_ALIASES = {
+        "KLToCurrent": "kl_to_current",
+        "KToCurrent": "k_to_current",
+        "currentToK": "current_to_k",
+    }
 
     # Ordered list of calibration coefficient field names — used by
     # from_string / update_from_string so that the non-calibration `order`
@@ -243,119 +247,106 @@ class LinearSaturationFit(_LinearSaturationFitBase):
             assert len(v) == len(self._COEFF_KEYS)
             [setattr(self, k, v) for k, v in zip(self._COEFF_KEYS, v)]
 
-    def currentToK(self, current: float, momentum: float | None = None) -> Dict:
+    def current_to_k(self, current: float, momentum: float | None = None) -> Dict:
         """
         Convert the current in the magnet to the normalized strength (K value).
-
-        The method calculates the normalized strength (K value) of the magnetic field
-        based on the provided current and momentum. It uses the field integral coefficients
-        to compute the integrated field strength and applies a scaling factor based on
-        the speed of light and the beam momentum.
 
         Args:
             current (float): The current flowing through the magnet (in amperes).
             momentum (float): The momentum of the particle beam (in MeV/c).
 
         Returns:
-            dict: A dictionary containing the K value, KL value, gradient, and integrated strength.
-                The K value is the normalized strength of the magnetic field, KL is the K value multiplied by the
-                length of the magnet, gradient is the magnetic field gradient, and integrated strength is the
-                integrated field strength.
+            dict: ``K``, ``KL``, ``gradient`` and ``int_strength``; only the last
+                two if ``momentum`` is None.
         """
-        abs_I = abs(current)
-        m, I_max, f, a, I0, d, L = list(self.coefficients)
-        L = 1e-3 * L
+        abs_i = abs(current)
+        m, i_max, f, a, i0, d, l = list(self.coefficients)
+        l = 1e-3 * l
         int_strength = (
             m * current
-            if I_max == 0 or abs_I < I_max
-            else np.copysign((f * abs_I**3 + a * (abs_I - I0) ** 2 + d), current)
+            if i_max == 0 or abs_i < i_max
+            else np.copysign((f * abs_i**3 + a * (abs_i - i0) ** 2 + d), current)
         )
-        gradient = int_strength / L if L != 0 else 0.0
+        gradient = int_strength / l if l != 0 else 0.0
         if momentum is not None:
             # order-0 (dipoles/correctors): m in mT·m/A → scale c/1e9
             # order-1+ (quadrupoles etc.): m in T/A      → scale c/1e6
             scale = 1e9 if self.order == 0 else 1e6
-            KL = (speed_of_light / scale) * int_strength / momentum
+            kl = (speed_of_light / scale) * int_strength / momentum
             return {
-                "K": KL / L if L != 0 else 0.0,
-                "KL": KL,
+                "K": kl / l if l != 0 else 0.0,
+                "KL": kl,
                 "gradient": gradient,
                 "int_strength": int_strength,
             }
         else:
             return {"gradient": gradient, "int_strength": int_strength}
 
-    def KLToCurrent(self, KL: float | dict, momentum: float) -> float:
+    def kl_to_current(self, KL: float | dict, momentum: float) -> float:  # noqa N806
         """
-        Convert the normalized strength (K value) of the magnetic field to the corresponding current.
-
-        This method calculates the current required to produce a given normalized strength (K value)
-        of the magnetic field, based on the magnet's linear and saturation fit coefficients. It accounts
-        for both linear and nonlinear (saturation) behavior of the magnet.
+        Convert the integrated strength (KL) to the corresponding current; see
+        :meth:`k_to_current`.
 
         Args:
-            KL (float): The normalized strength (K value) of the magnetic field.
-                OR
-            dict: A dictionary containing the K value and its gradient.
+            KL (float | dict): The integrated strength, or a dict holding ``KL``
+                or ``K``.
             momentum (float): The momentum of the particle beam (in MeV/c).
 
         Returns:
-            float: The current (in amperes) required to produce the given K value.
+            float: The current (in amperes) required to produce the given KL value.
         """
-        m, I_max, f, a, I0, d, L = list(self.coefficients)
+        m, i_max, f, a, i0, d, l = list(self.coefficients)
         if isinstance(KL, dict):
             if "KL" in KL:
-                KL = KL["KL"]
+                KL = KL["KL"]  # noqa N806
             elif "K" in KL:
-                KL = KL["K"] * L / 1000
-        K = KL / (L / 1000) if L != 0 else 0.0
-        return self.KToCurrent(K, momentum)
+                KL = KL["K"] * l / 1000  # noqa N806
+        k = KL / (l / 1000) if l != 0 else 0.0
+        return self.k_to_current(k, momentum)
 
-    def KToCurrent(self, K: float | dict, momentum: float) -> float:
+    def k_to_current(self, K: float | dict, momentum: float) -> float:  # noqa N806
         """
-        Convert the normalized strength (K value) of the magnetic field to the corresponding current.
-        This method calculates the current required to produce a given normalized strength (K value)
-        of the magnetic field, based on the magnet's linear and saturation fit coefficients. It accounts
-        for both linear and nonlinear (saturation) behavior of the magnet.
+        Convert the normalized strength (K value) of the magnetic field to the corresponding current,
+        inverting both the linear and the saturation part of the fit.
 
         Args:
-            K (float): The normalized strength (K value) of the magnetic field.
-                OR
-            dict: A dictionary containing the K value and its gradient.
+            K (float | dict): The normalized strength, or a dict holding ``K``
+                or ``KL``.
             momentum (float): The momentum of the particle beam (in MeV/c).
 
         Returns:
             float: The current (in amperes) required to produce the given K value.
         """
-        m, I_max, f, a, I0, d, L = list(self.coefficients)
+        m, i_max, f, a, i0, d, l = list(self.coefficients)
         if isinstance(K, dict):
             if "K" in K:
-                K = K["K"]
+                K = K["K"]  # noqa N806
             elif "KL" in K:
-                K = K["KL"] / (L / 1000) if L != 0 else 0.0
+                K = K["KL"] / (l / 1000) if l != 0 else 0.0  # noqa N806
             else:
                 raise ValueError(f"K value not found in the dictionary {K}")
         # Inverse of currentToK scale: order-0 uses 1e9, order-1+ uses 1e6
         scale = 1e9 if self.order == 0 else 1e6
-        int_strength = scale * K * L * momentum / (speed_of_light)
+        int_strength = scale * K * l * momentum / speed_of_light
         int_strength *= 1e-3  # L is in mm, convert K·L_m back to int_strength units
         abs_str = abs(int_strength)
         linear_current = int_strength / m
-        if I_max == 0 or abs(linear_current) < I_max:
+        if i_max == 0 or abs(linear_current) < i_max:
             return linear_current
         elif f == 0:
-            abs_current = I0 - Sqrt((abs_str - d) / a)
+            abs_current = i0 - sqrt((abs_str - d) / a)
             return np.sign(K) * abs_current
         else:
-            p = (-6 * f * a * I0 - a**2) / (3 * f**2)
+            p = (-6 * f * a * i0 - a**2) / (3 * f**2)
             q = (
                 (2 * a**3)
-                + (18 * f * a**2 * I0)
-                + (27 * f**2 * (a * I0**2 + d - abs_str))
+                + (18 * f * a**2 * i0)
+                + (27 * f**2 * (a * i0**2 + d - abs_str))
             ) / (27 * f**3)
-            r = Sqrt((p / 3) ** 3)
+            # Trigonometric cubic: p < 0 here, so -(p/3)**3 > 0 and r is real.
+            r = sqrt(-((p / 3) ** 3))
             theta = np.arccos(-q / (2 * r))
-            r_cbrt = -(r ** (1 / 3))
+            r_cbrt = r ** (1 / 3)
             t3 = 2 * r_cbrt * np.cos((theta / 3) + 4 * Pi / 3)
             return t3 - a / (3 * f)
 
@@ -363,33 +354,18 @@ class LinearSaturationFit(_LinearSaturationFitBase):
         return iter([getattr(self, k) for k in self._COEFF_KEYS])
 
 
-class MagneticElement(_MagneticElementBase, FunctionalMixin):
+class MagneticElement(DeprecatedMethodAliases, _MagneticElementBase, FunctionalMixin):
     """
     Magnetic info model.
     """
 
-    entrance_edge_angle: float | str | None = 0.0
-    """Entrance edge angle"""
+    _DEPRECATED_METHOD_ALIASES = {
+        "KLToCurrent": "kl_to_current",
+        "KToCurrent": "k_to_current",
+        "currentToAngle": "current_to_angle",
+        "currentToK": "current_to_k",
+    }
 
-    exit_edge_angle: float | str | None = 0.0
-    """Exit edge angle"""
-
-    multipoles: Multipoles | None = Multipoles()
-    """Magnetic multipoles."""
-
-    systematic_multipoles: Multipoles | None = Multipoles()
-    """Systematic magnetic multipoles."""
-
-    random_multipoles: Multipoles | None = Multipoles()
-    """Random magnetic multipoles."""
-
-    linear_saturation_coefficients: LinearSaturationFit | None = None
-    """Linear saturation fit coefficients (typed to allow order assignment)."""
-
-    # field_integral_coefficients, settle_time, gap, bore, plane, width, tilt,
-    # edge_field_integral, fringe_field_coefficient and gradient all come from
-    # _MagneticElementBase. The two edge angles are widened and marked here
-    # because the schema types them as plain floats.
     entrance_edge_angle: float | str = Field(
         default=0.0,
         json_schema_extra={"functional": True, "reserved_contains": "angle"},
@@ -408,42 +384,36 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
     ``"angle"`` or ``"angle/2"``), or the name of a functional definition (see
     :ref:`functional-parameters`)."""
 
+    multipoles: Multipoles | None = Multipoles()
+    """Magnetic multipoles."""
+
+    systematic_multipoles: Multipoles | None = Multipoles()
+    """Systematic magnetic multipoles."""
+
+    random_multipoles: Multipoles | None = Multipoles()
+    """Random magnetic multipoles."""
+
+    linear_saturation_coefficients: LinearSaturationFit | None = None
+    """Linear saturation fit coefficients (typed to allow order assignment)."""
+
     def __init__(self, /, **data: Any) -> None:
         super().__init__(**data)
-        # Propagate the magnet order into the calibration fit so that
-        # currentToK / KToCurrent can apply the correct unit convention.
         if self.linear_saturation_coefficients is not None:
             self.linear_saturation_coefficients.order = self.order
-        # Auto-create multipoles if strength data is provided but multipoles is None
         needs_multipoles = any(
             k in data for k in ["kl", "angle", "k0l", "k1l", "k2l", "k3l"]
         )
         if self.multipoles is None and needs_multipoles:
             object.__setattr__(self, "multipoles", Multipoles())
-        # Test the value, not just key presence: a round-tripped model_dump()
-        # carries `angle: None` for every non-dipole, which would otherwise build
-        # a Multipole(normal=None) and fail validation.
-        if data.get("kl") is not None:
-            self.kl = data["kl"]
-        if data.get("angle") is not None and self.order == 0:
-            self.kl = data["angle"]
+        raw_kl = data["kl"] if data.get("kl") is not None else data.get("angle")
         if self.multipoles is not None:
-            if data.get("kl") is not None or data.get("angle") is not None:
-                # Use the raw input value so that a string functional definition
-                # is stored verbatim rather than resolved at construction time.
-                raw_kl = data["kl"] if data.get("kl") is not None else data["angle"]
-                if self.skew:
-                    setattr(
-                        self.multipoles,
-                        "K" + str(self.order) + "L",
-                        Multipole(skew=raw_kl, order=self.order),
-                    )
-                else:
-                    setattr(
-                        self.multipoles,
-                        "K" + str(self.order) + "L",
-                        Multipole(normal=raw_kl, order=self.order),
-                    )
+            if raw_kl is not None:
+                side = "skew" if self.skew else "normal"
+                setattr(
+                    self.multipoles,
+                    f"K{self.order}L",
+                    Multipole(order=self.order, **{side: raw_kl}),
+                )
             for i in range(0, 5):
                 if data.get(f"k{i}l") is not None:
                     setattr(
@@ -451,10 +421,6 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
                         f"K{i}L",
                         Multipole(normal=data[f"k{i}l"], order=i),
                     )
-        # `angle` is only meaningful for dipoles (order 0); keep it mirroring
-        # the K0L multipole strength regardless of how it was set (k0l=, kl=, angle=).
-        if self.order == 0:
-            pass  # angle is derived from K0L; nothing to mirror.
 
     @field_validator("plane", mode="before")
     @classmethod
@@ -462,6 +428,36 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
         if isinstance(v, str):
             return v.capitalize()
         return v
+
+    @model_validator(mode="after")
+    def resolve_edge_field_integrals(
+        self, # noqa: N804 (pydantic after-validator takes self)
+    ) -> "MagneticElement":  # noqa: N804 (pydantic after-validator takes self)
+        """
+        Reconciles ``edge_field_integral`` (the single value for codes with one
+        keyword, e.g. ELEGANT's ``fint``) against
+        ``edge_field_integral_entrance``/``_exit`` (e.g. MAD-X's ``fint``/
+        ``fintx``). All three stay ``None`` unless given, so writers omit them
+        and the target code's own default applies.
+
+        * entrance/exit, when given, are always used as given.
+        * edge_field_integral, when given, is the default for whichever of
+          entrance/exit was not.
+        * edge_field_integral is never inferred from entrance/exit.
+
+        Uses ``object.__setattr__`` because ``validate_assignment`` would
+        re-run this validator.
+        """
+        if self.edge_field_integral is not None:
+            if self.edge_field_integral_entrance is None:
+                object.__setattr__(
+                    self, "edge_field_integral_entrance", self.edge_field_integral
+                )
+            if self.edge_field_integral_exit is None:
+                object.__setattr__(
+                    self, "edge_field_integral_exit", self.edge_field_integral
+                )
+        return self
 
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
@@ -474,10 +470,7 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
     def KnL(self, order: int = None) -> Union[int, float]:
         """
         Get the integrated strength (KnL) of the multipole for a given order,
-        resolved to a number. This is the value to use for computation; a
-        functional definition (stored as a string on the multipole) is resolved
-        here, while the raw configured value remains available via
-        :attr:`kl` / :meth:`Multipoles.normal`.
+        resolved to a number. The stored value is available via :attr:`kl`.
 
         Args:
             order (int, optional): The order of the multipole. Defaults to None, which uses self.order.
@@ -522,9 +515,9 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
     def kl(self, kl: float = 0) -> None:
         if self.multipoles is None:
             object.__setattr__(self, "multipoles", Multipoles())
-        setattr(getattr(self.multipoles, "K" + str(self.order) + "L"), "normal", kl)
+        setattr(getattr(self.multipoles, f"K{self.order!s}L"), "normal", kl)
         setattr(
-            getattr(self.multipoles, "K" + str(self.order) + "L"), "order", self.order
+            getattr(self.multipoles, f"K{self.order!s}L"), "order", self.order
         )
 
     @computed_field
@@ -540,12 +533,12 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
         return self.exit_gap / 2
 
     @property
-    def exit_fringe_integral(self) -> float:
+    def exit_fringe_integral(self) -> float | None:
         """Fringe-field integral at the exit face.
         Falls back to :attr:`edge_field_integral`."""
-        if self.exit_edge_field_integral is None:
+        if self.edge_field_integral_exit is None:
             return self.edge_field_integral
-        return self.exit_edge_field_integral
+        return self.edge_field_integral_exit
 
     def get_gradient(self, momentum: float) -> float:
         """
@@ -561,24 +554,24 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
             return self.gradient
         return self.KnL(self.order) * brho(momentum) / self.length
 
-    def currentToK(self, *args, **kwargs):
-        return self.linear_saturation_coefficients.currentToK(*args, **kwargs)
+    def current_to_k(self, *args, **kwargs):
+        return self.linear_saturation_coefficients.current_to_k(*args, **kwargs)
 
-    def KToCurrent(self, *args, **kwargs):
-        return self.linear_saturation_coefficients.KToCurrent(*args, **kwargs)
+    def k_to_current(self, *args, **kwargs):
+        return self.linear_saturation_coefficients.k_to_current(*args, **kwargs)
 
-    def KLToCurrent(self, *args, **kwargs):
-        return self.linear_saturation_coefficients.KLToCurrent(*args, **kwargs)
+    def kl_to_current(self, *args, **kwargs):
+        return self.linear_saturation_coefficients.kl_to_current(*args, **kwargs)
 
-    def currentToAngle(self, current: float, momentum: float) -> float:
+    def current_to_angle(self, current: float, momentum: float) -> float:
         """Convert current to bend angle in degrees."""
-        output_dict = self.linear_saturation_coefficients.currentToK(
+        output_dict = self.linear_saturation_coefficients.current_to_k(
             current=current, momentum=momentum
         )
-        return output_dict["KL"] * 360 / (2.0 * np.pi) / 1000
+        return output_dict["KL"] * 360 / (2.0 * np.pi)
 
 
-class Dipole_Magnet(MagneticElement):
+class DipoleMagnet(MagneticElement):
     """
     Dipole magnet with magnetic order 0.
     """
@@ -591,9 +584,7 @@ class Dipole_Magnet(MagneticElement):
     # round-tripping and reads follow the global resolution mode.
     @property
     def angle(self) -> Union[int, float, str]:
-        """Bend angle as configured. By default (global resolution mode off) this
-        is the value as stored -- a number, or the name of a functional
-        definition; with resolution mode on it is the resolved number. Use
+        """Bend angle as configured; see :attr:`~MagneticElement.kl`. Use
         ``KnL(0)`` for the resolved number regardless of mode."""
         return resolve_functional_parameter(self.kl_raw(0))
 
@@ -603,38 +594,36 @@ class Dipole_Magnet(MagneticElement):
             object.__setattr__(self, "multipoles", Multipoles())
         self.multipoles.K0L.normal = value
 
-    def currentToAngle(self, current: float, momentum: float) -> float:
-        """Convert current to bend angle in degrees."""
-        output_dict = self.linear_saturation_coefficients.currentToK(
-            current=current, momentum=momentum
-        )
-        return output_dict["KL"] * 360 / (2.0 * np.pi) / 1000
+    def current_to_angle(self, current: float, momentum: float) -> float:
+        """
+        Convert current to bend angle in degrees.
 
-    def currentToK(self, *args, **kwargs):
-        output_dict = {
-            k: v / 1000
-            for k, v in self.linear_saturation_coefficients.currentToK(
-                *args, **kwargs
-            ).items()
-        }
-        output_dict.update({"degrees": output_dict["KL"] * 360 / (2.0 * np.pi)})
+        Args:
+            current (float): Magnet current [A].
+            momentum (float): Beam momentum [MeV/c].
+
+        Returns:
+            float: The bend angle [degrees].
+        """
+        return self.current_to_k(current=current, momentum=momentum)["degrees"]
+
+    def current_to_k(self, *args, **kwargs):
+        """
+        Current -> K/KL, plus the bend angle in degrees.
+
+        ``LinearSaturationFit.current_to_k`` already applies an order-aware
+        ``c/1e9`` for order 0, which makes ``KL`` the bend angle in **radians**.
+        """
+        output_dict = dict(
+            self.linear_saturation_coefficients.current_to_k(*args, **kwargs)
+        )
+        if "KL" in output_dict:
+            output_dict["degrees"] = output_dict["KL"] * 360 / (2.0 * np.pi)
         return output_dict
 
-    def KToCurrent(self, K, momentum):
-        """Reverse the /1000 scaling applied by currentToK."""
-        if isinstance(K, dict):
-            K = {k: v * 1000 for k, v in K.items() if isinstance(v, (int, float))}
-        else:
-            K = K * 1000
-        return self.linear_saturation_coefficients.KToCurrent(K, momentum)
-
-    def KLToCurrent(self, KL, momentum):
-        """Reverse the /1000 scaling applied by currentToK."""
-        if isinstance(KL, dict):
-            KL = {k: v * 1000 for k, v in KL.items() if isinstance(v, (int, float))}
-        else:
-            KL = KL * 1000
-        return self.linear_saturation_coefficients.KLToCurrent(KL, momentum)
+    # No k_to_current/kl_to_current override: current_to_k above no longer
+    # divides by 1000, so there is nothing to undo and MagneticElement's
+    # inverses round-trip exactly.
 
     @computed_field
     @property
@@ -645,9 +634,7 @@ class Dipole_Magnet(MagneticElement):
         Returns
             float: The dipole bend radius
         """
-        # rho is a derived numeric quantity: always resolve the bend angle, but
-        # degrade gracefully to 0 if a functional definition is not yet available
-        # (e.g. a bare model_dump before the lattice is built).
+
         try:
             angle = self.KnL(0)
         except KeyError:
@@ -660,10 +647,7 @@ class Dipole_Magnet(MagneticElement):
         """
         Get the dipole magnetic field strength, ``B = Brho / rho`` [T].
 
-        This is the dipole's counterpart to
-        :meth:`MagneticElement.get_gradient`, and reads the same way: with
-        ``rho = length / angle`` and ``K0L = angle``, ``Brho / rho`` is
-        ``K0L * Brho / length`` -- one relation, whatever the order.
+        The dipole counterpart of :meth:`MagneticElement.get_gradient`.
 
         Args:
             momentum (float): The momentum of the particle beam (in eV/c).
@@ -676,7 +660,7 @@ class Dipole_Magnet(MagneticElement):
         return brho(momentum) / self.rho if self.rho else 0.0
 
 
-class Quadrupole_Magnet(MagneticElement):
+class QuadrupoleMagnet(MagneticElement):
     """
     Quadrupole with magnetic order 1.
     """
@@ -693,7 +677,7 @@ class Quadrupole_Magnet(MagneticElement):
         self.kl = value
 
 
-class Sextupole_Magnet(MagneticElement):
+class SextupoleMagnet(MagneticElement):
     """
     Sextupole magnet with magnetic order 2.
     """
@@ -710,7 +694,7 @@ class Sextupole_Magnet(MagneticElement):
         self.kl = value
 
 
-class Octupole_Magnet(MagneticElement):
+class OctupoleMagnet(MagneticElement):
     """
     Octupole magnet with magnetic order 3.
     """
@@ -727,23 +711,21 @@ class Octupole_Magnet(MagneticElement):
         self.kl = value
 
 
-solenoidFields = {
-    "S"
-    + str(no)
-    + "L": (
+solenoid_fields = {
+    f"S{no!s}L": (
         Union[float, str],
         Field(default=0, repr=False, json_schema_extra={"functional": True}),
     )
     for no in range(0, 13)
 }
-solenoidFieldsData = create_model("solenoidFieldsData", **solenoidFields)
+solenoid_fields_data = create_model("solenoidFieldsData", **solenoid_fields)
 
 
-class SolenoidFields(solenoidFieldsData, _SolenoidFieldsBase):
-    """Magnetic multipoles model."""
+class SolenoidFields(solenoid_fields_data, _SolenoidFieldsBase):
+    """Solenoid field components model."""
 
     def __repr__(self):
-        return "SolenoidFields(" + self.__str__() + ")"
+        return f"SolenoidFields({self.__str__()})"
 
     @model_serializer
     def ser_model(self) -> Dict[str, Any]:
@@ -757,14 +739,14 @@ class SolenoidFields(solenoidFieldsData, _SolenoidFieldsBase):
     def normal(self, order: int) -> Union[int, float, str]:
         """The solenoid field of a given order as stored (a number, or the name
         of a functional definition); resolved on demand via
-        :attr:`Solenoid_Magnet.field_amplitude`."""
-        return getattr(self, "S" + str(order) + "L")
+        :attr:`SolenoidMagnet.field_amplitude`."""
+        return getattr(self, f"S{order!s}L")
 
     def __eq__(self, other: Any) -> bool:
         return self.ser_model() == other
 
 
-class CombinedSolenoidQuadrupole_Magnet(
+class CombinedSolenoidQuadrupoleMagnet(
     MagneticElement, _CombinedSolenoidQuadrupoleMagnetBase
 ):
     """Coaxial quadrupole and solenoid field components."""
@@ -789,11 +771,17 @@ class CombinedSolenoidQuadrupole_Magnet(
         self.solenoid_fields.S0L = value
 
 
-class Solenoid_Magnet(_SolenoidMagnetBase, IgnoreExtra):
+class SolenoidMagnet(_SolenoidMagnetBase, IgnoreExtra):
     """
     Solenoid magnet including higher order fields.
     """
 
+    # _SolenoidMagnetBase pulls in ConfiguredBaseModel's serialize_by_alias=True.
+    # Fields below use `alias=` (bidirectional) rather than the generated
+    # classes' input-only `validation_alias=`, so with serialize_by_alias on,
+    # model_dump() would emit YAML aliases (e.g. "mag_set_max_wait_time")
+    # instead of field names -- breaking flatten_dict()-based full_dump() and
+    # every export path that reads dumps by field name. Pin it back off.
     model_config = ConfigDict(serialize_by_alias=False)
 
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
@@ -827,7 +815,7 @@ class Solenoid_Magnet(_SolenoidMagnetBase, IgnoreExtra):
         if "ks" in data:
             self.ks = data["ks"]
         elif "field_amplitude" in data:
-            self.ks = data["field_amplitude"] / self.length
+            self.field_amplitude = data["field_amplitude"]
 
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
@@ -850,20 +838,18 @@ class Solenoid_Magnet(_SolenoidMagnetBase, IgnoreExtra):
 
     @property
     def ks(self) -> Union[int, float, str]:
-        """Solenoid strength as configured. By default (global resolution mode
-        off) this is the value as stored — a number, or the name of a functional
-        definition; with resolution mode on it is the resolved number. Use
+        """Solenoid strength as configured; see :attr:`MagneticElement.kl`. Use
         :attr:`field_amplitude` for the resolved number regardless of mode."""
         return resolve_functional_parameter(
-            getattr(self.fields, "S" + str(self.order) + "L")
+            getattr(self.fields, f"S{self.order!s}L")
         )
 
     @ks.setter
     def ks(self, ks: float = 0) -> None:
-        setattr(self.fields, "S" + str(self.order) + "L", ks)
+        setattr(self.fields, f"S{self.order!s}L", ks)
 
 
-class NonLinearLens_Magnet(_NonLinearLensMagnetBase, IgnoreExtra):
+class NonLinearLensMagnet(_NonLinearLensMagnetBase, IgnoreExtra):
     """
     Non-linear lens magnet. See `MAD-X manual`_ and `PAC2011 article`_
 
@@ -889,49 +875,271 @@ class NonLinearLens_Magnet(_NonLinearLensMagnetBase, IgnoreExtra):
     """Dimensional parameter of NLL. Stored verbatim: a number or a string naming
     a functional definition (resolve via ``resolved("dimensional_parameter")``)."""
 
-    def __init__(self, /, **data: Any) -> None:
-        super().__init__(**data)
 
-
-class Corrector_Magnet(_CorrectorMagnetBase, IgnoreExtra):
+class CorrectorMagnet(DipoleMagnet, _CorrectorMagnetBase):
     """
     Corrector (steering) magnet.
 
-    Unlike :class:`Dipole_Magnet` -- whose single ``K0L`` multipole's ``normal``/
-    ``skew`` components denote the magnetic field's orientation, not a beam
-    plane -- a corrector's kick is stored as two explicitly-named, independent
-    kick angles, so a :class:`~laura.models.element.Horizontal_Corrector` or
-    :class:`~laura.models.element.Vertical_Corrector` populates only its own
-    plane, while a :class:`~laura.models.element.Combined_Corrector` can carry
-    both simultaneously.
+    The two kick angles are the two components of the *same* order-0 multipole,
+    addressed by beam plane: `horizontal_kick` goes to `multipoles.K0L.normal`
+    and `vertical_kick` goes to `multipoles.K0L.skew`.
+
+    Use :meth:`resolved_kicks` for the resolved numbers regardless of mode.
     """
 
-    # See the comment on Solenoid_Magnet.model_config -- same reasoning.
-    model_config = ConfigDict(serialize_by_alias=False)
+    def __init__(self, /, **data: Any) -> None:
+        super().__init__(**data)
+        if data.get("horizontal_kick") is not None:
+            self.horizontal_kick = data["horizontal_kick"]
+        if data.get("vertical_kick") is not None:
+            self.vertical_kick = data["vertical_kick"]
 
-    length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
-    """Magnetic length [m]."""
+    def _k0l(self) -> Multipole:
+        """The order-0 multipole, creating ``multipoles`` if it is unset."""
+        if self.multipoles is None:
+            object.__setattr__(self, "multipoles", Multipoles())
+        return self.multipoles.K0L
 
-    order: int = Field(repr=False, default=0, frozen=True)
-    """Corrector multipole order (0 = dipole-like kick)."""
+    @computed_field
+    @property
+    def horizontal_kick(self) -> Union[int, float, str]:
+        """Horizontal kick angle [rad] -- the normal component of ``K0L``."""
+        return resolve_functional_parameter(self._k0l().normal)
 
-    tilt: float = Field(default=0.0)
-    """Tilt angle of the corrector [degrees]."""
+    @horizontal_kick.setter
+    def horizontal_kick(self, value: Union[int, float, str]) -> None:
+        k0l = self._k0l()
+        k0l.normal = value
+        k0l.order = 0
 
-    horizontal_kick: Union[float, str] = Field(
-        default=0.0, json_schema_extra={"functional": True}
-    )
-    """Horizontal kick angle [rad]. Stored verbatim: a number, or the name of a
-    functional definition."""
+    @computed_field
+    @property
+    def vertical_kick(self) -> Union[int, float, str]:
+        """Vertical kick angle [rad] -- the skew component of ``K0L``."""
+        return resolve_functional_parameter(self._k0l().skew)
 
-    vertical_kick: Union[float, str] = Field(
-        default=0.0, json_schema_extra={"functional": True}
-    )
-    """Vertical kick angle [rad]. Stored verbatim: a number, or the name of a
-    functional definition."""
+    @vertical_kick.setter
+    def vertical_kick(self, value: Union[int, float, str]) -> None:
+        k0l = self._k0l()
+        k0l.skew = value
+        k0l.order = 0
+
+    def resolved_kicks(self) -> tuple[float, float]:
+        """
+        Both kick angles as numbers, the kick counterpart of
+        :meth:`~MagneticElement.KnL`.
+
+        Returns:
+            tuple[float, float]: ``(horizontal_kick, vertical_kick)`` [rad].
+        """
+        k0l = self._k0l()
+        return (
+            resolve_functional_parameter(k0l.normal, force=True),
+            resolve_functional_parameter(k0l.skew, force=True),
+        )
+
+    def kick_from_angle(self, skew: bool = None) -> Union[int, float, str]:
+        """
+        Transfer this magnet's bend angle (equivalently ``k0l`` / ``kl``) onto
+        the kick of the plane implied by *skew*, and return it.
+
+        Args:
+            skew (bool, optional): Put the angle in the vertical (skew) plane
+                rather than the horizontal (normal) one. Defaults to this
+                magnet's :attr:`skew` flag.
+
+        Returns:
+            Union[int, float, str]: The kick now held by the selected plane,
+            as stored.
+        """
+        skew = self.skew if skew is None else skew
+        k0l = self._k0l()
+        source = "skew" if skew else "normal"
+        other = "normal" if skew else "skew"
+        value = getattr(k0l, source)
+        if not _is_set(value) and _is_set(getattr(k0l, other)):
+            value = getattr(k0l, other)
+            setattr(k0l, source, value)
+            setattr(k0l, other, 0.0)
+        return value
+
+    def current_to_angle(self, current: float, momentum: float) -> float:
+        """
+        Convert a magnet current to a kick angle.
+
+        Args:
+            current (float): Magnet current [A].
+            momentum (float): Beam momentum [MeV/c].
+
+        Returns:
+            float: The kick angle [rad]. Note this is radians, unlike
+            :meth:`DipoleMagnet.current_to_angle`, which returns degrees.
+        """
+        return self.linear_saturation_coefficients.current_to_k(
+            current=current, momentum=momentum
+        )["KL"]
+
+    def angle_to_current(self, angle: float, momentum: float) -> float:
+        """
+        Inverse of :meth:`current_to_angle`.
+
+        Args:
+            angle (float): Kick angle [rad].
+            momentum (float): Beam momentum [MeV/c].
+
+        Returns:
+            float: The magnet current [A].
+        """
+        return self.linear_saturation_coefficients.kl_to_current(angle, momentum)
 
 
-class Wiggler_Magnet(_WigglerMagnetBase, IgnoreExtra):
+class CombinedCorrectorMagnet(_CombinedCorrectorMagnetBase, IgnoreExtra):
+    """
+    The two corrector fields inside one combined corrector.
+
+    The planes are separate magnets with separate windings. Kick accessors are
+    proxied to the owning plane, so they work as on a single-plane corrector;
+    only the calibration is per-plane.
+    """
+
+    horizontal: CorrectorMagnet = Field(default_factory=CorrectorMagnet)
+    """Horizontal-plane corrector field, with its own calibration."""
+
+    vertical: CorrectorMagnet = Field(default_factory=CorrectorMagnet)
+    """Vertical-plane corrector field, with its own calibration."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_single_magnet(cls, data: Any) -> Any:
+        """Build the two planes, merging any shared top-level magnetic keys into
+        each. Could be a single flat corrector mapping, a flat mapping plus
+        ``horizontal`` and ``vertical`` keys, or two fully specified planes.
+
+        Each plane keeps only its own kick, so a combined corrector never
+        deflects in both planes off one value.
+        """
+        if not isinstance(data, dict):
+            return data
+        per_plane = ("horizontal", "vertical")
+        kicks = ("horizontal_kick", "vertical_kick")
+        shared = {k: v for k, v in data.items() if k not in per_plane + kicks}
+        out = {}
+        for plane, kick in zip(per_plane, kicks):
+            own = data.get(plane) or {}
+            merged = {**shared, **own}
+            merged[kick] = own.get(kick, data.get(kick, 0.0))
+            merged.pop(kicks[1] if plane == "horizontal" else kicks[0], None)
+            out[plane] = merged
+        return out
+
+    # -- Proxies to the plane that owns the quantity ------------------------
+    @computed_field
+    @property
+    def horizontal_kick(self) -> Union[int, float, str]:
+        """Horizontal kick angle [rad], held by :attr:`horizontal`."""
+        return self.horizontal.horizontal_kick
+
+    @horizontal_kick.setter
+    def horizontal_kick(self, value: Union[int, float, str]) -> None:
+        self.horizontal.horizontal_kick = value
+
+    @computed_field
+    @property
+    def vertical_kick(self) -> Union[int, float, str]:
+        """Vertical kick angle [rad], held by :attr:`vertical`."""
+        return self.vertical.vertical_kick
+
+    @vertical_kick.setter
+    def vertical_kick(self, value: Union[int, float, str]) -> None:
+        self.vertical.vertical_kick = value
+
+    @computed_field
+    @property
+    def length(self) -> float:
+        """Magnetic length [m] of the horizontal magnet."""
+        return self.horizontal.length
+
+    @length.setter
+    def length(self, value: float) -> None:
+        self.horizontal.length = value
+        self.vertical.length = value
+
+    @computed_field
+    @property
+    def order(self) -> int:
+        """Multipole order (0, a dipole-like kick)."""
+        return self.horizontal.order
+
+    @computed_field
+    @property
+    def tilt(self) -> float:
+        """Roll of the horizontal magnet about the beam axis [rad]."""
+        return self.horizontal.tilt
+
+    @tilt.setter
+    def tilt(self, value: float) -> None:
+        self.horizontal.tilt = value
+        self.vertical.tilt = value
+
+    def __getattr__(self, name: str) -> Any:
+        """Fall back to the horizontal plane for the rest of the magnetic
+        surface (``tilt``, ``multipoles``, ``current_to_k``, ...), so a combined
+        corrector still reads like a magnet."""
+        if name.startswith("_") or name in ("horizontal", "vertical"):
+            raise AttributeError(name)
+        return getattr(self.horizontal, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Mirror of :meth:`__getattr__`. Anything proxied is geometry the two
+        planes share, so it is written to both -- without this, a write of a
+        proxied name (``reverse_element`` swapping the edge angles) would land
+        on the pair as an extra field and the plane would keep the old value."""
+        if (
+            name.startswith("_")
+            or name in type(self).model_fields
+            or hasattr(type(self), name)
+        ):
+            super().__setattr__(name, value)
+            return
+        setattr(self.horizontal, name, value)
+        setattr(self.vertical, name, value)
+
+    def resolved_kicks(self) -> tuple[float, float]:
+        """``(horizontal_kick, vertical_kick)`` [rad] as numbers, resolving
+        functional definitions regardless of the global resolution mode."""
+        return (
+            self.horizontal.resolved_kicks()[0],
+            self.vertical.resolved_kicks()[1],
+        )
+
+    def current_to_angle(
+        self, current: float, momentum: float, skew: bool = False
+    ) -> float:
+        """
+        Convert a magnet current to a kick angle using the calibration of the
+        requested plane.
+
+        Args:
+            current (float): Magnet current [A].
+            momentum (float): Beam momentum [MeV/c].
+            skew (bool): Use the vertical plane's calibration instead of the
+                horizontal one.
+
+        Returns:
+            float: The kick angle [rad].
+        """
+        plane = self.vertical if skew else self.horizontal
+        return plane.current_to_angle(current, momentum)
+
+    def angle_to_current(
+        self, angle: float, momentum: float, skew: bool = False
+    ) -> float:
+        """Inverse of :meth:`current_to_angle`, using the same plane selection."""
+        plane = self.vertical if skew else self.horizontal
+        return plane.angle_to_current(angle, momentum)
+
+
+class WigglerMagnet(_WigglerMagnetBase, IgnoreExtra):
     """
     Undulator magnet.
     """
@@ -952,13 +1160,13 @@ class Wiggler_Magnet(_WigglerMagnetBase, IgnoreExtra):
     ``resolved("strength")``)."""
 
     peak_magnetic_field: float = Field(default=0.0, alias="B")
-    """Peak wiggler magnetic field [B]."""
+    """Peak wiggler magnetic field [T]."""
 
     period: NonNegativeFloat = Field(default=0.0, alias="lambdau")
     """Wiggler period [m]."""
 
     num_periods: NonNegativeInt = Field(default=0, alias="nwig")
-    """Number of periods in the wiggler [m]."""
+    """Number of periods in the wiggler."""
 
     helical: bool = False
     """Flag to indicate if the wiggler is helical; False implies planar."""
@@ -975,9 +1183,6 @@ class Wiggler_Magnet(_WigglerMagnetBase, IgnoreExtra):
     transverse_gradient_y: float = Field(default=0.0, alias="grady")
     """Vertical transverse gradient."""
 
-    def __init__(self, /, **data: Any) -> None:
-        super().__init__(**data)
-
     @property
     def normalized_strength(self) -> float:
         """
@@ -986,7 +1191,8 @@ class Wiggler_Magnet(_WigglerMagnetBase, IgnoreExtra):
         Returns
         -------
         float:
-            :attr:`~strength` / :math:`\\sqrt{2}`
+            :attr:`~strength` / :math:`\\sqrt{2}` (planar), or :attr:`~strength`
+            (helical)
         """
 
         strength = self.resolved("strength")
@@ -1025,3 +1231,25 @@ class Wiggler_Magnet(_WigglerMagnetBase, IgnoreExtra):
     @poles.setter
     def poles(self, value: int) -> None:
         self.num_periods = int(value / 2)
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "Corrector_Magnet": "CorrectorMagnet",
+        "Dipole_Magnet": "DipoleMagnet",
+        "NonLinearLens_Magnet": "NonLinearLensMagnet",
+        "Octupole_Magnet": "OctupoleMagnet",
+        "Power": "power",
+        "Quadrupole_Magnet": "QuadrupoleMagnet",
+        "Sextupole_Magnet": "SextupoleMagnet",
+        "Solenoid_Magnet": "SolenoidMagnet",
+        "Sqrt": "sqrt",
+        "Wiggler_Magnet": "WigglerMagnet",
+        "solenoidFields": "solenoid_fields",
+        "solenoidFieldsData": "solenoid_fields_data",
+    },
+)

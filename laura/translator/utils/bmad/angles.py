@@ -10,7 +10,6 @@ __all__ = [
     "bmad_floor_angles_to_laura",
     "bmad_floor_rotation_matrix",
     "is_flat_roll",
-    "is_half_turn",
 ]
 
 
@@ -75,6 +74,3 @@ def is_flat_roll(roll: float) -> bool:
     return abs(math.remainder(roll, math.pi)) <= _ROLL_TOLERANCE
 
 
-def is_half_turn(roll: float) -> bool:
-    """Whether a flat ``REF_TILT`` is the half turn rather than no roll at all."""
-    return abs(math.remainder(roll, 2.0 * math.pi)) > _ROLL_TOLERANCE

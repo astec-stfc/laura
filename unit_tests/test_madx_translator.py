@@ -1,27 +1,23 @@
-"""Tests for the MAD-X (cpymad) translator.
-
-Build small element/lattice fixtures, translate them and feed the generated
-MAD-X input into ``cpymad`` for verification.
-"""
+"""MAD-X translator, checked against cpymad where available."""
 
 import pytest
 
 pytest.importorskip("easygdf")
 pytest.importorskip("h5py")
 
-from laura.models.baseModels import (  # noqa: E402
+from laura.models.base_models import (  # noqa: E402
     set_functional_definitions,
     set_resolve_functional,
 )
 from laura.models.element import (  # noqa: E402
-    Combined_Corrector,
+    CombinedCorrector,
     Dipole,
-    Horizontal_Corrector,
+    HorizontalCorrector,
     Quadrupole,
     RFCavity,
-    Vertical_Corrector,
+    VerticalCorrector,
 )
-from laura.models.elementList import SectionLattice  # noqa: E402
+from laura.models.element_list import SectionLattice  # noqa: E402
 from laura.models.physical import PhysicalElement, Position  # noqa: E402
 from laura.translator.converters.cavity import RFCavityTranslator  # noqa: E402
 from laura.translator.converters.magnet import (  # noqa: E402
@@ -30,15 +26,6 @@ from laura.translator.converters.magnet import (  # noqa: E402
     MagnetTranslator,
 )
 from laura.translator.converters.section import SectionLatticeTranslator  # noqa: E402
-
-
-@pytest.fixture(autouse=True)
-def _reset_defs():
-    set_functional_definitions({}, merge=False)
-    set_resolve_functional(False)
-    yield
-    set_functional_definitions({}, merge=False)
-    set_resolve_functional(False)
 
 
 def _quad(k1l):
@@ -104,8 +91,6 @@ class TestMadxElements:
         assert "angle := bend1" in dt.to_madx()
 
     def test_drift_element_is_written(self):
-        # MAD-X lattices are conventionally built with explicit drift elements
-        # rather than relying on implicit gap-filling between placed elements.
         from laura.models.element import Drift
         from laura.translator.converters.drift import DriftTranslator
 
@@ -129,12 +114,12 @@ class TestMadxElements:
 
 class TestMadxCorrector:
     def test_horizontal_and_vertical_correctors(self):
-        hc = Horizontal_Corrector(
+        hc = HorizontalCorrector(
             name="hc1",
             machine_area="S",
             magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.02},
         )
-        vc = Vertical_Corrector(
+        vc = VerticalCorrector(
             name="vc1",
             machine_area="S",
             magnetic={"magnetic_length": 0.1, "vertical_kick": 0.03},
@@ -145,7 +130,7 @@ class TestMadxCorrector:
         assert vt.to_madx() == "vc1: vkicker, l = 0.1, kick = 0.03;\n"
 
     def test_combined_corrector_carries_both_planes(self):
-        cc = Combined_Corrector(
+        cc = CombinedCorrector(
             name="cc1",
             machine_area="S",
             magnetic={
@@ -162,7 +147,7 @@ class TestMadxCorrector:
 
     def test_symbolic_kick_is_deferred(self):
         set_functional_definitions({"hc_kick": 0.02})
-        hc = Horizontal_Corrector(
+        hc = HorizontalCorrector(
             name="hc1",
             machine_area="S",
             magnetic={"magnetic_length": 0.1, "horizontal_kick": "hc_kick"},
@@ -174,13 +159,13 @@ class TestMadxCorrector:
         pytest.importorskip("cpymad")
         from cpymad.madx import Madx
 
-        hc = Horizontal_Corrector(
+        hc = HorizontalCorrector(
             name="HC1",
             machine_area="S",
             magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.05},
             physical=PhysicalElement(length=0.1, middle=Position(x=0, y=0, z=1.0)),
         )
-        vc = Vertical_Corrector(
+        vc = VerticalCorrector(
             name="VC1",
             machine_area="S",
             magnetic={"magnetic_length": 0.1, "vertical_kick": 0.07},
@@ -248,7 +233,7 @@ class TestMadxSection:
         c = RFCavity(
             name="C1",
             machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
+            cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": volt},
             physical=PhysicalElement(length=1.0, middle=Position(x=0, y=0, z=3.0)),
         )
@@ -294,7 +279,6 @@ class TestMadxSection:
         assert tw["s"][-1] == pytest.approx(2.751570601951526)
 
     def test_resolved_mode_bakes_numbers_no_header(self):
-        pytest.importorskip("cpymad")
         defs = {"kq": 0.3, "bend1": 0.1, "Vcav": 5e6}
         out = self._line(
             self._magnets(k1l="kq", k0l="bend1", volt="Vcav"), defs=defs, resolve=True
@@ -305,15 +289,8 @@ class TestMadxSection:
 
 
 class TestDipoleFringeFields:
-    """MAD-X's fringe attributes, and the two ways they used to go wrong."""
-
     def test_fint_comes_from_the_magnet_not_the_simulation_default(self):
-        """`MagnetSimulationElement.edge_field_integral` used to default to 0.5
-        and shadow the magnet's own value.
-
-        The slot now defaults to `None`, so it is skipped unless something set
-        it deliberately, and it keeps working as an override when it did.
-        """
+        """``simulation.edge_field_integral`` overrides the magnet's only when set."""
         dt = _dipole(k0l=0.2, gap=0.04, edge_field_integral=0.3)
         assert "fint = 0.3" in dt.to_madx()
 
@@ -332,13 +309,7 @@ class TestDipoleFringeFields:
         assert "fint = 0.77" in override.to_madx()
 
     def test_asymmetric_faces_are_folded_onto_the_single_hgap(self):
-        """MAD-X carries `fint` and `fintx` but only one `hgap`, where Bmad has
-        `hgap` and `hgapx`.
-
-        The gap to keep is the first non-zero one. A bend split by superposition
-        has a zero gap *and* a zero integral on its interior face, so keeping
-        that one would zero the real fringe at the other end.
-        """
+        """MAD-X has one ``hgap``; keep the non-zero one (split bends have a 0 face)."""
         symmetric = _dipole(k0l=0.2, gap=0.04, edge_field_integral=0.3).to_madx()
         assert "fint = 0.3" in symmetric
         assert "hgap = 0.02" in symmetric
@@ -349,7 +320,7 @@ class TestDipoleFringeFields:
             gap=0.03,
             edge_field_integral=0.45,
             exit_gap=0.0,
-            exit_edge_field_integral=0.0,
+            edge_field_integral_exit=0.0,
         ).to_madx()
         assert "fint = 0.45" in entrance_half
         assert "hgap = 0.015" in entrance_half
@@ -360,20 +331,19 @@ class TestDipoleFringeFields:
             gap=0.0,
             edge_field_integral=0.0,
             exit_gap=0.03,
-            exit_edge_field_integral=0.45,
+            edge_field_integral_exit=0.45,
         ).to_madx()
         assert "fint = 0.0" in exit_half
         assert "hgap = 0.015" in exit_half, "the exit gap must survive a zero entrance"
         assert "fintx = 0.45" in exit_half
 
-        # Both faces real but with different gaps: the product is what matters,
-        # so the exit integral absorbs the ratio.
+        # only gap * fint matters, so fintx absorbs the gap ratio
         both = _dipole(
             k0l=0.2,
             gap=0.04,
             edge_field_integral=0.3,
             exit_gap=0.02,
-            exit_edge_field_integral=0.3,
+            edge_field_integral_exit=0.3,
         ).to_madx()
         assert "hgap = 0.02" in both
         assert "fint = 0.3" in both

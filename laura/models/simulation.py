@@ -2,10 +2,11 @@ import re
 from typing import Any, ClassVar, Dict, List, Union
 
 import numpy as np
-from pydantic import Field, computed_field, field_validator
+from pydantic import Field, computed_field, field_validator, model_validator
 
-from ..translator.utils.fields import field
+from ..translator.utils.fields import FieldMap
 from ._generated import (
+    WaveformInterpolationEnum,
     _ACDipoleSimulationElementBase,
     _ApertureElementBase,
     _BeamBeamSimulationElementBase,
@@ -17,16 +18,17 @@ from ._generated import (
     _PlasmaSimulationElementBase,
     _RFCavitySimulationElementBase,
     _RFMultipoleSimulationElementBase,
+    _SampledWaveformBase,
     _SimulationElementBase,
     _TwissMatchSimulationElementBase,
     _WakefieldSimulationElementBase,
     _WireSimulationElementBase,
 )
-from .baseModels import FunctionalMixin
+from .base_models import FunctionalMixin
 
 
 class ApertureElement(_ApertureElementBase):
-    """Physical info model."""
+    """Aperture model."""
 
     pass
 
@@ -47,8 +49,8 @@ class MagnetSimulationElement(_MagnetSimulationElementBase, FunctionalMixin):
     Magnet simulation element model.
     """
 
-    field_definition: str | field | None = None
-    # Schema declares `smooth` as boolean but ASTRA uses an integer smoothing count (Q_smooth / S_smooth).
+    field_definition: str | FieldMap | None = None
+
     smooth: int | None = 2
 
     field_amplitude: Union[float, str] = Field(
@@ -63,12 +65,12 @@ class DriftSimulationElement(_DriftSimulationElementBase):
     Drift simulation element model.
     """
 
-    wakefield_definition: str | field | None = None
+    wakefield_definition: str | FieldMap | None = None
     """A wake file name, or the sampled wake itself."""
 
 
 class DiagnosticSimulationElement(_DiagnosticSimulationElementBase):
-    wakefield_definition: str | field | None = None
+    wakefield_definition: str | FieldMap | None = None
     """A wake file name, or the sampled wake itself."""
 
 
@@ -99,8 +101,8 @@ class RFCavitySimulationElement(_RFCavitySimulationElementBase, FunctionalMixin)
     RF cavity simulation element model.
     """
 
-    field_definition: str | field | None = None
-    wakefield_definition: str | field | None = None
+    field_definition: str | FieldMap | None = None
+    wakefield_definition: str | FieldMap | None = None
 
     field_amplitude: Union[float, str] = Field(
         default=0.0, json_schema_extra={"functional": True}
@@ -114,7 +116,7 @@ class WakefieldSimulationElement(_WakefieldSimulationElementBase):
     Wakefield simulation element model.
     """
 
-    wakefield_definition: str | field | None = None
+    wakefield_definition: str | FieldMap | None = None
 
     pass
 
@@ -133,38 +135,38 @@ class TwissMatchSimulationElement(_TwissMatchSimulationElementBase):
         bx = np.sqrt(self.beta_x)
         by = np.sqrt(self.beta_y)
 
-        R = np.eye(6)
+        r = np.eye(6)
 
         # x-plane CS transform
-        R[0, 0] = bx
-        R[0, 5] = self.eta_x
+        r[0, 0] = bx
+        r[0, 5] = self.eta_x
 
-        R[1, 0] = -self.alpha_x / bx
-        R[1, 1] = 1.0 / bx
-        R[1, 5] = self.eta_xp
+        r[1, 0] = -self.alpha_x / bx
+        r[1, 1] = 1.0 / bx
+        r[1, 5] = self.eta_xp
 
         # y-plane CS transform
-        R[2, 2] = by
-        R[2, 5] = self.eta_y
+        r[2, 2] = by
+        r[2, 5] = self.eta_y
 
-        R[3, 2] = -self.alpha_y / by
-        R[3, 3] = 1.0 / by
-        R[3, 5] = self.eta_yp
+        r[3, 2] = -self.alpha_y / by
+        r[3, 3] = 1.0 / by
+        r[3, 5] = self.eta_yp
 
         # z, δ untouched
-        R[4, 4] = 1.0
-        R[5, 5] = 1.0
+        r[4, 4] = 1.0
+        r[5, 5] = 1.0
 
-        return R
+        return r
 
     @computed_field
     @property
     def r_matrix_7x7(self) -> np.ndarray:
         n = self.r_matrix.shape[0]
-        B = np.zeros((n + 1, n + 1))
-        B[:n, :n] = self.r_matrix
-        B[n, n] = 1
-        return B
+        augmented = np.zeros((n + 1, n + 1))
+        augmented[:n, :n] = self.r_matrix
+        augmented[n, n] = 1
+        return augmented
 
 
 class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
@@ -183,120 +185,39 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
     spin_taylor: List[Dict[str, Any]] = Field(default_factory=list)
     """Sparse quaternion Taylor terms indexed as S1, Sx, Sy, and Sz (0--3)."""
 
-    @field_validator("c_matrix", mode="before")
+    @field_validator("c_matrix", "r_matrix", "t_matrix", "u_matrix", mode="before")
     @classmethod
-    def validate_c_matrix(cls, v):
+    def validate_matrix(cls, v, info):
+        letter = info.field_name[0]
+        example = {"c": "c1", "r": "r21", "t": "t513", "u": "u5132"}[letter]
+        shape = (6,) * (len(example) - 1)
         if isinstance(v, dict):
-            vector = np.zeros(6)
+            tensor = np.eye(6) if letter == "r" else np.zeros(shape)
 
             for key, value in v.items():
-                m = re.fullmatch(r"c(\d)", key.lower())
+                m = re.fullmatch(letter + r"(\d)" * len(shape), key.lower())
                 if not m:
                     raise ValueError(
-                        f"Invalid C-matrix element '{key}'. Expected e.g. c1."
-                    )
-
-                idx = int(m.group(1)) - 1
-
-                if not (0 <= idx < 6):
-                    raise ValueError(f"C-matrix index out of range: {key}")
-
-                vector[idx] = float(value)
-
-            return vector
-
-        arr = np.asarray(v, dtype=float)
-
-        if arr.shape != (6,):
-            raise ValueError(f"c_matrix must have shape (6,), got {arr.shape}")
-
-        return arr
-
-    @field_validator("r_matrix", mode="before")
-    @classmethod
-    def validate_r_matrix(cls, v):
-        if isinstance(v, dict):
-            matrix = np.eye(6)
-
-            for key, value in v.items():
-                m = re.fullmatch(r"r(\d)(\d)", key.lower())
-                if not m:
-                    raise ValueError(
-                        f"Invalid R-matrix element '{key}'. Expected e.g. r21."
-                    )
-
-                row = int(m.group(1)) - 1
-                col = int(m.group(2)) - 1
-
-                if not (0 <= row < 6 and 0 <= col < 6):
-                    raise ValueError(f"R-matrix index out of range: {key}")
-
-                matrix[row, col] = float(value)
-
-            return matrix
-
-        arr = np.asarray(v, dtype=float)
-
-        if arr.shape != (6, 6):
-            raise ValueError(f"r_matrix must have shape (6,6), got {arr.shape}")
-
-        return arr
-
-    @field_validator("t_matrix", mode="before")
-    @classmethod
-    def validate_t_matrix(cls, v):
-        if isinstance(v, dict):
-            tensor = np.zeros((6, 6, 6))
-
-            for key, value in v.items():
-                m = re.fullmatch(r"t(\d)(\d)(\d)", key.lower())
-                if not m:
-                    raise ValueError(
-                        f"Invalid T-matrix element '{key}'. Expected e.g. t513."
-                    )
-
-                i = int(m.group(1)) - 1
-                j = int(m.group(2)) - 1
-                k = int(m.group(3)) - 1
-
-                if not all(0 <= idx < 6 for idx in (i, j, k)):
-                    raise ValueError(f"T-matrix index out of range: {key}")
-
-                tensor[i, j, k] = float(value)
-
-            return tensor
-
-        arr = np.asarray(v, dtype=float)
-
-        if arr.shape != (6, 6, 6):
-            raise ValueError(f"t_matrix must have shape (6,6,6), got {arr.shape}")
-
-        return arr
-
-    @field_validator("u_matrix", mode="before")
-    @classmethod
-    def validate_u_matrix(cls, v):
-        if isinstance(v, dict):
-            tensor = np.zeros((6, 6, 6, 6))
-
-            for key, value in v.items():
-                m = re.fullmatch(r"u(\d)(\d)(\d)(\d)", key.lower())
-                if not m:
-                    raise ValueError(
-                        f"Invalid U-matrix element '{key}'. Expected e.g. u5132."
+                        f"Invalid {letter.upper()}-matrix element '{key}'. "
+                        f"Expected e.g. {example}."
                     )
 
                 indices = tuple(int(index) - 1 for index in m.groups())
                 if not all(0 <= index < 6 for index in indices):
-                    raise ValueError(f"U-matrix index out of range: {key}")
+                    raise ValueError(
+                        f"{letter.upper()}-matrix index out of range: {key}"
+                    )
 
                 tensor[indices] = float(value)
 
             return tensor
 
         arr = np.asarray(v, dtype=float)
-        if arr.shape != (6, 6, 6, 6):
-            raise ValueError(f"u_matrix must have shape (6,6,6,6), got {arr.shape}")
+        if arr.shape != shape:
+            shape_text = str(shape).replace(" ", "")
+            raise ValueError(
+                f"{info.field_name} must have shape {shape_text}, got {arr.shape}"
+            )
         return arr
 
     @field_validator("spin_taylor", mode="before")
@@ -323,10 +244,10 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
     @property
     def r_matrix_7x7(self) -> np.ndarray:
         n = self.r_matrix.shape[0]
-        B = np.zeros((n + 1, n + 1))
-        B[:n, :n] = self.r_matrix
-        B[n, n] = 1
-        return B
+        augmented = np.zeros((n + 1, n + 1))
+        augmented[:n, :n] = self.r_matrix
+        augmented[n, n] = 1
+        return augmented
 
 
 class ElectrostaticSeparatorSimulationElement(
@@ -352,6 +273,39 @@ class ElectrostaticSeparatorSimulationElement(
     """Rotation of the separator about the beam axis [rad]."""
 
 
+class SampledWaveform(_SampledWaveformBase):
+    """
+    Sampled pulse shape of a device whose strength is a program over time.
+    """
+
+    time: List[float] = Field(default_factory=list)
+    """Sample times, measured from the moment the device fires [s]."""
+
+    factor: List[float] = Field(default_factory=list)
+    """Strength at each sample time, as a fraction of the element's nominal
+    strength."""
+
+    interpolation: WaveformInterpolationEnum = WaveformInterpolationEnum.linear
+    """How the strength behaves between knots."""
+
+    @model_validator(mode="after")
+    def _check_knots(
+        self,  # noqa: N804 (pydantic after-validator takes self)
+    ) -> "SampledWaveform":
+        if len(self.time) != len(self.factor):
+            raise ValueError(
+                f"waveform has {len(self.time)} time(s) and "
+                f"{len(self.factor)} factor(s); they are the two columns of "
+                "one sampled trace and must be the same length."
+            )
+        if any(b < a for a, b in zip(self.time, self.time[1:])):
+            raise ValueError(
+                "waveform times must be non-decreasing; a trace that goes "
+                "backwards in time has no interpolation."
+            )
+        return self
+
+
 class ACDipoleSimulationElement(_ACDipoleSimulationElementBase):
     """
     AC dipole / tune-exciter simulation element model.
@@ -375,6 +329,11 @@ class ACDipoleSimulationElement(_ACDipoleSimulationElementBase):
     ramp: List[int] = Field(default_factory=lambda: [0, 0, 0, 0])
     """Turn numbers ``[ramp1, ramp2, ramp3, ramp4]`` defining the ramp-up start,
     flat-top start, flat-top end and ramp-down end."""
+
+    waveform: SampledWaveform | None = None
+    """Sampled pulse shape, for a kicker or septum whose strength is a program
+    rather than a sinusoid. Carried instead of
+    :attr:`~frequency`/:attr:`~phase`/:attr:`~ramp`, not alongside them."""
 
 
 class WireSimulationElement(_WireSimulationElementBase):

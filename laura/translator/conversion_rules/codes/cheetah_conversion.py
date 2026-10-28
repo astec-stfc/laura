@@ -21,11 +21,12 @@ try:
         Undulator,
         VerticalCorrector,
     )
+
     _CHEETAH_AVAILABLE = True
 except ImportError as _err:
     raise ImportError(
         "cheetah-accelerator is not installed. "
-        "Install with: pip install \"laura-accelerator[cheetah]\""
+        'Install with: pip install "laura-accelerator[cheetah]"'
     ) from _err
 
 cheetah_conversion_rules = {
@@ -39,6 +40,7 @@ cheetah_conversion_rules = {
     "Beam_Arrival_Monitor": Screen,
     "Bunch_Length_Monitor": Screen,
     "Screen": Screen,
+    "WireScanner": Screen,
     "RCollimator": Aperture,
     "Collimator": Aperture,
     "Monitor": Screen,

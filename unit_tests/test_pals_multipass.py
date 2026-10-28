@@ -16,7 +16,7 @@ import warnings
 import pytest
 import yaml
 
-from laura.models.elementList import MachineModel
+from laura.models.element_list import MachineModel
 from laura.translator.converters.codes.pals import PalsLatticeImporter
 from laura.translator.converters.layout import MachineLayoutTranslator
 from laura.translator.utils.pals import parse_pals_file, parser_available

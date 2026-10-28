@@ -548,7 +548,7 @@ class TestAgainstTheReferenceTranslator:
             bend.magnetic.edge_field_integral * bend.magnetic.half_gap
         )
         assert attributes["fintx"] * attributes["hgapx"] == pytest.approx(
-            bend.magnetic.exit_edge_field_integral * bend.magnetic.exit_half_gap
+            bend.magnetic.edge_field_integral_exit * bend.magnetic.exit_half_gap
         )
 
     def test_the_solenoid_agrees(self, reference_bmad, elements):

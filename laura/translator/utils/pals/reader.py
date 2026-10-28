@@ -78,7 +78,7 @@ with open(destination, "w") as handle:
 """
 
 
-class PalsParserUnavailable(ImportError):
+class PalsParserUnavailable(ImportError):  # noqa: N818
     """Raised when ``palsparserpy`` or its C library cannot be loaded."""
 
 

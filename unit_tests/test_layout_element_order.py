@@ -1,19 +1,10 @@
-"""A layout's element list must follow the beam, not a dict's insertion order.
-
-``MachineLayout._all_elements`` is what ``elements``, ``_lookup_index`` and
-``elements_between`` are all built on, and ``elements_between`` is in turn how
-downstream code (SIMBA) carves a lattice into tracking lines.
-
-The oracle throughout is ``section.order``: it is the beam path, and the
-layout's view of it must agree.
-"""
-
-import warnings
+"""A layout's element list follows ``section.order``, not dict insertion order."""
 
 import pytest
 
-from laura.models.element import Drift, Quadrupole
+from laura.models.element import Drift
 from laura.models.elementList import MachineLayout, MachineModel, SectionLattice
+from unit_tests.helpers import quad, quiet
 
 TWO_OCCURRENCES = [
     "QUAD_A",
@@ -45,32 +36,21 @@ def drift(name, length):
     )
 
 
-def quad(name, length, k1l):
-    return Quadrupole(
-        name=name,
-        hardware_class="Magnet",
-        machine_area="ARC",
-        magnetic={"magnetic_length": length, "k1l": k1l},
-        physical={"length": length},
-    )
-
-
 def elements():
     return {
         e.name: e
         for e in (
-            quad("QUAD_A", 0.2, 1.0),
+            quad("QUAD_A", 0.2, 1.0, "ARC"),
             drift("DRIFT_IN", 0.5),
-            quad("BEND", 0.8, 0.0),
+            quad("BEND", 0.8, 0.0, "ARC"),
             drift("DRIFT_OUT", 0.4),
-            quad("QUAD_B", 0.2, -1.0),
+            quad("QUAD_B", 0.2, -1.0, "ARC"),
         )
     }
 
 
 def machine(order):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with quiet():
         return MachineModel(
             elements=elements(),
             section={"sections": {"ARC": list(order)}},
@@ -83,13 +63,11 @@ def machine(order):
 
 @pytest.fixture
 def repeated():
-    """A model whose one section enters two of its elements twice."""
     return machine(TWO_OCCURRENCES)
 
 
 @pytest.fixture
 def plain():
-    """The same section with every name used once."""
     return machine(["QUAD_A", "DRIFT_IN", "BEND", "DRIFT_OUT", "QUAD_B"])
 
 
@@ -142,8 +120,6 @@ class TestElementsBetween:
         assert found == order[first : order.index("QUAD_B") + 1]
 
     def test_the_second_occurrence_is_reachable(self, repeated):
-        # ``.index()`` on a name list returns the first hit; the numbered
-        # copies are distinct names, so both must be addressable.
         found = repeated.elements_between(start="QUAD_A.2", end="QUAD_A.2", path="PATH")
         assert found == ["QUAD_A.2"]
 
@@ -155,21 +131,9 @@ class TestElementsBetween:
 
 
 class TestSharedAcrossSections:
-    """An element used by two sections of one path is listed by each.
-
-    The layout is assembled from ``SectionLattice`` objects rather than
-    through ``MachineModel``.
-    """
-
     @staticmethod
     def positioned(name, length, s):
-        return Quadrupole(
-            name=name,
-            hardware_class="Magnet",
-            machine_area="ARC",
-            magnetic={"magnetic_length": length, "k1l": 1.0},
-            physical={"length": length, "s": s, "s_point": "middle"},
-        )
+        return quad(name, length, 1.0, "ARC", s=s, s_point="middle")
 
     @classmethod
     def shared(cls):

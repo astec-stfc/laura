@@ -1,31 +1,20 @@
-"""Tier-1 multipass export: one exported section per traversal.
+"""Multipass export: one ``.N``-suffixed section copy per traversal.
 
-``MachineLayoutTranslator.sections`` is name-keyed and every backend body
-iterates it, so a path that enters one section twice has to become a set of
-*distinct* sections before any of them sees it. Each pass gets its own deep
-copy, suffixed ``.N``, carrying the values that pass sees.
-
-The oracle throughout is the same one §2 of the scope doc established for the
-model: **a multipass path and the repetition reading of the same file must
-agree**. Here that is sharpened -- they must emit byte-identical section and
-element names, so the two readings of one lattice can be diffed against each
-other. Only what the author declared to differ per pass may differ.
+Names must match the plain-repetition reading of the same layout exactly.
 """
-
-import warnings
 
 import pytest
 
-from laura.models.element import Quadrupole, RFCavity
+from laura.models.element import RFCavity
 from laura.models.elementList import MachineModel
 from laura.translator.converters.layout import MachineLayoutTranslator
+from unit_tests.helpers import quad, quiet
 
 P1, P2 = 100e6, 200e6
 
 SECTIONS = {
     "INJECTOR": ["INJ_Q"],
-    # DRIFT repeated inside the section, so an element carries a repeat index
-    # *and* a pass number -- the case where the two numbering schemes meet.
+    # DRIFT gets both a repeat index and a pass number
     "LINAC": ["DRIFT", "CAV_01", "DRIFT", "LIN_Q"],
     "ARC": ["ARC_Q"],
     "DUMP": ["DMP_Q"],
@@ -50,22 +39,9 @@ REPETITION = ["INJECTOR", "LINAC", "ARC", "LINAC", "DUMP"]
 
 def elements():
     built = {
-        name: Quadrupole(
-            name=name,
-            hardware_class="Magnet",
-            machine_area="A",
-            magnetic={"magnetic_length": 0.2, "k1l": 1.0},
-            physical={"length": 0.2},
-        )
-        for name in ("INJ_Q", "LIN_Q", "ARC_Q", "DMP_Q")
+        name: quad(name, 0.2, 1.0, "A") for name in ("INJ_Q", "LIN_Q", "ARC_Q", "DMP_Q")
     }
-    built["DRIFT"] = Quadrupole(
-        name="DRIFT",
-        hardware_class="Magnet",
-        machine_area="A",
-        magnetic={"magnetic_length": 0.1, "k1l": 0.0},
-        physical={"length": 0.1},
-    )
+    built["DRIFT"] = quad("DRIFT", 0.1, 0.0, "A")
     built["CAV_01"] = RFCavity(
         name="CAV_01",
         machine_area="A",
@@ -75,23 +51,22 @@ def elements():
     return built
 
 
-def exported(layout):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        model = MachineModel(
+def machine(layout):
+    with quiet():
+        return MachineModel(
             elements=elements(),
             section={"sections": SECTIONS},
             layout={"layouts": {"ERL": layout}, "default_layout": "ERL"},
         )
-    return MachineLayoutTranslator.from_layout(model.lattices["ERL"])
+
+
+def exported(layout):
+    return MachineLayoutTranslator.from_layout(machine(layout).lattices["ERL"])
 
 
 @pytest.fixture
 def flat():
     return exported(MULTIPASS)
-
-
-# --- one section per traversal ------------------------------------------
 
 
 def test_every_pass_gets_its_own_section(flat):
@@ -124,15 +99,10 @@ def test_no_name_is_shared_between_passes(flat):
 
 
 def test_names_carry_no_hash(flat):
-    """``#`` addresses a pass but is not a legal name in elegant or MAD-X,
-    and ``sanitize_string`` only rewrites hyphens, so it would reach the
-    file intact and break it."""
+    """``#`` is illegal in elegant/MAD-X names and ``sanitize_string`` keeps it."""
     for section in flat.sections.values():
         assert "#" not in section.name
         assert not any("#" in name for name in section.order)
-
-
-# --- the oracle: identical to the repetition reading --------------------
 
 
 def test_section_names_match_the_repetition_reading(flat):
@@ -146,17 +116,9 @@ def test_element_names_match_the_repetition_reading(flat):
 
 
 def test_the_pass_number_precedes_a_repeat_index(flat):
-    """``DRIFT.1.2`` is occurrence 1, drift 2 -- in both readings.
-
-    Appending instead gave ``DRIFT.2.1``, a name repetition also emits and
-    means something else by. Two readings of one lattice must not disagree
-    about what a name denotes.
-    """
+    """``DRIFT.1.2`` is pass 1, drift 2, as in the repetition reading."""
     assert "DRIFT.1.2" in flat.sections["LINAC.1"].order
     assert "DRIFT.2.1" in flat.sections["LINAC.2"].order
-
-
-# --- what the pass sees -------------------------------------------------
 
 
 def test_each_pass_carries_its_own_strength(flat):
@@ -174,7 +136,6 @@ def test_each_pass_carries_its_own_override(flat):
 
 
 def test_an_override_wins_over_a_derived_strength():
-    """The author's explicit statement is applied last."""
     layout = list(MULTIPASS)
     layout[3] = {
         "LINAC": {
@@ -188,14 +149,7 @@ def test_an_override_wins_over_a_derived_strength():
 
 
 def test_the_source_model_is_untouched():
-    """Export is a view. The passes share one device in the model."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        model = MachineModel(
-            elements=elements(),
-            section={"sections": SECTIONS},
-            layout={"layouts": {"ERL": MULTIPASS}, "default_layout": "ERL"},
-        )
+    model = machine(MULTIPASS)
     MachineLayoutTranslator.from_layout(model.lattices["ERL"])
     assert model["LIN_Q"].magnetic.KnL(1) == pytest.approx(1.0)
     assert model["CAV_01"].cavity.phase == pytest.approx(0.0)
@@ -209,20 +163,13 @@ def test_the_passes_do_not_share_element_objects(flat):
     assert second.magnetic.KnL(1) == pytest.approx(0.5)
 
 
-# --- a reversed pass ----------------------------------------------------
-
-
 def test_a_reversed_pass_is_reversed_and_scaled():
     layout = list(MULTIPASS)
     layout[3] = {"LINAC": {"multipass": 2, "momentum": P2, "direction": -1}}
     section = exported(layout).sections["LINAC.2"]
     assert section.order == ["LIN_Q.2", "DRIFT.2.2", "CAV_01.2", "DRIFT.2.1"]
-    # reverse_section flips the normal multipole, pass_strengths sets the
-    # final value: one negation, not two.
+    # one negation, not two: reverse_section flips, pass_strengths sets the value
     assert section.elements.elements["LIN_Q.2"].magnetic.KnL(1) == pytest.approx(-0.5)
-
-
-# --- backends, which need no changes at all -----------------------------
 
 
 def test_elegant_emits_one_line_per_pass(flat):
@@ -238,7 +185,6 @@ def test_elegant_defines_each_pass_separately(flat):
 
 
 def test_a_single_pass_layout_exports_as_before():
-    """Nothing without ``multipass:`` may change shape."""
     plain = exported(["INJECTOR", "ARC", "DUMP"])
     assert list(plain.sections) == ["INJECTOR", "ARC", "DUMP"]
     assert plain.sections["ARC"].order == ["ARC_Q"]

@@ -252,8 +252,9 @@ slots:
 
   lsc_enable:
     range: boolean
-    description: Whether longitudinal space-charge effects are enabled.
-    ifabsent: "true"
+    description: >-
+      Whether longitudinal space-charge effects are enabled. Off by default.
+    ifabsent: "false"
 
   tracking_method:
     range: string
