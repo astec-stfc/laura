@@ -683,8 +683,13 @@ class BaseElementTranslator(PhysicalBaseElement):
             "sextupole",
             "octupole",
         ):
-            # n_kicks is ELEGANT's count of 4th-order steps; yoshida4 means the same
-            properties["integrator"] = "yoshida4"
+            from importlib.metadata import version
+
+            renamed = tuple(int(p) for p in version("xtrack").split(".")[:2]) >= (
+                0,
+                115,
+            )
+            properties["integrator"] = "yoshida-6" if renamed else "yoshida4"
         return self.name, obj, properties
 
     def to_genesis(self, index: int) -> str:

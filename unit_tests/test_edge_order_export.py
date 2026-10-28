@@ -27,12 +27,13 @@ def test_every_code_gets_the_same_edge_order(edge_order, order, xsuite, bmad):
     assert f"edge_order = {order}" in elegant
     # second order through ELEGANT's symplectic edge method
     assert ("edge1_effects = 3" in elegant and "edge2_effects = 3" in elegant) is (order == 2)
-    _, _, properties = bend(edge_order).to_xsuite(beam_length=1)
-    assert properties["edge_entry_model"] == properties["edge_exit_model"] == xsuite
     written = bend(edge_order).to_bmad().lower()
     assert ("fringe_type" in written) is (bmad is not None)
     if bmad:
         assert bmad in written
+    pytest.importorskip("xtrack")
+    _, _, properties = bend(edge_order).to_xsuite(beam_length=1)
+    assert properties["edge_entry_model"] == properties["edge_exit_model"] == xsuite
 
 
 def test_codes_that_cannot_drop_the_second_order_terms_say_so():
