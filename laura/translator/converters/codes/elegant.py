@@ -302,7 +302,7 @@ class ElegantLatticeImporter(LatticeImporter):
             _write_command(2)
             try:
                 subprocess.run(
-                    ["elegant", str(command)],
+                    ["elegant", command.as_posix()],
                     cwd=Path(self.source_file).resolve().parent,
                     check=True,
                     capture_output=True,
@@ -316,7 +316,7 @@ class ElegantLatticeImporter(LatticeImporter):
                 _write_command(0)
                 try:
                     subprocess.run(
-                        ["elegant", str(command)],
+                        ["elegant", command.as_posix()],
                         cwd=Path(self.source_file).resolve().parent,
                         check=True,
                         capture_output=True,
