@@ -1,14 +1,12 @@
 """
 LAURA logging utilities.
 
-The library uses the standard Python :mod:`logging` module under a single
-``"laura"`` logger hierarchy so that calling code can control verbosity
-without touching library internals::
+All library logging is under the ``"laura"`` logger::
 
     import logging
     logging.getLogger("laura").setLevel(logging.DEBUG)
 
-Or use the convenience helper provided here::
+or::
 
     from laura import set_log_level
     set_log_level("DEBUG")          # show all loader / model diagnostics
@@ -16,14 +14,13 @@ Or use the convenience helper provided here::
 
 Sub-loggers
 -----------
-``laura``
-    Root logger for the whole library.
 ``laura.loader``
-    Emits one DEBUG line per successfully parsed element, WARNING when an
-    element is skipped (unknown hardware_type), and ERROR for Pydantic
+    DEBUG per parsed element, WARNING for a skipped element, ERROR for
     validation failures.
 ``laura.model``
     Model construction events (layout / section building, etc.).
+``laura.machine``, ``laura.exporter.yaml``
+    The main class and YAML exporter.
 """
 
 import logging
