@@ -38,6 +38,10 @@ class RFCavityTranslator(BaseElementTranslator):
     zwakefile: str | None = None
     """Name of longitudinal wakefile associated with the cavity."""
 
+    tw_focusing: bool = True
+    """Use travelling-wave transverse focusing for TravellingWave cavities. Set from
+    :attr:`~laura.translator.converters.section.SectionLatticeTranslator.tw_focusing`."""
+
     bmad_geometry: str | None = None
     """Geometry of the branch this cavity is being written into, when known.
 
@@ -316,6 +320,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 if (
                     key == "body_focus_model"
                     and self.structure_type == "TravellingWave"
+                    and self.tw_focusing
                 ):
                     value = "TW1"
 
@@ -442,7 +447,7 @@ class RFCavityTranslator(BaseElementTranslator):
                         obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
         if hasattr(obj, "cavity_type"):
-            if self.cavity.structure_type == "TravellingWave":
+            if self.cavity.structure_type == "TravellingWave" and self.tw_focusing:
                 obj.cavity_type = "traveling_wave"
             else:
                 obj.cavity_type = "standing_wave"

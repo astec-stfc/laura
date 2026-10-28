@@ -405,6 +405,59 @@ class TestMadxCavityAndAperture:
         )
         assert expected in getattr(translate_elements([cav])["c1"], method)()
 
+    def test_standing_wave_cavity_uses_rfcavity(self):
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={"structure_type": "StandingWave", "phase": 0.0},
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        out = translate_elements([cav])["c1"].to_madx()
+        assert "c1: rfcavity" in out
+
+    def test_travelling_wave_cavity_elegant_uses_tw1_body_focus_model(self):
+        # ELEGANT's own default (BODY_FOCUS_MODEL=SRS) is the standing-wave
+        # model -- travelling-wave cavities must request TW1 explicitly so
+        # ELEGANT's focusing matches MAD-X's tw_matrix_cavity and Ocelot's
+        # add_tw1_focusing (both built from tw1_focusing_matrix).
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={
+                "structure_type": "TravellingWave",
+                "phase": 0.0,
+                "mode_numerator": 2,
+                "mode_denominator": 3,
+            },
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        out = translate_elements([cav])["c1"].to_elegant()
+        assert "body_focus_model = TW1" in out
+
+    def test_travelling_wave_cavity_tw_focusing_off_uses_standing_wave(self):
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={
+                "structure_type": "TravellingWave",
+                "phase": 0.0,
+                "mode_numerator": 2,
+                "mode_denominator": 3,
+            },
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        tr = translate_elements([cav])["c1"]
+        assert tr.to_cheetah().cavity_type == "traveling_wave"
+        tr.tw_focusing = False
+        assert "body_focus_model = SRS" in tr.to_elegant()
+        assert tr.to_cheetah().cavity_type == "standing_wave"
+
+    def test_standing_wave_cavity_elegant_uses_default_body_focus_model(self):
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={"structure_type": "StandingWave", "phase": 0.0},
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        out = translate_elements([cav])["c1"].to_elegant()
+        assert "body_focus_model = SRS" in out
+
     def test_elliptical_aperture_uses_ecollimator(self):
         ap = Aperture(
             name="ap1", machine_area="S",
