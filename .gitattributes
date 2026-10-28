@@ -2,3 +2,8 @@
 # Windows default) they are otherwise checked out with CRLF, and bash then fails
 # on the trailing carriage return -- starting with the shebang line.
 *.sh text eol=lf
+
+# Thirteen model/laura modules had drifted to CRLF, which turns every diff on
+# them into a whole-file replacement and hides the real change -- that is how a
+# rebase silently un-applied half the PEP 8 rename round.
+*.py text eol=lf

@@ -1,11 +1,10 @@
-"""Tests for element __getattr__ / __setattr__ transparent attribute resolution and cascading."""
+"""Tests for element attribute resolution, cascading and model helpers."""
 
 import pytest
-import numpy as np
+from pydantic import ValidationError
 
 from laura.models.element import (
     BaseElement,
-    Element,
     PhysicalBaseElement,
     Quadrupole,
     Dipole,
@@ -15,14 +14,28 @@ from laura.models.element import (
     Drift,
     Magnet,
     flatten,
+    PhotonMonitor,
+    _coerce_nested_model,
+    TwissMatch,
+    BeamPositionMonitor,
+    BeamArrivalMonitor,
+    BunchLengthMonitor,
+    Camera,
+    Screen,
+    Laser,
+    LaserEnergyMeter,
+    LaserHalfWavePlate,
+    Plasma,
+    Lighting,
+    Wakefield,
+    RFDeflectingCavity,
+    RFModulator,
+    RFHeartbeat,
+    Shutter,
+    Valve,
 )
 from laura.models.physical import Position, Rotation, PhysicalElement
-from laura.models.magnetic import QuadrupoleMagnet, DipoleMagnet
 
-
-# ---------------------------------------------------------------------------
-# Helper: create a positioned quadrupole
-# ---------------------------------------------------------------------------
 
 def make_quad(name="Q1", k1l=0.5, z=1.0, length=0.3):
     return Quadrupole(
@@ -33,10 +46,6 @@ def make_quad(name="Q1", k1l=0.5, z=1.0, length=0.3):
     )
 
 
-# ---------------------------------------------------------------------------
-# Transparent nested attribute access (__getattr__)
-# ---------------------------------------------------------------------------
-
 class TestGetAttr:
     def test_access_nested_magnetic_field(self):
         q = make_quad(k1l=1.5)
@@ -44,7 +53,7 @@ class TestGetAttr:
 
     def test_access_nested_physical_length(self):
         q = make_quad(length=0.4)
-        # 'length' exists in both physical and magnetic; should raise ambiguity
+        # 'length' is in both physical and magnetic
         with pytest.raises(AttributeError, match="ambiguous"):
             _ = q.length
 
@@ -69,7 +78,6 @@ class TestGetAttr:
             hardware_class="Marker",
             physical={"middle": {"x": 0.0, "y": 0.0, "z": 0.0}},
         )
-        # simulation should be accessible directly
         assert m.simulation is not None
 
     def test_access_rotation(self):
@@ -78,10 +86,6 @@ class TestGetAttr:
         with pytest.raises(AttributeError, match="ambiguous"):
             _ = q.rotation
 
-
-# ---------------------------------------------------------------------------
-# Transparent nested attribute setting (__setattr__)
-# ---------------------------------------------------------------------------
 
 class TestSetAttr:
     def test_set_nested_magnetic_k1l(self):
@@ -101,15 +105,10 @@ class TestSetAttr:
             q.length = 999
 
     def test_set_nonexistent_raises(self):
-        """Setting an unknown field raises ValueError in Pydantic models."""
         q = make_quad()
         with pytest.raises((ValueError, Exception), match="no attribute|has no field|no such attribute"):
             q.totally_new_attr = 42
 
-
-# ---------------------------------------------------------------------------
-# flatten utility
-# ---------------------------------------------------------------------------
 
 class TestFlatten:
     def test_simple(self):
@@ -133,115 +132,60 @@ class TestFlatten:
         assert flat["x.y"] == 10
 
 
-# ---------------------------------------------------------------------------
-# baseElement
-# ---------------------------------------------------------------------------
+def _base(**kwargs):
+    return BaseElement(
+        name="B1", hardware_class="Generic", hardware_type="HT", machine_area="MA", **kwargs
+    )
+
 
 class TestBaseElement:
     def test_default_hardware_model(self):
-        be = BaseElement(
-            name="E1",
-            hardware_class="Generic",
-            hardware_type="HT",
-            machine_area="MA",
-        )
-        assert be.hardware_model == "Generic"
+        assert _base().hardware_model == "Generic"
 
-    def test_alias_from_string(self):
-        be = BaseElement(
-            name="E1",
-            hardware_class="Generic",
-            hardware_type="HT",
-            machine_area="MA",
-            alias="a1, a2",
-        )
-        assert list(be.alias) == ["a1", "a2"]
+    @pytest.mark.parametrize(
+        "kwargs, expected",
+        [
+            ({"alias": "a1, a2"}, ["a1", "a2"]),
+            ({"alias": ["x", "y"]}, ["x", "y"]),
+            ({"alias": {"aliases": ["a1", "a2"]}}, ["a1", "a2"]),
+            ({"alias": None}, []),
+            ({}, []),
+        ],
+        ids=["string", "list", "dict", "none", "default"],
+    )
+    def test_alias(self, kwargs, expected):
+        assert list(_base(**kwargs).alias) == expected
 
-    def test_alias_from_list(self):
-        be = BaseElement(
-            name="E1",
-            hardware_class="Generic",
-            hardware_type="HT",
-            machine_area="MA",
-            alias=["x", "y"],
-        )
-        assert list(be.alias) == ["x", "y"]
-
-    def test_alias_none_default(self):
-        be = BaseElement(
-            name="E1",
-            hardware_class="Generic",
-            hardware_type="HT",
-            machine_area="MA",
-        )
-        # Default alias is an empty list
-        assert be.alias == []
+    def test_alias_invalid_type_raises(self):
+        with pytest.raises(ValidationError):
+            _base(alias=5)
 
     def test_hardware_info(self):
-        be = BaseElement(
-            name="E1",
-            hardware_class="Generic",
-            hardware_type="HT",
-            machine_area="MA",
-        )
-        assert be.hardware_info == {"class": "Generic", "type": "HT"}
+        assert _base().hardware_info == {"class": "Generic", "type": "HT"}
 
     def test_flat(self):
-        be = BaseElement(
-            name="E1",
-            hardware_class="Generic",
-            hardware_type="HT",
-            machine_area="MA",
-        )
-        flat = be.flat()
+        flat = _base().flat()
         assert "name" in flat
-        assert flat["name"] == "E1"
+        assert flat["name"] == "B1"
 
-    def test_is_subelement_false(self):
-        be = BaseElement(
-            name="E1",
-            hardware_class="Generic",
-            hardware_type="HT",
-            machine_area="MA",
-            subelement=False,
-        )
-        assert be.is_subelement() is False
-
-    def test_is_subelement_true(self):
-        be = BaseElement(
-            name="E1",
-            hardware_class="Generic",
-            hardware_type="HT",
-            machine_area="MA",
-            subelement=True,
-        )
-        assert be.is_subelement() is True
-
-    def test_is_subelement_string(self):
-        be = BaseElement(
-            name="E1",
-            hardware_class="Generic",
-            hardware_type="HT",
-            machine_area="MA",
-            subelement="PARENT_ELEM",
-        )
-        assert be.is_subelement() is True
+    @pytest.mark.parametrize(
+        "subelement, expected", [(False, False), (True, True), ("PARENT_ELEM", True)]
+    )
+    def test_is_subelement(self, subelement, expected):
+        assert _base(subelement=subelement).is_subelement() is expected
 
     def test_subdirectory(self):
-        be = BaseElement(
-            name="E1",
-            hardware_class="Generic",
-            hardware_type="HT",
-            machine_area="MA",
-        )
-        subdir = be.subdirectory
+        subdir = _base().subdirectory
         assert "Generic" in subdir
         assert "HT" in subdir
 
+    def test_escape_string_list(self):
+        assert _base().escape_string_list(["a", "b"]) == "a,b"
+        assert _base().escape_string_list([]) == ""
 
-# ---------------------------------------------------------------------------
-# Element types – construction with nested dicts
-# ---------------------------------------------------------------------------
+    def test_yaml_filename(self):
+        assert _base().yaml_filename.endswith("B1.yaml")
+
 
 class TestElementTypes:
     def test_quadrupole_from_dicts(self):
@@ -309,10 +253,6 @@ class TestElementTypes:
         assert cav.cavity.phase == pytest.approx(10.0)
 
 
-# ---------------------------------------------------------------------------
-# Cascading rules on Magnet (physical angle <- magnetic angle)
-# ---------------------------------------------------------------------------
-
 class TestCascading:
     def test_dipole_bend_angle(self):
         d = Dipole(
@@ -321,11 +261,103 @@ class TestCascading:
             magnetic={"length": 1.0, "k0l": 0.05},
             physical={"length": 1.0, "middle": {"x": 0.0, "y": 0.0, "z": 5.0}},
         )
-        # bend_angle is a property of Magnet reading magnetic.angle
         assert d.bend_angle.theta == pytest.approx(0.05)
 
     def test_quadrupole_bend_angle_zero(self):
         q = make_quad()
-        # Quadrupole_Magnet has no angle property, so bend_angle
-        # returns zero rotation (no bending).
+        # Quadrupole_Magnet has no angle, so bend_angle is zero.
         assert q.bend_angle == Rotation.from_list([0, 0, 0])
+
+
+class TestCoerceNestedModel:
+    """Tested directly: pydantic validation makes the dict/foreign-instance branches
+    unreachable via Element construction.
+    """
+
+    def test_none_uses_factory(self):
+        result = _coerce_nested_model(None, PhysicalElement)
+        assert isinstance(result, PhysicalElement)
+
+    def test_existing_instance_passthrough(self):
+        pe = PhysicalElement(length=1.0)
+        assert _coerce_nested_model(pe, PhysicalElement) is pe
+
+    def test_foreign_model_instance_converted_via_model_dump(self):
+        from laura.models._generated import _PhysicalElementBase
+
+        base = _PhysicalElementBase(length=2.0)
+        result = _coerce_nested_model(base, PhysicalElement)
+        assert isinstance(result, PhysicalElement)
+        assert result.length == 2.0
+
+    def test_dict_converted(self):
+        result = _coerce_nested_model({"length": 3.0}, PhysicalElement)
+        assert isinstance(result, PhysicalElement)
+        assert result.length == 3.0
+
+    def test_unsupported_type_passthrough(self):
+        assert _coerce_nested_model(5, PhysicalElement) == 5
+
+
+class TestPhysicalBaseElementAngles:
+    def test_bend_angle_is_zero_rotation(self):
+        p = PhysicalBaseElement(name="P1", hardware_class="Generic", hardware_type="HT", machine_area="MA")
+        assert p.bend_angle.theta == 0.0
+
+    def test_start_angle_sums_rotations(self):
+        p = PhysicalBaseElement(
+            name="P1", hardware_class="Generic", hardware_type="HT", machine_area="MA",
+            physical={"rotation": {"theta": 0.1}, "global_rotation": {"theta": 0.2}},
+        )
+        assert p.start_angle.theta == pytest.approx(0.3)
+
+    def test_end_angle_equals_start_angle(self):
+        p = PhysicalBaseElement(name="P1", hardware_class="Generic", hardware_type="HT", machine_area="MA")
+        assert p.end_angle == p.start_angle
+
+
+class TestMagnetAngles:
+    def test_bend_angle_zero_without_magnetic_angle(self):
+        m = Magnet(name="M1", machine_area="MA", hardware_type="Generic")
+        assert m.bend_angle.theta == 0.0
+
+    def test_end_angle_is_start_plus_bend(self):
+        d = Dipole(name="D1", machine_area="MA", magnetic={"k0l": 0.2, "length": 1.0})
+        assert d.end_angle == pytest.approx(d.start_angle.theta + 0.2)
+
+
+class TestElementSubclassNestedDefaults:
+    @pytest.mark.parametrize(
+        "cls,attr",
+        [
+            (TwissMatch, "simulation"),
+            (BeamPositionMonitor, "diagnostic"),
+            (BeamArrivalMonitor, "diagnostic"),
+            (BunchLengthMonitor, "diagnostic"),
+            (Camera, "diagnostic"),
+            (Screen, "diagnostic"),
+            (Laser, "laser"),
+            (LaserEnergyMeter, "laser"),
+            (LaserHalfWavePlate, "laser"),
+            (Lighting, "lights"),
+            # cavity defaults are type-checked in test_cavity_nested_models.py
+            (RFDeflectingCavity, "simulation"),
+            (Wakefield, "simulation"),
+            (Plasma, "simulation"),
+            (Plasma, "plasma"),
+            (RFModulator, "modulator"),
+            (RFHeartbeat, "heartbeat"),
+            (Shutter, "shutter"),
+            (Valve, "valve"),
+        ],
+    )
+    def test_nested_default_created(self, cls, attr):
+        instance = cls(name="X1", machine_area="MA")
+        assert getattr(instance, attr) is not None
+
+    def test_photon_monitor_diagnostic_round_trips(self):
+        pm = PhotonMonitor(
+            name="PM1", machine_area="MA", diagnostic={"type": "Diode", "intensity": 3.0}
+        )
+        assert pm.model_dump()["diagnostic"] == {"type": "Diode", "intensity": 3.0}
+        assert PhotonMonitor(name="PM1", machine_area="MA").diagnostic.type == "I0"

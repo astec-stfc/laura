@@ -1,12 +1,14 @@
 from copy import deepcopy
-from typing import Union
+from typing import ClassVar, Optional, Union
 from warnings import warn
 
 import numpy as np
-from pydantic import computed_field
+from pydantic import computed_field, field_validator, model_validator
 
 from laura.models.constants import speed_of_light
 from laura.models.magnetic import (
+    CombinedCorrectorMagnet,
+    CombinedSolenoidQuadrupoleMagnet,
     CorrectorMagnet,
     DipoleMagnet,
     MagneticElement,
@@ -20,22 +22,113 @@ from laura.translator.utils.fields import FieldMap
 from ..converters import (
     elements_genesis,
     elements_opal,
+    keyword_conversion_rules_elegant,
 )
 from ..utils.functions import _rotation_matrix, chop, expand_substitution
 from .base import BaseElementTranslator
 from .codes.gpt import GptCcs
+
+GPT_HARD_EDGE_B1 = 300.0
+
+BEND_ANGLE_PER_KICK = 0.01
+"""Largest angle [rad] one integration step of a bend may turn through when
+``n_kicks`` is left unset. """
+
+BEND_PATH_ERROR = 1e-10
+"""Largest relative on-axis path error a gradient bend may carry when
+``n_kicks`` is left unset. """
 
 
 def add(x, y):
     return x + y
 
 
-class MagnetTranslator(BaseElementTranslator):
+_ORDINALS = {1: "First", 2: "Second", 3: "Third"}
+
+
+def _k_field(order: int):
+    """The normalised strength ``k<order>`` as a computed field."""
+
+    def k(self) -> float:
+        return self._normalised_strength(order)
+
+    k.__doc__ = f"""
+        {_ORDINALS[order]}-order magnetic strength `element.KnL({order}) / element.magnetic.length`
+
+        Returns
+        -------
+        float:
+            k{order}
+        """
+    return computed_field(property(k))
+
+
+def _kl_property(order: int) -> property:
+    """The integrated strength ``k<order>l``, settable onto the normal multipole."""
+
+    def kl(self) -> float:
+        return self.magnetic.KnL(order)
+
+    def set_kl(self, value: float) -> None:
+        getattr(self.magnetic.multipoles, f"K{order}L").normal = value
+
+    kl.__doc__ = f"""
+        {_ORDINALS[order]}-order normalized magnetic strength `element.KnL({order})`
+
+        Returns
+        -------
+        float:
+            k{order}l
+        """
+    return property(kl, set_kl)
+
+
+def _dk_field(order: int):
+    """The strength error ``dk<order>``; currently always zero."""
+
+    def dk(self) -> float:
+        return 0.0
+
+    dk.__doc__ = f"""
+        Error in {_ORDINALS[order].lower()}-order magnetic strength
+
+        Currently returns zero...
+        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
+
+        Returns
+        -------
+        float:
+            dk{order}
+        """
+    return computed_field(property(dk))
+
+
+class MultipoleStrengthTranslator(BaseElementTranslator):
+    """
+    Base translator for magnets exposing the normalised (``k1``-``k3``),
+    integrated (``k1l``-``k3l``) and error (``dk1``-``dk3``) strengths.
+
+    Subclasses declare the fields themselves, so that they keep their place
+    among the subclass's own computed fields in :meth:`full_dump`.
+    """
+
+    _warn_zero_length: ClassVar[bool] = False
+    """Warn when a zero-length magnet falls back to ``k<n> = k<n>l``."""
+
+    def _normalised_strength(self, order: int) -> float:
+        """``KnL(order) / length``, or ``KnL(order)`` for a zero-length magnet."""
+        try:
+            return self.magnetic.KnL(order) / self.magnetic.length
+        except ZeroDivisionError:
+            if self._warn_zero_length:
+                warn(f"Magnet has zero length; returning k{order} = k{order}l")
+            return self.magnetic.KnL(order)
+
+
+class MagnetTranslator(MultipoleStrengthTranslator):
     """
     Base translator class for converting a :class:`~laura.models.element.Magnet` element instance into a string or
     object that can be understood by various simulation codes.
-
-    Child classes are derived from this for various magnet types.
     """
 
     magnetic: MagneticElement
@@ -44,152 +137,79 @@ class MagnetTranslator(BaseElementTranslator):
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
 
-    @computed_field
-    @property
-    def k1(self) -> float:
+    @model_validator(mode="before")
+    @classmethod
+    def preserve_combined_solenoid_quadrupole(cls, data):
+        if (
+            isinstance(data, dict)
+            and data.get("hardware_type") == "CombinedSolenoidQuadrupole"
+            and isinstance(data.get("magnetic"), dict)
+        ):
+            data = dict(data)
+            data["magnetic"] = CombinedSolenoidQuadrupoleMagnet(**data["magnetic"])
+        return data
+
+    k1 = _k_field(1)
+    k2 = _k_field(2)
+    k3 = _k_field(3)
+    k1l = _kl_property(1)
+    k2l = _kl_property(2)
+    k3l = _kl_property(3)
+    dk1 = _dk_field(1)
+    dk2 = _dk_field(2)
+    dk3 = _dk_field(3)
+
+    def to_bmad(self) -> str:
         """
-        First-order magnetic strength
+        Generate a Bmad magnet element.
 
         Returns
         -------
-        float:
-            k1
+        str
+            String representation of the element for Bmad
         """
-        try:
-            return self.magnetic.KnL(1) / self.magnetic.length
-        except ZeroDivisionError:
-            # warn(f"Magnet {self.name} has zero length; returning k1 = k1l")
-            return self.magnetic.KnL(1)
+        self.start_write()
+        if self.hardware_type != "CombinedSolenoidQuadrupole":
+            parameters = self._bmad_parameters()
+            if self.hardware_type == "Quadrupole":
+                self._add_bmad_magnetic_field(
+                    parameters,
+                    field_scale=self.magnetic.gradient,
+                    kind="a" if self.magnetic.skew else "b",
+                    n=2,
+                    strength_key="k1",
+                )
+            return self._format_bmad(parameters=parameters)
+        parameters = self._bmad_parameters()
+        parameters.pop("ks", None)
+        # `S0L` is the integrated field [T*m], so tesla rather than Bmad's normalised `ks`
+        parameters["bs_field"] = SolenoidTranslator._field(self)
+        return self._format_bmad(parameters=parameters)
 
-    @computed_field
-    @property
-    def k2(self) -> float:
-        """
-        Second-order magnetic strength
-
-        Returns
-        -------
-        float:
-            k2
-        """
-        try:
-            return self.magnetic.KnL(2) / self.magnetic.length
-        except ZeroDivisionError:
-            # warn(f"Magnet {self.name} has zero length; returning k2 = k2l")
-            return self.magnetic.KnL(2)
-
-    @computed_field
-    @property
-    def k3(self) -> float:
-        """
-        Third-order magnetic strength
-
-        Returns
-        -------
-        float:
-            k3
-        """
-        try:
-            return self.magnetic.KnL(3) / self.magnetic.length
-        except ZeroDivisionError:
-            # warn(f"Magnet {self.name} has zero length; returning k3 = k3l")
-            return self.magnetic.KnL(3)
-
-    @property
-    def k1l(self) -> float:
-        """
-        First-order normalized magnetic strength
-
-        Returns
-        -------
-        float:
-            k1l
-        """
-        return self.magnetic.KnL(1)
-
-    @k1l.setter
-    def k1l(self, value: float) -> None:
-        setattr(getattr(self.magnetic.multipoles, "K1L"), "normal", value)
-
-    @property
-    def k2l(self) -> float:
-        """
-        Second-order normalized magnetic
-
-        Returns
-        -------
-        float:
-            k2l
-        """
-        return self.magnetic.KnL(2)
-
-    @k2l.setter
-    def k2l(self, value: float) -> None:
-        setattr(getattr(self.magnetic.multipoles, "K2L"), "normal", value)
-
-    @property
-    def k3l(self) -> float:
-        """
-        Third-order normalized magnetic strength
-
-        Returns
-        -------
-        float:
-            k3l
-        """
-        return self.magnetic.KnL(3)
-
-    @k3l.setter
-    def k3l(self, value: float) -> None:
-        setattr(getattr(self.magnetic.multipoles, "K3L"), "normal", value)
-
-    @computed_field
-    @property
-    def dk1(self) -> float:
-        """
-        Error in first-order magnetic strength
-
-        Currently returns zero...
-        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
-
-        Returns
-        -------
-        float:
-            dk1
-        """
-        return 0.0
-
-    @computed_field
-    @property
-    def dk2(self) -> float:
-        """
-        Error in second-order magnetic strength
-
-        Currently returns zero...
-        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
-
-        Returns
-        -------
-        float:
-            dk2
-        """
-        return 0.0
-
-    @computed_field
-    @property
-    def dk3(self) -> float:
-        """
-        Error in third-order magnetic strength
-
-        Currently returns zero...
-        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
-
-        Returns
-        -------
-        float:
-            dk3
-        """
-        return 0.0
+    def _add_bmad_magnetic_field(
+        self,
+        parameters: dict,
+        *,
+        field_scale,
+        kind: str,
+        n: int,
+        strength_key: str,
+    ) -> None:
+        definition = getattr(self.simulation, "field_definition", None)
+        if not isinstance(definition, FieldMap):
+            return
+        filename = self.generate_field_file_name(
+            definition,
+            code="bmad",
+            field_scale=field_scale,
+            kind=kind,
+            n=n,
+            verbose=getattr(self, "verbose", True),
+        )
+        if filename:
+            parameters.pop(strength_key, None)
+            parameters["field_calc"] = "fieldmap"
+            parameters["gen_gradients"] = f"call::{filename}"
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
@@ -201,7 +221,7 @@ class MagnetTranslator(BaseElementTranslator):
         Parameters
         ----------
         n: int
-            Dipole index
+            Quad index
 
         Returns
         -------
@@ -256,86 +276,62 @@ class MagnetTranslator(BaseElementTranslator):
             String representation of the element for ASTRA
         """
         field_ref_pos = self.get_field_reference_position(if_none="middle")
-        astradict = dict(
-            [
-                ["Q_pos", {"value": field_ref_pos[2] + self.dz, "default": 0}],
-                [
-                    "Q_xoff",
-                    {"value": field_ref_pos[0], "default": 0, "type": "not_zero"},
-                ],
-                [
-                    "Q_yoff",
-                    {
-                        "value": field_ref_pos[1] + self.dy,
-                        "default": None,
-                        "type": "not_zero",
-                    },
-                ],
-                [
-                    "Q_xrot",
-                    {
-                        "value": -1 * self.x_rot + self.dx_rot,
-                        "default": None,
-                        "type": "not_zero",
-                    },
-                ],
-                [
-                    "Q_yrot",
-                    {
-                        "value": -1 * self.y_rot + self.dy_rot,
-                        "default": None,
-                        "type": "not_zero",
-                    },
-                ],
-                [
-                    "Q_zrot",
-                    {
-                        "value": -1 * self.z_rot + self.dz_rot,
-                        "default": None,
-                        "type": "not_zero",
-                    },
-                ],
-                ["Q_smooth", {"value": self.simulation.smooth, "default": 2}],
-                [
-                    "Q_bore",
-                    {"value": self.magnetic.bore, "default": 0.037, "type": "not_zero"},
-                ],
-                ["Q_noscale", {"value": bool(self.simulation.scale_field)}],
-                # TODO figure out multipoles
-                # ["Q_mult_a", {"type": "list", "value": self.multipoles}],
-            ]
-        )
+        astradict = {
+            "Q_pos": {"value": field_ref_pos[2] + self.dz, "default": 0},
+            "Q_xoff": {
+                "value": field_ref_pos[0] + self.dx,
+                "default": 0,
+                "type": "not_zero",
+            },
+            "Q_yoff": {
+                "value": field_ref_pos[1] + self.dy,
+                "default": None,
+                "type": "not_zero",
+            },
+            "Q_xrot": {
+                "value": self._astra_rotation("x"),
+                "default": None,
+                "type": "not_zero",
+            },
+            "Q_yrot": {
+                "value": self._astra_rotation("y"),
+                "default": None,
+                "type": "not_zero",
+            },
+            "Q_zrot": {
+                "value": self._astra_rotation("z"),
+                "default": None,
+                "type": "not_zero",
+            },
+            "Q_smooth": {"value": self.simulation.smooth, "default": 2},
+            "Q_bore": {
+                "value": self.magnetic.bore,
+                "default": 0.037,
+                "type": "not_zero",
+            },
+            "Q_noscale": {"value": bool(self.simulation.scale_field)},
+        }
         dict_ready = False
         if self.simulation.field_definition and self.magnetic.gradient is not None:
             field_file_name = self.generate_field_file_name(
                 self.simulation.field_definition, code="astra"
             )
             astradict.update(
-                dict(
-                    [
-                        [
-                            "Q_type",
-                            {"value": "'" + field_file_name + "'", "default": None},
-                        ],
-                        [
-                            "q_grad",
-                            {
-                                "value": self.magnetic.gradient,
-                                "default": None,
-                            },
-                        ],
-                    ]
-                )
+                {
+                    "Q_type": {"value": f"'{field_file_name}'", "default": None},
+                    "q_grad": {
+                        "value": self.magnetic.gradient,
+                        "default": None,
+                    },
+                }
             )
             dict_ready = True
         elif abs(self.k1 + self.dk1) > 0:
             astradict.update(
-                dict(
-                    [
-                        ["Q_k", {"value": self.k1 + self.dk1, "default": 0}],
-                        ["Q_length", {"value": self.magnetic.length, "default": 0}],
-                    ]
-                )
+                {
+                    "Q_k": {"value": self.k1 + self.dk1, "default": 0},
+                    "Q_length": {"value": self.magnetic.length, "default": 0},
+                }
             )
             dict_ready = True
         if dict_ready:
@@ -365,18 +361,11 @@ class MagnetTranslator(BaseElementTranslator):
             else ""
         )
         return (
-            s_comment
-            + """quadrupole{\nposition{rho="""
-            + str(z1)
-            + """, psi=0.0, marker=quad"""
-            + str(n)
-            + """a}\nproperties{strength="""
-            + str(self.magnetic.KnL(1))
-            + """, alpha=0, horizontal_offset=0,vertical_offset=0}\nposition{rho="""
-            + str(z2)
-            + """, psi=0.0, marker=quad"""
-            + str(n)
-            + """b}\n}\n"""
+            f"{s_comment}quadrupole{{\n"
+            f"position{{rho={z1!s}, psi=0.0, marker=quad{n!s}a}}\n"
+            f"properties{{strength={self.magnetic.KnL(1)!s}, alpha=0, horizontal_offset=0,vertical_offset=0}}\n"
+            f"position{{rho={z2!s}, psi=0.0, marker=quad{n!s}b}}\n"
+            "}\n"
         )
 
     def to_gpt(self, Brho: float = 0, charge_sign: int = -1, *args, **kwargs) -> str:
@@ -400,31 +389,25 @@ class MagnetTranslator(BaseElementTranslator):
         self.start_write()
         if "corrector" in self.hardware_type.lower():
             return ""
+        # GPT "X" is minus Bmad's y_pitch, "Y" its x_pitch (GPT manual; not run)
+        rotation = list(self.ccs.rotation)
+        rotation[0] += self.dy_rot
+        rotation[1] -= self.dx_rot
+        rotation[2] += self.roll
         ccs_label, value_text = self.ccs.ccs_text(
             list(self.physical.middle.model_dump().values()),
-            list(self.physical.rotation.model_dump().values()),
+            rotation,
+            offset=(self.dx, self.dy, self.dz),
         )
-        knl = self.magnetic.KnL()
+        length = self.magnetic.length
+        kn = self.magnetic.KnL() / length if length else self.magnetic.KnL()
         if self.hardware_type.lower() == "sextupole":
-            knl = knl / 2
-        output = (
-            str(self.hardware_type.lower())
-            + '("'
-            + self.ccs.name
-            + '", '
-            + ccs_label
-            + ", "
-            + value_text
-            + ", "
-            + str(self.magnetic.length)
-            + ", "
-            + str(charge_sign * Brho * knl)
-            + ");\n"
-        )
+            kn = kn / 2
+        output = f'{self.hardware_type.lower()!s}("{self.ccs.name}", {ccs_label}, {value_text}, {length!s}, {charge_sign * Brho * kn!s});\n'
         return output
 
 
-class DipoleTranslator(BaseElementTranslator):
+class DipoleTranslator(MultipoleStrengthTranslator):
     """
     Translator class for converting a :class:`~laura.models.element.Dipole` element instance into a string or
     object that can be understood by various simulation codes.
@@ -433,8 +416,20 @@ class DipoleTranslator(BaseElementTranslator):
     magnetic: DipoleMagnet
     """Dipole element class."""
 
+    _warn_zero_length: ClassVar[bool] = True
+
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
+
+    k1 = _k_field(1)
+    k2 = _k_field(2)
+    k3 = _k_field(3)
+    k1l = _kl_property(1)
+    k2l = _kl_property(2)
+    k3l = _kl_property(3)
+    dk1 = _dk_field(1)
+    dk2 = _dk_field(2)
+    dk3 = _dk_field(3)
 
     @computed_field
     @property
@@ -449,120 +444,108 @@ class DipoleTranslator(BaseElementTranslator):
         """
         return self.magnetic.KnL(0)
 
-    @computed_field
-    @property
-    def k1(self) -> float:
-        """
-        First-order magnetic strength `element.KnL(1) / element.magnetic.length`
+    def _convert_type_elegant(self, etype: str) -> str:
+        """``CSRCSBEND`` only when CSR is on, else ``CSBEND``, as
+        :meth:`~laura.translator.converters.drift.DriftTranslator.to_elegant`
+        chooses ``CSRDRIFT``."""
+        converted = super()._convert_type_elegant(etype)
+        if converted == "csrcsbend" and not self.simulation.csr_enable:
+            return "csbend"
+        return converted
 
-        Returns
-        -------
-        float
-            Dipole k1
-        """
+    @property
+    def fringe_order(self) -> int:
+        """``simulation.edge_order``, or 2 when the lattice left it unset."""
+        return self.simulation.edge_order or 2
+
+    @property
+    def kick_count(self) -> int:
+        """``simulation.n_kicks`` if the lattice set it; otherwise enough
+        steps that none turns through more than :data:`BEND_ANGLE_PER_KICK`
+        and a gradient bend's path is within :data:`BEND_PATH_ERROR`, and
+        never fewer than the schema default."""
+        default = self.simulation.n_kicks
+        if "n_kicks" in self.simulation.model_fields_set:
+            return default
         try:
-            return self.magnetic.KnL(1) / self.magnetic.length
-        except ZeroDivisionError:
-            warn("Magnet has zero length; returning k1 = k1l")
-            return self.magnetic.KnL(1)
+            angle = abs(float(self.resolve(self.angle)))
+            length = abs(float(self.resolve(self.magnetic.length)))
+            k1l = abs(float(self.resolve(self.magnetic.KnL(1))))
+        except (TypeError, ValueError):
+            return default
+        path_steps = (0.1 * k1l * length * angle**2 / BEND_PATH_ERROR) ** 0.25
+        return max(
+            default,
+            int(np.ceil(angle / BEND_ANGLE_PER_KICK)),
+            int(np.ceil(path_steps)),
+        )
 
-    @computed_field
-    @property
-    def k2(self) -> float:
+    def full_dump(self, resolve: bool = True) -> dict:
+        """Write :attr:`fringe_order` and :attr:`kick_count` explicitly, so no
+        code falls back on its own default."""
+        data = super().full_dump(resolve=resolve)
+        data["simulation_n_kicks"] = self.kick_count
+        data["simulation_edge_order"] = self.fringe_order
+        if self.fringe_order == 2:
+            for face in ("simulation_edge1_effects", "simulation_edge2_effects"):
+                if data.get(face) in (None, 1):
+                    data[face] = 3
+        if self.fringe_order == 1 and not data.get("simulation_fringe_model"):
+            data["simulation_fringe_model"] = "linear_edge"
+        return data
+
+    def _warn_second_order_only(self, code: str) -> None:
+        if self.simulation.edge_order == 1:
+            warn(
+                f"{self.name}: edge_order = 1, but {code} always models the "
+                "second-order edge terms, so it will not match the other codes."
+            )
+
+    def to_madx(self, at: float | None = None) -> str:
+        self._warn_second_order_only("MAD-X")
+        return super().to_madx(at=at)
+
+    def to_ocelot(self) -> object:
+        self._warn_second_order_only("Ocelot (SecondTM)")
+        return super().to_ocelot()
+
+    def to_bmad(self) -> str:
         """
-        Second-order magnetic strength `element.KnL(1) / element.magnetic.length`
+        Generate a Bmad dipole element.
+
+        A zero-length dipole that bends is a thin bend: Bmad refuses a
+        zero-length ``sbend`` that bends, so it is written as a ``multipole``
+        whose ``k0l`` bends the reference orbit, which moves the floor frame.
 
         Returns
         -------
-        float
-            Dipole k2
+        str
+            String representation of the element for Bmad
         """
-        try:
-            return self.magnetic.KnL(2) / self.magnetic.length
-        except ZeroDivisionError:
-            warn("Magnet has zero length; returning k2 = k2l")
-            return self.magnetic.KnL(2)
-
-    @computed_field
-    @property
-    def k3(self) -> float:
-        """
-        Third-order magnetic strength `element.KnL(1) / element.magnetic.length`
-
-        Returns
-        -------
-        float
-            Dipole k3
-        """
-        try:
-            return self.magnetic.KnL(3) / self.magnetic.length
-        except ZeroDivisionError:
-            warn("Magnet has zero length; returning k3 = k3l")
-            return self.magnetic.KnL(3)
-
-    @property
-    def k1l(self) -> float:
-        """
-        First-order normalized magnetic strength `element.KnL(1)`
-
-        Returns
-        -------
-        float
-            Dipole k1l
-        """
-        return self.magnetic.KnL(1)
-
-    @k1l.setter
-    def k1l(self, value: float) -> None:
-        setattr(getattr(self.magnetic.multipoles, "K1L"), "normal", value)
-
-    @property
-    def k2l(self) -> float:
-        """
-        Second-order normalized magnetic strength `element.KnL(2)`
-
-        Returns
-        -------
-        float
-            Dipole k2l
-        """
-        return self.magnetic.KnL(2)
-
-    @k2l.setter
-    def k2l(self, value: float) -> None:
-        setattr(getattr(self.magnetic.multipoles, "K2L"), "normal", value)
-
-    @property
-    def k3l(self) -> float:
-        """
-        Third-order normalized magnetic strength `element.KnL(3)`
-
-        Returns
-        -------
-        float
-            Dipole k3l
-        """
-        return self.magnetic.KnL(3)
-
-    @k3l.setter
-    def k3l(self, value: float) -> None:
-        setattr(getattr(self.magnetic.multipoles, "K3L"), "normal", value)
-
-    # TODO relate these to systematic_multipoles and random_multipoles
-    @computed_field
-    @property
-    def dk1(self) -> float:
-        return 0.0
-
-    @computed_field
-    @property
-    def dk2(self) -> float:
-        return 0.0
-
-    @computed_field
-    @property
-    def dk3(self) -> float:
-        return 0.0
+        if self.length:
+            return super().to_bmad()
+        multipoles = self.magnetic.multipoles
+        roll = self.resolve(self.magnetic.tilt or 0.0) or 0.0
+        parameters = {}
+        for order in range(5):
+            normal = self.resolve(multipoles.normal(order)) or 0.0
+            skew = self.resolve(multipoles.skew(order)) or 0.0
+            if not skew:
+                strength, tilt = normal, 0.0
+            elif not normal:
+                strength, tilt = -skew, np.pi / (2 * (order + 1))
+            else:
+                strength = float(np.hypot(normal, skew))
+                tilt = -float(np.arctan2(skew, normal)) / (order + 1)
+            tilt += roll
+            if strength:
+                parameters[f"k{order}l"] = strength
+                if tilt:
+                    parameters[f"t{order}"] = tilt
+        if "k0l" not in parameters:
+            return super().to_bmad()
+        parameters["k0l_status"] = "bends_reference"
+        return self._format_bmad("multipole", parameters)
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
@@ -603,30 +586,22 @@ class DipoleTranslator(BaseElementTranslator):
             field_strength = self.magnetic.field_strength(kwargs["momentum"])
         if field_strength > 0 or abs(self.magnetic.rho) > 0:
             corners = self.corners
-            params = dict(
-                [
-                    [
-                        "D_Type",
-                        {
-                            "value": "'" + self.magnetic.plane + "'",
-                            "default": "'horizontal'",
-                        },
-                    ],
-                    [
-                        "D_Gap",
-                        {
-                            "type": "list",
-                            "value": [self.magnetic.gap, self.magnetic.gap],
-                            "default": [0.0001, 0.0001],
-                        },
-                    ],
-                    ["D1", {"type": "array", "value": [corners[3][0], corners[3][2]]}],
-                    ["D3", {"type": "array", "value": [corners[2][0], corners[2][2]]}],
-                    ["D4", {"type": "array", "value": [corners[1][0], corners[1][2]]}],
-                    ["D2", {"type": "array", "value": [corners[0][0], corners[0][2]]}],
-                    ["D_zrot", {"value": self.z_rot + self.dz_rot, "default": 0}],
-                ]
-            )
+            params = {
+                "D_Type": {
+                    "value": f"'{self.magnetic.plane}'",
+                    "default": "'horizontal'",
+                },
+                "D_Gap": {
+                    "type": "list",
+                    "value": [self.magnetic.gap, self.magnetic.gap],
+                    "default": [0.0001, 0.0001],
+                },
+                "D1": {"type": "array", "value": [corners[3][0], corners[3][2]]},
+                "D3": {"type": "array", "value": [corners[2][0], corners[2][2]]},
+                "D4": {"type": "array", "value": [corners[1][0], corners[1][2]]},
+                "D2": {"type": "array", "value": [corners[0][0], corners[0][2]]},
+                "D_zrot": {"value": self._astra_rotation("z"), "default": 0},
+            }
             if field_strength > 0 or not abs(self.magnetic.rho) > 0:
                 params["D_strength"] = {
                     "value": field_strength,
@@ -759,7 +734,7 @@ class DipoleTranslator(BaseElementTranslator):
         Parameters
         ----------
         n: int
-            Marker index
+            Dipole index
 
         Returns
         -------
@@ -773,23 +748,13 @@ class DipoleTranslator(BaseElementTranslator):
             if self.physical.s is not None
             else ""
         )
+        theta = self.physical.rotation.theta
         return (
-            s_comment
-            + """dipole{\nposition{rho="""
-            + str(z1)
-            + """, psi="""
-            + str(chop(self.physical.rotation.theta + self.e1))
-            + """, marker=d"""
-            + str(n)
-            + """a}\nproperties{r="""
-            + str(self.magnetic.rho)
-            + """}\nposition{rho="""
-            + str(z2)
-            + """, psi="""
-            + str(chop(self.physical.rotation.theta + self.e2))
-            + """, marker=d"""
-            + str(n)
-            + """b}\n}\n"""
+            f"{s_comment}dipole{{\n"
+            f"position{{rho={z1!s}, psi={chop(theta + self.e1)!s}, marker=d{n!s}a}}\n"
+            f"properties{{r={self.magnetic.rho!s}}}\n"
+            f"position{{rho={z2!s}, psi={chop(theta + self.e2)!s}, marker=d{n!s}b}}\n"
+            "}\n"
         )
 
     def to_gpt(self, Brho: float = 0.0, *args, **kwargs) -> str:
@@ -800,8 +765,6 @@ class DipoleTranslator(BaseElementTranslator):
         ----------
         Brho: float
             Magnetic rigidity.
-        ccs: str
-            Name of co-ordinate system of the magnet.
 
         Returns
         -------
@@ -815,65 +778,26 @@ class DipoleTranslator(BaseElementTranslator):
                 list(self.physical.start.model_dump().values()),
                 list(self.physical.global_rotation.model_dump().values()),
             )
+            relpos = [relpos[0], relpos[1], relpos[2] + abs(self.intersect)]
             coord = self.ccs.gpt_coordinates(
                 relpos, angle=self.magnetic.KnL(0), tilt=self.magnetic.tilt
             )
             new_ccs = self.new_ccs(self.ccs)
-            if self.magnetic.edge_field_integral is None:
-                b1 = 0.0
+            fint = self._fringe_integrals()[0]
+            if not fint or not self.magnetic.half_gap:
+                b1 = GPT_HARD_EDGE_B1
             else:
-                b1 = np.round(
-                    (
-                        1.0
-                        / (
-                            2
-                            * self.magnetic.half_gap
-                            * self.magnetic.edge_field_integral
-                        )
-                        if self.magnetic.half_gap > 0
-                        else 10000
-                    ),
-                    2,
-                )
+                b1 = float(np.round(1.0 / (2 * self.magnetic.half_gap * fint), 2))
             dl = self.simulation.deltaL
-            # Use the resolved edge angles (handles "angle"/"angle/2" and
-            # functional definitions) rather than the raw stored values.
-            e1 = self.e1
-            e2 = self.e2
-            # print(self.objectname, ' - deltaL = ', dl)
-            # b1 = 0.
+            face_sign = -1.0 if self.magnetic.KnL(0) < 0 else 1.0
+            e1 = face_sign * self.e1
+            e2 = face_sign * self.e2
             """
             ccs( "wcs", 0, 0, startofdipole +  intersect1, Cos(theta), 0, -Sin(theta), 0, 1, 0, "bend1" ) ;
             sectormagnet( "wcs", "bend1", rho, field, e1, e2, 0., 100., 0 ) ;
             """
-            output = (
-                'ccs( "'
-                + self.ccs.name
-                + '", '
-                + coord
-                + ', "'
-                + new_ccs.name
-                + '");\n'
-            )
-            output += (
-                'sectormagnet("'
-                + self.ccs.name
-                + '", "'
-                + new_ccs.name
-                + '", '
-                + str(abs(self.magnetic.rho))
-                + ", "
-                + str(abs(field))
-                + ", "
-                + str(e1)
-                + ", "
-                + str(e2)
-                + ", "
-                + str(dl)
-                + ", "
-                + str(b1)
-                + ", 0);\n"
-            )
+            output = f'ccs( "{self.ccs.name}", {coord}, "{new_ccs.name}");\n'
+            output += f'sectormagnet("{self.ccs.name}", "{new_ccs.name}", {abs(self.magnetic.rho)!s}, {abs(field)!s}, {e1!s}, {e2!s}, {dl!s}, {b1!s}, 0);\n'
             self.ccs = deepcopy(new_ccs)
         else:
             output = ""
@@ -882,8 +806,6 @@ class DipoleTranslator(BaseElementTranslator):
     def new_ccs(self, ccs: GptCcs) -> GptCcs:
         """
         Create a new GPT co-ordinate system based on the angle of the magnet.
-
-        # TODO we set intersect=0 for new CCS -- is this accurate?
 
         Parameters
         ----------
@@ -896,18 +818,16 @@ class DipoleTranslator(BaseElementTranslator):
             New GPT co-ordinate system.
         """
         if abs(self.magnetic.KnL(0)) > 0 and abs(self.magnetic.rho) < 100:
-            # print('Creating new CCS')
             number = str(int(ccs.name.split("_")[1]) + 1) if ccs.name != "wcs" else "1"
-            name = "ccs_" + number if ccs.name != "wcs" else "ccs_1"
-            # print('middle position = ', self.start, self.middle)
+            name = f"ccs_{number}" if ccs.name != "wcs" else "ccs_1"
             return GptCcs(
                 name=name,
-                position=list(self.physical.middle.model_dump().values()),
+                position=list(self.physical.end.model_dump().values()),
                 rotation=list(
                     list(self.physical.global_rotation.model_dump().values())
                     + np.array([0, 0, -self.magnetic.KnL(0)])
                 ),
-                intersect=0 * abs(self.intersect),
+                intersect=abs(self.intersect),
             )
         else:
             return ccs
@@ -928,65 +848,31 @@ class DipoleTranslator(BaseElementTranslator):
         str
             A formatted string representing the object's properties in OPAL format.
         """
-        # wholestring = ""
         self.start_write()
         etype = self._convert_type_opal(self.hardware_type)
         if self.e1 == self.e2:
             etype = "sbend"
-        wholestring = self.name.replace("-", "_") + ": " + etype
+        wholestring = f"{self.name.replace('-', '_')}: {etype}"
         if (
             etype.lower() == "drift"
             or self.physical.length == 0
             or self.magnetic.KnL(0) == 0
         ):
             return ""
-        keys = []
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_opal(key) in elements_opal[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_opal(key)
-                    if value == "angle":
-                        value = self.magnetic.KnL(0)
-                    elif value == "angle/2":
-                        value = self.magnetic.KnL(0) / 2
-                    elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                        value = getattr(self, f"{key}l")
-                    val = 1 if value is True else value
-                    val = 0 if value is False else val
-                    tmpstring = ", " + key + " = " + str(val)
-                    if key not in keys:
-                        wholestring += tmpstring
-                        keys.append(key)
+        for key, value in self._dump_items(
+            self._convert_keyword_opal,
+            elements_opal[etype],
+            overrides=self._opal_alignment(),
+        ):
+            if key in ("k1", "k2", "k3", "k4", "k5", "k6"):
+                value = getattr(self, f"{key}l")
+            wholestring += f", {key} = {self._flag(self._angle_token(value))}"
         if etype == "monitor":
             wholestring += f', OUTFN = "{self.name}_opal"'
         wholestring += f", DESIGNENERGY = {designenergy}"
         wholestring += f", ELEMEDGE = {sval}"
-        wholestring += f', FMAPFN = "1DPROFILE1-DEFAULT";\n'
+        wholestring += ', FMAPFN = "1DPROFILE1-DEFAULT";\n'
         return wholestring
-
-    #
-    # @computed_field
-    # @property
-    # def entrance_edge_angle(self) -> float:
-    #     if self.magnetic.entrance_edge_angle == "angle":
-    #         return self.magnetic.angle
-    #     elif self.magnetic.entrance_edge_angle == "angle/2":
-    #         return self.magnetic.angle / 2.0
-    #     return self.magnetic.entrance_edge_angle
-    #
-    # @computed_field
-    # @property
-    # def exit_edge_angle(self) -> float:
-    #     if self.magnetic.exit_edge_angle == "angle":
-    #         return self.magnetic.angle
-    #     elif self.magnetic.exit_edge_angle == "angle/2":
-    #         return self.magnetic.angle / 2.0
-    #     return self.magnetic.exit_edge_angle
 
 
 class SolenoidTranslator(BaseElementTranslator):
@@ -1001,26 +887,125 @@ class SolenoidTranslator(BaseElementTranslator):
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
 
+    Brho: Union[float, str] = 0.0
+    """Rigidity ``p / q`` [T*m], negative for electrons, for the codes whose
+    solenoid takes a normalised strength: they ignore the
+    beam's charge, so its sign sets the sense of rotation. MAD-X also takes
+    the name of a variable holding it."""
+
+    def _field(self, scale: Union[float, str] = 1.0) -> Union[float, str]:
+        """``S0L`` [T*m] over the length and ``scale``; the field [T] by default."""
+        strength = self.magnetic.ks
+        length = self.magnetic.length or 1.0
+        if isinstance(scale, str):
+            return f"{self._field()} / {scale}"
+        if not self._resolve_functional and self.is_functional(strength):
+            return f"({strength}) / {length * scale}"
+        return self.resolve(strength) / (length * scale)
+
+    def full_dump(self, resolve: bool = True) -> dict:
+        data = super().full_dump(resolve=resolve)
+        # an unset field-map scale would otherwise shadow ``field_amplitude``
+        if not data.get("simulation_field_amplitude"):
+            data.pop("simulation_field_amplitude", None)
+        return data
+
     @computed_field
     @property
-    def ks(self) -> Union[float, str]:
-        return self.magnetic.ks
+    def field_amplitude(self) -> Union[float, str]:
+        """Field [T]."""
+        return self._field()
+
+    @computed_field
+    @property
+    def ks(self) -> Union[float, str, None]:
+        """Normalised strength ``B / Brho`` [1/m], once ``Brho`` is known."""
+        return self._field(self.Brho) if self.Brho else None
+
+    def _check_rigidity(self, code: str) -> None:
+        if not self.Brho and self.resolve(self.magnetic.ks):
+            warn(
+                f"{code} needs the rigidity (Brho) to normalise solenoid "
+                f"{self.name!r}; its strength was not written."
+            )
+
+    def to_madx(self, at: float | None = None, Brho: Union[float, str] = 0.0) -> str:
+        self.Brho = Brho or self.Brho
+        self._check_rigidity("MAD-X")
+        return super().to_madx(at=at)
+
+    def to_xsuite(self, beam_length: int, Brho: float = 0.0) -> tuple:
+        self.Brho = Brho or self.Brho
+        self._check_rigidity("Xsuite")
+        return super().to_xsuite(beam_length)
+
+    def to_elegant(self) -> str:
+        text = super().to_elegant()
+        field = self._field()
+        if isinstance(field, str):  # elegant takes rpn
+            rpn = self._rpn(self.magnetic.ks, self.magnetic.length or 1.0, "/")
+            text = text.replace(f"b = {field}", f"b = {rpn}")
+        return text
+
+    def _half_ks(self) -> float:
+        """OCELOT's and Cheetah's ``k = B / (2 Brho)``, measured to turn as MAD-X's ``ks``."""
+        length = self.magnetic.length or 1.0
+        return self.resolve(self.magnetic.ks) / (length * 2 * self.Brho)
+
+    def to_ocelot(self, Brho: float = 0.0) -> object:
+        self.Brho = Brho or self.Brho
+        self._check_rigidity("OCELOT")
+        obj = super().to_ocelot()
+        if self.Brho:
+            obj.k = self._half_ks()
+        return obj
+
+    def to_cheetah(self, Brho: float = 0.0) -> object:
+        from torch import float64, tensor
+
+        self.Brho = Brho or self.Brho
+        self._check_rigidity("Cheetah")
+        obj = super().to_cheetah()
+        if self.Brho:
+            obj.k = tensor(self._half_ks(), dtype=float64)
+        return obj
+
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad solenoid element.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        parameters = self._bmad_parameters()
+        parameters.pop("ks", None)
+        parameters["bs_field"] = self._field()
+        MagnetTranslator._add_bmad_magnetic_field(
+            self,
+            parameters,
+            field_scale=parameters["bs_field"],
+            kind="bs",
+            n=0,
+            strength_key="bs_field",
+        )
+        return self._format_bmad(parameters=parameters)
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
-        Writes the quadrupole element string for ASTRA.
-
-        Note that in astra `Q_xrot` means a rotation about the y-axis and vice versa.
+        Writes the solenoid element string for ASTRA; calls :func:`~_write_astra_solenoid`.
 
         Parameters
         ----------
         n: int
-            Dipole index
+            Solenoid index
 
         Returns
         -------
-        str or None
-            String representation of the element for ASTRA, or None if quadrupole strength is zero
+        str
+            String representation of the element for ASTRA
         """
         self.start_write()
         return self._write_astra_solenoid(n, **kwargs)
@@ -1049,29 +1034,20 @@ class SolenoidTranslator(BaseElementTranslator):
             raise NotImplementedError(
                 f"ASTRA solenoids require fieldmaps; see element {self.name}"
             )
-        efield_def = [
-            "FILE_BFieLD",
-            {"value": "'" + field_file_name + "'", "default": ""},
-        ]
         return self._write_astra_dictionary(
-            dict(
-                [
-                    ["S_pos", {"value": field_ref_pos[2] + self.dz, "default": 0}],
-                    efield_def,
-                    [
-                        "MaxB",
-                        {
-                            "value": self.magnetic.field_amplitude,
-                            "default": 0,
-                        },
-                    ],
-                    ["S_smooth", {"value": self.simulation.smooth, "default": 10}],
-                    ["S_xoff", {"value": field_ref_pos[0] + self.dx, "default": 0}],
-                    ["S_yoff", {"value": field_ref_pos[1] + self.dy, "default": 0}],
-                    ["S_xrot", {"value": self.x_rot + self.dx_rot, "default": 0}],
-                    ["S_yrot", {"value": self.y_rot + self.dy_rot, "default": 0}],
-                ]
-            ),
+            {
+                "S_pos": {"value": field_ref_pos[2] + self.dz, "default": 0},
+                "FILE_BFieLD": {"value": f"'{field_file_name}'", "default": ""},
+                "MaxB": {
+                    "value": self.magnetic.field_amplitude,
+                    "default": 0,
+                },
+                "S_smooth": {"value": self.simulation.smooth, "default": 10},
+                "S_xoff": {"value": field_ref_pos[0] + self.dx, "default": 0},
+                "S_yoff": {"value": field_ref_pos[1] + self.dy, "default": 0},
+                "S_xrot": {"value": self._astra_rotation("x"), "default": 0},
+                "S_yrot": {"value": self._astra_rotation("y"), "default": 0},
+            },
             n,
         )
 
@@ -1100,60 +1076,23 @@ class SolenoidTranslator(BaseElementTranslator):
         ccs_label, value_text = self.ccs.ccs_text(
             field_ref_pos, list(self.physical.rotation.model_dump().values())
         )
+        amplitude = expand_substitution(
+            self, self.get_field_amplitude / self.magnetic.length
+        )
         if self.simulation.field_definition.field_type.lower() == "1dmagnetostatic":
             array_names = ["z", "Bz"]
-            array_names_string = ", ".join(['"' + name + '"' for name in array_names])
+            array_names_string = ", ".join([f'"{name}"' for name in array_names])
             """
             map1D_B("wcs",xOffset,0,zOffset+0.,cos(angle),0,-sin(angle),0,1,0,"bas_sol_norm.gdf","Z","Bz",gunSolField);
             """
-            output = (
-                "map1D_B"
-                + '("'
-                + self.ccs.name
-                + '", '
-                + ccs_label
-                + ", "
-                + value_text
-                + ", "
-                + '"'
-                + str(field_file_name)
-                + '", '
-                + array_names_string
-                + ", "
-                + str(
-                    expand_substitution(
-                        self, self.get_field_amplitude / self.magnetic.length
-                    )
-                )
-                + ");\n"
-            )
+            output = f'map1D_B("{self.ccs.name}", {ccs_label}, {value_text}, "{field_file_name!s}", {array_names_string}, {amplitude!s});\n'
         elif self.simulation.field_definition.field_type.lower() == "3dmagnetostatic":
             array_names = ["x", "y", "z", "Bx", "By", "Bz"]
-            array_names_string = ", ".join(['"' + name + '"' for name in array_names])
+            array_names_string = ", ".join([f'"{name}"' for name in array_names])
             """
             map3D_B("wcs", xOffset,0,zOffset+0.,cos(angle),0,-sin(angle),0,1,0, "sol3.gdf", "x", "y", "z", "Bx", "By", "Bz", scale3);
             """
-            output = (
-                "map3D_B"
-                + '(" '
-                + self.ccs.name
-                + '", '
-                + ccs_label
-                + ", "
-                + value_text
-                + ", "
-                + '"'
-                + str(field_file_name)
-                + '", '
-                + array_names_string
-                + ", "
-                + str(
-                    expand_substitution(
-                        self, self.get_field_amplitude / self.magnetic.length
-                    )
-                )
-                + ");\n"
-            )
+            output = f'map3D_B("{self.ccs.name}", {ccs_label}, {value_text}, "{field_file_name!s}", {array_names_string}, {amplitude!s});\n'
         else:
             raise ValueError(
                 f"Solenoid field type {self.field_type} not supported for GPT; see {self.name}"
@@ -1227,36 +1166,17 @@ class SolenoidTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convert_type_opal(self.hardware_type)
-        wholestring = self.name.replace("-", "_") + ": " + etype
-        field_file_name = self.generate_field_file_name(
-            self.simulation.field_definition, code="opal"
-        )
-        keys = []
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_opal(key) in elements_opal[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_opal(key)
-                    val = 1 if value is True else value
-                    val = 0 if value is False else val
-                    if key == "ks":
-                        val = self.opal_ks(designenergy)
-                    if val is not None and key not in keys:
-                        tmpstring = ", " + key + " = " + str(val)
-                        wholestring += tmpstring
-                        keys.append(key)
+        wholestring = f"{self.name.replace('-', '_')}: {etype}"
+        for key, value in self._dump_items(
+            self._convert_keyword_opal,
+            elements_opal[etype],
+            overrides=self._opal_alignment(),
+        ):
+            value = self.opal_ks(designenergy) if key == "ks" else self._flag(value)
+            if value is not None:
+                wholestring += f", {key} = {value}"
         if isinstance(self.simulation.field_definition, FieldMap):
-            wholestring += (
-                ', fmapfn = "'
-                + self.generate_field_file_name(
-                    self.simulation.field_definition, code="opal"
-                )
-                + '"'
-            )
+            wholestring += f', fmapfn = "{self.generate_field_file_name(self.simulation.field_definition, code="opal")}"'
             sval += float(
                 np.linalg.norm(
                     self.get_field_reference_position()
@@ -1279,6 +1199,46 @@ class WigglerTranslator(BaseElementTranslator):
     simulation: MagnetSimulationElement
     """Wiggler simulation element."""
 
+    @computed_field
+    @property
+    def poles(self) -> int:
+        """Number of poles, for elegant's planar ``WIGGLER``."""
+        return 2 * self.magnetic.num_periods
+
+    @computed_field
+    @property
+    def sinusoidal(self) -> int:
+        """``CWIGGLER`` needs this, or a field map file, to have any field."""
+        return 1
+
+    @computed_field
+    @property
+    def bx_max(self) -> Optional[float]:
+        """A helical ``CWIGGLER`` needs the horizontal field too: given only
+        ``BY_MAX`` elegant reports ``BMAX=0 and BXMAX=0`` and the optics blow up.
+        """
+        if not self.magnetic.helical:
+            return None
+        return self.magnetic.peak_magnetic_field
+
+    def to_elegant(self) -> str:
+        """Elegant string. Helical wigglers go to ``CWIGGLER`` -- elegant's
+        plain ``WIGGLER`` is a vertical field only.
+        """
+        self.start_write()
+        if not self.magnetic.peak_magnetic_field and self.magnetic.period:
+            self.magnetic.peak_magnetic_field = self.magnetic.resolved("strength") / (
+                93.3728962 * self.magnetic.period
+            )
+        if self.magnetic.helical:
+            self.hardware_type = "cwiggler"
+            # conversion_rules were frozen from the original type at init
+            self.conversion_rules["elegant"] = (
+                keyword_conversion_rules_elegant["cwiggler"]
+                | keyword_conversion_rules_elegant["general"]
+            )
+        return super().to_elegant()
+
     def to_genesis(self, index: int) -> str:
         """
         Generates a string representation of the object's properties in the Genesis format.
@@ -1286,33 +1246,20 @@ class WigglerTranslator(BaseElementTranslator):
         Returns
         -------
         str
-            A formatted string representing the object's properties in Elegant format.
+            A formatted string representing the object's properties in Genesis format.
         """
         self.start_write()
-        wholestring = ""
         etype = self._convert_type_genesis(self.hardware_type)
         if "mark" in etype.lower():
-            return f"{index}{self.name}: {etype} = " + "{};\n"
-        string = f"{index}{self.name}: {etype} = " + "{"
-        keys = []
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_genesis(key) in elements_genesis[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_genesis(key)
-                    if key == "aw" and not self.magnetic.helical:
-                        value /= np.sqrt(2)
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    if key not in keys:
-                        string += key + " = " + str(value) + ", "
-                    keys.append(key)
-        wholestring += string[:-2] + "};\n"
-        return wholestring
+            return f"{index}{self.name}: {etype} = {{}};\n"
+        terms = []
+        for key, value in self._dump_items(
+            self._convert_keyword_genesis, elements_genesis[etype]
+        ):
+            if key == "aw" and not self.magnetic.helical:
+                value /= np.sqrt(2)
+            terms.append(f"{key} = {self._flag(value)}")
+        return f"{index}{self.name}: {etype} = {{{', '.join(terms)}}};\n"
 
 
 class CorrectorTranslator(BaseElementTranslator):
@@ -1322,23 +1269,26 @@ class CorrectorTranslator(BaseElementTranslator):
     :class:`~laura.models.element.CombinedCorrector` element instance into a string or
     object that can be understood by various simulation codes.
 
-    Correctors use :class:`~laura.models.magnetic.CorrectorMagnet`, which stores
-    the horizontal and vertical kick angles as two independent, explicitly-named
-    fields (unlike :class:`DipoleMagnet`, whose multipole ``normal``/``skew``
-    components denote field orientation, not beam plane) -- so this does *not*
-    subclass :class:`MagnetTranslator`, whose ``k1``/``k2``/``k3`` etc. and
-    ASTRA/CSRTrack/GPT writers assume a multipole-based magnetic model.
     A :class:`~laura.models.element.HorizontalCorrector`/
     :class:`~laura.models.element.VerticalCorrector` is expected to populate only
     its own plane; a :class:`~laura.models.element.CombinedCorrector` can carry
     both simultaneously.
     """
 
-    magnetic: CorrectorMagnet
-    """Corrector magnetic element."""
+    magnetic: CorrectorMagnet | CombinedCorrectorMagnet
+    """Corrector magnetic element. A ``CombinedCorrector`` carries the
+    per-plane pair (``horizontal``/``vertical``)."""
 
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
+
+    @field_validator("magnetic", mode="before")
+    @classmethod
+    def _select_magnetic_shape(cls, v):
+        """Pick the pair model when the payload carries per-plane magnets."""
+        if isinstance(v, dict) and {"horizontal", "vertical"} & v.keys():
+            return CombinedCorrectorMagnet(**v)
+        return v
 
     @computed_field
     @property
@@ -1363,20 +1313,12 @@ class CorrectorTranslator(BaseElementTranslator):
     def to_ocelot(self) -> object:
         """
         Generates an Ocelot object (or, for a :class:`~laura.models.element.CombinedCorrector`,
-        a pair of objects) for the corrector.
-
-        Ocelot's ``Hcor``/``Vcor`` are single-plane elements with no combined
-        horizontal+vertical equivalent, so a `Combined_Corrector` is represented
-        as an ``Hcor`` immediately followed by a ``Vcor``, each given half this
-        element's length -- so the pair has the same total length as the
-        original single element -- and its own plane's kick. Ocelot has no
-        symbolic/deferred-expression support, so a functional kick is resolved
-        to a number here regardless of the global resolution mode.
+        a pair of objects) for the corrector; Ocelot has no combined-plane corrector.
 
         Returns
         -------
         object or list[object]
-            A single Ocelot ``Hcor``/``Vcor``, or (for a `Combined_Corrector`) a
+            A single Ocelot ``Hcor``/``Vcor``, or (for a `CombinedCorrector`) a
             two-element list ``[Hcor, Vcor]``.
         """
         self.start_write()
@@ -1402,16 +1344,11 @@ class CorrectorTranslator(BaseElementTranslator):
         Generates an Xsuite object for the corrector.
 
         Represented as an ``xtrack.Multipole`` with the horizontal kick as
-        ``knl[0]`` and the vertical kick as ``ksl[0]``, so a
-        :class:`~laura.models.element.CombinedCorrector` carries both planes
-        simultaneously in a single element (unlike Ocelot, which has no
-        combined-plane element and must be split -- see :meth:`to_ocelot`).
+        ``knl[0]`` and the vertical kick as ``ksl[0]``, so both planes fit in
+        one element.
 
         Xtrack's normal-multipole convention deflects toward *negative* x for a
-        positive ``knl`` -- the opposite of the "positive kick deflects toward
-        positive x/y" convention used by MAD-X/Ocelot/Cheetah (verified against
-        each by direct particle tracking) -- so ``knl[0]`` is the *negated*
-        horizontal kick; the skew component (``ksl[0]``) needs no such negation.
+        positive ``knl``.
 
         Returns
         -------

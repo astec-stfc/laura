@@ -1,0 +1,13 @@
+# One section, defined once, in the order the hardware is installed.
+#
+# This is the *forward* order and it is the only order stored. A beam path that
+# runs the arc backwards does not get its own section here -- see
+# ``reversal_layouts.yaml``.
+
+sections:
+  ARC:
+    - QUAD_A
+    - DRIFT_IN
+    - BEND
+    - DRIFT_OUT
+    - QUAD_B
