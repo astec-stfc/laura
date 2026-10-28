@@ -4,10 +4,13 @@ ASTRA namelist generator.
 .. _ASTRA manual: https://www.desy.de/~mpyflo/Astra_dokumentation/
 """
 
-from laura._compat import DeprecatedMethodAliases
-from pydantic import BaseModel, ConfigDict, Field
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
 import numpy as np
+from pydantic import BaseModel, ConfigDict, Field
+
+from laura._compat import DeprecatedMethodAliases
+
 from ...utils.classes import get_grid_size
 
 section_header_text_astra = {
@@ -20,7 +23,7 @@ section_header_text_astra = {
 }
 
 astra_unsupported = [
-    "TwissMatch"
+    "TwissMatch",
     "MatrixTransform",
     "Laser",
     "Plasma",
@@ -119,7 +122,8 @@ class AstraNewRun(AstraHeader):
     header: str = "NEWRUN"
 
     sample_interval: int = 1
-    """Downsampling factor (as 2**(3 * sample_interval))"""
+    """Written as ASTRA's ``N_red``: read every ``N_red``-th particle of the
+    input."""
 
     run: int = 1
     """Run number"""
@@ -243,8 +247,6 @@ class AstraOutput(AstraHeader):
     offset: list | np.ndarray = [0, 0, 0]
     """Beam offset from nominal axis [x,y,z]"""
 
-    # starting_offset: float = None
-
     zstart: float = None
 
     zstop: float = None
@@ -258,30 +260,15 @@ class AstraOutput(AstraHeader):
         populate_by_name=True,
     )
 
-    # section: SectionLatticeTranslator
-
     def model_post_init(self, context: Any, /) -> None:
-        self.astradict = {
-            "input_particle_definition": "Distribution",
-            "sample_interval": "n_red",
-            "toffset": "Toff",
-        }
+        # No astradict: &OUTPUT has none of &NEWRUN's renamed fields.
         self.exclude.extend(
             ["screens", "section", "end_element", "start_element"]
         )  # , "starting_offset"])
-        # self.zstart = list(self.section.elements.elements.values())[0].physical.start.z
-        # self.zstop = list(self.section.elements.elements.values())[-1].physical.end.z
-        # self.zemit = int((self.zstop - self.zstart) / 0.01)
-        # self.screens = [e for e in self.section.elements.elements.values() if e.hardware_class == "Diagnostic"]
 
     def write_astra(self) -> str:
         """
-        Write the text for the ASTRA namelist based on its :attr:`~framework_dict`.
-
-        Parameters
-        ----------
-        n: int
-            Index of the ASTRA element
+        Write the &OUTPUT namelist, with one ``Screen(i)`` entry per screen.
 
         Returns
         -------
@@ -315,7 +302,8 @@ class AstraCharge(AstraHeader):
     """Number of particles"""
 
     sample_interval: int = 1
-    """Downsampling interval calculated as 2 ** (3 * sample_interval)"""
+    """Divides ``npart`` when sizing the space-charge grid. simba samples the
+    beam before ``npart`` is counted, and leaves this at 1."""
 
     space_charge_mode: str = "False"
     """Space charge mode"""
@@ -391,12 +379,7 @@ class AstraCharge(AstraHeader):
 
     def write_astra(self) -> str:
         """
-        Write the text for the ASTRA namelist based on its :attr:`~framework_dict`.
-
-        Parameters
-        ----------
-        n: int
-            Index of the ASTRA element
+        Write the &CHARGE namelist, adding grid sizes for the active solver.
 
         Returns
         -------

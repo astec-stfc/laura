@@ -25,6 +25,7 @@ from laura.models.element import (
     Solenoid,
     TwissMatch,
     VerticalCorrector,
+    Wakefield,
     Wiggler,
     Wire,
 )
@@ -51,6 +52,7 @@ from .matrix import MatrixTransformTranslator
 from .plasma import PlasmaTranslator
 from .rf_multipole import RFMultipoleTranslator
 from .twiss import TwissMatchTranslator
+from .wake import WakefieldTranslator
 from .wire import WireTranslator
 
 
@@ -68,7 +70,7 @@ def translate_elements(
         List of :class:`~laura.models.element.Element` objects.
     master_lattice: str
         Directory containing lattice/data files including field/wakefield files.
-    directory:
+    directory: str
         Directory to which files will be written.
 
     Returns
@@ -126,6 +128,8 @@ def translate_elements(
             translator = BeamBeamTranslator
         elif isinstance(elem, RFMultipole):
             translator = RFMultipoleTranslator
+        elif isinstance(elem, Wakefield):
+            translator = WakefieldTranslator
         else:
             translator = BaseElementTranslator
         data = elem.model_dump(by_alias=False)
@@ -135,8 +139,12 @@ def translate_elements(
             if isinstance(field, FieldMap):
                 data["simulation"][key] = field.model_copy()
         try:
-            elem_dict.update({elem.name: translator.model_validate(data)})
-        except Exception as exc:
+            payload = elem.model_dump(by_alias=False)
+            simulation = getattr(elem, "simulation", None)
+            if simulation is not None:
+                payload["simulation"] = simulation.model_dump(by_alias=False, exclude_unset=True)
+            elem_dict.update({elem.name: translator.model_validate(payload)})
+        except Exception:
             raise Exception(
                 f"Element {elem.name} failed validation: {elem.model_dump().keys()}"
             )

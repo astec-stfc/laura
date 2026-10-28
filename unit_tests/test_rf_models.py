@@ -1,5 +1,4 @@
-"""Tests for laura.models.RF: PID range coercion, RFCavityElement validation,
-PIDPhaseRange dunder methods, and Low_Level_RF_Element channel-model builder."""
+"""Tests for laura.models.RF."""
 
 import pytest
 from pydantic import ValidationError
