@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Normalise ``gen-doc`` output so Sphinx can render it.
+"""Generate the schema reference pages with ``gen-doc``, normalised so Sphinx
+can render them.
 
 ``gen-doc`` targets MkDocs and prefixes every page with a MkDocs-only front
 matter block::
@@ -9,26 +10,23 @@ matter block::
       boost: 1.0
     ---# Type: Boolean
 
-On the built-in type pages the closing fence is emitted glued to the title, as
-above.  MyST cannot read that as front matter, so the leading ``---`` becomes a
-transition ("Document or section may not begin with a transition"), the page
-loses its H1, and every following ``##`` warns "Document headings start at H2".
-A page with no H1 also has no title to show in a toctree.
+On the built-in type pages the closing fence is glued to the title, as above,
+so MyST reads the ``---`` as a transition and the page loses its H1. The block
+means nothing to Sphinx, so it is stripped from every page.
 
-The block means nothing to Sphinx either way, so it is stripped from every page.
-
-Usage (from repo root)::
+The pages are not committed: ``docs/source/conf.py`` calls :func:`generate`
+on every Sphinx build. To preview them without building (from repo root)::
 
     python laura/schema/postprocess_docs.py [docs/source/schema]
-
-Called automatically by ``generate.ps1`` / ``generate.sh`` after ``gen-doc``.
 """
 
 import re
+import subprocess
 import sys
 from pathlib import Path
 
 DEFAULT_DIR = Path("docs/source/schema")
+SCHEMA = Path(__file__).parent / "YAML" / "laura_schema.yaml"
 
 #: The MkDocs front matter block, tolerating a closing fence with the page
 #: title glued to it (which is why this cannot simply be left in place).
@@ -50,10 +48,25 @@ def strip_front_matter(directory: Path) -> int:
     return changed
 
 
+def generate(directory: Path = DEFAULT_DIR) -> int:
+    """Write the reference pages for :data:`SCHEMA` into *directory*.
+
+    The directory is cleared first: ``gen-doc`` writes but never prunes, so a
+    renamed class or slot would leave its old page behind. Returns the number
+    of pages normalised.
+    """
+    directory.mkdir(parents=True, exist_ok=True)
+    for page in directory.glob("*.md"):
+        page.unlink()
+    # gen-doc itself, whose defaults differ from DocGenerator's; it prints a stray "None"
+    subprocess.run(
+        [sys.executable, "-m", "linkml.generators.docgen", "-d", str(directory), str(SCHEMA)],
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
+    return strip_front_matter(directory)
+
+
 if __name__ == "__main__":
     target = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_DIR
-    if not target.is_dir():
-        sys.exit(f"No such directory: {target}")
-    print(
-        f"Normalised {strip_front_matter(target)} page(s) in {target}", file=sys.stderr
-    )
+    print(f"Generated {generate(target)} page(s) in {target}", file=sys.stderr)

@@ -15,8 +15,6 @@ from .cascading_access import CascadingAccessMixin
 from .rotation_matrix import (
     euler_angles_to_rotation_matrix,
     position_rotated,
-    element_start_position,
-    element_end_position,
 )
 from .magnet_conversions import k_to_current, current_to_k, scale_order
 from .dict_utils import flatten_dict, StringWithQuotes, FlowList
@@ -34,8 +32,6 @@ __all__ = [
     # Rotation and geometry
     "euler_angles_to_rotation_matrix",
     "position_rotated",
-    "element_start_position",
-    "element_end_position",
     # Magnet conversions
     "k_to_current",
     "current_to_k",
