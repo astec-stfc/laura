@@ -7,7 +7,6 @@ from warnings import warn
 import numpy as np
 from pydantic import PrivateAttr, model_validator
 
-import laura.models.element as laura_elements
 from laura.models.element_list import MachineModel
 
 from ...utils.functions import (
@@ -24,6 +23,7 @@ from .importer import (
     apply_misalignment,
     check_layouts,
     compact_expression,
+    element_class,
     keyword_rules,
     read_with_calls,
     twiss_simulation,
@@ -458,17 +458,14 @@ class MadxLatticeImporter(LatticeImporter):
                 )
                 continue
             sftype = switch_dict[elemtype]
-            try:
-                model_fields = introspect_model_defaults(
-                    getattr(laura_elements, sftype),
-                    resolve_optional=True,
-                )
-            except AttributeError:
+            laura_type = element_class(sftype)
+            if laura_type is None:
                 warn(
                     f"LAURA has no element type {sftype!r} (from MAD-X {elemtype!r}) "
                     f"for {name!r}; skipping."
                 )
                 continue
+            model_fields = introspect_model_defaults(laura_type, resolve_optional=True)
 
             entry = {
                 "hardware_type": sftype,
@@ -499,7 +496,7 @@ class MadxLatticeImporter(LatticeImporter):
                 bend = elemtype in ("sbend", "rbend")
                 apply_misalignment(
                     entry,
-                    getattr(laura_elements, sftype),
+                    laura_type,
                     roll=0.0,
                     **madx_misalignment(
                         row["_align"],
@@ -651,7 +648,7 @@ class MadxLatticeImporter(LatticeImporter):
             else:
                 v["physical"] = physical
 
-            element = getattr(laura_elements, vtype)(**v)
+            element = element_class(vtype)(**v)
             off = [] if self.collective_effects else ["csr_enable", "lsc_enable"]
             if not self.radiation:
                 off += ["sr_enable", "isr_enable"]

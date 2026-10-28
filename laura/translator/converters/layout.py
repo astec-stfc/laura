@@ -266,7 +266,7 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         translators keyed by name and in beamline order.
         """
         return translate_elements(
-            section.createDrifts().values(),
+            section.create_drifts().values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
         )

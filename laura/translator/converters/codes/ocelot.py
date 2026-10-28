@@ -21,6 +21,7 @@ from . import magnetic_orders
 from .importer import (
     LatticeImporter,
     apply_misalignment,
+    element_class,
     keyword_rules,
     twiss_simulation,
 )
@@ -149,22 +150,18 @@ class OcelotLatticeImporter(LatticeImporter):
             for sfparam, oceparam in merged.items():
                 if hasattr(elem, oceparam):
                     newobj.update({sfparam: getattr(elem, oceparam)})
-            try:
-                if "Cavity" not in sftype:
-                    classname = (
-                        sftype if hasattr(laura_elems, sftype) else sftype.capitalize()
-                    )
-                else:
-                    classname = sftype
-                model_fields = introspect_model_defaults(
-                    getattr(laura_elems, classname), resolve_optional=True
-                )
-                newobj["hardware_type"] = classname
-            except AttributeError:
+            if "Cavity" not in sftype and element_class(sftype) is None:
+                classname = sftype.capitalize()
+            else:
+                classname = sftype
+            laura_type = element_class(classname)
+            if laura_type is None:
                 warn(
                     f"Ocelot type {sftype!r} for {numbered_id!r} not recognized; skipping."
                 )
                 continue
+            model_fields = introspect_model_defaults(laura_type, resolve_optional=True)
+            newobj["hardware_type"] = classname
             for subk in [
                 "magnetic",
                 "cavity",
@@ -282,7 +279,7 @@ class OcelotLatticeImporter(LatticeImporter):
                 )
             apply_misalignment(
                 newobj,
-                getattr(laura_elems, newobj["hardware_type"]),
+                element_class(newobj["hardware_type"]),
                 *(
                     float(getattr(elem, key, 0.0) or 0.0)
                     for key in ("dx", "dy", "tilt")
@@ -293,7 +290,7 @@ class OcelotLatticeImporter(LatticeImporter):
                     newobj, getattr(elem, "laura_functional_fields", {})
                 )
             self.laura_elements.update(
-                {numbered_id: getattr(laura_elems, newobj["hardware_type"])(**newobj)}
+                {numbered_id: element_class(newobj["hardware_type"])(**newobj)}
             )
         return self.laura_elements
 

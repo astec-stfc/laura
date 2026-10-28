@@ -19,11 +19,11 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 from warnings import warn
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, PrivateAttr
+from pydantic import ConfigDict, PrivateAttr
 from scipy.constants import speed_of_light
 
 import laura.models.element as laura_elements
@@ -36,7 +36,6 @@ from laura.models.element_list import (
 )
 from laura.models.magnetic import Multipoles
 
-from ....exporters.yaml_exporter import PositionMode, export_machine_combined_file
 from .. import keyword_conversion_rules_pals
 from ...utils.functions import merge_layout_elements, number_repeated_names
 from ...utils.pals import (
@@ -51,6 +50,7 @@ from ...utils.pals import (
     pals_kind_to_laura_type,
     parse_pals_file,
 )
+from .importer import LatticeImporter, check_layouts, element_class, section_entry
 
 MAX_MULTIPOLE_ORDER = max(
     int(name[1:-1]) for name in Multipoles.model_fields if re.fullmatch(r"K\d+L", name)
@@ -718,7 +718,7 @@ def _cavity(element: PalsElement, period: Optional[float] = None) -> Dict[str, D
     return converted
 
 
-class PalsLatticeImporter(BaseModel):
+class PalsLatticeImporter(LatticeImporter):
     """Read a ``*.pals.yaml`` document into LAURA elements, sections and layouts."""
 
     model_config = ConfigDict(
@@ -763,6 +763,9 @@ class PalsLatticeImporter(BaseModel):
         if self.source_file:
             return Path(self.source_file).name.split(".")[0]
         return self.name
+
+    def _element_map(self) -> Dict:
+        return self.laura_elements
 
     def _document(self) -> PalsDocument:
         if self.document is None:
@@ -967,15 +970,14 @@ class PalsLatticeImporter(BaseModel):
                 f"PALS element {numbered_name!r} has electric multipoles, which "
                 "LAURA cannot represent; they were dropped.",
             )
-        try:
-            element_class = getattr(laura_elements, hardware_type)
-        except AttributeError:
+        laura_type = element_class(hardware_type)
+        if laura_type is None:
             warn(
                 f"LAURA has no element class {hardware_type!r} for PALS "
                 f"{kind} {numbered_name!r}; skipping."
             )
             return None
-        return element_class(**data)
+        return laura_type(**data)
 
     def _beginning_twiss(
         self, numbered_name: str, element: PalsElement
@@ -1059,7 +1061,7 @@ class PalsLatticeImporter(BaseModel):
         """
         stated = str(element.group(LAURA_TYPE_EXTENSION).get("hardware_type", ""))
         if stated and laura_type_to_pals_kind(stated) in (kind, None):
-            if hasattr(laura_elements, stated):
+            if element_class(stated) is not None:
                 return stated
             warn(
                 f"PALS element {element.name!r} states a LAURA hardware type "
@@ -1216,9 +1218,8 @@ class PalsLatticeImporter(BaseModel):
         document = self._document()
 
         elements: Dict[str, Any] = {}
-        section_definitions: Dict[str, List[str]] = {}
+        section_definitions: Dict[str, Any] = {}
         layout_definitions: Dict[str, List[Any]] = {}
-        section_metadata: Dict[str, tuple] = {}
         layout_particles: Dict[str, Optional[str]] = {}
         skipped: List[str] = []
 
@@ -1245,9 +1246,8 @@ class PalsLatticeImporter(BaseModel):
                     section.order,
                     layout.name,
                 )
-                section_metadata[section_name] = (
-                    section.geometry,
-                    section.reference_energy,
+                section_definitions[section_name] = section_entry(
+                    section_definitions[section_name], section
                 )
                 renamed[source_name] = section_name
             # One entry per traversal, so a multipass line is listed once per
@@ -1266,43 +1266,28 @@ class PalsLatticeImporter(BaseModel):
                 layout_definitions[layout.name] = layout_sections
                 layout_particles[layout.name] = layout.particle
 
-        if skipped:
-            warn(
-                "Skipped PALS branches shorter than min_section_length="
-                f"{min_section_length}: {', '.join(skipped)}"
-            )
-        if not layout_definitions:
-            raise ValueError(
-                f"No PALS layouts meet min_section_length={min_section_length}."
-            )
+        check_layouts(
+            layout_definitions,
+            skipped,
+            min_section_length,
+            "PALS branches",
+            "PALS layouts",
+        )
 
         particles = {particle for particle in layout_particles.values() if particle}
-        model = MachineModel(
+        return MachineModel(
             elements=elements,
             section={"sections": section_definitions},
             layout={
                 "layouts": layout_definitions,
                 "default_layout": next(iter(layout_definitions)),
+                "layout_metadata": {
+                    name: {"particle": particle}
+                    for name, particle in layout_particles.items()
+                    if particle
+                },
             },
             master_lattice=str(Path(document.source).parent),
+            functional_definitions=self.functional_definitions,
             particle=particles.pop() if len(particles) == 1 else None,
         )
-        for section_name, (geometry, reference_energy) in section_metadata.items():
-            section = model.sections.get(section_name)
-            if section is None:
-                continue
-            section.geometry = geometry
-            section.reference_energy = reference_energy
-        for layout_name, particle in layout_particles.items():
-            layout = model.lattices.get(layout_name)
-            if layout is not None:
-                layout.particle = particle
-        return model
-
-    def export_yaml(
-        self,
-        path: str,
-        source: Union[SectionLattice, MachineLayout, MachineModel],
-        position_mode: PositionMode = "s",
-    ) -> None:
-        export_machine_combined_file(path, source, position_mode=position_mode)

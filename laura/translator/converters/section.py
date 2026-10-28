@@ -458,7 +458,7 @@ class SectionLatticeTranslator(SectionLattice):
         backbone_section = self.model_copy(
             update={"order": [element.name for element in backbone]}
         )
-        section = backbone_section.createDrifts(keep_diagnostic_length=True)
+        section = backbone_section.create_drifts(keep_diagnostic_length=True)
         keys = list(section)
         at = {key: index for index, key in enumerate(keys)}
         patch_definitions = ""
@@ -640,7 +640,7 @@ class SectionLatticeTranslator(SectionLattice):
 
         section = self.model_copy(
             update={"order": [element.name for element in ordered_elements]}
-        ).createDrifts(
+        ).create_drifts(
             csr_enable=self.csr_enable,
             lsc_enable=self.lsc_enable,
             lsc_bins=self.lsc_bins,

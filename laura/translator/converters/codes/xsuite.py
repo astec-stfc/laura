@@ -14,7 +14,12 @@ from laura.models.element_list import MachineLayout, SectionLattice
 
 from ...utils.ac_dipole import MV_PER_VOLT
 from ...utils.alignment import from_frame, sagitta
-from .importer import LatticeImporter, apply_misalignment, twiss_simulation
+from .importer import (
+    LatticeImporter,
+    apply_misalignment,
+    element_class,
+    twiss_simulation,
+)
 
 
 def xsuite_misalignment(native: Any) -> Dict[str, float]:
@@ -733,7 +738,7 @@ class XsuiteLatticeImporter(LatticeImporter):
                 continue
             stored_type = stored_types.get(element_name)
             laura_type = (
-                getattr(laura_elements, stored_type, None) if stored_type else None
+                element_class(stored_type) if stored_type else None
             )
             if laura_type is None and native_type == "Multipole":
                 laura_type = self._multipole_type(native)
