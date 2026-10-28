@@ -2,44 +2,26 @@
 Extract a shared `controls->schema` template from a set of element YAML
 files, and rewrite them to reference it plus their per-element overrides.
 
-Elements of the same hardware type (e.g. every Quadrupole) typically define
-near-identical `controls.variables` blocks, differing mainly in the
-element's own name embedded in each `identifier`. This module finds, for
-each (hardware_class, hardware_type) directory in a lattice tree, the
-variable keys that really are shared across (nearly) every element there,
-writes them out once as a `_schema.yaml` template (with the element's name
-replaced by a `{name}` placeholder), and rewrites each element file down to
-`controls: {schema: ..., variables: {<only the genuine per-element
-overrides>}}`. See `laura.models.control.ControlsInformation` and
-`laura.Importers.YAML_Loader.resolve_controls_schema` for how that reference
-is expanded again when an element is loaded.
+For each (hardware_class, hardware_type) directory, the variable keys shared
+across (nearly) every element are written once as a `_schema.yaml` template
+(element name replaced by `{name}`), and each element file is reduced to
+`controls: {schema: ..., variables: {<per-element overrides>}}`. See
+`laura.importers.yaml_loader.resolve_controls_schema` for how that is expanded
+on load. Each distinct variable keyset gets its own schema variant (e.g. a
+Screen that is sometimes single-axis and sometimes an H/V pair).
 
-Elements sharing the same variable keyset but only ever using some of them
-identically (`keyset` groups) are handled as a separate schema variant, so a
-hardware type with two distinct control interfaces (e.g. a Screen that is
-sometimes a single-axis unit and sometimes an H/V pair) gets one schema file
-per shape rather than being forced into one.
-
-Safety rule -- a variable key is only folded into the shared schema if every
-element in its group has that key with *at least* the same fields as the
-majority definition. A field may be added or have a different value (those
-become per-element overrides), but never be *missing* relative to the
-majority: `resolve_controls_schema`'s merge can only add or replace fields on
-top of the schema, never remove one, so an element genuinely missing a field
-the rest of the group has cannot be expressed as an override. Any variable
-key that fails this check for even one element is left fully inline,
-untouched, for every member of the group -- this is reported back as a
-"kept inline" / outlier key, and is worth a manual look (it usually means
-either a real per-element hardware difference, or a stray inconsistency in
-the source data).
+Safety rule: a key is only shared if every element in its group has at least
+the majority definition's fields, because `resolve_controls_schema` can add or
+replace fields but never remove one. A key failing this for any element stays
+inline for the whole group and is reported as a "kept inline" / outlier key --
+worth a manual look.
 
 Usage:
     python -m laura.utils.controls_schema_extract <lattice_yaml_root> [--apply]
 
-Without `--apply`, only a plan is printed (schema files and outlier keys that
-would result, files that would be rewritten, and how much duplication is
-removed) -- nothing is written. Run once without `--apply` first and read the
-"kept inline" keys before committing to `--apply` on real lattice data.
+Without `--apply`, only the plan is printed (schema files, outlier keys,
+files to rewrite, duplication removed). Read the "kept inline" keys before
+using `--apply` on real lattice data.
 """
 
 import argparse
@@ -53,7 +35,7 @@ from yaml import CSafeLoader as Loader
 
 
 def substitute_name_to_placeholder(value, name: str):
-    """Inverse of `laura.Importers.YAML_Loader._substitute_schema_placeholders`:
+    """Inverse of `laura.importers.yaml_loader._substitute_schema_placeholders`:
     replace an element's own name with the `{name}` template placeholder,
     recursively through nested dicts/lists."""
     if isinstance(value, str):
