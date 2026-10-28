@@ -100,6 +100,7 @@ docs = [
     "sphinxcontrib-bibtex",
     "myst-parser",
     "sphinxcontrib-mermaid",
+    "linkml>=1.8",  # gen-doc builds docs/source/schema/
 ]
 
 # Install with: pip install "laura-accelerator[schema]"

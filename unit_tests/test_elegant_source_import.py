@@ -20,11 +20,11 @@ _needs_elegant = pytest.mark.skipif(
 )
 
 
-def _lte(tmp_path, text):
+def _lte(tmp_path, text, **options):
     """An ``ElegantLatticeImporter`` reading ``text`` as a .lte source file."""
     source = tmp_path / "line.lte"
     source.write_text(text)
-    return ElegantLatticeImporter(source_file=str(source))
+    return ElegantLatticeImporter(source_file=str(source), **options)
 
 
 def _layout_elements(importer, name="machine"):
@@ -110,23 +110,49 @@ def test_bend_fringe_integrals_resolve_from_fint_and_fint1_fint2(tmp_path):
     assert bends["B1"].gap == pytest.approx(0.04), "HGAP is a half gap"
 
 
-@_needs_elegant
-def test_edge_order_is_imported_only_when_the_lattice_sets_it(tmp_path):
-    """ELEGANT's parameter dump gives every bend its default EDGE_ORDER = 1;
-    importing that would pin first-order edges no other code shares."""
-    importer = _lte(
-        tmp_path,
-        "b1: csbend, l=0.5, angle=0.1\n"
-        "b2: csbend, l=0.5, angle=0.1, edge_order=1\n"
-        "machine: line=(b1,b2,b1)\n",
-    )
-    orders = {
-        element.name: element.simulation.edge_order
+_DEFAULT_AND_STATED_BENDS = (
+    "b1: csbend, l=0.5, angle=0.1\n"
+    "b2: csbend, l=0.5, angle=0.1, edge_order=1, n_slices=20\n"
+    "machine: line=(b1,b2,b1)\n"
+)
+
+
+def _bend_integration(importer):
+    return {
+        element.name: (element.simulation.edge_order, element.simulation.n_kicks)
         for element in _layout_elements(importer)
         if element.hardware_type == "Dipole"
     }
 
-    assert orders == {"B1.1": None, "B2": 1, "B1.2": None}
+
+@_needs_elegant
+def test_bends_keep_elegants_defaults(tmp_path):
+    """The round trip is faithful: a bend left at EDGE_ORDER = 1 and
+    N_SLICES = 4 exports that way, not with LAURA's uniform treatment."""
+    importer = _lte(tmp_path, _DEFAULT_AND_STATED_BENDS)
+
+    assert _bend_integration(importer) == {
+        "B1.1": (1, 4), "B2": (1, 20), "B1.2": (1, 4)
+    }
+    bend = next(
+        element for element in _layout_elements(importer) if element.name == "B1.1"
+    )
+    assert "n_kicks" in bend.simulation.model_fields_set
+
+
+@_needs_elegant
+def test_uniform_integration_drops_only_elegants_defaults(tmp_path):
+    """Opting in leaves unstated edge orders and kick counts to LAURA's
+    second-order edges and auto-scaled kicks, but keeps what the lattice sets."""
+    importer = _lte(tmp_path, _DEFAULT_AND_STATED_BENDS, uniform_integration=True)
+
+    integration = _bend_integration(importer)
+    assert integration["B2"] == (1, 20)
+    assert integration["B1.1"][0] is None
+    bend = next(
+        element for element in _layout_elements(importer) if element.name == "B1.1"
+    )
+    assert "n_kicks" not in bend.simulation.model_fields_set
 
 
 @_needs_elegant

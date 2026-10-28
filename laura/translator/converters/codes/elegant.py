@@ -97,6 +97,12 @@ class ElegantLatticeImporter(LatticeImporter):
     beamline: Optional[str] = None
     """Optional beamline selector for source import."""
 
+    uniform_integration: bool = False
+    """Drop the ``EDGE_ORDER`` and ``N_SLICES`` a ``source_file`` leaves at
+    ELEGANT's defaults, so bends export with LAURA's second-order edges and
+    auto-scaled kick count, as every other code gets. By default the import
+    keeps ELEGANT's defaults and round-trips the lattice unchanged."""
+
     elegant_data: Dict = {}
     """Dictionary containing data about the ELEGANT lattice"""
 
@@ -348,10 +354,16 @@ class ElegantLatticeImporter(LatticeImporter):
         unscalable = self._rescale_strength_symbols()
         for name, data in self.elegant_data.items():
             expressions = self._expressions_for(name)
-            if self.source_file and "edge_order" not in self._from_source(
-                self._source_parameters, name
-            ):
-                data.get("simulation", {}).pop("edge_order", None)
+            simulation = data.get("simulation", {})
+            if self.uniform_integration and self.source_file:
+                stated = self._from_source(self._source_parameters, name)
+                if "edge_order" not in stated:
+                    simulation.pop("edge_order", None)
+                if not {"n_slices", "n_kicks"} & stated:
+                    simulation.pop("n_slices", None)
+            if "n_slices" in simulation:
+                # ELEGANT's N_SLICES is LAURA's n_kicks; unset, it is auto-scaled
+                simulation.setdefault("n_kicks", simulation["n_slices"])
             length = self._length_of(data)
             for parameter in ("k0", "k1", "k2", "k3", "angle"):
                 expression = expressions.get(parameter)
