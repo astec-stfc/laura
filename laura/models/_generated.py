@@ -352,6 +352,21 @@ class ApertureShapeEnum(str, Enum):
     """
 
 
+class ApertureLocationEnum(str, Enum):
+    """
+    Where along the element an aperture is checked. Following PALS ``ApertureP.location``.
+    """
+    entrance_end = "entrance_end"
+    center = "center"
+    exit_end = "exit_end"
+    both_ends = "both_ends"
+    everywhere = "everywhere"
+    nowhere = "nowhere"
+    """
+    Defined but never checked -- distinct from ``active: false``, which switches off an aperture that is otherwise placed.
+    """
+
+
 class LatticeGeometryEnum(str, Enum):
     """
     Whether the reference orbit closes on itself. Mirrors Bmad's ``parameter[geometry]``.
@@ -778,6 +793,16 @@ class _ApertureElementBase(ConfiguredBaseModel):
     """Vertical position of the aperture centre on the element axis [m]."""
     shape: Optional[ApertureShapeEnum] = Field(default=None, description="""Cross-sectional aperture shape.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable', 'ApertureElement']} })
     """Cross-sectional aperture shape."""
+    location: Optional[ApertureLocationEnum] = Field(default=ApertureLocationEnum.everywhere, description="""Where along the element the aperture is checked.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'ifabsent': 'string(everywhere)'} })
+    """Where along the element the aperture is checked."""
+    material: Optional[str] = Field(default=None, description="""Material of the aperture jaws or collimator body.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement']} })
+    """Material of the aperture jaws or collimator body."""
+    thickness: Optional[float] = Field(default=None, description="""Longitudinal thickness of the aperture material [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'unit': {'ucum_code': 'm'}} })
+    """Longitudinal thickness of the aperture material [m]."""
+    active: Optional[bool] = Field(default=True, description="""Whether the aperture is applied. False keeps the definition without checking against it.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'ifabsent': 'true'} })
+    """Whether the aperture is applied. False keeps the definition without checking against it."""
+    shifts_with_body: Optional[bool] = Field(default=True, description="""Whether the aperture follows the element's misalignment rather than staying on the design orbit.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'ifabsent': 'true'} })
+    """Whether the aperture follows the element's misalignment rather than staying on the design orbit."""
     radius: Optional[float] = Field(default=None, description="""Radius for circular apertures [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'Multipole', 'CameraMask'],
          'unit': {'ucum_code': 'm'}} })
     """Radius for circular apertures [m]."""
@@ -998,10 +1023,10 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Number of longitudinal slices for thick-lens tracking."""
     edge_field_integral: Optional[float] = Field(default=None, description="""Per-simulation override of the magnet's fringe-field integral. Absent means \"use ``MagneticElement.edge_field_integral``\".""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement']} })
     """Per-simulation override of the magnet's fringe-field integral. Absent means "use ``MagneticElement.edge_field_integral``"."""
-    edge1_effects: Optional[bool] = Field(default=None, description="""Enable entrance-edge focussing effects.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
-    """Enable entrance-edge focussing effects."""
-    edge2_effects: Optional[bool] = Field(default=None, description="""Enable exit-edge focussing effects.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
-    """Enable exit-edge focussing effects."""
+    edge1_effects: Optional[int] = Field(default=None, description="""Entrance-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
+    """Entrance-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method."""
+    edge2_effects: Optional[int] = Field(default=None, description="""Exit-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
+    """Exit-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method."""
     fringe_model: Optional[str] = Field(default=None, description="""Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
     """Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code."""
     sr_enable: Optional[bool] = Field(default=True, description="""Enable synchrotron-radiation energy loss.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'True'} })
@@ -1600,7 +1625,7 @@ class _TwissMatchSimulationElementBase(_SimulationElementBase):
 
 class _MatrixTransformSimulationElementBase(_SimulationElementBase):
     """
-    Zero- through third-order transfer-map coefficients for a matrix transform element, in Bmad's phase-space coordinates (x, px, y, py, z, pz): z = -beta c dt, positive ahead of the reference, and pz = dp/p0. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+    Zero- through third-order transfer-map coefficients for a matrix transform element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MatrixTransformSimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation'})
@@ -3320,8 +3345,8 @@ class _SextupoleMagnetBase(_MagneticElementBase):
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
     """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
-    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property."""
+    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
+    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored."""
 
 
 class _OctupoleMagnetBase(_MagneticElementBase):
@@ -3412,8 +3437,8 @@ class _OctupoleMagnetBase(_MagneticElementBase):
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
     """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
-    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property."""
+    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
+    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored."""
 
 
 class _CorrectorMagnetBase(_DipoleMagnetBase):
@@ -3674,8 +3699,8 @@ class _CombinedSolenoidQuadrupoleMagnetBase(_MagneticElementBase):
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
     """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
-    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property."""
+    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
+    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored."""
 
 
 class _WigglerMagnetBase(ConfiguredBaseModel):

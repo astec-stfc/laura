@@ -1,4 +1,3 @@
-import re
 from collections import Counter
 from warnings import warn
 
@@ -6,11 +5,8 @@ import numpy as np
 
 from laura.models.constants import speed_of_light
 
-from ..units import UnitValue
-from .field_parameter import FieldParameter
-from .sdds import write_sdds_field_file
-
 from .field_parameter import require_rf, set_field
+from .sdds import write_sdds_field_file
 
 d = ",!?/&-:;@'\n \t"
 

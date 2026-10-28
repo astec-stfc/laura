@@ -345,8 +345,7 @@ classes:
         description: >-
           Integrated bending angle [rad]. Dipoles only. Part of the data model
           (lattice YAML may set it), but derived from multipoles.K0L rather than
-          stored: the MagneticElement wrapper implements it as a read/write
-          property.
+          stored.
         unit:
           ucum_code: rad
 

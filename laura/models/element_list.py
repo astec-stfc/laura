@@ -44,7 +44,7 @@ from .control import set_attr_by_path
 from .element import BaseElement, Diagnostic, Drift, PhysicalBaseElement
 from .exceptions import LatticeError
 from .magnetic import brho
-from .physical import PhysicalElement, Position, Rotation, DriftPhysicalElement
+from .physical import DriftPhysicalElement, PhysicalElement, Position, Rotation
 from .reversal import reverse_element
 from .simulation import DriftSimulationElement
 from .trajectory import Trajectory
@@ -254,6 +254,7 @@ def signed_gap(prev: PhysicalElement, start) -> float:
     step = np.asarray(start) - np.asarray(prev.end.array)
     return float(np.copysign(np.linalg.norm(step), step @ prev.end_rotation_matrix[:, 2]))
 
+
 def insert_drifts(
     elements: Dict[str, Any],
     prefix: str,
@@ -290,8 +291,7 @@ def insert_drifts(
             drift_name, length, (x1, y1, z1), (x2, y2, z2) = gap
             middle = dict(x=(x1 + x2) / 2.0, y=(y1 + y2) / 2.0, z=(z1 + z2) / 2.0)
             fields = deepcopy(drift_fields)
-            if length < 0 and fields.get("simulation") is not None:
-                # no space charge over a step back
+            if length < 0 and "simulation" in fields:
                 fields["simulation"].lsc_enable = False
             newelements[drift_name] = Drift(
                 name=drift_name,
@@ -374,7 +374,6 @@ def _drift_gaps(
             continue
         end, start = elem.physical.end.array, following.physical.start.array
         try:
-            # negative where elements overlap, so the drift steps back
             length = round(signed_gap(elem.physical, start), digits)
         except Exception as exc:
             _log.error("Drift calculation error near element '%s': %s", name, exc)
@@ -1083,7 +1082,7 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
         rot_list = [np.eye(3)]
 
         elements_to_wire: list[PhysicalElement] = []
-        prev_phys = None
+        prev_phys: Optional[PhysicalElement] = None
 
         for name in self.order:
             elem = element_registry.get(name)
@@ -1112,8 +1111,10 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
             try:
                 end = phys.end
                 end_arr = np.array([end.x, end.y, end.z])
+                prev_phys = phys
             except RuntimeError:
                 end_arr = mid_arr
+                prev_phys = None
             s_elem_end = s_elem_start + phys.length
 
             s_list.extend([s_elem_start, s_elem_mid, s_elem_end])
@@ -1127,7 +1128,7 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
             phys.s = s_elem_mid
 
             current_s = s_elem_end
-            prev_phys = phys
+            prev_end = end_arr
             elements_to_wire.append(phys)
 
         traj = Trajectory(np.array(s_list), np.array(pos_list), np.array(rot_list))

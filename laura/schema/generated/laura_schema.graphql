@@ -1,5 +1,15 @@
 # metamodel_version: 1.11.0
 # version: 0.1.0
+enum ApertureLocationEnum
+  {
+    entrance_end
+    center
+    exit_end
+    both_ends
+    everywhere
+    nowhere
+  }
+
 enum ApertureShapeEnum
   {
     circular
@@ -219,6 +229,11 @@ type ApertureElement
     horizontalOffset: Float
     verticalOffset: Float
     shape: ApertureShapeEnum
+    location: ApertureLocationEnum
+    material: String
+    thickness: Float
+    active: Boolean
+    shiftsWithBody: Boolean
     radius: Float
     negativeExtent: Float
     positiveExtent: Float
@@ -1209,8 +1224,8 @@ type MagnetSimulationElement
     fieldAmplitude: Float
     nSlices: Int
     edgeFieldIntegral: Float
-    edge1Effects: Boolean
-    edge2Effects: Boolean
+    edge1Effects: Int
+    edge2Effects: Int
     fringeModel: String
     srEnable: Boolean
     isrEnable: Boolean

@@ -97,6 +97,11 @@ class ElegantLatticeImporter(LatticeImporter):
     beamline: Optional[str] = None
     """Optional beamline selector for source import."""
 
+    uniform_integration: bool = False
+    """If true, drop the ``EDGE_ORDER`` and ``N_SLICES`` a ``source_file`` leaves at
+    ELEGANT's defaults, so bends export with LAURA's second-order edges and
+    auto-scaled kick count."""
+
     elegant_data: Dict = {}
     """Dictionary containing data about the ELEGANT lattice"""
 
@@ -278,15 +283,17 @@ class ElegantLatticeImporter(LatticeImporter):
             saved = directory / f"{name}.lte"
 
             def _write_command(output_seq: int) -> None:
+                # POSIX separators: elegant processes escapes inside quoted
+                # strings, so a Windows "...\newBST" would read "\n" as a newline.
                 command.write_text(
                     "&run_setup\n"
-                    f' lattice = "{Path(self.source_file).resolve()}",\n'
+                    f' lattice = "{Path(self.source_file).resolve().as_posix()}",\n'
                     f' use_beamline = "{name}",\n'
-                    f' rootname = "{root}",\n'
+                    f' rootname = "{root.as_posix()}",\n'
                     " p_central_mev = 100,\n"
                     "&end\n"
                     "&save_lattice\n"
-                    f' filename = "{saved}",\n'
+                    f' filename = "{saved.as_posix()}",\n'
                     f" output_seq = {output_seq},\n"
                     " suppress_defaults = 0,\n"
                     "&end\n"
@@ -295,7 +302,7 @@ class ElegantLatticeImporter(LatticeImporter):
             _write_command(2)
             try:
                 subprocess.run(
-                    ["elegant", str(command)],
+                    ["elegant", command.as_posix()],
                     cwd=Path(self.source_file).resolve().parent,
                     check=True,
                     capture_output=True,
@@ -309,16 +316,27 @@ class ElegantLatticeImporter(LatticeImporter):
                 _write_command(0)
                 try:
                     subprocess.run(
-                        ["elegant", str(command)],
+                        ["elegant", command.as_posix()],
                         cwd=Path(self.source_file).resolve().parent,
                         check=True,
                         capture_output=True,
                         text=True,
                     )
                 except subprocess.CalledProcessError as exc2:
+                    output = "\n".join(filter(None, (exc2.stdout, exc2.stderr)))
+                    lines = [
+                        line.strip() for line in output.splitlines() if line.strip()
+                    ]
+                    cause = next(
+                        (
+                            line
+                            for line in reversed(lines)
+                            if line.lower().startswith("error")
+                        ),
+                        lines[-1] if lines else "no output",
+                    )
                     raise ValueError(
-                        f"ELEGANT could not load beamline {name!r}: "
-                        f"{exc2.stderr or exc2.stdout}"
+                        f"ELEGANT could not load beamline {name!r}: {cause}\n\n{output}"
                     ) from exc2
             self._source_outputs[name] = str(saved)
 
@@ -346,10 +364,15 @@ class ElegantLatticeImporter(LatticeImporter):
         unscalable = self._rescale_strength_symbols()
         for name, data in self.elegant_data.items():
             expressions = self._expressions_for(name)
-            if self.source_file and "edge_order" not in self._from_source(
-                self._source_parameters, name
-            ):
-                data.get("simulation", {}).pop("edge_order", None)
+            simulation = data.get("simulation", {})
+            if self.uniform_integration and self.source_file:
+                stated = self._from_source(self._source_parameters, name)
+                if "edge_order" not in stated:
+                    simulation.pop("edge_order", None)
+                if not {"n_slices", "n_kicks"} & stated:
+                    simulation.pop("n_slices", None)
+            if "n_slices" in simulation:
+                simulation.setdefault("n_kicks", simulation["n_slices"])
             length = self._length_of(data)
             for parameter in ("k0", "k1", "k2", "k3", "angle"):
                 expression = expressions.get(parameter)
@@ -407,7 +430,9 @@ class ElegantLatticeImporter(LatticeImporter):
                     field_type=(
                         "3DWake"
                         if zwakefile and trwakefile
-                        else "LongitudinalWake" if zwakefile else "TransverseWake"
+                        else "LongitudinalWake"
+                        if zwakefile
+                        else "TransverseWake"
                     )
                 )
                 wake.filename = str(wakepath.resolve())
@@ -468,6 +493,12 @@ class ElegantLatticeImporter(LatticeImporter):
             v = self._convert_ele_phase_to_phase(v)
             if vtype == "Solenoid":
                 v = self._convert_b_to_s0l(v, elem_length)
+            if vtype == "Combined_Corrector":
+                # A combined corrector's introspected magnetic defaults hold only its
+                # two planes, so the generic keyword mapping never places ``l`` and the
+                # magnetic length stays 0 (exporters write the kicker with ``l = 0``).
+                # The model shares a flat ``length`` between both planes.
+                v.setdefault("magnetic", {}).setdefault("length", elem_length)
 
             physical = {
                 "s": cumulative_s,
@@ -720,7 +751,10 @@ class ElegantLatticeImporter(LatticeImporter):
             if "phase" in v["cavity"]:
                 value = v["cavity"]["phase"]
                 # inverse of RFCavityTranslator.to_elegant: deflectors take -phase
-                deflector = v.get("hardware_type") in ("RFDeflectingCavity", "CrabCavity")
+                deflector = v.get("hardware_type") in (
+                    "RFDeflectingCavity",
+                    "CrabCavity",
+                )
                 offset = 0 if deflector else 90
                 tokens = value.strip('"').split() if isinstance(value, str) else []
                 if len(tokens) == 3 and tokens[0] == str(offset) and tokens[2] == "-":

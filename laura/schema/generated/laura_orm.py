@@ -402,13 +402,18 @@ class ApertureElement(Base):
     horizontal_offset = Column(Float())
     vertical_offset = Column(Float())
     shape = Column(Enum('circular', 'rectangular', 'elliptical', 'planar', 'scraper', name='ApertureShapeEnum'))
+    location = Column(Enum('entrance_end', 'center', 'exit_end', 'both_ends', 'everywhere', 'nowhere', name='ApertureLocationEnum'))
+    material = Column(Text())
+    thickness = Column(Float())
+    active = Column(Boolean())
+    shifts_with_body = Column(Boolean())
     radius = Column(Float())
     negative_extent = Column(Float())
     positive_extent = Column(Float())
     
 
     def __repr__(self):
-        return f"ApertureElement(id={self.id},number_of_elements={self.number_of_elements},horizontal_size={self.horizontal_size},vertical_size={self.vertical_size},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},shape={self.shape},radius={self.radius},negative_extent={self.negative_extent},positive_extent={self.positive_extent},)"
+        return f"ApertureElement(id={self.id},number_of_elements={self.number_of_elements},horizontal_size={self.horizontal_size},vertical_size={self.vertical_size},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},shape={self.shape},location={self.location},material={self.material},thickness={self.thickness},active={self.active},shifts_with_body={self.shifts_with_body},radius={self.radius},negative_extent={self.negative_extent},positive_extent={self.positive_extent},)"
 
 
 
@@ -7695,8 +7700,8 @@ class MagnetSimulationElement(SimulationElement):
     field_amplitude = Column(Float())
     n_slices = Column(Integer())
     edge_field_integral = Column(Float())
-    edge1_effects = Column(Boolean())
-    edge2_effects = Column(Boolean())
+    edge1_effects = Column(Integer())
+    edge2_effects = Column(Integer())
     fringe_model = Column(Text())
     sr_enable = Column(Boolean())
     isr_enable = Column(Boolean())
@@ -8068,7 +8073,7 @@ class TwissMatchSimulationElement(SimulationElement):
 
 class MatrixTransformSimulationElement(SimulationElement):
     """
-    Zero- through third-order transfer-map coefficients for a matrix transform element, in Bmad's phase-space coordinates (x, px, y, py, z, pz): z = -beta c dt, positive ahead of the reference, and pz = dp/p0. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+    Zero- through third-order transfer-map coefficients for a matrix transform element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0.
     """
     __tablename__ = 'MatrixTransformSimulationElement'
 

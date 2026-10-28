@@ -24,6 +24,7 @@ from ..converters import (
     keyword_conversion_rules_madx,
     keyword_conversion_rules_ocelot,
     keyword_conversion_rules_opal,
+    keyword_conversion_rules_pals,
     keyword_conversion_rules_wake_t,
     keyword_conversion_rules_xsuite,
     type_conversion_rules,
@@ -38,6 +39,7 @@ from ..utils.alignment import arc_point, sagitta, to_frame
 from ..utils.bmad import bmad_misalignment
 from ..utils.fields import FieldMap
 from ..utils.functions import check_value, expand_substitution, sanitize_string
+from ..utils.pals import pals_element_body
 
 _ASTRA_ROTATION_SIGN = {"x": -1.0, "y": -1.0, "z": 1.0}
 """Sign taking a LAURA ``Rotation`` component into ASTRA's ``*_xrot`` family."""
@@ -201,6 +203,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             "opal": keyword_conversion_rules_opal,
             "bmad": keyword_conversion_rules_bmad,
             "madx": keyword_conversion_rules_madx,
+            "pals": keyword_conversion_rules_pals,
         }
         for code, rules in rules_by_code.items():
             if (code, hardware_type) not in _MERGED_RULES:
@@ -708,8 +711,13 @@ class BaseElementTranslator(PhysicalBaseElement):
             "sextupole",
             "octupole",
         ):
-            # n_kicks is ELEGANT's count of 4th-order steps; yoshida4 means the same
-            properties["integrator"] = "yoshida4"
+            from importlib.metadata import version
+
+            renamed = tuple(int(p) for p in version("xtrack").split(".")[:2]) >= (
+                0,
+                115,
+            )
+            properties["integrator"] = "yoshida-6" if renamed else "yoshida4"
         return self.name, obj, properties
 
     def to_impactx(
@@ -991,13 +999,14 @@ class BaseElementTranslator(PhysicalBaseElement):
             elements_opal[etype],
             overrides=self._opal_alignment(),
         ):
+            value = self._angle_token(value)
             if (
                 brho
                 and key in ("k1", "k2", "k3", "dk1", "dk2", "dk3")
                 and isinstance(value, (int, float))
             ):
                 value = value * brho
-            wholestring += f", {key} = {self._flag(self._angle_token(value))}"
+            wholestring += f", {key} = {self._flag(value)}"
         if etype == "monitor":
             wholestring += f', OUTFN = "{self.name}_opal"'
         wholestring += f", ELEMEDGE = {sval};\n"
@@ -1493,6 +1502,19 @@ class BaseElementTranslator(PhysicalBaseElement):
         of one element can be compared on the values that reached the file.
         """
         return dict((self.__pydantic_private__ or {}).get("_bmad_written", {}))
+
+    def to_pals(self) -> Dict[str, Any]:
+        """
+        Generate the PALS facility entry for this element.
+
+        Returns
+        -------
+        dict
+            ``{name: body}``, where the body holds the element's PALS ``kind``,
+            its ``length`` and its parameter groups.
+        """
+        self.start_write()
+        return {self.name: pals_element_body(self)}
 
     def _write_astra_dictionary(self, d: dict, n: int | None = 1) -> str:
         """

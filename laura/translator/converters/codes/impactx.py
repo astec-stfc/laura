@@ -322,7 +322,7 @@ class ImpactXLatticeImporter(LatticeImporter):
         for edge, location in ((group[:body], "entrance"), (group[body + 1 :], "exit")):
             plane = "1" if location == "entrance" else "2"
             if not edge:
-                simulation[f"edge{plane}_effects"] = False
+                simulation[f"edge{plane}_effects"] = 0
                 continue
             edge = edge[0]
             magnetic[f"{location}_edge_angle"] = edge["psi"]

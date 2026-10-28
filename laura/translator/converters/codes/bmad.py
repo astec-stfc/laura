@@ -42,6 +42,7 @@ from .importer import (
     LatticeImporter,
     check_layouts,
     compact_expression,
+    element_class,
     infer_geometry,
     keyword_rules,
     read_with_calls,
@@ -495,7 +496,7 @@ def _holds_a_wake_field(hardware_type: str) -> bool:
     samples down to. Asked here so an unexpected element type warns instead of
     raising a validation error part-way through an import.
     """
-    element = getattr(laura_elements, hardware_type, None)
+    element = element_class(hardware_type)
     simulation = getattr(element, "model_fields", {}).get("simulation")
     if simulation is None:
         return False
@@ -513,7 +514,7 @@ def _simulation_fields(hardware_type: str) -> frozenset:
     reports for every element alike have to be filtered before they are handed
     to a constructor that would reject them.
     """
-    element = getattr(laura_elements, hardware_type, None)
+    element = element_class(hardware_type)
     simulation = getattr(element, "model_fields", {}).get("simulation")
     if simulation is None:
         return frozenset()
@@ -1336,7 +1337,7 @@ class BmadLatticeImporter(LatticeImporter):
             extra["simulation"] = settings | dict(extra.get("simulation") or {})
         self.laura_elems[universe][branch].update(
             {
-                name: getattr(laura_elements, hardware_type)(
+                name: element_class(hardware_type)(
                     physical=dict(physical),
                     name=name,
                     hardware_type=hardware_type,
@@ -1456,7 +1457,7 @@ class BmadLatticeImporter(LatticeImporter):
         }
         stored = self.laura_elems[e.universe][e.branch]
         if e.etype != "Kicker":
-            stored[e.name] = getattr(laura_elements, data["hardware_type"])(**data)
+            stored[e.name] = element_class(data["hardware_type"])(**data)
             return
         stored[e.name] = CombinedCorrector(**data)
         for suffix, cls, hardware_type, kick in (

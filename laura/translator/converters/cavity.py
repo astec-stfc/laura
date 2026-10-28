@@ -1,11 +1,13 @@
+from warnings import warn
+
 import numpy as np
 from pydantic import computed_field, model_validator
 
 from laura.models.rf import RFCavityElement
 from laura.models.simulation import RFCavitySimulationElement
 from laura.translator.utils.fields import FieldMap
-from laura.translator.utils.fields.opal import opal_tw_window
 from laura.translator.utils.fields.gdf import gpt_tw_mockup
+from laura.translator.utils.fields.opal import opal_tw_window
 
 from ..converters import (
     elements_bmad,
@@ -153,6 +155,23 @@ class RFCavityTranslator(BaseElementTranslator):
         if etype == "lcavity" and self.bmad_geometry == "closed":
             etype = "rfcavity"
         parameters = self._bmad_parameters(etype)
+        frequency, voltage = parameters.get("rf_frequency"), parameters.get("voltage")
+        if etype == "rfcavity" and isinstance(frequency, (int, float)) and frequency == 0:
+            # Tao cannot find a closed orbit through an rfcavity with rf_frequency = 0
+            # (the maps hold NaN), so a cavity that is off is written as the drift it is.
+            if isinstance(voltage, (int, float)) and voltage == 0:
+                warn(
+                    f"RF cavity {self.name!r} has zero voltage and zero frequency; "
+                    "written to Bmad as a drift of the same length."
+                )
+                return self._format_bmad(
+                    "drift", {"l": parameters["l"]} if "l" in parameters else {}
+                )
+            warn(
+                f"RF cavity {self.name!r} has zero frequency but voltage {voltage}; "
+                "Bmad cannot track a closed orbit through an rfcavity with "
+                "rf_frequency = 0."
+            )
         phase = self.cavity.phase
         # Bmad's crab kick is sin(2*pi*phi0 - wt): phase 0 (full kick) is phi0 = 1/4
         sign, offset = (1, 90) if etype == "crab_cavity" else (-1, 0)
@@ -163,9 +182,7 @@ class RFCavityTranslator(BaseElementTranslator):
         )
         voltage = parameters.get("voltage")
         if voltage is not None and self.structure_type == "TravellingWave":
-            factor = abs(
-                (self.get_cells() + 3.8) * self.cavity.cell_length * (1 / np.sqrt(2))
-            )
+            factor = self.travelling_wave_voltage_factor()
             parameters["voltage"] = (
                 f"({voltage}) * {factor}"
                 if not self._resolve_functional and self.is_functional(voltage)
@@ -228,7 +245,7 @@ class RFCavityTranslator(BaseElementTranslator):
             sim.t_column = sim.t_column or "t"
             for col in ("Wx", "Wy", "Wz"):
                 if getattr(
-                    getattr(wake, col, None), "value", None
+                        getattr(wake, col, None), "value", None
                 ) is not None and not getattr(sim, f"{col.lower()}_column"):
                     setattr(sim, f"{col.lower()}_column", col)
             self.set_wakefield_column_names(wakefield_file_name)
@@ -567,10 +584,10 @@ class RFCavityTranslator(BaseElementTranslator):
                         )
                     else:
                         value = value
-                if key == "num_kicks" and value is None and self.get_cells() > 1:
-                    value = 3 * self.get_cells()
                 if value is not None:
                     properties.update({key: value})
+        if self.get_cells() > 1 and properties.get("num_kicks") is None:
+            properties["num_kicks"] = 3 * self.get_cells()
         return self.name, obj, properties
 
     def xsuite_edges(self, cavity: object, p0c: float) -> tuple:
@@ -740,6 +757,21 @@ class RFCavityTranslator(BaseElementTranslator):
                     sval += opal_tw_window(field, field.frequency)[0]
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
+
+    def travelling_wave_voltage_factor(self) -> float:
+        """
+        Factor turning a travelling-wave field amplitude into a voltage.
+
+        LAURA holds a travelling-wave cavity's ``field_amplitude`` as a
+        gradient-like number rather than as the voltage a standing-wave cavity's
+        amplitude is.
+
+        Returns
+        -------
+        float
+            The effective length [m] to multiply the amplitude by.
+        """
+        return abs((self.get_cells() + 3.8) * self.cavity.cell_length / np.sqrt(2))
 
     def get_cells(self) -> int:
         """

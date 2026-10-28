@@ -1,4 +1,4 @@
-from typing import Iterator, List, Optional, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple
 from warnings import warn
 
 from laura.models.element_list import MachineModel
@@ -96,3 +96,18 @@ class MachineModelTranslator(ContainerTranslator, MachineModel):
                 continue
             body += f"{line_name}: LINE = " + "{" + ", ".join(latt.keys()) + "};\n\n"
         return body
+
+    def to_pals(self) -> Dict[str, str]:
+        """
+        Create one PALS document per machine layout.
+
+        Returns
+        -------
+        dict
+            Layout name -> the contents of a ``*.pals.yaml`` file, each holding
+            that layout's sections as the branches of one lattice.
+        """
+        return {
+            name: self._layout_translator(layout).to_pals(particle=self.particle)
+            for name, layout in self.lattices.items()
+        }

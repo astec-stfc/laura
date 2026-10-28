@@ -193,10 +193,10 @@ def build_dipole(t, model, ref) -> list:
         }
     magnetic, simulation = t.magnetic, t.simulation
     parts = [bodies[tier(bodies, model)]]
-    if simulation.edge1_effects is not False:
+    if simulation.edge1_effects != 0:
         fint = magnetic.edge_field_integral_entrance
         parts.insert(0, _edge(t, "entry", float(t.e1), rc, fint, magnetic.gap, model))
-    if simulation.edge2_effects is not False:
+    if simulation.edge2_effects != 0:
         gap = magnetic.gap if magnetic.exit_gap is None else magnetic.exit_gap
         parts.append(
             _edge(t, "exit", float(t.e2), rc, magnetic.exit_fringe_integral, gap, model)

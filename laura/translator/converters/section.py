@@ -1,7 +1,7 @@
 import json
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict, Literal, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Literal
 from warnings import warn
 
 import numpy as np
@@ -32,12 +32,18 @@ from ..utils.bmad import (
 )
 from ..utils.fields import FieldMap
 from ..utils.functions import (
-    cavity_energy_gain,
     bmad_functional_definitions,
+    cavity_energy_gain,
     elegant_functional_definitions,
     functional_fields,
     madx_functional_definitions,
     sanitize_string,
+)
+from ..utils.pals import (
+    PalsBeamLine,
+    fold_repeated_cells,
+    pals_document,
+    pals_safe_names,
 )
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
@@ -52,6 +58,7 @@ from .codes import (
     gpt_unsupported,
     ocelot_unsupported,
     opal_unsupported,
+    pals_unsupported,
     wake_t_unsupported,
     xsuite_unsupported,
 )
@@ -61,6 +68,27 @@ from .diagnostic import DiagnosticTranslator
 from .magnet import MagnetTranslator, SolenoidTranslator
 from .matrix import MatrixTransformTranslator, madx_gamma
 from .wake import WakefieldTranslator
+
+
+def _s_bounds(element) -> tuple:
+    """Arc-length positions of an element's entrance and exit faces.
+
+    ``physical.s`` is the middle of the element, and is only set once
+    ``resolve_positions`` has run; before that the trajectory, or failing that
+    the raw z of the middle, is the best available answer.
+    """
+    physical = element.physical
+    middle = physical.s
+    if middle is None:
+        trajectory = getattr(physical, "_trajectory", None)
+        middle = (
+            trajectory.s_at_xyz(physical.middle)
+            if trajectory is not None
+            else physical.middle.z
+        )
+    half_length = physical.length / 2
+    return middle - half_length, middle + half_length
+
 
 unsupported_elements = {
     "bmad": bmad_unsupported,
@@ -72,6 +100,7 @@ unsupported_elements = {
     "gpt": gpt_unsupported,
     "ocelot": ocelot_unsupported,
     "opal": opal_unsupported,
+    "pals": pals_unsupported,
     "wake_t": wake_t_unsupported,
     "xsuite": xsuite_unsupported,
 }
@@ -406,19 +435,7 @@ class SectionLatticeTranslator(SectionLattice):
             origin = seed.simulation
 
         by_name = {element.name: element for element in all_elements}
-
-        def s_bounds(element):
-            physical = element.physical
-            middle = physical.s
-            if middle is None:
-                trajectory = getattr(physical, "_trajectory", None)
-                middle = (
-                    trajectory.s_at_xyz(physical.middle)
-                    if trajectory is not None
-                    else physical.middle.z
-                )
-            half_length = physical.length / 2
-            return middle - half_length, middle + half_length
+        s_bounds = _s_bounds
 
         def logical_corrector_part(element):
             parent = by_name.get(element.subelement)
@@ -454,7 +471,7 @@ class SectionLatticeTranslator(SectionLattice):
         backbone_section = self.model_copy(
             update={"order": [element.name for element in backbone]}
         )
-        section = backbone_section.createDrifts(keep_diagnostic_length=True)
+        section = backbone_section.create_drifts(keep_diagnostic_length=True)
         keys = list(section)
         at = {key: index for index, key in enumerate(keys)}
         patch_definitions = ""
@@ -563,6 +580,135 @@ class SectionLatticeTranslator(SectionLattice):
             name=name,
             renames=renames,
         )
+
+    def _pals_beamline(self, particle: str | None = None) -> PalsBeamLine:
+        """
+        Build this section's PALS branch: its definitions and its line.
+
+        Kept apart from :meth:`to_pals` because a PALS document holds a whole
+        machine, so a layout writes one branch per section into a single
+        document rather than one document per section..
+
+        Parameters
+        ----------
+        particle: str | None
+            Reference species for the branch.
+
+        Returns
+        -------
+        PalsBeamLine
+            The branch, ready for
+            :func:`~laura.translator.utils.pals.pals_document`.
+        """
+        self._check_elements_supported("pals")
+        all_elements = list(self.elements.elements.values())
+        ordered_elements = self._get_all_elements()
+        by_name = {element.name: element for element in all_elements}
+
+        initial_twiss = None
+        begin_name = None
+        if ordered_elements and ordered_elements[0].hardware_type == "TwissMatch":
+            seed = ordered_elements[0]
+            initial_twiss = seed.simulation
+            begin_name = seed.name
+            ordered_elements = ordered_elements[1:]
+
+        if not ordered_elements:
+            raise ValueError("A PALS branch needs at least one element")
+
+        def logical_corrector_part(element) -> bool:
+            parent = by_name.get(element.subelement)
+            return (
+                parent is not None
+                and parent.hardware_type == "Combined_Corrector"
+                and element.hardware_type
+                in {"Horizontal_Corrector", "Vertical_Corrector"}
+            )
+
+        dropped = sorted(
+            element.name
+            for element in ordered_elements
+            if element.is_subelement() and not logical_corrector_part(element)
+        )
+        if dropped:
+            warn(
+                f"PALS cannot superimpose one element on another, so {', '.join(dropped)} "
+                f"could not be written into section {self.name!r}. Everything else "
+                "keeps its position."
+            )
+
+        previous_end = None
+        for element in ordered_elements:
+            if element.is_subelement():
+                continue
+            start, end = _s_bounds(element)
+            if previous_end is not None and start < previous_end - 1e-12:
+                warn(
+                    f"LAURA elements {element.name!r} and the one before it overlap; "
+                    "PALS positions an element by the lengths ahead of it, so the "
+                    "exported branch places them end to end and is longer than the "
+                    "section it came from."
+                )
+            previous_end = end
+
+        section = self.model_copy(
+            update={"order": [element.name for element in ordered_elements]}
+        ).create_drifts(
+            csr_enable=self.csr_enable,
+            lsc_enable=self.lsc_enable,
+            lsc_bins=self.lsc_bins,
+            keep_diagnostic_length=True,
+        )
+        elements = translate_elements(
+            section.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        start = max(_s_bounds(ordered_elements[0])[0], 0.0)
+
+        renames = pals_safe_names(
+            [*elements, self.name, *([begin_name] if begin_name else [])]
+        )
+        definitions: Dict[str, Any] = {}
+        line: list = []
+        for name, translator in elements.items():
+            translator.name = renames.get(name, name)
+            definitions.update(translator.to_pals())
+            line.append(translator.name)
+
+        name = renames.get(self.name, self.name)
+        sublines, line = fold_repeated_cells(name, definitions, line)
+
+        geometry = getattr(self.geometry, "value", self.geometry) or "open"
+        return PalsBeamLine(
+            name=name,
+            definitions=definitions,
+            line=line,
+            sublines=sublines,
+            periodic=str(geometry).lower() == "closed",
+            particle=particle,
+            energy=self.reference_energy,
+            twiss=initial_twiss,
+            begin_name=renames.get(begin_name, begin_name),
+            s_position=start,
+        )
+
+    def to_pals(self, particle: str | None = None) -> str:
+        """
+        Create a PALS document holding this section as a single-branch lattice.
+
+        Parameters
+        ----------
+        particle: str | None
+            Reference species for the branch.
+
+        Returns
+        -------
+        str
+            The contents of a ``*.pals.yaml`` file.
+        """
+        beamline = self._pals_beamline(particle=particle)
+        return pals_document([beamline], f"{beamline.name}_lattice")
 
     def to_astra(self) -> str:
         """
@@ -735,6 +881,7 @@ class SectionLatticeTranslator(SectionLattice):
                 element.hardware_class.lower() == "diagnostic"
                 or element.hardware_type.lower() == "marker"
             ):
+                # a screen's z is measured from the origin of the ccs it is written in
                 relpos = list(element.physical.middle.model_dump().values())
                 if ccs.name != "wcs":
                     relpos, _ = ccs.relative_position(
@@ -1366,8 +1513,8 @@ class SectionLatticeTranslator(SectionLattice):
             else None
         )
         line = env.new_line()
-        element_types = {}
         p0c = particle_ref.p0c[0] if isinstance(particle_ref, xt.Particles) else None
+        element_types = {}
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
                 if isinstance(element, ACDipoleTranslator):

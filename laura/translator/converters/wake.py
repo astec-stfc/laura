@@ -17,6 +17,19 @@ class WakefieldTranslator(BaseElementTranslator):
     simulation: WakefieldSimulationElement
     """Wakefield simulation attributes."""
 
+    def to_bmad(self) -> str:
+        """
+        Generate a drift carrying a short-range wake for Bmad.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        parameters = self._bmad_sr_wake(self._bmad_parameters("drift"))
+        return self._format_bmad("drift", parameters)
+
     def to_elegant(self) -> str:
         """
         Writes the wakefield element string for ELEGANT, as an ``rfcw`` with no voltage:
@@ -58,19 +71,6 @@ class WakefieldTranslator(BaseElementTranslator):
             + ", ".join(f'{col.lower()}column = "{col}"' for col in columns)
             + ", n_bins = 0;\n"
         )
-
-    def to_bmad(self) -> str:
-        """
-        Generate a drift carrying a short-range wake for Bmad.
-
-        Returns
-        -------
-        str
-            String representation of the element for Bmad
-        """
-        self.start_write()
-        parameters = self._bmad_sr_wake(self._bmad_parameters("drift"))
-        return self._format_bmad("drift", parameters)
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """

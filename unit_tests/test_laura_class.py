@@ -287,6 +287,7 @@ class TestDriftsAndSPos:
         )
         spos = machine.get_elements_s_pos()
         assert spos[f"M{n - 1}"] == pytest.approx((n - 1) * gap, abs=2e-6)
+
     def test_overlapping_elements_get_negative_drift(self):
         # LCLS gun: SOL1 starts 39 mm inside the gun, which used to count as a +39 mm drift
         elems = [

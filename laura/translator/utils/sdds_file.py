@@ -308,7 +308,13 @@ class SDDSFile(object):
             try:
                 return sdds.SDDS(slot)
             except Exception:
+                pass
+            try:
                 return sdds.sdds.SDDS(slot)
+            except Exception:
+                # the slot is in use (the sdds package refuses a second object on
+                # one index): take any free one rather than leave the file empty
+                return sdds.sdds.SDDS()
         if cleared:
             try:
                 return sdds.SDDS(None)

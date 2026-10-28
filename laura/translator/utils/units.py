@@ -10,6 +10,12 @@ from functools import cache
 
 import numpy as np
 
+LONG_PREFIXES = (
+    "yocto zepto atto femto pico nano micro milli centi deci "
+    "deka hecto kilo mega giga tera peta exa zetta yotta"
+).split()
+"""SI prefix names, each a factor in :mod:`scipy.constants`."""
+
 
 def unit_power(string, power_factor=1):
     """# Takes a string in the form 'a^x' and returns ('a', x)"""
@@ -419,10 +425,14 @@ class UnitValue(np.ndarray):
         return self.val / f, prefix
 
     def in_units_of(self, prefix):
-        from beamphysics.units import PREFIX_FACTOR, SHORT_PREFIX_FACTOR
+        import scipy.constants
+        from beamphysics.units import SHORT_PREFIX_FACTOR
 
+        name = prefix.rstrip("-")
         if prefix in SHORT_PREFIX_FACTOR:
             f = SHORT_PREFIX_FACTOR[prefix]
+        elif name in LONG_PREFIXES:  # beamphysics 0.16 dropped its long-name table
+            f = getattr(scipy.constants, name)
         else:
-            f = PREFIX_FACTOR.get(prefix.rstrip("-") + "-", 1)
+            f = 1
         return self.val / f

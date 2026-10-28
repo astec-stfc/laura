@@ -438,6 +438,33 @@ class TestMadxCavityAndAperture:
         )
         assert expected in getattr(translate_elements([cav])["c1"], method)()
 
+    def test_standing_wave_cavity_uses_rfcavity(self):
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={"structure_type": "StandingWave", "phase": 0.0},
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        out = translate_elements([cav])["c1"].to_madx()
+        assert "c1: rfcavity" in out
+
+    def test_travelling_wave_cavity_elegant_uses_tw1_body_focus_model(self):
+        # ELEGANT's own default (BODY_FOCUS_MODEL=SRS) is the standing-wave
+        # model -- travelling-wave cavities must request TW1 explicitly so
+        # ELEGANT's focusing matches MAD-X's tw_matrix_cavity and Ocelot's
+        # add_tw1_focusing (both built from tw1_focusing_matrix).
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={
+                "structure_type": "TravellingWave",
+                "phase": 0.0,
+                "mode_numerator": 2,
+                "mode_denominator": 3,
+            },
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        out = translate_elements([cav])["c1"].to_elegant()
+        assert "body_focus_model = TW1" in out
+
     def test_travelling_wave_cavity_tw_focusing_off_uses_standing_wave(self):
         cav = RFCavity(
             name="c1", machine_area="S",
@@ -455,6 +482,15 @@ class TestMadxCavityAndAperture:
         assert "body_focus_model = SRS" in tr.to_elegant()
         assert tr.to_cheetah().cavity_type == "standing_wave"
 
+    def test_standing_wave_cavity_elegant_uses_default_body_focus_model(self):
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={"structure_type": "StandingWave", "phase": 0.0},
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        out = translate_elements([cav])["c1"].to_elegant()
+        assert "body_focus_model = SRS" in out
+
     def test_elliptical_aperture_uses_ecollimator(self):
         ap = Aperture(
             name="ap1", machine_area="S",
@@ -471,31 +507,6 @@ class TestMadxCavityAndAperture:
         )
         out = translate_elements([col])["col1"].to_madx()
         assert "col1: rcollimator" in out
-
-
-@pytest.mark.parametrize("geometry, change_p0", [("closed", 0), ("open", 1), (None, 1)])
-def test_ring_cavity_leaves_the_reference_momentum_alone(geometry, change_p0):
-    """A ring's reference is its design momentum; ELEGANT refuses closed optics otherwise."""
-    cavity = RFCavity(
-        name="rf", machine_area="S", physical={"length": 0.0},
-        cavity={"phase": 0.0, "frequency": 3e9, "structure_type": "StandingWave"},
-        simulation={"field_amplitude": 4.5e6},
-    )
-    section = SectionLattice(name="S", order=["rf"], elements=[cavity], geometry=geometry)
-    written = SectionLatticeTranslator.from_section(section).to_elegant()
-    assert f"change_p0 = {change_p0}" in written
-    assert cavity.simulation.change_p0 == 1  # the lattice keeps its own
-
-
-@pytest.mark.parametrize("length, written", [(0.0, False), (1.0, True)])
-def test_thin_cavity_has_no_body_focusing(length, written):
-    """ELEGANT's body focusing scales as 1/L."""
-    cavity = RFCavity(
-        name="rf", machine_area="S", physical={"length": length},
-        cavity={"phase": 0.0, "frequency": 2e9, "structure_type": "StandingWave"},
-        simulation={"field_amplitude": 4.5e6},
-    )
-    assert ("body_focus_model" in translate_elements([cavity])["rf"].to_elegant()) is written
 
 
 class TestElegantDrift:
@@ -526,3 +537,28 @@ class TestElegantDrift:
         out = translate_elements([step_back])["S1_drift_1"].to_elegant()
         assert "S1_drift_1: csrdrift" in out
         assert "lsc_bins = 0" in out
+
+
+@pytest.mark.parametrize("geometry, change_p0", [("closed", 0), ("open", 1), (None, 1)])
+def test_ring_cavity_leaves_the_reference_momentum_alone(geometry, change_p0):
+    """A ring's reference is its design momentum; ELEGANT refuses closed optics otherwise."""
+    cavity = RFCavity(
+        name="rf", machine_area="S", physical={"length": 0.0},
+        cavity={"phase": 0.0, "frequency": 3e9, "structure_type": "StandingWave"},
+        simulation={"field_amplitude": 4.5e6},
+    )
+    section = SectionLattice(name="S", order=["rf"], elements=[cavity], geometry=geometry)
+    written = SectionLatticeTranslator.from_section(section).to_elegant()
+    assert f"change_p0 = {change_p0}" in written
+    assert cavity.simulation.change_p0 == 1  # the lattice keeps its own
+
+
+@pytest.mark.parametrize("length, written", [(0.0, False), (1.0, True)])
+def test_thin_cavity_has_no_body_focusing(length, written):
+    """ELEGANT's body focusing scales as 1/L."""
+    cavity = RFCavity(
+        name="rf", machine_area="S", physical={"length": length},
+        cavity={"phase": 0.0, "frequency": 2e9, "structure_type": "StandingWave"},
+        simulation={"field_amplitude": 4.5e6},
+    )
+    assert ("body_focus_model" in translate_elements([cavity])["rf"].to_elegant()) is written
