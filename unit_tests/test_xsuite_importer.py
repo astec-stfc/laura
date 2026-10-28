@@ -645,7 +645,7 @@ def test_sextupole_keeps_elegants_meaning_of_n_kicks():
     )
     native_type, properties = _to_xsuite(sextupole)
     assert properties["num_multipole_kicks"] == 4
-    assert native_type(**properties).integrator == "yoshida4"
+    assert native_type(**properties).integrator in ("yoshida4", "yoshida-6")  # renamed in xtrack 0.115
 
 
 @pytest.mark.parametrize(

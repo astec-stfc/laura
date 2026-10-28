@@ -10,7 +10,6 @@ from .sdds import write_sdds_field_file
 
 d = ",!?/&-:;@'\n \t"
 
-
 def opal_tw_window(field, frequency: float) -> tuple[float, float]:
     """
     The stretch of an ASTRA-style travelling-wave map that OPAL's ``TRAVELINGWAVE``
@@ -20,7 +19,6 @@ def opal_tw_window(field, frequency: float) -> tuple[float, float]:
     """
     period = speed_of_light / frequency
     return field.start_cell_z - period / 2, field.start_cell_z + 3 * period / 2
-
 
 def write_opal_field_file(
     self,
@@ -103,9 +101,7 @@ def write_opal_field_file(
         if self.start_cell_z is not None:
             lo, hi = opal_tw_window(self, frequency)
             if lo < zdata.min() - 1e-9 or hi > zdata.max() + 1e-9:
-                raise ValueError(
-                    f"TW map spans {zdata.min()}-{zdata.max()} m, OPAL needs {lo}-{hi} m"
-                )
+                raise ValueError(f"TW map spans {zdata.min()}-{zdata.max()} m, OPAL needs {lo}-{hi} m")
             dz = (zdata.max() - zdata.min()) / (len(zdata) - 1)
             znew = np.linspace(lo, hi, int(round((hi - lo) / dz)) + 1)
             zdata, ezdata = znew - lo, np.interp(znew, zdata, ezdata)
@@ -151,7 +147,6 @@ def write_opal_field_file(
                     dat = [dat]
                 f.write(" ".join([str(x) for x in dat]) + "\n")
     return opal_file
-
 
 def read_opal_field_file(
     self,

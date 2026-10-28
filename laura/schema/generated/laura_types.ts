@@ -160,6 +160,19 @@ export enum ApertureShapeEnum {
     scraper = "scraper",
 };
 /**
+* Where along the element an aperture is checked. Following PALS ``ApertureP.location``.
+*/
+export enum ApertureLocationEnum {
+    
+    entrance_end = "entrance_end",
+    center = "center",
+    exit_end = "exit_end",
+    both_ends = "both_ends",
+    everywhere = "everywhere",
+    /** Defined but never checked -- distinct from ``active: false``, which switches off an aperture that is otherwise placed. */
+    nowhere = "nowhere",
+};
+/**
 * Whether the reference orbit closes on itself. Mirrors Bmad's ``parameter[geometry]``.
 */
 export enum LatticeGeometryEnum {
@@ -552,6 +565,16 @@ export interface ApertureElement {
     vertical_offset?: number,
     /** Cross-sectional aperture shape. */
     shape?: string,
+    /** Where along the element the aperture is checked. */
+    location?: string,
+    /** Material of the aperture jaws or collimator body. */
+    material?: string,
+    /** Longitudinal thickness of the aperture material [m]. */
+    thickness?: number,
+    /** Whether the aperture is applied. False keeps the definition without checking against it. */
+    active?: boolean,
+    /** Whether the aperture follows the element's misalignment rather than staying on the design orbit. */
+    shifts_with_body?: boolean,
     /** Radius for circular apertures [m]. */
     radius?: number,
     /** Upstream / inner extent [m]. */
@@ -780,10 +803,10 @@ export interface MagnetSimulationElement extends SimulationElement {
     n_slices?: number,
     /** Per-simulation override of the magnet's fringe-field integral. Absent means "use ``MagneticElement.edge_field_integral``". */
     edge_field_integral?: number,
-    /** Enable entrance-edge focussing effects. */
-    edge1_effects?: boolean,
-    /** Enable exit-edge focussing effects. */
-    edge2_effects?: boolean,
+    /** Entrance-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method. */
+    edge1_effects?: number,
+    /** Exit-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method. */
+    edge2_effects?: number,
     /** Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code. */
     fringe_model?: string,
     /** Enable synchrotron-radiation energy loss. */
@@ -1210,7 +1233,7 @@ export interface MagneticElement {
     fringe_field_coefficient?: number,
     /** Peak field gradient [T/m] (quads) or peak field [T] (dipoles). */
     gradient?: number,
-    /** Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property. */
+    /** Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored. */
     angle?: number,
 }
 

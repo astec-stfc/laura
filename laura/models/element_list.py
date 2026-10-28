@@ -44,7 +44,7 @@ from .control import set_attr_by_path
 from .element import BaseElement, Diagnostic, Drift, PhysicalBaseElement
 from .exceptions import LatticeError
 from .magnetic import brho
-from .physical import PhysicalElement, Position, Rotation
+from .physical import DriftPhysicalElement, PhysicalElement, Position, Rotation
 from .reversal import reverse_element
 from .simulation import DriftSimulationElement
 from .trajectory import Trajectory
@@ -249,6 +249,12 @@ def load_functional_definitions(
     raise ValueError("functional_definitions must be a path, dict, or None")
 
 
+def signed_gap(prev: PhysicalElement, start) -> float:
+    """Distance along the beam from the exit of ``prev`` to ``start``, negative where they overlap."""
+    step = np.asarray(start) - np.asarray(prev.end.array)
+    return float(np.copysign(np.linalg.norm(step), step @ prev.end_rotation_matrix[:, 2]))
+
+
 def insert_drifts(
     elements: Dict[str, Any],
     prefix: str,
@@ -284,16 +290,19 @@ def insert_drifts(
         if gap is not None:
             drift_name, length, (x1, y1, z1), (x2, y2, z2) = gap
             middle = dict(x=(x1 + x2) / 2.0, y=(y1 + y2) / 2.0, z=(z1 + z2) / 2.0)
+            fields = deepcopy(drift_fields)
+            if length < 0 and "simulation" in fields:
+                fields["simulation"].lsc_enable = False
             newelements[drift_name] = Drift(
                 name=drift_name,
                 hardware_class="Drift",
                 machine_area=elem.machine_area,
-                physical=PhysicalElement(
+                physical=DriftPhysicalElement(
                     length=length,
                     middle=Position(**middle),
                     datum=Position(**middle),
                 ),
-                **deepcopy(drift_fields),
+                **fields,
             )
     return newelements
 
@@ -364,15 +373,12 @@ def _drift_gaps(
             yield name, elem, None
             continue
         end, start = elem.physical.end.array, following.physical.start.array
-        (x1, y1, z1), (x2, y2, z2) = end, start
         try:
-            length = round(
-                np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2), digits
-            )
+            length = round(signed_gap(elem.physical, start), digits)
         except Exception as exc:
             _log.error("Drift calculation error near element '%s': %s", name, exc)
             raise
-        if length > min_length:
+        if abs(length) > min_length:
             count += 1
             yield name, elem, (f"{prefix}{count}", length, end, start)
         else:
@@ -1076,6 +1082,7 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
         rot_list = [np.eye(3)]
 
         elements_to_wire: list[PhysicalElement] = []
+        prev_phys: Optional[PhysicalElement] = None
 
         for name in self.order:
             elem = element_registry.get(name)
@@ -1090,11 +1097,12 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
             except RuntimeError:
                 continue
 
-            gap = (
-                float(np.linalg.norm(start_arr - prev_end))
-                if prev_end is not None
-                else float(np.linalg.norm(start_arr))
-            )
+            if prev_phys is not None:
+                gap = signed_gap(prev_phys, start_arr)
+            elif prev_end is not None:
+                gap = float(np.linalg.norm(start_arr - prev_end))
+            else:
+                gap = float(np.linalg.norm(start_arr))
             s_elem_start = current_s + gap
 
             mid_arr = np.array([phys.middle.x, phys.middle.y, phys.middle.z])
@@ -1103,8 +1111,10 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
             try:
                 end = phys.end
                 end_arr = np.array([end.x, end.y, end.z])
+                prev_phys = phys
             except RuntimeError:
                 end_arr = mid_arr
+                prev_phys = None
             s_elem_end = s_elem_start + phys.length
 
             s_list.extend([s_elem_start, s_elem_mid, s_elem_end])

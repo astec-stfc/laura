@@ -1,7 +1,7 @@
 import json
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional, Literal
 from warnings import warn
 
 import numpy as np
@@ -39,7 +39,12 @@ from ..utils.functions import (
     madx_functional_definitions,
     sanitize_string,
 )
-from ..utils.pals import PalsBeamLine, pals_document, pals_safe_names
+from ..utils.pals import (
+    PalsBeamLine,
+    fold_repeated_cells,
+    pals_document,
+    pals_safe_names,
+)
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
@@ -178,6 +183,12 @@ class SectionLatticeTranslator(SectionLattice):
     tw_focusing: bool = True
     """Flag to use travelling-wave focusing for TravellingWave cavities;
     see :attr:`~laura.translator.converters.cavity.RFCavityTranslator.tw_focusing`."""
+
+    cheetah_tracking_method: Literal["auto", "linear", "second_order"] = "auto"
+    """Tracking method for Cheetah's drifts, quadrupoles and dipoles. ``second_order`` is
+    better but slower. ``auto`` writes ``linear``, for
+    :func:`~laura.translator.converters.codes.cheetah.choose_cheetah_tracking_method`
+    to raise to ``second_order`` if the beam needs it."""
 
     opal_version: str = "202210"
     """Version of OPAL to write for; propagated to the elements, which use it
@@ -386,70 +397,6 @@ class SectionLatticeTranslator(SectionLattice):
                     header += f"beginning[{attribute}] = {value}\n"
         return header
 
-    def _split_backbone(self, starts_lattice: bool = True) -> Tuple[Any, list, list]:
-        """
-        Split this section into the elements a line holds end to end and the
-        ones that have to sit on top of them.
-
-        Parameters
-        ----------
-        starts_lattice: bool
-            Whether this section starts the lattice, so that a leading
-            `TwissMatch` seeds the line rather than being an element of it.
-
-        Returns
-        -------
-        tuple
-            The leading `TwissMatch` or ``None``, the backbone elements,
-            and the superimposed elements in section order.
-        """
-        all_elements = list(self.elements.elements.values())
-        ordered_elements = self._get_all_elements()
-
-        seed = None
-        if (
-            starts_lattice
-            and ordered_elements
-            and ordered_elements[0].hardware_type == "TwissMatch"
-        ):
-            seed = ordered_elements[0]
-            ordered_elements = ordered_elements[1:]
-            all_elements = [
-                element for element in all_elements if element.name != seed.name
-            ]
-        by_name = {element.name: element for element in all_elements}
-
-        def logical_corrector_part(element):
-            parent = by_name.get(element.subelement)
-            return (
-                parent is not None
-                and parent.hardware_type == "Combined_Corrector"
-                and element.hardware_type
-                in {"Horizontal_Corrector", "Vertical_Corrector"}
-            )
-
-        superimposed_names = {
-            element.name
-            for element in all_elements
-            if element.is_subelement() and not logical_corrector_part(element)
-        }
-        backbone = []
-        previous_end = None
-        for element in ordered_elements:
-            if element.name in superimposed_names:
-                continue
-            start, end = _s_bounds(element)
-            if previous_end is not None and start < previous_end - 1e-12:
-                superimposed_names.add(element.name)
-            else:
-                backbone.append(element)
-                previous_end = end
-
-        superimposed = [
-            element for element in all_elements if element.name in superimposed_names
-        ]
-        return seed, backbone, superimposed
-
     def _bmad_body(
         self, geometry: str, *, multipass: bool = False, starts_lattice: bool = True
     ) -> BmadBody:
@@ -470,10 +417,51 @@ class SectionLatticeTranslator(SectionLattice):
             of the line.
         """
         self._check_elements_supported("bmad")
-        seed, backbone, superimposed = self._split_backbone(starts_lattice)
-        has_origin = seed is not None
-        origin = seed.simulation if has_origin else None
+        all_elements = list(self.elements.elements.values())
+        ordered_elements = self._get_all_elements()
+
+        has_origin = bool(
+            starts_lattice
+            and ordered_elements
+            and ordered_elements[0].hardware_type == "TwissMatch"
+        )
+        origin = None
+        if has_origin:
+            seed = ordered_elements[0]
+            ordered_elements = ordered_elements[1:]
+            all_elements = [
+                element for element in all_elements if element.name != seed.name
+            ]
+            origin = seed.simulation
+
+        by_name = {element.name: element for element in all_elements}
         s_bounds = _s_bounds
+
+        def logical_corrector_part(element):
+            parent = by_name.get(element.subelement)
+            return (
+                parent is not None
+                and parent.hardware_type == "Combined_Corrector"
+                and element.hardware_type
+                in {"Horizontal_Corrector", "Vertical_Corrector"}
+            )
+
+        superimposed_names = {
+            element.name
+            for element in all_elements
+            if element.is_subelement() and not logical_corrector_part(element)
+        }
+        backbone = []
+        previous_end = None
+        for element in ordered_elements:
+            if element.name in superimposed_names:
+                continue
+            start, end = s_bounds(element)
+            if previous_end is not None and start < previous_end - 1e-12:
+                superimposed_names.add(element.name)
+            else:
+                backbone.append(element)
+                previous_end = end
 
         if not backbone:
             raise ValueError(
@@ -483,7 +471,7 @@ class SectionLatticeTranslator(SectionLattice):
         backbone_section = self.model_copy(
             update={"order": [element.name for element in backbone]}
         )
-        section = backbone_section.createDrifts(keep_diagnostic_length=True)
+        section = backbone_section.create_drifts(keep_diagnostic_length=True)
         keys = list(section)
         at = {key: index for index, key in enumerate(keys)}
         patch_definitions = ""
@@ -508,6 +496,9 @@ class SectionLatticeTranslator(SectionLattice):
             if key in patches:
                 ordered_members.append(patches[key])
 
+        superimposed = [
+            element for element in all_elements if element.name in superimposed_names
+        ]
         elements = self._translate(
             [
                 *(element for key, element in section.items() if key not in superseded),
@@ -564,6 +555,7 @@ class SectionLatticeTranslator(SectionLattice):
         lattice_start = s_bounds(backbone[0])[0] - lead
         superpositions = ""
         for element in superimposed:
+            translator = elements[element.name]
             target_type = target_types[element.name]
             if target_type == "drift":
                 warn(
@@ -611,21 +603,60 @@ class SectionLatticeTranslator(SectionLattice):
             :func:`~laura.translator.utils.pals.pals_document`.
         """
         self._check_elements_supported("pals")
-        seed, backbone, superimposed = self._split_backbone()
-        initial_twiss = seed.simulation if seed is not None else None
-        begin_name = seed.name if seed is not None else None
+        all_elements = list(self.elements.elements.values())
+        ordered_elements = self._get_all_elements()
+        by_name = {element.name: element for element in all_elements}
 
-        if not backbone:
+        initial_twiss = None
+        begin_name = None
+        if ordered_elements and ordered_elements[0].hardware_type == "TwissMatch":
+            seed = ordered_elements[0]
+            initial_twiss = seed.simulation
+            begin_name = seed.name
+            ordered_elements = ordered_elements[1:]
+
+        if not ordered_elements:
             raise ValueError("A PALS branch needs at least one element")
-        if superimposed:
-            warn(
-                "PALS cannot superimpose elements; "
-                f"{', '.join(sorted(element.name for element in superimposed))} "
-                f"was not written into section {self.name!r}."
+
+        def logical_corrector_part(element) -> bool:
+            parent = by_name.get(element.subelement)
+            return (
+                parent is not None
+                and parent.hardware_type == "Combined_Corrector"
+                and element.hardware_type
+                in {"Horizontal_Corrector", "Vertical_Corrector"}
             )
 
+        dropped = {
+            element.name
+            for element in ordered_elements
+            if element.is_subelement() and not logical_corrector_part(element)
+        }
+        # an element starting inside the one before leaves the line, as the Bmad
+        # writer superimposes it, so the rest keep their places
+        previous_end = None
+        overlapping = set()
+        for element in ordered_elements:
+            if element.is_subelement():
+                continue
+            start, end = _s_bounds(element)
+            if previous_end is not None and start < previous_end - 1e-12:
+                overlapping.add(element.name)
+            else:
+                previous_end = end
+        dropped |= overlapping
+        if dropped:
+            warn(
+                f"PALS cannot superimpose one element on another, so "
+                f"{', '.join(sorted(dropped))} could not be written into section "
+                f"{self.name!r}. Everything else keeps its position."
+            )
+        ordered_elements = [
+            element for element in ordered_elements if element.name not in overlapping
+        ]
+
         section = self.model_copy(
-            update={"order": [element.name for element in backbone]}
+            update={"order": [element.name for element in ordered_elements]}
         ).create_drifts(
             csr_enable=self.csr_enable,
             lsc_enable=self.lsc_enable,
@@ -637,7 +668,7 @@ class SectionLatticeTranslator(SectionLattice):
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
-        start = max(_s_bounds(backbone[0])[0], 0.0)
+        start = max(_s_bounds(ordered_elements[0])[0], 0.0)
 
         renames = pals_safe_names(
             [*elements, self.name, *([begin_name] if begin_name else [])]
@@ -649,11 +680,15 @@ class SectionLatticeTranslator(SectionLattice):
             definitions.update(translator.to_pals())
             line.append(translator.name)
 
+        name = renames.get(self.name, self.name)
+        sublines, line = fold_repeated_cells(name, definitions, line)
+
         geometry = getattr(self.geometry, "value", self.geometry) or "open"
         return PalsBeamLine(
-            name=renames.get(self.name, self.name),
+            name=name,
             definitions=definitions,
             line=line,
+            sublines=sublines,
             periodic=str(geometry).lower() == "closed",
             particle=particle,
             energy=self.reference_energy,
@@ -722,10 +757,16 @@ class SectionLatticeTranslator(SectionLattice):
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
                         counter[key] += e.aperture.number_of_elements
+                    elif isinstance(e, WakefieldTranslator):
+                        counter[key] += e.astra_wake_spacing[1]
                     else:
                         counter[key] += 1
-                    if hasattr(e.simulation, "wakefield_definition") and isinstance(
-                        e.simulation.wakefield_definition, (str, FieldMap)
+                    if (
+                        not isinstance(e, WakefieldTranslator)
+                        and hasattr(e.simulation, "wakefield_definition")
+                        and isinstance(
+                            e.simulation.wakefield_definition, (str, FieldMap)
+                        )
                     ):
                         w = WakefieldTranslator(
                             name=e.name + "_wake",
@@ -837,12 +878,14 @@ class SectionLatticeTranslator(SectionLattice):
                     ),
                     directory=element.directory,
                 )
+                w.ccs = element.ccs  # model_post_init resets ccs to the origin
                 fulltext += w.to_gpt(Brho, **kwargs)
             ccs = deepcopy(element.ccs)
             if (
                 element.hardware_class.lower() == "diagnostic"
                 or element.hardware_type.lower() == "marker"
             ):
+                # a screen's z is measured from the origin of the ccs it is written in
                 relpos = list(element.physical.middle.model_dump().values())
                 if ccs.name != "wcs":
                     relpos, _ = ccs.relative_position(
@@ -897,6 +940,7 @@ class SectionLatticeTranslator(SectionLattice):
             An OPAL-compatible input file.
         """
         self._check_elements_supported("opal")
+        self._warn_dropped_wakes("OPAL")
         check_dict = [
             "option",
             "distribution",
@@ -915,8 +959,12 @@ class SectionLatticeTranslator(SectionLattice):
         elem_dict = self._translate()
         written = []
         svals = self.get_resolved_s_values(as_dict=True, at_entrance=True)
+        dt = self.opal_headers["track"].DT
+        # with staged steps, the longest one fits a thin element into every stage
+        dt = max(dt) if isinstance(dt, (list, tuple)) else dt
         for d in elem_dict.values():
             d.opal_version = self.opal_version
+            d.opal_time_step = float(dt)
             if isinstance(d, RFCavityTranslator):
                 energy += cavity_energy_gain(d)
             if d.subelement:
@@ -977,6 +1025,29 @@ class SectionLatticeTranslator(SectionLattice):
             sim = getattr(d, "simulation", None)
             if sim is not None and hasattr(sim, "wakefield_enable"):
                 sim.wakefield_enable = False
+
+    def _warn_dropped_wakes(self, code: str) -> None:
+        """
+        Warn that ``code`` is written without the structure wakefields that are
+        switched on, since LAURA doesn't export wakes to it.
+
+        Parameters
+        ----------
+        code: str
+            Name of the code being written
+        """
+        if not self.wakefield_enable:
+            return
+        names = [
+            e.name
+            for e in self.elements.elements.values()
+            if getattr(getattr(e, "simulation", None), "wakefield_definition", None)
+            and getattr(e.simulation, "wakefield_enable", True)
+        ]
+        if names:
+            warn(
+                f"{code} is written without structure wakefields; dropped on {', '.join(names)}"
+            )
 
     def _apply_tw_focusing(self, elem_dict: dict) -> None:
         """Pass :attr:`~tw_focusing` on to the translated cavities."""
@@ -1349,9 +1420,11 @@ class SectionLatticeTranslator(SectionLattice):
         Segment
             A Cheetah `Segment` object.
         """
+        import cheetah
         from cheetah import Segment
 
         self._check_elements_supported("cheetah")
+        self._warn_dropped_wakes("Cheetah")
 
         elem_dict = self._translate(self.create_drifts().values())
         self._apply_tw_focusing(elem_dict)
@@ -1372,6 +1445,10 @@ class SectionLatticeTranslator(SectionLattice):
             full_segment = Segment(elements=segment, name=self.name)
         else:
             raise ValueError(f"No cheetah elements added for {self.name}")
+        method = self.cheetah_tracking_method.replace("auto", "linear")
+        for elem in full_segment.flattened().elements:
+            if isinstance(elem, (cheetah.Drift, cheetah.Quadrupole, cheetah.Dipole)):
+                elem.tracking_method = method
 
         if save:
             full_segment.to_lattice_json(filepath=f"{self.directory}/{self.name}.json")
@@ -1410,6 +1487,7 @@ class SectionLatticeTranslator(SectionLattice):
         import xtrack as xt
 
         self._check_elements_supported("xsuite")
+        self._warn_dropped_wakes("Xsuite")
 
         if not isinstance(env, xt.Environment):
             env = xt.Environment()
@@ -1419,6 +1497,7 @@ class SectionLatticeTranslator(SectionLattice):
             ).items():
                 env[name] = value
         elem_dict = self._translate(self.create_drifts().values())
+        self._apply_tw_focusing(elem_dict)
 
         def _is_symbolic(val: Any) -> bool:
             if isinstance(val, str):
@@ -1438,6 +1517,7 @@ class SectionLatticeTranslator(SectionLattice):
             else None
         )
         line = env.new_line()
+        p0c = particle_ref.p0c[0] if isinstance(particle_ref, xt.Particles) else None
         element_types = {}
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
@@ -1492,10 +1572,32 @@ class SectionLatticeTranslator(SectionLattice):
                         properties.update(misalignment)
                     if any(_is_symbolic(v) for v in properties.values()):
                         env.new(name, component, **properties)
-                        line.append(name)
+                        obj, args = env[name], (name,)
                     else:
-                        line.append(name, component(**properties))
+                        obj = component(**properties)
+                        args = (name, obj)
+                    edges = (
+                        isinstance(element, RFCavityTranslator)
+                        and isinstance(obj, xt.Cavity)
+                        and p0c is not None
+                        and obj.length > 0
+                        # a ring's reference stays at its design momentum
+                        and element.simulation.change_p0
+                    )
+                    if edges:
+                        entrance, increase, exit, p0c = element.xsuite_edges(obj, p0c)
+                        line.append(f"{name}_entrance", entrance)
+                        line.append(f"{name}_p0c", increase)
+                    line.append(*args)
+                    if edges:
+                        line.append(f"{name}_exit", exit)
                 element_types[element.name] = element.hardware_type
+        if p0c is None and any(
+            isinstance(e, RFCavityTranslator) for e in elem_dict.values()
+        ):
+            warn(
+                f"{self.name}: Xsuite cavities are written without edge focusing, as no particle_ref was given"
+            )
         line.metadata["laura_element_types"] = element_types
         line.metadata["laura_functional_definitions"] = dict(
             self.functional_definitions or IgnoreExtra.functional_definitions
@@ -1618,6 +1720,7 @@ class SectionLatticeTranslator(SectionLattice):
             into a ``<name>_errors`` macro, to ``exec`` after each ``USE``
             (done here when ``beam`` is given).
         """
+        self._warn_dropped_wakes("MAD-X")
         elem_dict = self._translate(self.create_drifts().values())
         svals = self.get_s_values(as_dict=True, at_entrance=True)
         exit_svals = self.get_s_values(as_dict=True, at_entrance=False)

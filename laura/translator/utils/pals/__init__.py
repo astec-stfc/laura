@@ -18,17 +18,21 @@ from .reader import (
     parser_available,
 )
 from .writer import (
+    PALS_DEFAULT_AREA,
     PALS_RESERVED_NAMES,
     PALS_TWISS_COMPONENTS,
     PalsBeamLine,
+    fold_repeated_cells,
     pals_document,
     pals_element_body,
+    pals_keyword_map,
     pals_safe_names,
 )
 
 __all__ = [
     "INSTALL_HINT",
     "LAURA_TYPE_EXTENSION",
+    "PALS_DEFAULT_AREA",
     "PALS_RESERVED_NAMES",
     "PALS_TWISS_COMPONENTS",
     "PalsBeamLine",
@@ -38,9 +42,11 @@ __all__ = [
     "PalsLattice",
     "PalsParserUnavailable",
     "PalsProblem",
+    "fold_repeated_cells",
     "laura_type_to_pals_kind",
     "pals_document",
     "pals_element_body",
+    "pals_keyword_map",
     "pals_kind_round_trips",
     "pals_kind_to_laura_type",
     "pals_safe_names",

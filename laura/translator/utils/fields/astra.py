@@ -3,7 +3,8 @@ from warnings import warn
 
 import numpy as np
 
-from .field_parameter import require_rf, set_field
+from ..units import UnitValue
+from .field_parameter import FieldParameter, require_rf, set_field
 
 d = ",!?/&-:;@'\n \t"
 

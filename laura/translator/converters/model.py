@@ -65,18 +65,6 @@ class MachineModelTranslator(ContainerTranslator, MachineModel):
         for name, latt in self.lattices.items():
             yield name, self._layout_translator(latt)
 
-    def to_pals(self) -> Dict[str, str]:
-        """
-        Create one PALS document per machine layout.
-
-        Returns
-        -------
-        dict
-            Layout name -> the contents of a ``*.pals.yaml`` file, each holding
-            that layout's sections as the branches of one lattice.
-        """
-        return self._fan_out("to_pals", particle=self.particle)
-
     def _elegant_body(
         self, charge: float | None = None, Brho: float = 0.0
     ) -> Tuple[str, str]:
@@ -108,3 +96,18 @@ class MachineModelTranslator(ContainerTranslator, MachineModel):
                 continue
             body += f"{line_name}: LINE = " + "{" + ", ".join(latt.keys()) + "};\n\n"
         return body
+
+    def to_pals(self) -> Dict[str, str]:
+        """
+        Create one PALS document per machine layout.
+
+        Returns
+        -------
+        dict
+            Layout name -> the contents of a ``*.pals.yaml`` file, each holding
+            that layout's sections as the branches of one lattice.
+        """
+        return {
+            name: self._layout_translator(layout).to_pals(particle=self.particle)
+            for name, layout in self.lattices.items()
+        }

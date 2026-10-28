@@ -438,6 +438,33 @@ class TestMadxCavityAndAperture:
         )
         assert expected in getattr(translate_elements([cav])["c1"], method)()
 
+    def test_standing_wave_cavity_uses_rfcavity(self):
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={"structure_type": "StandingWave", "phase": 0.0},
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        out = translate_elements([cav])["c1"].to_madx()
+        assert "c1: rfcavity" in out
+
+    def test_travelling_wave_cavity_elegant_uses_tw1_body_focus_model(self):
+        # ELEGANT's own default (BODY_FOCUS_MODEL=SRS) is the standing-wave
+        # model -- travelling-wave cavities must request TW1 explicitly so
+        # ELEGANT's focusing matches MAD-X's tw_matrix_cavity and Ocelot's
+        # add_tw1_focusing (both built from tw1_focusing_matrix).
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={
+                "structure_type": "TravellingWave",
+                "phase": 0.0,
+                "mode_numerator": 2,
+                "mode_denominator": 3,
+            },
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        out = translate_elements([cav])["c1"].to_elegant()
+        assert "body_focus_model = TW1" in out
+
     def test_travelling_wave_cavity_tw_focusing_off_uses_standing_wave(self):
         cav = RFCavity(
             name="c1", machine_area="S",
@@ -455,6 +482,15 @@ class TestMadxCavityAndAperture:
         assert "body_focus_model = SRS" in tr.to_elegant()
         assert tr.to_cheetah().cavity_type == "standing_wave"
 
+    def test_standing_wave_cavity_elegant_uses_default_body_focus_model(self):
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={"structure_type": "StandingWave", "phase": 0.0},
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        out = translate_elements([cav])["c1"].to_elegant()
+        assert "body_focus_model = SRS" in out
+
     def test_elliptical_aperture_uses_ecollimator(self):
         ap = Aperture(
             name="ap1", machine_area="S",
@@ -471,6 +507,36 @@ class TestMadxCavityAndAperture:
         )
         out = translate_elements([col])["col1"].to_madx()
         assert "col1: rcollimator" in out
+
+
+class TestElegantDrift:
+    def test_lscdrift_gets_bins(self):
+        # ELEGANT stops with "LSC must have an BINS>=2" if lsc_bins is not renamed to bins
+        from laura.models.element import Drift
+
+        drift = Drift(
+            name="d1", machine_area="S", hardware_class="Drift", physical={"length": 1.0},
+            simulation={"csr_enable": False, "lsc_enable": True, "lsc_bins": 30},
+        )
+        out = translate_elements([drift])["d1"].to_elegant()
+        assert "d1: lscdrift" in out
+        assert "bins = 30" in out
+
+    def test_overlap_drift_is_csrdrift_without_lsc(self):
+        # a plain DRIFT stepping back makes the next CSRDRIFT assume a ring and re-track a turn of CSR
+        from laura.models.element import Quadrupole
+
+        q = Quadrupole(
+            name="Q1", machine_area="S", magnetic={"length": 0.2, "k1l": 0.0},
+            physical={"length": 0.2, "middle": {"x": 0.0, "y": 0.0, "z": 0.1}},
+        )
+        m = Marker(name="M1", machine_area="S", physical={"middle": {"x": 0.0, "y": 0.0, "z": 0.15}})
+        section = SectionLattice(name="S1", order=["Q1", "M1"], elements=[q, m])
+        step_back = section.create_drifts(csr_enable=True, lsc_enable=True)["S1_drift_1"]
+        assert step_back.physical.length == pytest.approx(-0.05)
+        out = translate_elements([step_back])["S1_drift_1"].to_elegant()
+        assert "S1_drift_1: csrdrift" in out
+        assert "lsc_bins = 0" in out
 
 
 @pytest.mark.parametrize("geometry, change_p0", [("closed", 0), ("open", 1), (None, 1)])

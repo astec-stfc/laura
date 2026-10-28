@@ -844,6 +844,13 @@
       "additionalProperties": false,
       "description": "Transverse aperture geometry for drift-space checks and collimators.",
       "properties": {
+        "active": {
+          "description": "Whether the aperture is applied. False keeps the definition without checking against it.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "horizontal_offset": {
           "description": "Horizontal position of the aperture centre on the element axis [m].",
           "type": [
@@ -856,6 +863,17 @@
           "minimum": 0.0,
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "location": {
+          "$ref": "#/$defs/ApertureLocationEnum",
+          "description": "Where along the element the aperture is checked."
+        },
+        "material": {
+          "description": "Material of the aperture jaws or collimator body.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -893,6 +911,21 @@
           "$ref": "#/$defs/ApertureShapeEnum",
           "description": "Cross-sectional aperture shape."
         },
+        "shifts_with_body": {
+          "description": "Whether the aperture follows the element's misalignment rather than staying on the design orbit.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "thickness": {
+          "description": "Longitudinal thickness of the aperture material [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "vertical_offset": {
           "description": "Vertical position of the aperture centre on the element axis [m].",
           "type": [
@@ -911,6 +944,19 @@
       },
       "title": "ApertureElement",
       "type": "object"
+    },
+    "ApertureLocationEnum": {
+      "description": "Where along the element an aperture is checked. Following PALS ``ApertureP.location``.",
+      "enum": [
+        "entrance_end",
+        "center",
+        "exit_end",
+        "both_ends",
+        "everywhere",
+        "nowhere"
+      ],
+      "title": "ApertureLocationEnum",
+      "type": "string"
     },
     "ApertureShapeEnum": {
       "description": "Cross-sectional shape of a beam-pipe aperture.",
@@ -3463,7 +3509,7 @@
       "description": "Combined solenoid and quadrupole magnetic field.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -4098,7 +4144,7 @@
       "description": "Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -5202,7 +5248,7 @@
       "description": "",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -9499,16 +9545,16 @@
           ]
         },
         "edge1_effects": {
-          "description": "Enable entrance-edge focussing effects.",
+          "description": "Entrance-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.",
           "type": [
-            "boolean",
+            "integer",
             "null"
           ]
         },
         "edge2_effects": {
-          "description": "Enable exit-edge focussing effects.",
+          "description": "Exit-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.",
           "type": [
-            "boolean",
+            "integer",
             "null"
           ]
         },
@@ -9730,7 +9776,7 @@
       "description": "Magnetic field parameters for a beamline magnet, including multipole components, field integrals, and geometric edge parameters.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -11208,7 +11254,7 @@
       "description": "Octupole magnet field, principal multipole order 3.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -13232,7 +13278,7 @@
       "description": "",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -16120,7 +16166,7 @@
       "description": "Sextupole magnet field, principal multipole order 2.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"

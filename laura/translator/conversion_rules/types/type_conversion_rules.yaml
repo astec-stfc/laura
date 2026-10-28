@@ -28,7 +28,7 @@ elegant:
   APContour: apcontour
   Watch_Point: watch
   Marker: watch
-  Wakefield: wake
+  Wakefield: rfcw
   Horizontal_Corrector: hkick
   Vertical_Corrector: vkick
   Combined_Corrector: kicker
@@ -218,6 +218,7 @@ pals:
   Beam_Arrival_Monitor: Instrument
   Bunch_Length_Monitor: Instrument
   Screen: Instrument
+  WireScanner: Instrument
   Camera: Instrument
   Photon_Monitor: Instrument
   ChargeDiagnostic: Instrument

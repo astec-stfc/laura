@@ -25,9 +25,10 @@ FODO = Path.home() / "Documents/impactx/examples/fodo/input_fodo.in"
 
 ELEMENTS = [
     *(e.model_copy(deep=True) for e in LINE),  # placing them would move LINE's
-    bend(physical={"s": 3.5, "error": {"position": {"x": 1e-3}}}, tilt=0.3),
-    bend(physical={"s": 4.5}, k1l=0.3, edge_field_integral=0.5, gap=0.02),
-    bend(physical={"s": 5.5}, k2l=1.0),
+    # unique names: a repeated one keeps the last bend in the first one's slot, out of order
+    bend(physical={"s": 3.5, "error": {"position": {"x": 1e-3}}}, name="b2", tilt=0.3),
+    bend(physical={"s": 4.5}, name="b3", k1l=0.3, edge_field_integral=0.5, gap=0.02),
+    bend(physical={"s": 5.5}, name="b4", k2l=1.0),
     Solenoid(
         name="sol",
         machine_area="S",
@@ -104,7 +105,7 @@ def test_native_edges_merge_into_their_bend_and_names_repeat():
     first, second = elements.values()
     assert first.magnetic.entrance_edge_angle == first.magnetic.exit_edge_angle == 0.1
     assert first.magnetic.angle == pytest.approx(0.2)
-    assert second.simulation.edge1_effects is second.simulation.edge2_effects is False
+    assert second.simulation.edge1_effects == second.simulation.edge2_effects == 0
     assert second.physical.s == pytest.approx(2.5)
 
 

@@ -2,7 +2,7 @@
 
 from typing import Dict, Optional
 
-from ...converters import type_conversion_rules_Pals
+from ...converters import type_conversion_rules_pals
 
 __all__ = [
     "LAURA_TYPE_EXTENSION",
@@ -41,7 +41,7 @@ def pals_kind_to_laura_type() -> Dict[str, str]:
     """PALS element kind (lowercased) -> LAURA hardware type."""
     switch = {
         native_kind.lower(): laura_type
-        for laura_type, native_kind in type_conversion_rules_Pals.items()
+        for laura_type, native_kind in type_conversion_rules_pals.items()
         if native_kind.lower() != "drift"
     }
     switch.update(_PINNED)
@@ -50,7 +50,7 @@ def pals_kind_to_laura_type() -> Dict[str, str]:
 
 def laura_type_to_pals_kind(hardware_type: str) -> Optional[str]:
     """PALS kind for a LAURA hardware type, or ``None`` if it has no kind."""
-    return type_conversion_rules_Pals.get(hardware_type)
+    return type_conversion_rules_pals.get(hardware_type)
 
 
 def pals_kind_round_trips(hardware_type: str) -> bool:
