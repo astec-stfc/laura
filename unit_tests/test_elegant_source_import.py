@@ -456,6 +456,32 @@ def test_the_command_file_given_to_elegant_has_no_backslashes(tmp_path, monkeypa
         assert 'rootname = "' in text and "newBST" in text
 
 
+def test_an_elegant_failure_leads_with_its_error_line(tmp_path, monkeypatch):
+    """ELEGANT prints its cause on stdout, under a banner and above a
+    trace-back header, so it was lost at the bottom of the message."""
+    import subprocess
+
+    from laura.translator.converters.codes import elegant
+
+    output = (
+        "Running elegant at ...\n\nThis is elegant 2023.4 ...\n"
+        "error: RPN_DEFNS environment variable undefined.\n\nProgram trace-back:\n"
+    )
+
+    def fake_run(command, **kwargs):
+        raise subprocess.CalledProcessError(1, command, output, "")
+
+    monkeypatch.setattr(elegant.subprocess, "run", fake_run)
+    importer = _lte(tmp_path, "d1: drift, l=1\nmachine: line=(d1,d1,d1,d1,d1,d1)\n")
+    with pytest.raises(ValueError) as raised:
+        importer.create_machine_model()
+    assert str(raised.value).splitlines()[0] == (
+        "ELEGANT could not load beamline 'machine': "
+        "error: RPN_DEFNS environment variable undefined."
+    )
+    assert "Program trace-back:" in str(raised.value)
+
+
 @_needs_elegant
 def test_a_kicker_keeps_its_length(tmp_path):
     """``l`` of a KICKER never reached the combined corrector's magnetic length

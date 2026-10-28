@@ -98,10 +98,9 @@ class ElegantLatticeImporter(LatticeImporter):
     """Optional beamline selector for source import."""
 
     uniform_integration: bool = False
-    """Drop the ``EDGE_ORDER`` and ``N_SLICES`` a ``source_file`` leaves at
+    """If true, drop the ``EDGE_ORDER`` and ``N_SLICES`` a ``source_file`` leaves at
     ELEGANT's defaults, so bends export with LAURA's second-order edges and
-    auto-scaled kick count, as every other code gets. By default the import
-    keeps ELEGANT's defaults and round-trips the lattice unchanged."""
+    auto-scaled kick count."""
 
     elegant_data: Dict = {}
     """Dictionary containing data about the ELEGANT lattice"""
@@ -324,9 +323,20 @@ class ElegantLatticeImporter(LatticeImporter):
                         text=True,
                     )
                 except subprocess.CalledProcessError as exc2:
+                    output = "\n".join(filter(None, (exc2.stdout, exc2.stderr)))
+                    lines = [
+                        line.strip() for line in output.splitlines() if line.strip()
+                    ]
+                    cause = next(
+                        (
+                            line
+                            for line in reversed(lines)
+                            if line.lower().startswith("error")
+                        ),
+                        lines[-1] if lines else "no output",
+                    )
                     raise ValueError(
-                        f"ELEGANT could not load beamline {name!r}: "
-                        f"{exc2.stderr or exc2.stdout}"
+                        f"ELEGANT could not load beamline {name!r}: {cause}\n\n{output}"
                     ) from exc2
             self._source_outputs[name] = str(saved)
 
@@ -362,7 +372,6 @@ class ElegantLatticeImporter(LatticeImporter):
                 if not {"n_slices", "n_kicks"} & stated:
                     simulation.pop("n_slices", None)
             if "n_slices" in simulation:
-                # ELEGANT's N_SLICES is LAURA's n_kicks; unset, it is auto-scaled
                 simulation.setdefault("n_kicks", simulation["n_slices"])
             length = self._length_of(data)
             for parameter in ("k0", "k1", "k2", "k3", "angle"):
@@ -421,7 +430,9 @@ class ElegantLatticeImporter(LatticeImporter):
                     field_type=(
                         "3DWake"
                         if zwakefile and trwakefile
-                        else "LongitudinalWake" if zwakefile else "TransverseWake"
+                        else "LongitudinalWake"
+                        if zwakefile
+                        else "TransverseWake"
                     )
                 )
                 wake.filename = str(wakepath.resolve())
@@ -740,7 +751,10 @@ class ElegantLatticeImporter(LatticeImporter):
             if "phase" in v["cavity"]:
                 value = v["cavity"]["phase"]
                 # inverse of RFCavityTranslator.to_elegant: deflectors take -phase
-                deflector = v.get("hardware_type") in ("RFDeflectingCavity", "CrabCavity")
+                deflector = v.get("hardware_type") in (
+                    "RFDeflectingCavity",
+                    "CrabCavity",
+                )
                 offset = 0 if deflector else 90
                 tokens = value.strip('"').split() if isinstance(value, str) else []
                 if len(tokens) == 3 and tokens[0] == str(offset) and tokens[2] == "-":
