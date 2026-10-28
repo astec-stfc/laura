@@ -224,6 +224,13 @@ class RFCavityTranslator(BaseElementTranslator):
             wakefield_file_name = self.generate_field_file_name(
                 self.simulation.wakefield_definition, code="elegant"
             )
+            wake, sim = self.simulation.wakefield_definition, self.simulation
+            sim.t_column = sim.t_column or "t"
+            for col in ("Wx", "Wy", "Wz"):
+                if getattr(
+                        getattr(wake, col, None), "value", None
+                ) is not None and not getattr(sim, f"{col.lower()}_column"):
+                    setattr(sim, f"{col.lower()}_column", col)
             self.set_wakefield_column_names(wakefield_file_name)
         string = f"{self.name}: {etype}"
         preferred = {
