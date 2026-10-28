@@ -6,6 +6,7 @@ from pydantic import computed_field, model_validator
 from laura.models.rf import RFCavityElement
 from laura.models.simulation import RFCavitySimulationElement
 from laura.translator.utils.fields import FieldMap
+from laura.translator.utils.fields.gdf import gpt_tw_mockup
 
 from ..converters import (
     elements_bmad,
@@ -13,7 +14,11 @@ from ..converters import (
     elements_madx,
     elements_opal,
 )
-from ..utils.functions import sanitize_string
+from ..utils.functions import (
+    cavity_energy_gain,
+    sanitize_string,
+    transit_time_integral,
+)
 from .base import BaseElementTranslator, ocelot_attributes
 
 
@@ -745,7 +750,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 f"phi{subname} = {(self.cavity.crest + 90 - self.phase + 0) % 360.0!s}/deg;\n"
             )
             if self.structure_type == "TravellingWave":
-                output += f"ffac{subname} = 1.007 * {9.0 / (2.0 * np.pi) * self.field_amplitude!s};\n"
+                output += "ffac" + subname + " = " + str(self._gpt_tw_ffac()) + ";\n"
             else:
                 output += f"ffac{subname} = {self.field_amplitude!s};\n"
 
@@ -753,3 +758,25 @@ class RFCavityTranslator(BaseElementTranslator):
         else:
             output = ""
         return output
+
+    def _gpt_tw_ffac(self) -> float:
+        """
+        Field factor for GPT's standing-wave mock-up of a travelling-wave structure
+        (see :func:`~laura.translator.utils.fields.gdf.gpt_tw_mockup`), set so that
+        its on-crest gain matches
+        :func:`~laura.translator.utils.functions.cavity_energy_gain`.
+
+        Returns
+        -------
+        float
+            The field factor [V/m]
+        """
+        field = self.simulation.field_definition
+        if (
+            getattr(field, "field_type", None) != "1DElectroDynamic"
+            or field.start_cell_z is None
+        ):
+            # the old factor, tuned on CLARA's maps
+            return 1.007 * (9.0 / (2.0 * np.pi)) * self.field_amplitude
+        mockup = transit_time_integral(*gpt_tw_mockup(field), self.cavity.frequency)
+        return cavity_energy_gain(self, phase=0) * 1e6 / mockup

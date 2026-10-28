@@ -476,6 +476,36 @@ class TestMadxCavityAndAperture:
         assert "col1: rcollimator" in out
 
 
+class TestElegantDrift:
+    def test_lscdrift_gets_bins(self):
+        # ELEGANT stops with "LSC must have an BINS>=2" if lsc_bins is not renamed to bins
+        from laura.models.element import Drift
+
+        drift = Drift(
+            name="d1", machine_area="S", hardware_class="Drift", physical={"length": 1.0},
+            simulation={"csr_enable": False, "lsc_enable": True, "lsc_bins": 30},
+        )
+        out = translate_elements([drift])["d1"].to_elegant()
+        assert "d1: lscdrift" in out
+        assert "bins = 30" in out
+
+    def test_overlap_drift_is_csrdrift_without_lsc(self):
+        # a plain DRIFT stepping back makes the next CSRDRIFT assume a ring and re-track a turn of CSR
+        from laura.models.element import Quadrupole
+
+        q = Quadrupole(
+            name="Q1", machine_area="S", magnetic={"length": 0.2, "k1l": 0.0},
+            physical={"length": 0.2, "middle": {"x": 0.0, "y": 0.0, "z": 0.1}},
+        )
+        m = Marker(name="M1", machine_area="S", physical={"middle": {"x": 0.0, "y": 0.0, "z": 0.15}})
+        section = SectionLattice(name="S1", order=["Q1", "M1"], elements=[q, m])
+        step_back = section.create_drifts(csr_enable=True, lsc_enable=True)["S1_drift_1"]
+        assert step_back.physical.length == pytest.approx(-0.05)
+        out = translate_elements([step_back])["S1_drift_1"].to_elegant()
+        assert "S1_drift_1: csrdrift" in out
+        assert "lsc_bins = 0" in out
+
+
 @pytest.mark.parametrize("geometry, change_p0", [("closed", 0), ("open", 1), (None, 1)])
 def test_ring_cavity_leaves_the_reference_momentum_alone(geometry, change_p0):
     """A ring's reference is its design momentum; ELEGANT refuses closed optics otherwise."""

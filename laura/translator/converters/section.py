@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from xtrack import Line
 
 from ...models.base_models import IgnoreExtra
+from ...models.constants import electron_mass, elementary_charge, speed_of_light
 from ...models.element_list import SectionLattice
 from ...models.rf import WakefieldElement
 from ...models.simulation import (
@@ -30,6 +31,7 @@ from ..utils.bmad import (
 )
 from ..utils.fields import FieldMap
 from ..utils.functions import (
+    cavity_energy_gain,
     bmad_functional_definitions,
     elegant_functional_definitions,
     functional_fields,
@@ -117,6 +119,10 @@ class SectionLatticeTranslator(SectionLattice):
     gpt_headers: Dict = {}
     """Headers for GPT input file; see :class:`~laura.translator.converters.codes.gpt.GptElement`
     and its child classes."""
+
+    gpt_screen_positions: Dict = {}
+    """``{element name: z}`` of each GPT screen as written by :meth:`to_gpt`; past a
+    dipole, z is measured in that dipole's ccs rather than the survey frame."""
 
     opal_headers: Dict = {}
     """Headers for OPAL input file; see :class:`~laura.translator.converters.codes.opal.OpalHeader`
@@ -639,8 +645,8 @@ class SectionLatticeTranslator(SectionLattice):
         Create a GPT-compatible input file based on the lattice information and
         the settings provided in :attr:`~gpt_headers`.
 
-        Note that, for sections with accelerating sections, the magnetic rigidity `Brho` may not
-        be updated correctly, which may affect the accuracy of tracking through dipoles.
+        Downstream of each RF cavity, magnets are scaled to `Brho` raised by
+        :func:`~laura.translator.utils.functions.cavity_energy_gain`, an estimate.
 
         Parameters
         ----------
@@ -649,7 +655,7 @@ class SectionLatticeTranslator(SectionLattice):
         endz: float
             End longitudinal location of the lattice.
         Brho: float
-            Magnetic rigidity.
+            Magnetic rigidity at the start of the section.
         dtmin: float, optional
             Minimum time step size for integration
         charge_sign: int, optional
@@ -666,6 +672,7 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += header.write_gpt()
         elem_dict = self._translate()
         self._apply_wakefield_enable(elem_dict)
+        self.gpt_screen_positions = {}
         kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
@@ -680,6 +687,14 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += element.to_gpt(Brho, **kwargs)
             if not isinstance(element, MagnetTranslator):
                 element._warn_dropped_misalignment("gpt", set())
+            if isinstance(element, RFCavityTranslator):
+                mc2 = electron_mass * speed_of_light**2 / elementary_charge
+                kinetic = (
+                    np.hypot(Brho * speed_of_light, mc2)
+                    - mc2
+                    + cavity_energy_gain(element) * 1e6
+                )
+                Brho = np.sqrt(kinetic * (kinetic + 2 * mc2)) / speed_of_light
             if (
                 element.hardware_type.lower() == "rfcavity"
                 and isinstance(element.simulation.wakefield_definition, FieldMap)
@@ -701,19 +716,19 @@ class SectionLatticeTranslator(SectionLattice):
                     directory=element.directory,
                 )
                 fulltext += w.to_gpt(Brho, **kwargs)
-            new_ccs = deepcopy(element.ccs)
-            if not new_ccs.name == ccs.name:
-                relpos, relrot = ccs.relative_position(
-                    list(element.physical.middle.model_dump().values()),
-                    list(element.physical.global_rotation.model_dump().values()),
-                )
-            else:
-                relpos = list(element.physical.middle.model_dump().values())
-            ccs = deepcopy(new_ccs)
+            ccs = deepcopy(element.ccs)
             if (
                 element.hardware_class.lower() == "diagnostic"
                 or element.hardware_type.lower() == "marker"
             ):
+                # a screen's z is measured from the origin of the ccs it is written in
+                relpos = list(element.physical.middle.model_dump().values())
+                if ccs.name != "wcs":
+                    relpos, _ = ccs.relative_position(
+                        relpos,
+                        list(element.physical.global_rotation.model_dump().values()),
+                    )
+                self.gpt_screen_positions[element.name] = relpos[2] + 0.001
                 fulltext += f'screen({ccs.name_as_str}, "I", {str(relpos[2] + 0.001)}, {ccs.name_as_str});\n'
                 # if self.gpt_headers["setfile"].particle_definition == "laser":
         lastelem = list(elem_dict.values())[-1]
@@ -726,11 +741,9 @@ class SectionLatticeTranslator(SectionLattice):
             list(lastelem.physical.global_rotation.model_dump().values()),
         )
         if ccs.name == "wcs":
-            fulltext += f'screen("wcs", "I", {lastelem.physical.end.z}, "wcs");\n'
-        else:
-            fulltext += (
-                f'screen({ccs.name_as_str}, "I", {relpos[2]}, {ccs.name_as_str});\n'
-            )
+            relpos[2] = lastelem.physical.end.z
+        fulltext += f'screen({ccs.name_as_str}, "I", {relpos[2]}, {ccs.name_as_str});\n'
+        self.gpt_screen_positions.setdefault(lastelem.name, relpos[2])
         zminmax = GptZMinMax(
             ECS='"wcs", "I"',
             zmin=startz - 0.1,
