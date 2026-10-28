@@ -163,6 +163,10 @@ class BaseElementTranslator(PhysicalBaseElement):
     some attribute conventions -- notably the solenoid ``KS``; see
     :func:`~laura.translator.converters.magnet.SolenoidTranslator.opal_ks`."""
 
+    opal_time_step: float = 1e-12
+    """OPAL ``TRACK`` time step [s];
+    OPAL's own default until :meth:`SectionLatticeTranslator.to_opal` sets it."""
+
     def model_post_init(self, __context):
         self.type_conversion_rules = type_conversion_rules
         hardware_type = self.hardware_type.lower()
@@ -926,13 +930,21 @@ class BaseElementTranslator(PhysicalBaseElement):
         etype = self._convert_type_opal(self.hardware_type)
         if etype.lower() == "drift":
             return ""
+        brho = -(designenergy or 0) * 1e6 / 299792458.0
         wholestring = f"{self.name.replace('-', '_')}: {etype}"
         for key, value in self._dump_items(
             self._convert_keyword_opal,
             elements_opal[etype],
             overrides=self._opal_alignment(),
         ):
-            wholestring += f", {key} = {self._flag(self._angle_token(value))}"
+            value = self._angle_token(value)
+            if (
+                brho
+                and key in ("k1", "k2", "k3", "dk1", "dk2", "dk3")
+                and isinstance(value, (int, float))
+            ):
+                value = value * brho
+            wholestring += f", {key} = {self._flag(value)}"
         if etype == "monitor":
             wholestring += f', OUTFN = "{self.name}_opal"'
         wholestring += f", ELEMEDGE = {sval};\n"
