@@ -22,7 +22,7 @@ CELLS = {"n_cells": 3, "cell_length": 0.1}
 def _wake_file(tmp_path):
     wake = FieldMap()
     z = np.linspace(0, 1e-3, 11)
-    wake.length = 1
+    wake.length = CELLS["cell_length"]  # a per-cell wake: ASTRA places one per cell
     wake.z = FieldParameter(name="z", value=UnitValue(z, "m"))
     wake.Wz = FieldParameter(name="Wz", value=UnitValue(1e12 * np.exp(-z / 1e-4), "V/C"))
     wake.field_type = "LongitudinalWake"

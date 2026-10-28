@@ -69,7 +69,7 @@ def translate_elements(
         List of :class:`~laura.models.element.Element` objects.
     master_lattice: str
         Directory containing lattice/data files including field/wakefield files.
-    directory:
+    directory: str
         Directory to which files will be written.
 
     Returns
@@ -132,10 +132,12 @@ def translate_elements(
         else:
             translator = BaseElementTranslator
         try:
-            elem_dict.update(
-                {elem.name: translator.model_validate(elem.model_dump(by_alias=False))}
-            )
-        except Exception as exc:
+            payload = elem.model_dump(by_alias=False)
+            simulation = getattr(elem, "simulation", None)
+            if simulation is not None:
+                payload["simulation"] = simulation.model_dump(by_alias=False, exclude_unset=True)
+            elem_dict.update({elem.name: translator.model_validate(payload)})
+        except Exception:
             raise Exception(
                 f"Element {elem.name} failed validation: {elem.model_dump().keys()}"
             )

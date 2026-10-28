@@ -36,7 +36,7 @@ class RFMultipoleTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convert_type_madx(self.hardware_type)
-        string = sanitize_string(self.name) + ": " + etype + f", l = {self.length}"
+        string = f"{sanitize_string(self.name)}: {etype}, l = {self.length}"
 
         volt = self.simulation.field_amplitude
         functional = not self._resolve_functional and self.is_functional(volt)
@@ -65,7 +65,7 @@ class RFMultipoleTranslator(BaseElementTranslator):
             string += f", psl = {{{', '.join(str(v) for v in self.simulation.psl)}}}"
         if at is not None:
             string += f", at = {at}"
-        return string + ";\n"
+        return f"{string};\n"
 
     def to_xsuite(self, beam_length: int) -> tuple:
         """

@@ -1,6 +1,6 @@
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Optional
 from warnings import warn
 
 import numpy as np
@@ -13,13 +13,26 @@ if TYPE_CHECKING:
     from xtrack import Line
 
 from ...models.base_models import IgnoreExtra
-from ...models.element import Drift
 from ...models.element_list import SectionLattice
 from ...models.rf import WakefieldElement
-from ...models.simulation import DiagnosticSimulationElement, WakefieldSimulationElement
+from ...models.simulation import (
+    DiagnosticSimulationElement,
+    TwissMatchSimulationElement,
+    WakefieldSimulationElement,
+)
+from ..utils.alignment import sagitta, to_frame
+from ..utils.bmad import (
+    BmadBody,
+    bmad_beginning_datum,
+    bmad_leading_drift,
+    bmad_patch,
+    bmad_safe_names,
+)
 from ..utils.fields import FieldMap
 from ..utils.functions import (
+    bmad_functional_definitions,
     elegant_functional_definitions,
+    functional_fields,
     madx_functional_definitions,
     sanitize_string,
     tw_cavity_energy_gain,
@@ -27,8 +40,10 @@ from ..utils.functions import (
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
+from .magnet import MagnetTranslator, SolenoidTranslator
 from .codes import (
     astra_unsupported,
+    bmad_unsupported,
     cheetah_unsupported,
     csrtrack_unsupported,
     elegant_unsupported,
@@ -45,6 +60,7 @@ from .diagnostic import DiagnosticTranslator
 from .wake import WakefieldTranslator
 
 unsupported_elements = {
+    "bmad": bmad_unsupported,
     "astra": astra_unsupported,
     "cheetah": cheetah_unsupported,
     "csrtrack": csrtrack_unsupported,
@@ -57,10 +73,33 @@ unsupported_elements = {
     "xsuite": xsuite_unsupported,
 }
 
+_BMAD_SPACE_CHARGE_COM = {
+    "n_bin": "number_of_bins",
+    "ds_track_step": "step_size",
+    "beam_chamber_height": "chamber_height",
+    "n_shield_images": "shield_images",
+    "particle_bin_span": "bin_span",
+    "lsc_sigma_cutoff": "sigma_cutoff",
+}
+"""Bmad's ``space_charge_com`` namelist against the section fields holding it,
+in the order the header states them."""
+
+
+def fix_ring_reference(translators: dict, geometry) -> None:
+    """In a closed section, write every cavity with ``change_p0 = 0``: a ring's
+    reference is its design momentum, which a cavity restores energy about
+    rather than carries."""
+    if getattr(geometry, "value", geometry) != "closed":
+        return
+    for translator in translators.values():
+        simulation = getattr(translator, "simulation", None)
+        if simulation is not None and "change_p0" in type(simulation).model_fields:
+            simulation.change_p0 = 0
+
 
 class SectionLatticeTranslator(SectionLattice):
     """
-    Translator class for converting a :class:`~laura.models.elementList.SectionLattice` instance into a string or
+    Translator class for converting a :class:`~laura.models.element_list.SectionLattice` instance into a string or
     object that can be understood by various simulation codes.
     """
 
@@ -73,24 +112,34 @@ class SectionLatticeTranslator(SectionLattice):
 
     csrtrack_headers: Dict = {}
     """Headers for CSRTrack input file; see :class:`~laura.translator.converters.codes.csrtrack.CsrTrackElement`
-    and its child classes.."""
+    and its child classes."""
 
     gpt_headers: Dict = {}
-    """Headers for GPT input file; see :class:`~laura.translator.converters.codes.astra.GptElement`
-    and its child classes.."""
+    """Headers for GPT input file; see :class:`~laura.translator.converters.codes.gpt.GptElement`
+    and its child classes."""
 
     opal_headers: Dict = {}
     """Headers for OPAL input file; see :class:`~laura.translator.converters.codes.opal.OpalHeader`
-    and its child classes..
+    and its child classes.
     
     WARNING: OPAL not fully benchmarked / tested.
     """
 
-    csr_enable: bool = True
-    """Flag to enable calculation of CSR in drifts."""
+    csr_enable: Optional[bool] = None
+    """Flag to enable calculation of CSR in the drifts synthesised between
+    elements. ``None`` follows the lattice -- see :meth:`_collective_flag`."""
 
-    lsc_enable: bool = True
-    """Flag to enable calculation of LSC in drifts."""
+    lsc_enable: Optional[bool] = None
+    """Flag to enable calculation of LSC in the drifts synthesised between
+    elements. ``None`` follows the lattice -- see :meth:`_collective_flag`."""
+
+    sr_enable: Optional[bool] = None
+    """Flag to enable synchrotron-radiation energy loss (Bmad's
+    ``radiation_damping_on``). ``None`` follows the lattice."""
+
+    isr_enable: Optional[bool] = None
+    """Flag to enable incoherent synchrotron-radiation emittance growth (Bmad's
+    ``radiation_fluctuations_on``). ``None`` follows the lattice."""
 
     wakefield_enable: bool = True
     """Flag to enable structure wakefields on accelerating cavities."""
@@ -113,12 +162,12 @@ class SectionLatticeTranslator(SectionLattice):
     def from_section(cls, section: SectionLattice) -> "SectionLatticeTranslator":
         """
         Method for creating an instance of this class based on an existing
-        :class:`~laura.models.elementList.SectionLattice`.
+        :class:`~laura.models.element_list.SectionLattice`.
 
         Parameters
         ----------
         section: SectionLattice
-            The existing :class:`~laura.models.elementList.SectionLattice`
+            The existing :class:`~laura.models.element_list.SectionLattice`
 
         Returns
         -------
@@ -134,8 +183,41 @@ class SectionLatticeTranslator(SectionLattice):
                 "master_lattice": section.model_copy().master_lattice,
                 "functional_definitions": section.functional_definitions,
                 "resolve_functional": section.resolve_functional,
+                "geometry": section.geometry,
+                "reference_energy": section.reference_energy,
                 "revolution_frequency": section.revolution_frequency,
+                "space_charge": section.space_charge,
             }
+        )
+
+    def _collective_flag(self, flag: str) -> bool:
+        """Resolved ``csr_enable``/``lsc_enable``: an explicit setting wins,
+        otherwise follow the lattice via :meth:`~SectionLattice._collective_default`.
+        """
+        explicit = getattr(self, flag)
+        return self._collective_default(flag) if explicit is None else explicit
+
+    def _translate(self, elements=None) -> dict:
+        """
+        Translate ``elements`` (by default this section's own elements, without
+        drifts) with :func:`~laura.translator.converters.converter.translate_elements`.
+        """
+        if elements is None:
+            elements = list(self.elements.elements.values())
+        return translate_elements(
+            elements, master_lattice=self.master_lattice, directory=self.directory
+        )
+
+    @staticmethod
+    def _end_screen(lastelem, output_filename: str, physical) -> DiagnosticTranslator:
+        """A screen named ``end_screen`` placed at ``physical``, after ``lastelem``."""
+        return DiagnosticTranslator(
+            name="end_screen",
+            hardware_class="Diagnostic",
+            hardware_type="Diagnostic",
+            machine_area=lastelem.machine_area,
+            simulation=DiagnosticSimulationElement(output_filename=output_filename),
+            physical=physical,
         )
 
     def _check_elements_supported(self, code):
@@ -150,6 +232,324 @@ class SectionLatticeTranslator(SectionLattice):
                     f"NB The element may be supported in the code, but not yet by the LAURA converter;"
                     f"Raise an issue if you want this to be rectified."
                 )
+
+    def to_bmad(
+        self,
+        particle: str | None = None,
+        *,
+        space_charge_n_bin: int | None = None,
+        initial_twiss: TwissMatchSimulationElement | None = None,
+    ) -> str:
+        """
+        Create a Bmad-compatible lattice file for this section.
+
+        Parameters
+        ----------
+        particle: str | None
+            Particle for this lattice
+        space_charge_n_bin: int | None
+            Optional positive number of Bmad space-charge bins.
+        initial_twiss: TwissMatchSimulationElement | None
+            Optional beginning Twiss parameters.
+
+        Returns
+        -------
+        str
+            A Bmad-compatible lattice file.
+        """
+        geometry = getattr(self.geometry, "value", self.geometry) or "open"
+        body = self._bmad_body(geometry)
+        header = self.bmad_header(
+            geometry,
+            particle=particle,
+            space_charge_n_bin=space_charge_n_bin,
+            reference_energy=self.reference_energy,
+            initial_twiss=initial_twiss if initial_twiss is not None else body.origin,
+            beginning=body.beginning,
+        )
+        return (
+            f"{header}{body.definitions}\n{body.line}"
+            f"{body.superpositions}use, {body.name}\n"
+        )
+
+    def bmad_header(
+        self,
+        geometry: str,
+        *,
+        particle: str | None = None,
+        space_charge_n_bin: int | None = None,
+        reference_energy: float | None = None,
+        initial_twiss: TwissMatchSimulationElement | None = None,
+        beginning: str = "",
+    ) -> str:
+        """
+        The file-level statements a Bmad lattice opens with.
+
+        One file holds several lines
+        (:meth:`~laura.translator.converters.layout.MachineLayoutTranslator.to_bmad_multipass`)
+        but only ever one header.
+
+        Parameters
+        ----------
+        geometry: str
+            ``open`` or ``closed``.
+        particle: str | None
+            Written only if given.
+        space_charge_n_bin: int | None
+            Optional positive number of Bmad space-charge bins.
+        reference_energy: float | None
+            Written as ``beginning[e_tot]``.
+        initial_twiss: TwissMatchSimulationElement | None
+            Written as ``beginning[beta_a]`` and friends.
+        beginning: str
+            The floor-position datum from :meth:`_bmad_body`.
+        """
+        header = bmad_functional_definitions(self.functional_definitions)
+        if particle:
+            header += f"parameter[particle] = {particle}\n"
+        enabled = (
+            "T"
+            if self._collective_flag("csr_enable")
+            or self._collective_flag("lsc_enable")
+            else "F"
+        )
+        header += f"bmad_com[csr_and_space_charge_on] = {enabled}\n"
+        for switch, flag in (
+            ("radiation_damping_on", "sr_enable"),
+            ("radiation_fluctuations_on", "isr_enable"),
+        ):
+            on = "T" if self._collective_flag(flag) else "F"
+            header += f"bmad_com[{switch}] = {on}\n"
+        space_charge = dict(_BMAD_SPACE_CHARGE_COM)
+        for attribute, field in _BMAD_SPACE_CHARGE_COM.items():
+            value = getattr(self.space_charge, field, None)
+            if value is None:
+                del space_charge[attribute]
+            else:
+                space_charge[attribute] = value
+        if space_charge_n_bin is not None:
+            if space_charge_n_bin < 1:
+                raise ValueError("space_charge_n_bin must be positive")
+            space_charge["n_bin"] = space_charge_n_bin
+        for attribute, value in space_charge.items():
+            header += f"space_charge_com[{attribute}] = {value}\n"
+        header += f"parameter[geometry] = {geometry}\n"
+        if reference_energy is not None:
+            header += f"beginning[e_tot] = {reference_energy}\n"
+        header += beginning
+        if initial_twiss is not None:
+            for attribute, value in (
+                ("beta_a", initial_twiss.beta_x),
+                ("alpha_a", initial_twiss.alpha_x),
+                ("beta_b", initial_twiss.beta_y),
+                ("alpha_b", initial_twiss.alpha_y),
+            ):
+                header += f"beginning[{attribute}] = {value}\n"
+            for attribute, value in (
+                ("eta_x", initial_twiss.eta_x),
+                ("etap_x", initial_twiss.eta_xp),
+                ("eta_y", initial_twiss.eta_y),
+                ("etap_y", initial_twiss.eta_yp),
+            ):
+                if value:
+                    header += f"beginning[{attribute}] = {value}\n"
+        return header
+
+    def _bmad_body(
+        self, geometry: str, *, multipass: bool = False, starts_lattice: bool = True
+    ) -> BmadBody:
+        """
+        This section's Bmad element definitions and its one ``line``, split from
+        the header so a parent can put several sections in one file.
+
+        Parameters
+        ----------
+        geometry: str
+            ``open`` or ``closed``, handed to every element that reads it.
+        multipass: bool
+            Write ``line[multipass]``, so Bmad makes a lord and one slave per
+            traversal rather than repeating the elements.
+        starts_lattice: bool
+            Whether this section starts the lattice, so that a leading
+            `TwissMatch` gives its beginning Twiss rather than being an element
+            of the line.
+        """
+        self._check_elements_supported("bmad")
+        all_elements = list(self.elements.elements.values())
+        ordered_elements = self._get_all_elements()
+
+        has_origin = bool(
+            starts_lattice
+            and ordered_elements
+            and ordered_elements[0].hardware_type == "TwissMatch"
+        )
+        origin = None
+        if has_origin:
+            seed = ordered_elements[0]
+            ordered_elements = ordered_elements[1:]
+            all_elements = [
+                element for element in all_elements if element.name != seed.name
+            ]
+            origin = seed.simulation
+
+        by_name = {element.name: element for element in all_elements}
+
+        def s_bounds(element):
+            physical = element.physical
+            middle = physical.s
+            if middle is None:
+                trajectory = getattr(physical, "_trajectory", None)
+                middle = (
+                    trajectory.s_at_xyz(physical.middle)
+                    if trajectory is not None
+                    else physical.middle.z
+                )
+            half_length = physical.length / 2
+            return middle - half_length, middle + half_length
+
+        def logical_corrector_part(element):
+            parent = by_name.get(element.subelement)
+            return (
+                parent is not None
+                and parent.hardware_type == "Combined_Corrector"
+                and element.hardware_type
+                in {"Horizontal_Corrector", "Vertical_Corrector"}
+            )
+
+        superimposed_names = {
+            element.name
+            for element in all_elements
+            if element.is_subelement() and not logical_corrector_part(element)
+        }
+        backbone = []
+        previous_end = None
+        for element in ordered_elements:
+            if element.name in superimposed_names:
+                continue
+            start, end = s_bounds(element)
+            if previous_end is not None and start < previous_end - 1e-12:
+                superimposed_names.add(element.name)
+            else:
+                backbone.append(element)
+                previous_end = end
+
+        if not backbone:
+            raise ValueError(
+                "A Bmad lattice needs at least one non-superimposed element"
+            )
+
+        backbone_section = self.model_copy(
+            update={"order": [element.name for element in backbone]}
+        )
+        section = backbone_section.createDrifts(keep_diagnostic_length=True)
+        keys = list(section)
+        at = {key: index for index, key in enumerate(keys)}
+        patch_definitions = ""
+        patches: Dict[str, str] = {}
+        superseded: set = set()
+        for count, (previous, following) in enumerate(
+            zip(backbone, backbone[1:]), start=1
+        ):
+            definition, patch = bmad_patch(
+                f"{self.name}_patch_{count}", previous, following
+            )
+            if patch is None:
+                continue
+            patch_definitions += definition
+            patches[previous.name] = patch
+            superseded.update(keys[at[previous.name] + 1 : at[following.name]])
+        ordered_members = []
+        for key in keys:
+            if key in superseded:
+                continue
+            ordered_members.append(key)
+            if key in patches:
+                ordered_members.append(patches[key])
+
+        superimposed = [
+            element for element in all_elements if element.name in superimposed_names
+        ]
+        elements = self._translate(
+            [
+                *(element for key, element in section.items() if key not in superseded),
+                *superimposed,
+            ]
+        )
+        target_types = {
+            element.name: elements[element.name]
+            ._convert_type_bmad(elements[element.name].hardware_type)
+            .lower()
+            for element in superimposed
+        }
+        thin_kickers = {
+            element.name
+            for element in superimposed
+            if target_types[element.name] in {"kicker", "hkicker", "vkicker"}
+        }
+        renames = bmad_safe_names([*elements, *ordered_members, self.name])
+
+        def rename(item: str) -> str:
+            return renames.get(item, item)
+
+        lead = (
+            max(s_bounds(backbone[0])[0] - s_bounds(seed)[1], 0.0)
+            if has_origin
+            else 0.0
+        )
+        lead_definition, lead_name = bmad_leading_drift(
+            sanitize_string(self.name), lead
+        )
+        if lead_name is None:
+            lead = 0.0
+        definitions = lead_definition + patch_definitions
+        declared_twiss = False
+        for element_name, translator in elements.items():
+            if element_name in renames:
+                translator.name = renames[element_name]
+            if element_name in thin_kickers:
+                parameters = translator._bmad_parameters()
+                parameters["l"] = 0.0
+                definitions += translator._format_bmad(parameters=parameters)
+            else:
+                if hasattr(translator, "bmad_geometry"):
+                    translator.bmad_geometry = geometry
+                if hasattr(translator, "bmad_active_fixer"):
+                    translator.bmad_active_fixer = not declared_twiss
+                    declared_twiss = True
+                definitions += translator.to_bmad()
+        name = sanitize_string(rename(self.name))
+        member_names = [sanitize_string(rename(item)) for item in ordered_members]
+        if lead_name is not None:
+            member_names.insert(0, lead_name)
+        members = ", ".join(member_names)
+        lattice_start = s_bounds(backbone[0])[0] - lead
+        superpositions = ""
+        for element in superimposed:
+            translator = elements[element.name]
+            target_type = target_types[element.name]
+            if target_type == "drift":
+                raise ValueError(
+                    f"Bmad cannot superimpose drift-like element {element.name!r}"
+                )
+            start, end = s_bounds(element)
+            position = (start + end) / 2 if element.name in thin_kickers else start
+            offset = position - lattice_start
+            if abs(offset) < 1e-12:
+                offset = 0.0
+            superpositions += (
+                f"superimpose, element = {sanitize_string(rename(element.name))}, "
+                f"offset = {offset:.16g}, ele_origin = beginning\n"
+            )
+        keyword = "line[multipass]" if multipass else "line"
+        return BmadBody(
+            definitions=definitions,
+            line=f"{name}: {keyword} = ({members})\n",
+            superpositions=superpositions,
+            beginning=bmad_beginning_datum(backbone[0], lead),
+            origin=origin,
+            name=name,
+            renames=renames,
+        )
 
     def to_astra(self) -> str:
         """
@@ -176,11 +576,7 @@ class SectionLatticeTranslator(SectionLattice):
         counter = {k: 1 for k in headers}
         written = []
         element_headers = {h: "" for h in headers}
-        elem_dict = translate_elements(
-            list(self.elements.elements.values()),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate()
         astrastr = ""
         for h in self.astra_headers.values():
             astrastr += h.write_astra()
@@ -191,15 +587,15 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[key] += (
-                            f"{section_header_text_astra[key]} = True\n"
-                        )
+                        element_headers[
+                            key
+                        ] += f"{section_header_text_astra[key]} = True\n"
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
                         counter[key] += e.aperture.number_of_elements
                     elif isinstance(e, WakefieldTranslator):
-                        counter[key] += int(e.cavity.n_cells)
+                        counter[key] += e.astra_wake_spacing[1]
                     else:
                         counter[key] += 1
                     if (
@@ -225,22 +621,12 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers["&WAKE"] += (
-                                f"{section_header_text_astra['&WAKE']} = True\n"
-                            )
+                            element_headers[
+                                "&WAKE"
+                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
-                        counter["&WAKE"] += int(e.cavity.n_cells)
-                else:
-                    cond = (
-                        "&"
-                        + e.hardware_type.upper().replace("RF", "").replace("FIELD", "")
-                        in headers
-                    )
-                    # if not e.hardware_class == "Diagnostic" and not cond:
-                    #     warn(
-                    #         f"Element of type {e.hardware_type} not supported for ASTRA"
-                    #     )
+                        counter["&WAKE"] += w.astra_wake_spacing[1]
         for k, v in element_headers.items():
             astrastr += k + "\n"
             astrastr += v + "\n"
@@ -284,11 +670,7 @@ class SectionLatticeTranslator(SectionLattice):
         fulltext = ""
         for header in self.gpt_headers.values():
             fulltext += header.write_gpt()
-        elem_dict = translate_elements(
-            list(self.elements.elements.values()),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate()
         self._apply_wakefield_enable(elem_dict)
         kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
@@ -302,6 +684,8 @@ class SectionLatticeTranslator(SectionLattice):
                 )
             element.ccs = ccs
             fulltext += element.to_gpt(Brho, **kwargs)
+            if not isinstance(element, MagnetTranslator):
+                element._warn_dropped_misalignment("gpt", set())
             if (
                 element.hardware_type.lower() == "rfcavity"
                 and isinstance(element.simulation.wakefield_definition, FieldMap)
@@ -332,7 +716,6 @@ class SectionLatticeTranslator(SectionLattice):
                 )
             else:
                 relpos = list(element.physical.middle.model_dump().values())
-            screen0pos = 0
             ccs = deepcopy(new_ccs)
             if (
                 element.hardware_class.lower() == "diagnostic"
@@ -341,22 +724,20 @@ class SectionLatticeTranslator(SectionLattice):
                 fulltext += f'screen({ccs.name_as_str}, "I", {str(relpos[2] + 0.001)}, {ccs.name_as_str});\n'
                 # if self.gpt_headers["setfile"].particle_definition == "laser":
         lastelem = list(elem_dict.values())[-1]
-        lastscreen = DiagnosticTranslator(
-            name="end_screen",
-            hardware_class="Diagnostic",
-            hardware_type="Diagnostic",
-            machine_area=lastelem.machine_area,
-            simulation=DiagnosticSimulationElement(
-                output_filename=f"{self.name}_out.gdf"
-            ),
-            physical=lastelem.physical,
+        lastscreen = self._end_screen(
+            lastelem, f"{self.name}_out.gdf", lastelem.physical
         )
         fulltext += lastscreen.to_gpt(Brho, output_ccs="wcs")
         relpos, relrot = ccs.relative_position(
             list(lastelem.physical.end.model_dump().values()),
             list(lastelem.physical.global_rotation.model_dump().values()),
         )
-        fulltext += f'screen("wcs", "I", {lastelem.physical.end.z}, "wcs");\n'
+        if ccs.name == "wcs":
+            fulltext += f'screen("wcs", "I", {lastelem.physical.end.z}, "wcs");\n'
+        else:
+            fulltext += (
+                f'screen({ccs.name_as_str}, "I", {relpos[2]}, {ccs.name_as_str});\n'
+            )
         zminmax = GptZMinMax(
             ECS='"wcs", "I"',
             zmin=startz - 0.1,
@@ -405,11 +786,7 @@ class SectionLatticeTranslator(SectionLattice):
         fulltext += self.opal_headers["option"].write_opal()
         fulltext += f"{breakstr}\n// LATTICE\n"
         zstops = []
-        elem_dict = translate_elements(
-            list(self.elements.elements.values()),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate()
         written = []
         svals = self.get_resolved_s_values(as_dict=True, at_entrance=True)
         for d in elem_dict.values():
@@ -428,7 +805,7 @@ class SectionLatticeTranslator(SectionLattice):
             stnew = d.to_opal(sval=sval, designenergy=energy)
             if len(stnew) > 0:
                 written.append(d.name)
-                fulltext += d.to_opal(sval=sval, designenergy=energy)
+                fulltext += stnew
             zstops.append(d.physical.end.z)
         zstop = max(zstops)
         self.opal_headers["track"].ZSTOP = zstop
@@ -507,7 +884,7 @@ class SectionLatticeTranslator(SectionLattice):
             if isinstance(d, RFCavityTranslator):
                 d.tw_focusing = self.tw_focusing
 
-    def to_elegant(self, charge: float | None = None) -> str:
+    def to_elegant(self, charge: float | None = None, Brho: float = 0.0) -> str:
         """
         Create an ELEGANT-compatible input file based on the lattice information.
 
@@ -515,6 +892,10 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         charge: float
             Bunch charge
+        Brho: float
+            Magnetic rigidity [T*m]. Only AC dipoles need it: ELEGANT states a
+            ``BUMPER``'s strength as an angle rather than as an integrated
+            field.
 
         Returns
         -------
@@ -527,20 +908,19 @@ class SectionLatticeTranslator(SectionLattice):
             lsc_enable=self.lsc_enable,
             lsc_bins=self.lsc_bins,
         )
-        # (wakefields are applied to the translated elements below)
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(section_with_drifts.values())
         self._apply_wakefield_enable(elem_dict)
         self._apply_tw_focusing(elem_dict)
+        fix_ring_reference(elem_dict, self.geometry)
         string = ""
         if charge:
             string += f"{self.name}_Q: CHARGE, TOTAL = {charge};\n"
 
         for d in elem_dict.values():
-            string += self.format_string(d.to_elegant())
+            if isinstance(d, ACDipoleTranslator):
+                string += self.format_string(d.to_elegant(Brho=Brho))
+            else:
+                string += self.format_string(d.to_elegant())
 
         lstring = f"{self.name}: LINE = ("
         if charge:
@@ -579,12 +959,7 @@ class SectionLatticeTranslator(SectionLattice):
             A Genesis-compatible lattice file (v4).
         """
         self._check_elements_supported("genesis")
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
         string = ""
         starts = []
         ends = []
@@ -662,7 +1037,7 @@ class SectionLatticeTranslator(SectionLattice):
                 )
         return string
 
-    def to_ocelot(self, save=False) -> "MagneticLattice":
+    def to_ocelot(self, save=False, Brho: float = 0.0) -> "MagneticLattice":
         """
         Create an Ocelot-compatible magnetic lattice object based on the lattice information.
 
@@ -670,6 +1045,9 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         save: bool
             Flag to indicate whether to save the lattice to a file.
+        Brho: float
+            Rigidity ``p / q`` [T*m], negative for electrons, to normalise
+            solenoid strengths.
 
         Returns
         -------
@@ -686,24 +1064,38 @@ class SectionLatticeTranslator(SectionLattice):
         self._check_elements_supported("ocelot")
 
         method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
         elements = []
 
+        symbolic = not IgnoreExtra.resolve_functional
         for d in elem_dict.values():
-            obj = d.to_ocelot()
+            obj = (
+                d.to_ocelot(Brho=Brho)
+                if isinstance(d, SolenoidTranslator)
+                else d.to_ocelot()
+            )
             objs = list(obj) if isinstance(obj, (list, tuple)) else [obj]
+            # an OCELOT bend's tilt rolls its frame, so it cannot take a roll error
+            roll = d.roll - d.dz_rot * d._curved
+            for o in objs:
+                o.dx, o.dy = d.dx, d.dy
+                o.tilt += roll
+            d._warn_dropped_misalignment("ocelot", {"dx", "dy"}, tilt=True)
+            if (d.dx or d.dy) and roll:
+                warn(f"OCELOT offsets {d.name!r} before rolling it, unlike LAURA.")
+            if symbolic and objs:
+                objs[0].laura_functional_fields = functional_fields(d)
             elements.extend(objs)
             oce_len = sum(getattr(o, "l", 0.0) or 0.0 for o in objs)
             gap = d.physical.length - oce_len
             if gap > 1e-9:
-                elements.append(OcelotDrift(eid=f"{d.name}_drift", l=gap))
+                elements.append(OcelotDrift(l=gap, eid=f"{d.name}_len"))
 
         maglat = MagneticLattice(elements, method=method)
+        if symbolic:
+            maglat.laura_functional_definitions = dict(
+                self.functional_definitions or IgnoreExtra.functional_definitions
+            )
         if save:
             maglat.save_as_py_file(
                 f"{self.directory}/{self.name}.py", remove_rep_drifts=False
@@ -721,43 +1113,31 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         P_Q: float
             Beam reference momentum-over-charge [MV/c], forwarded to every
-            element's ``to_rftrack(P_Q=...)`` — required for correct dipole
-            (``SBend``) bending; see ``BaseElementTranslator.to_rftrack``.
-            Mirrors ``to_gpt(Brho=...)``.
+            element; required for correct dipole bending (see
+            :meth:`BaseElementTranslator.to_rftrack <laura.translator.converters.base.BaseElementTranslator.to_rftrack>`).
         save: bool
             If ``True``, also write a standalone Python script reconstructing
-            this lattice to ``{self.directory}/{self.name}.py`` -- mirrors
-            ``to_ocelot(save=True)``'s ``MagneticLattice.save_as_py_file()``,
-            which RF-Track has no built-in equivalent of (see
+            this lattice to ``{self.directory}/{self.name}.py`` (see
             :func:`_save_rftrack_py_file`).
         sc_nsteps: int
             If ``> 0``, apply this many evenly-spaced space-charge kicks per
-            element via ``Element.set_sc_nsteps`` (manual §5.1.2) -- how space
-            charge is enabled in the ``Lattice`` (space-integration)
-            environment. The space-charge engine/grid and cathode mirror
-            charges are configured separately by the tracking driver
-            (``rftrackLattice._setup_space_charge``); see
+            element via ``Element.set_sc_nsteps``. The space-charge engine is
+            configured separately by the tracking driver; see
             :func:`~laura.translator.conversion_rules.codes.rftrack_conversion.space_charge_engine`.
 
         Returns
         -------
         RF_Track.Lattice
-            An RF-Track ``Lattice`` object, built by appending each translated
-            element in section order (elements are added by value, per RF-Track's
-            default ``append()`` semantics).
+            An RF-Track ``Lattice`` object, with elements appended in section order.
         """
         from ..conversion_rules.codes.rftrack_conversion import get_rftrack
 
         rft = get_rftrack()
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
         lattice = rft.Lattice()
         for d in elem_dict.values():
             elem = d.to_rftrack(P_Q=P_Q)
+            d._warn_dropped_misalignment("RF-Track", set())
             for e in elem if isinstance(elem, list) else [elem]:
                 if sc_nsteps > 0:
                     e.set_sc_nsteps(sc_nsteps)
@@ -770,18 +1150,12 @@ class SectionLatticeTranslator(SectionLattice):
         self, P_Q: float = float("nan"), save: bool = False
     ) -> object:
         """
-        Create an RF-Track ``Volume`` (time-integration environment) for this
-        section by wrapping the ``Lattice`` from :func:`to_rftrack` and adding it
-        at the origin (``V.add(lattice, 0, 0, 0)``, manual §3.3.2 -- a whole
-        Lattice may be embedded in a Volume). This is the environment RF-Track
-        recommends for space-charge-dominated / cathode regimes (manual §5.1.1),
-        tracked with a ``Bunch6dT``.
+        Create an RF-Track ``Volume`` (time-integration environment) wrapping the
+        ``Lattice`` from :func:`to_rftrack` at the origin, for space-charge-dominated
+        and cathode regimes.
 
-        Space charge in a Volume is driven by the ``sc_dt_mm`` tracking option,
-        **not** per-element ``set_sc_nsteps`` (that is the Lattice mechanism), so
-        no ``sc_nsteps`` is applied here; the driver
-        (``rftrackLattice._setup_space_charge``) sets ``sc_dt_mm`` and the
-        emission options on the returned Volume.
+        No ``sc_nsteps`` is applied: Volume space charge is driven by the
+        ``sc_dt_mm`` tracking option, set by the tracking driver.
 
         Parameters
         ----------
@@ -808,9 +1182,7 @@ class SectionLatticeTranslator(SectionLattice):
     ) -> None:
         """
         Write a standalone Python script to ``{self.directory}/{self.name}.py``
-        that reconstructs this lattice using only ``RF_Track``/``numpy`` --
-        no LAURA/SIMBA import required to reload it, matching the
-        self-contained nature of Ocelot's ``save_as_py_file()`` output.
+        that reconstructs this lattice using only ``RF_Track``/``numpy``.
 
         Parameters
         ----------
@@ -842,7 +1214,22 @@ class SectionLatticeTranslator(SectionLattice):
         with open(f"{self.directory}/{self.name}.py", "w") as f:
             f.write("\n".join(lines) + "\n")
 
-    def to_cheetah(self, save=False) -> "Segment":
+    @staticmethod
+    def _cheetah_misalignment(element, obj) -> None:
+        """Write ``element``'s offsets and roll onto the Cheetah ``obj``; a
+        Cheetah bend's ``tilt`` rolls its frame, so it takes no roll error."""
+        from torch import float64, tensor
+
+        written = set()
+        if hasattr(obj, "misalignment"):
+            obj.misalignment = tensor([element.dx, element.dy], dtype=float64)
+            written = {"dx", "dy"}
+        roll = element.roll - element.dz_rot * element._curved
+        if hasattr(obj, "tilt") and roll:
+            obj.tilt = obj.tilt + roll
+        element._warn_dropped_misalignment("cheetah", written, hasattr(obj, "tilt"))
+
+    def to_cheetah(self, save=False, Brho: float = 0.0) -> "Segment":
         """
         Create a Cheetah-compatible lattice segment object based on the lattice information.
 
@@ -850,6 +1237,9 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         save: bool
             Flag to indicate whether to save the lattice to a file.
+        Brho: float
+            Rigidity ``p / q`` [T*m], negative for electrons, to normalise
+            solenoid strengths.
 
         Returns
         -------
@@ -861,19 +1251,19 @@ class SectionLatticeTranslator(SectionLattice):
         self._check_elements_supported("cheetah")
         self._warn_dropped_wakes("Cheetah")
 
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
         self._apply_tw_focusing(elem_dict)
         segment = []
         segments = False
         for element in elem_dict.values():
             if not element.subelement:
-                elem = element.to_cheetah()
+                elem = (
+                    element.to_cheetah(Brho=Brho)
+                    if isinstance(element, SolenoidTranslator)
+                    else element.to_cheetah()
+                )
                 if elem is not None:
+                    self._cheetah_misalignment(element, elem)
                     segment.append(elem)
                     segments = True
         if segments:
@@ -887,7 +1277,12 @@ class SectionLatticeTranslator(SectionLattice):
         return full_segment
 
     def to_xsuite(
-        self, beam_length: int, env: Any = None, particle_ref: Any = None, save=True
+        self,
+        beam_length: int,
+        env: Any = None,
+        particle_ref: Any = None,
+        save=True,
+        turns: int = 1,
     ) -> "Line":
         """
         Create an Xsuite-compatible lattice line object based on the lattice information.
@@ -902,10 +1297,12 @@ class SectionLatticeTranslator(SectionLattice):
             xtrack Particles object
         save: bool
             Flag to indicate whether to save the `Line` to JSON.
+        turns: int
+            How many turns the line will be tracked for.
 
         Returns
         -------
-        Segment
+        Line
             A Xsuite `Line` object.
         """
         import xtrack as xt
@@ -920,12 +1317,7 @@ class SectionLatticeTranslator(SectionLattice):
                 self.functional_definitions or IgnoreExtra.functional_definitions
             ).items():
                 env[name] = value
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
 
         def _is_symbolic(val: Any) -> bool:
             if isinstance(val, str):
@@ -934,7 +1326,13 @@ class SectionLatticeTranslator(SectionLattice):
                 return any(_is_symbolic(v) for v in val)
             return False
 
+        Brho = (
+            float(particle_ref.p0c[0] / (299792458.0 * particle_ref.q0))
+            if isinstance(particle_ref, xt.Particles)
+            else 0.0
+        )
         line = env.new_line()
+        element_types = {}
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
                 if isinstance(element, ACDipoleTranslator):
@@ -942,15 +1340,52 @@ class SectionLatticeTranslator(SectionLattice):
                         beam_length=beam_length,
                         revolution_frequency=self.revolution_frequency,
                     )
+                elif isinstance(element, SolenoidTranslator):
+                    name, component, properties = element.to_xsuite(
+                        beam_length=beam_length, Brho=Brho
+                    )
                 else:
                     name, component, properties = element.to_xsuite(
                         beam_length=beam_length
                     )
+                if turns > 1 and "stop_at_turn" in properties:
+                    properties["stop_at_turn"] = int(turns)
+                if "shift_x" in getattr(component, "_xofields", ()):
+                    # rot_s_rad rolls a bend's frame (design tilt); the error rolls the field only
+                    curved = component in (xt.Bend, xt.RBend)
+                    frame = element.roll - element.dz_rot * curved
+                    angle = element.resolve(element.magnetic.KnL(0)) if curved else 0.0
+                    # xtrack rolls a bend about its arc midpoint, LAURA about its chord
+                    offset, rotation = to_frame(
+                        element._misalignment(),
+                        tilt=frame,
+                        rolled=False,
+                        chord=sagitta(element.physical.length, float(angle or 0.0)),
+                    )
+                    misalignment = {
+                        "shift_x": float(offset[0]),
+                        "shift_y": float(offset[1]),
+                        "shift_s": float(offset[2]),
+                        "rot_x_rad": -float(rotation[0]),
+                        "rot_y_rad": float(rotation[1]),
+                        "rot_s_rad": frame,
+                        "rot_s_rad_no_frame": float(rotation[2]) * curved,
+                    }
+                    misalignment = {k: v for k, v in misalignment.items() if v}
+                    if misalignment:
+                        # Bmad pivots about the centre; xtrack defaults to the entrance
+                        misalignment["rot_shift_anchor"] = element.physical.length / 2
+                    properties.update(misalignment)
                 if any(_is_symbolic(v) for v in properties.values()):
                     env.new(element.name, component, **properties)
                     line.append(element.name)
                 else:
                     line.append(element.name, component(**properties))
+                element_types[element.name] = element.hardware_type
+        line.metadata["laura_element_types"] = element_types
+        line.metadata["laura_functional_definitions"] = dict(
+            self.functional_definitions or IgnoreExtra.functional_definitions
+        )
         if isinstance(particle_ref, xt.Particles):
             line.particle_ref = particle_ref
         if save:
@@ -970,34 +1405,21 @@ class SectionLatticeTranslator(SectionLattice):
         self._check_elements_supported("csrtrack")
         headers = ["dipole", "quadrupole", "screen"]
         counter = {k: 1 for k in headers}
-        elem_dict = translate_elements(
-            list(self.elements.elements.values()),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate()
         csrtrackstr = "io_path{logfile = log.txt}\nlattice{\n"
         for e in elem_dict.values():
-            for key, count in counter.items():
-                if e.hardware_type.lower() == key:
-                    csrtrackstr += e.to_csrtrack(n=count)
-                    counter[key] += 1
-                else:
-                    if not e.hardware_class == "Diagnostic":
-                        warn(
-                            f"Element of type {e.hardware_type} not supported for CSRTrack"
-                        )
+            key = e.hardware_type.lower()
+            if key in counter:
+                csrtrackstr += e.to_csrtrack(n=counter[key])
+                e._warn_dropped_misalignment("CSRTrack", set())
+                counter[key] += 1
+            elif e.hardware_class != "Diagnostic":
+                warn(f"Element of type {e.hardware_type} not supported for CSRTrack")
         lastelem = list(elem_dict.values())[-1]
-        lastscreen = DiagnosticTranslator(
-            name="end_screen",
-            hardware_class="Diagnostic",
-            hardware_type="Diagnostic",
-            machine_area=lastelem.machine_area,
-            simulation=DiagnosticSimulationElement(
-                output_filename="end_screen.csrtrack"
-            ),
-            physical=lastelem.physical.model_copy(
-                update={"middle": lastelem.physical.end}
-            ),
+        lastscreen = self._end_screen(
+            lastelem,
+            "end_screen.csrtrack",
+            lastelem.physical.model_copy(update={"middle": lastelem.physical.end}),
         )
         csrtrackstr += lastscreen.to_csrtrack(n=counter["screen"])
         csrtrackstr += "}\n"
@@ -1008,20 +1430,16 @@ class SectionLatticeTranslator(SectionLattice):
             csrtrackstr += h.write_csrtrack()
         return csrtrackstr
 
-    def to_madx(self, beam: Dict[str, Any] | None = None, refer: str = "entry") -> str:
+    def to_madx(
+        self,
+        beam: Dict[str, Any] | None = None,
+        refer: str = "entry",
+        Brho: float = 0.0,
+    ) -> str:
         """
         Create a MAD-X-compatible ``SEQUENCE`` definition based on the lattice
         information, suitable for :meth:`cpymad.madx.Madx.input` (see the
         `MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html>`_).
-
-        Elements are placed at their entrance s-position (``refer=entry``, the
-        default) or, when ``refer`` is ``"centre"``/``"center"``, at their centre
-        (required before a MAD-X ``MAKETHIN``/``TRACK``).
-        Explicit ``drift`` elements are inserted between elements via
-        :meth:`create_drifts` and written into the sequence like any other
-        element, which is the standard way of constructing a MAD-X lattice
-        (rather than relying on MAD-X's implicit gap-filling between elements
-        placed without a contiguous ``at=``).
 
         Parameters
         ----------
@@ -1030,32 +1448,42 @@ class SectionLatticeTranslator(SectionLattice):
             `Beam Section of the MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html#Ch7.S1>`_
         refer: str
             Gives a reference position for element placement, related to the ``at=`` parameter.
+        Brho: float
+            Rigidity ``p / q`` [T*m], negative for electrons, to normalise
+            solenoid strengths.
 
         Returns
         -------
         str
-            A MAD-X-compatible ``SEQUENCE`` definition, prefixed with variable
-            declarations for any functional definitions used symbolically by
-            the lattice's elements.
+            A MAD-X-compatible ``SEQUENCE`` definition. Alignment errors go
+            into a ``<name>_errors`` macro, to ``exec`` after each ``USE``
+            (done here when ``beam`` is given).
         """
         self._warn_dropped_wakes("MAD-X")
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
         svals = self.get_s_values(as_dict=True, at_entrance=True)
         exit_svals = self.get_s_values(as_dict=True, at_entrance=False)
         length = max(exit_svals.values()) if exit_svals else 0.0
         centre = str(refer).lower() in ("centre", "center")
         refer = "centre" if centre else "entry"
         fulltext = ""
+        errors = ""
         for d in elem_dict.values():
             at = d.physical.start.z if d.subelement else svals[d.name]
             if centre:
                 at += d.physical.length / 2
-            fulltext += d.to_madx(at=at)
+            if isinstance(d, SolenoidTranslator):
+                fulltext += d.to_madx(at=at, Brho=Brho)
+            else:
+                fulltext += d.to_madx(at=at)
+            alignment = d.madx_alignment()
+            if alignment:
+                terms = ", ".join(f"{k} = {v}" for k, v in alignment.items())
+                errors += (
+                    f"select, flag=error, clear;\n"
+                    f"select, flag=error, range={sanitize_string(d.name)};\n"
+                    f"ealign, {terms};\n"
+                )
 
         seqstring = madx_functional_definitions(self.functional_definitions)
         has_beam = isinstance(beam, Dict)
@@ -1070,8 +1498,15 @@ class SectionLatticeTranslator(SectionLattice):
         )
         seqstring += fulltext
         seqstring += "ENDSEQUENCE;\n"
+        macro = f"{sanitize_string(self.name)}_errors"
+        if errors:
+            # EALIGN needs a USEd sequence, and every USE wipes it: re-run with ``exec``
+            errors += "select, flag=error, clear;\n"
+            seqstring += f"{macro}: macro = {{\n{errors}}};\n"
         if has_beam:
             seqstring += f"USE, PERIOD={sanitize_string(self.name)};"
+            if errors:
+                seqstring += f"\nexec, {macro};"
         return seqstring
 
     def to_wake_t(self) -> "Beamline":
@@ -1080,25 +1515,18 @@ class SectionLatticeTranslator(SectionLattice):
 
         Returns
         -------
-        Segment
+        Beamline
             A Wake-T `Beamline` object.
         """
         from wake_t import Beamline
 
         self._check_elements_supported("wake_t")
 
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
         beamline = []
         for element in elem_dict.values():
             if not element.subelement:
-                # try:
                 if element.length > 0:
                     beamline.append(element.to_wake_t())
-                # except Exception as e:
-                #     print('Wake-T writeElements error:', element.name, e)
+                    element._warn_dropped_misalignment("Wake-T", set())
         return Beamline(beamline)
