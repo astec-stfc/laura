@@ -141,6 +141,19 @@ def test_bends_keep_elegants_defaults(tmp_path):
 
 
 @_needs_elegant
+def test_an_edge_effects_method_imports(tmp_path):
+    """EDGE1_EFFECTS is a method number, not a switch; 2 failed validation."""
+    importer = _lte(
+        tmp_path,
+        "b1: csbend, l=0.5, angle=0.1, edge1_effects=2, edge2_effects=0\n"
+        "machine: line=(b1,b1,b1)\n",
+    )
+    simulation = next(_layout_elements(importer)).simulation
+
+    assert (simulation.edge1_effects, simulation.edge2_effects) == (2, 0)
+
+
+@_needs_elegant
 def test_uniform_integration_drops_only_elegants_defaults(tmp_path):
     """Opting in leaves unstated edge orders and kick counts to LAURA's
     second-order edges and auto-scaled kicks, but keeps what the lattice sets."""

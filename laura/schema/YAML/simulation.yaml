@@ -161,11 +161,15 @@ classes:
           Per-simulation override of the magnet's fringe-field integral.
           Absent means "use ``MagneticElement.edge_field_integral``".
       edge1_effects:
-        range: boolean
-        description: Enable entrance-edge focussing effects.
+        range: integer
+        description: >-
+          Entrance-edge effects: 0 off, 1 on
+          (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.
       edge2_effects:
-        range: boolean
-        description: Enable exit-edge focussing effects.
+        range: integer
+        description: >-
+          Exit-edge effects: 0 off, 1 on
+          (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.
       fringe_model:
         range: string
         description: >-

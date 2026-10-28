@@ -487,7 +487,7 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         data["simulation_edge_order"] = self.fringe_order
         if self.fringe_order == 2:
             for face in ("simulation_edge1_effects", "simulation_edge2_effects"):
-                if data.get(face) is not False:
+                if data.get(face) in (None, 1):
                     data[face] = 3
         if self.fringe_order == 1 and not data.get("simulation_fringe_model"):
             data["simulation_fringe_model"] = "linear_edge"

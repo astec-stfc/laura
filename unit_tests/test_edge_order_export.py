@@ -38,3 +38,17 @@ def test_every_code_gets_the_same_edge_order(edge_order, order, xsuite, bmad):
 def test_codes_that_cannot_drop_the_second_order_terms_say_so():
     with pytest.warns(UserWarning, match="MAD-X always models"):
         bend(1).to_madx()
+
+
+@pytest.mark.parametrize("stated, written", [(None, 3), (1, 3), (0, 0), (2, 2), (3, 3)])
+def test_second_order_edges_raise_only_an_unset_or_plain_on_edge(stated, written):
+    """1 is the old boolean "on", so it gets the symplectic method; 0 and a
+    stated ELEGANT method (2, 3) are written as given."""
+    element = Dipole(
+        name="B1", machine_area="A", physical={"length": 1.3},
+        magnetic={"magnetic_length": 1.3, "k0l": 0.11},
+        simulation={"edge1_effects": stated, "edge2_effects": stated},
+    )
+    elegant = translate_elements([element])["B1"].to_elegant()
+    assert f"edge1_effects = {written}" in elegant
+    assert f"edge2_effects = {written}" in elegant
