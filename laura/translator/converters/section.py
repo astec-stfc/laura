@@ -686,16 +686,15 @@ class SectionLatticeTranslator(SectionLattice):
             element.ccs = ccs
             fulltext += element.to_gpt(Brho, **kwargs)
             if not isinstance(element, MagnetTranslator):
-                if isinstance(element, RFCavityTranslator):
-                    mc2 = electron_mass * speed_of_light**2 / elementary_charge
-                    kinetic = (
-                            np.hypot(Brho * speed_of_light, mc2)
-                            - mc2
-                            + cavity_energy_gain(element) * 1e6
-                    )
-                    Brho = np.sqrt(kinetic * (kinetic + 2 * mc2)) / speed_of_light
-                else:
-                    element._warn_dropped_misalignment("gpt", set())
+                element._warn_dropped_misalignment("gpt", set())
+            if isinstance(element, RFCavityTranslator):
+                mc2 = electron_mass * speed_of_light**2 / elementary_charge
+                kinetic = (
+                    np.hypot(Brho * speed_of_light, mc2)
+                    - mc2
+                    + cavity_energy_gain(element) * 1e6
+                )
+                Brho = np.sqrt(kinetic * (kinetic + 2 * mc2)) / speed_of_light
             if (
                 element.hardware_type.lower() == "rfcavity"
                 and isinstance(element.simulation.wakefield_definition, FieldMap)
@@ -717,15 +716,7 @@ class SectionLatticeTranslator(SectionLattice):
                     directory=element.directory,
                 )
                 fulltext += w.to_gpt(Brho, **kwargs)
-            new_ccs = deepcopy(element.ccs)
-            if not new_ccs.name == ccs.name:
-                relpos, relrot = ccs.relative_position(
-                    list(element.physical.middle.model_dump().values()),
-                    list(element.physical.global_rotation.model_dump().values()),
-                )
-            else:
-                relpos = list(element.physical.middle.model_dump().values())
-            ccs = deepcopy(new_ccs)
+            ccs = deepcopy(element.ccs)
             if (
                 element.hardware_class.lower() == "diagnostic"
                 or element.hardware_type.lower() == "marker"

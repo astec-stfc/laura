@@ -132,17 +132,15 @@ def translate_elements(
             translator = WakefieldTranslator
         else:
             translator = BaseElementTranslator
-        data = elem.model_dump(by_alias=False)
-        simulation = getattr(elem, "simulation", None)
-        for key in ("field_definition", "wakefield_definition"):
-            field = getattr(simulation, key, None)
-            if isinstance(field, FieldMap):
-                data["simulation"][key] = field.model_copy()
         try:
             payload = elem.model_dump(by_alias=False)
             simulation = getattr(elem, "simulation", None)
             if simulation is not None:
                 payload["simulation"] = simulation.model_dump(by_alias=False, exclude_unset=True)
+                for key in ("field_definition", "wakefield_definition"):
+                    field = getattr(simulation, key, None)
+                    if isinstance(field, FieldMap):
+                        payload["simulation"][key] = field.model_copy()
             elem_dict.update({elem.name: translator.model_validate(payload)})
         except Exception:
             raise Exception(
