@@ -987,9 +987,9 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring = f"{self.name.replace('-', '_')}: {etype}"
         brho = -(designenergy or 0) * 1e6 / 299792458.0
         for key, value in self._dump_items(
-                self._convert_keyword_opal,
-                elements_opal[etype],
-                overrides=self._opal_alignment(),
+            self._convert_keyword_opal,
+            elements_opal[etype],
+            overrides=self._opal_alignment(),
         ):
             if (
                 brho
@@ -997,7 +997,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 and isinstance(value, (int, float))
             ):
                 value = value * brho
-                wholestring += f", {key} = {self._flag(self._angle_token(value))}"
+            wholestring += f", {key} = {self._flag(self._angle_token(value))}"
         if etype == "monitor":
             wholestring += f', OUTFN = "{self.name}_opal"'
         wholestring += f", ELEMEDGE = {sval};\n"

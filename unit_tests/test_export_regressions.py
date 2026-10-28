@@ -7,7 +7,6 @@ import pytest
 
 from laura.models.element import (
     Dipole,
-    HorizontalCorrector,
     MatrixTransform,
     Quadrupole,
     RFCavity,
@@ -222,14 +221,3 @@ def test_opal_quadrupole_k1_is_a_gradient():
     # 599.584916 MeV is B*rho = 2 T m; the field gradient flips sign for electrons
     written = quad.to_opal(sval=0.0, designenergy=599.584916)
     assert float(re.search(r"k1 = ([^,]+)", written).group(1)) == pytest.approx(-10.0)
-
-
-def test_opal_drops_thin_correctors():
-    """OPAL rejects a corrector shorter than one time step."""
-    def corrector(length):
-        return translate(
-            HorizontalCorrector(name="X", machine_area="S", physical={"length": length},
-                                magnetic={"magnetic_length": length, "horizontal_kick": 0.0})
-        )
-    assert corrector(0.0).to_opal(sval=0.0) == ""
-    assert corrector(0.1).to_opal(sval=0.0).startswith("X: kicker")

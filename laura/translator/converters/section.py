@@ -608,7 +608,7 @@ class SectionLatticeTranslator(SectionLattice):
                     if key == "&APERTURE":
                         counter[key] += e.aperture.number_of_elements
                     elif isinstance(e, WakefieldTranslator):
-                        counter[key] += int(e.cavity.n_cells)
+                        counter[key] += e.astra_wake_spacing[1]
                     else:
                         counter[key] += 1
                     if (
@@ -1421,10 +1421,32 @@ class SectionLatticeTranslator(SectionLattice):
                         properties.update(misalignment)
                     if any(_is_symbolic(v) for v in properties.values()):
                         env.new(name, component, **properties)
-                        line.append(name)
+                        obj, args = env[name], (name,)
                     else:
-                        line.append(name, component(**properties))
+                        obj = component(**properties)
+                        args = (name, obj)
+                    edges = (
+                        isinstance(element, RFCavityTranslator)
+                        and isinstance(obj, xt.Cavity)
+                        and p0c is not None
+                        and obj.length > 0
+                        # a ring's reference stays at its design momentum
+                        and element.simulation.change_p0
+                    )
+                    if edges:
+                        entrance, increase, exit, p0c = element.xsuite_edges(obj, p0c)
+                        line.append(f"{name}_entrance", entrance)
+                        line.append(f"{name}_p0c", increase)
+                    line.append(*args)
+                    if edges:
+                        line.append(f"{name}_exit", exit)
                 element_types[element.name] = element.hardware_type
+        if p0c is None and any(
+            isinstance(e, RFCavityTranslator) for e in elem_dict.values()
+        ):
+            warn(
+                f"{self.name}: Xsuite cavities are written without edge focusing, as no particle_ref was given"
+            )
         line.metadata["laura_element_types"] = element_types
         line.metadata["laura_functional_definitions"] = dict(
             self.functional_definitions or IgnoreExtra.functional_definitions

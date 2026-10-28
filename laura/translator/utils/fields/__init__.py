@@ -21,7 +21,6 @@ from pydantic import (
     model_validator,
 )
 
-from laura.models.constants import speed_of_light
 
 from . import (
     astra,  # noqa E402
@@ -32,7 +31,6 @@ from . import (
     rftrack,  # noqa E402
     sdds,  # noqa E402
 )
-from .field_parameter import FieldParameter
 
 allowed_fields = [
     "1DElectroStatic",

@@ -18,7 +18,6 @@ _log = logging.getLogger("laura.machine")
 
 
 import numpy as np
-from .models.physical import DriftPhysicalElement
 
 from .importers.yaml_loader import (
     ElementLoadError,

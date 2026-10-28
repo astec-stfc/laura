@@ -1223,12 +1223,6 @@ class SolenoidTranslator(BaseElementTranslator):
                     - np.asarray(self.physical.start.array)
                 )
             )
-            sval += float(
-                np.linalg.norm(
-                    self.get_field_reference_position()
-                    - np.asarray(self.physical.start.array)
-                )
-            )
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 

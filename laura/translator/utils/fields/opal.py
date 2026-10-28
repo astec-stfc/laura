@@ -9,18 +9,10 @@ from laura.models.constants import speed_of_light
 from ..units import UnitValue
 from .field_parameter import FieldParameter
 from .sdds import write_sdds_field_file
-from collections import Counter
-from warnings import warn
-
-import numpy as np
-
-from laura.models.constants import speed_of_light
 
 from .field_parameter import require_rf, set_field
-from .sdds import write_sdds_field_file
 
 d = ",!?/&-:;@'\n \t"
-
 
 def opal_tw_window(field, frequency: float) -> tuple[float, float]:
     """
@@ -31,7 +23,6 @@ def opal_tw_window(field, frequency: float) -> tuple[float, float]:
     """
     period = speed_of_light / frequency
     return field.start_cell_z - period / 2, field.start_cell_z + 3 * period / 2
-
 
 def write_opal_field_file(
     self,
@@ -160,7 +151,6 @@ def write_opal_field_file(
                     dat = [dat]
                 f.write(" ".join([str(x) for x in dat]) + "\n")
     return opal_file
-
 
 def read_opal_field_file(
     self,

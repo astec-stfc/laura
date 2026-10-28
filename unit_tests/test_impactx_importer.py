@@ -25,9 +25,10 @@ FODO = Path.home() / "Documents/impactx/examples/fodo/input_fodo.in"
 
 ELEMENTS = [
     *(e.model_copy(deep=True) for e in LINE),  # placing them would move LINE's
-    bend(physical={"s": 3.5, "error": {"position": {"x": 1e-3}}}, tilt=0.3),
-    bend(physical={"s": 4.5}, k1l=0.3, edge_field_integral=0.5, gap=0.02),
-    bend(physical={"s": 5.5}, k2l=1.0),
+    # unique names: a repeated one keeps the last bend in the first one's slot, out of order
+    bend(physical={"s": 3.5, "error": {"position": {"x": 1e-3}}}, name="b2", tilt=0.3),
+    bend(physical={"s": 4.5}, name="b3", k1l=0.3, edge_field_integral=0.5, gap=0.02),
+    bend(physical={"s": 5.5}, name="b4", k2l=1.0),
     Solenoid(
         name="sol",
         machine_area="S",

@@ -128,9 +128,9 @@ def section(*elements):
     return SectionLatticeTranslator.from_section(lattice)
 
 
-def bend(physical=None, **magnetic):
+def bend(physical=None, name="b1", **magnetic):
     return Dipole(
-        name="b1",
+        name=name,
         machine_area="S",
         physical={"s": 0.5, "length": 1.0, **(physical or {})},
         magnetic={

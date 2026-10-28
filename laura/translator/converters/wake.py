@@ -243,6 +243,7 @@ class WakefieldTranslator(BaseElementTranslator):
                 if col
             )
             for n in range(int(self.cavity.n_cells)):
+                # GPT's wakefield() spans -L/2 < z < L/2, so each is centred on its cell
                 ccs_label, value_text = self.ccs.ccs_text(
                     [
                         field_ref_pos[0],
@@ -253,5 +254,5 @@ class WakefieldTranslator(BaseElementTranslator):
                     ],
                     list(self.physical.rotation.model_dump().values()),
                 )
-                output += f'wakefield("{self.ccs.name}", {ccs_label}, {value_text}, {self.cavity.cell_length!s}, {fringe_field_coefficient!s}, "{field_file_name!s}", "{zcolumn}", "{wxcolumn}", "{wycolumn}", "{wzcolumn}");\n'
+                output += f'wakefield("{self.ccs.name}", {ccs_label}, {value_text}, {self.cavity.cell_length!s}, {fringe_field_coefficient!s}, "{field_file_name!s}", "{zcolumn}", "{wxcolumn}", "{wycolumn}", "{wzcolumn}"{factors});\n'
         return output
