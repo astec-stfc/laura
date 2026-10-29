@@ -27,7 +27,11 @@ def check_field_types(instance) -> None:
         if not isinstance(annotation, type):
             continue
         value = getattr(instance, f.name)
-        if annotation is float and isinstance(value, int) and not isinstance(value, bool):
+        if (
+            annotation is float
+            and isinstance(value, int)
+            and not isinstance(value, bool)
+        ):
             continue
         if not isinstance(value, annotation):
             raise TypeError(
@@ -53,7 +57,7 @@ def type_checked(cls):
     """
     original = cls.__dict__.get("__post_init__")
 
-    def __post_init__(self, *args, **kwargs):
+    def __post_init__(self, *args, **kwargs): # noqa N807
         check_field_types(self)
         if original is not None:
             original(self, *args, **kwargs)
@@ -68,7 +72,9 @@ def object_path(obj_cls: type) -> str:
     return f"{obj_cls.__module__}.{obj_cls.__qualname__}"
 
 
-def resolve_callable_dataclass(name: str, registry: Dict[str, type], label: str) -> type:
+def resolve_callable_dataclass(
+    name: str, registry: Dict[str, type], label: str
+) -> type:
     """Resolve a callable dataclass from a fully qualified import path.
 
     A bare name (``"Sinusoid"``, ``"first_order"``) is looked up in `registry`,
@@ -92,7 +98,9 @@ def resolve_callable_dataclass(name: str, registry: Dict[str, type], label: str)
     try:
         module = import_module(module_name)
     except ImportError as exc:
-        raise LookupError(f"Cannot import module '{module_name}' for {label} '{name}': {exc}")
+        raise LookupError(
+            f"Cannot import module '{module_name}' for {label} '{name}': {exc}"
+        )
 
     obj_cls = getattr(module, attr, None)
     if obj_cls is None:

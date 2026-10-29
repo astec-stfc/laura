@@ -565,7 +565,7 @@ def write_explorer(
     Parameters
     ----------
     machine:
-        :class:`~laura.models.elementList.MachineModel` to describe.
+        :class:`~laura.models.element_list.MachineModel` to describe.
     path:
         Output ``.html`` file.  Overwritten if it exists.
     title:

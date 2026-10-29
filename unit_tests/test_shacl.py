@@ -1,7 +1,7 @@
 """Validates exported RDF against the generated SHACL shapes.
 
 This is the check the RDF exporter had no way of failing before: nothing tied
-what ``laura.Exporters.RDF`` emits to what the schema says an element looks
+what ``laura.exporters.rdf_exporter`` emits to what the schema says an element looks
 like, so it spent a long time emitting ``laura:position_x`` -- a predicate the
 schema does not declare at all -- and every element would have been rejected by
 these shapes had anyone run them.
@@ -21,7 +21,7 @@ pyshacl = pytest.importorskip("pyshacl", reason="pyshacl not installed")
 from laura import LAURA  # noqa: E402
 from laura.models.element import (  # noqa: E402
     Dipole,
-    Horizontal_Corrector,
+    HorizontalCorrector,
     Marker,
     Quadrupole,
 )
@@ -94,7 +94,7 @@ def small_machine():
             upstream=["Q1"],
         ),
         # hardware_type and schema class name disagree for this one.
-        Horizontal_Corrector(
+        HorizontalCorrector(
             name="HCOR1",
             machine_area="SEC",
             magnetic={"length": 0.1, "horizontal_kick": 1e-4},
@@ -119,7 +119,7 @@ def small_machine():
 
 def test_exported_machine_conforms(small_machine, shapes, ontology):
     """Everything build_rdf_graph emits must satisfy the generated shapes."""
-    from laura.Exporters.RDF import build_rdf_graph
+    from laura.exporters.rdf_exporter import build_rdf_graph
 
     graph = build_rdf_graph(small_machine, machine_name="test")
     conforms, _, report = pyshacl.validate(
@@ -141,7 +141,7 @@ def test_parent_shapes_accept_their_subclasses(small_machine, shapes, ontology):
     until ``generate_shacl.py`` started widening those lists over the class's
     descendants.  Guards that widening from the data side.
     """
-    from laura.Exporters.RDF import build_rdf_graph
+    from laura.exporters.rdf_exporter import build_rdf_graph
 
     graph = build_rdf_graph(small_machine, machine_name="test")
     hcor = next(

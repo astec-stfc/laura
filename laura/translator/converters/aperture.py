@@ -1,11 +1,40 @@
 from laura.models.simulation import ApertureElement
-from .base import BaseElementTranslator
-from ..converters import elements_Elegant, elements_Madx
+
+from ..converters import elements_elegant, elements_madx
 from ..utils.functions import sanitize_string
+from .base import BaseElementTranslator, elegant_line
 
 
 class ApertureTranslator(BaseElementTranslator):
     aperture: ApertureElement
+
+    def to_bmad(self) -> str:
+        """
+        Generate a native Bmad collimator with symmetric aperture limits.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        shape = getattr(self.aperture.shape, "value", self.aperture.shape)
+        etype = "ecollimator" if shape in ("elliptical", "circular") else "rcollimator"
+        horizontal = self.aperture.radius or (self.aperture.horizontal_size or 0.0) / 2
+        vertical = (
+            self.aperture.radius
+            or (self.aperture.vertical_size or 0.0) / 2
+            or horizontal
+        )
+        return self._format_bmad(
+            etype,
+            {
+                "l": self.length,
+                "x1_limit": horizontal,
+                "x2_limit": horizontal,
+                "y1_limit": vertical,
+                "y2_limit": vertical,
+            },
+        )
 
     def to_madx(self, at: float = None) -> str:
         """
@@ -28,32 +57,22 @@ class ApertureTranslator(BaseElementTranslator):
             String representation of the element for MAD-X
         """
         self.start_write()
-        etype = self._convertType_Madx(self.hardware_type)
+        etype = self._convert_type_madx(self.hardware_type)
         if self.aperture.shape in ["elliptical", "circular"] and etype == "rcollimator":
             etype = "ecollimator"
         string = sanitize_string(self.name) + ": " + etype
-        keys = []
-        for key, value in self.full_dump(resolve=self._resolve_functional).items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convertKeyword_Madx(key) in elements_Madx[etype]
-            ):
-                if value is not None:
-                    key = self._convertKeyword_Madx(key)
-                    deferred = not self._resolve_functional and self.is_functional(value)
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    if key not in keys:
-                        op = ":=" if deferred else "="
-                        string += f", {key} {op} {value}"
-                    keys.append(key)
+        for key, value in self._dump_items(
+            self._convert_keyword_madx,
+            elements_madx[etype],
+            resolve=self._resolve_functional,
+        ):
+            deferred = not self._resolve_functional and self.is_functional(value)
+            string += f", {key} {':=' if deferred else '='} {self._flag(value)}"
         if at is not None:
             string += f", at = {at}"
         return string + ";\n"
 
-    def _write_ASTRA_Common(self, dic: dict) -> dict:
+    def _write_astra_common(self, dic: dict) -> dict:
         """
         Creates the part of the ASTRA element dictionary common to all apertures in ASTRA
 
@@ -82,31 +101,28 @@ class ApertureTranslator(BaseElementTranslator):
                 else self.physical.start.z + self.dz + 1e-3
             )
             dic["Ap_Z2"] = {"value": end, "default": 0}
+        dic["A_xoff"] = {"value": self.dx, "default": 0, "type": "not_zero"}
+        dic["A_yoff"] = {"value": self.dy, "default": 0, "type": "not_zero"}
         dic["A_xrot"] = {
-            "value": self.x_rot + self.dx_rot,
+            "value": self._astra_rotation("x"),
             "default": 0,
             "type": "not_zero",
         }
         dic["A_yrot"] = {
-            "value": self.y_rot + self.dy_rot,
+            "value": self._astra_rotation("y"),
             "default": 0,
             "type": "not_zero",
         }
         dic["A_zrot"] = {
-            "value": self.z_rot + self.dz_rot,
+            "value": self._astra_rotation("z"),
             "default": 0,
             "type": "not_zero",
         }
         return dic
 
-    def _write_ASTRA_Circular(self) -> dict:
+    def _write_astra_circular(self) -> dict:
         """
         Creates the part of the ASTRA element dictionary relevant to circular apertures in ASTRA
-
-        Parameters
-        ----------
-        dic: dict
-            Dictionary containing the parameters for the aperture
 
         Returns
         -------
@@ -126,16 +142,18 @@ class ApertureTranslator(BaseElementTranslator):
         else:
             radius = 1
         dic["Ap_R"] = {"value": 1e3 * radius}
-        return self._write_ASTRA_Common(dic)
+        return self._write_astra_common(dic)
 
-    def _write_ASTRA_Planar(self, plane, width) -> dict:
+    def _write_astra_planar(self, plane, width) -> dict:
         """
-        Creates the part of the ASTRA element dictionary common to all apertures in ASTRA
+        Creates the ASTRA element dictionary for one plane of a planar aperture.
 
         Parameters
         ----------
-        dic: dict
-            Dictionary containing the parameters for the aperture
+        plane: str
+            ASTRA ``File_Aperture`` value, ``"Col_X"`` or ``"Col_Y"``
+        width: float
+            Aperture half-width written as ``Ap_R`` [mm]
 
         Returns
         -------
@@ -145,7 +163,7 @@ class ApertureTranslator(BaseElementTranslator):
         dic = dict()
         dic["File_Aperture"] = {"value": plane}
         dic["Ap_R"] = {"value": width}
-        return self._write_ASTRA_Common(dic)
+        return self._write_astra_common(dic)
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
@@ -163,8 +181,8 @@ class ApertureTranslator(BaseElementTranslator):
         str
             String representation of the element for ASTRA
 
-        Raises:
-        -------
+        Raises
+        ------
         ValueError
             If `shape` is not in the list of allowed values.
         """
@@ -172,31 +190,31 @@ class ApertureTranslator(BaseElementTranslator):
         self.aperture.number_of_elements = 0
         if self.aperture.shape in ["elliptical", "circular"]:
             self.aperture.number_of_elements += 1
-            dic = self._write_ASTRA_Circular()
-            return self._write_ASTRA_dictionary(dic, n)
+            dic = self._write_astra_circular()
+            return self._write_astra_dictionary(dic, n)
         elif self.aperture.shape in ["planar", "rectangular"]:
             text = ""
             if (
                 self.aperture.horizontal_size is not None
                 and self.aperture.horizontal_size > 0
             ):
-                dic = self._write_ASTRA_Planar(
+                dic = self._write_astra_planar(
                     "Col_X", 1e3 * self.aperture.horizontal_size
                 )
-                text += self._write_ASTRA_dictionary(dic, n)
+                text += self._write_astra_dictionary(dic, n)
                 self.aperture.number_of_elements += 1
             if (
                 self.aperture.vertical_size is not None
                 and self.aperture.vertical_size > 0
             ):
-                dic = self._write_ASTRA_Planar(
+                dic = self._write_astra_planar(
                     "Col_Y", 1e3 * self.aperture.vertical_size
                 )
                 if self.aperture.number_of_elements > 0:
                     self.aperture.number_of_elements += 1
                     n = n + 1
                     text += "\n"
-                text += self._write_ASTRA_dictionary(dic, n)
+                text += self._write_astra_dictionary(dic, n)
             return text
         elif self.aperture.shape == "scraper":
             text = ""
@@ -204,23 +222,23 @@ class ApertureTranslator(BaseElementTranslator):
                 self.aperture.horizontal_size is not None
                 and self.aperture.horizontal_size > 0
             ):
-                dic = self._write_ASTRA_Planar(
+                dic = self._write_astra_planar(
                     "Scr_X", 1e3 * self.aperture.horizontal_size
                 )
-                text += self._write_ASTRA_dictionary(dic, n)
+                text += self._write_astra_dictionary(dic, n)
                 self.aperture.number_of_elements += 1
             if (
                 self.aperture.vertical_size is not None
                 and self.aperture.vertical_size > 0
             ):
-                dic = self._write_ASTRA_Planar(
+                dic = self._write_astra_planar(
                     "Scr_Y", 1e3 * self.aperture.vertical_size
                 )
                 if self.aperture.number_of_elements > 0:
                     self.aperture.number_of_elements += 1
                     n = n + 1
                     text += "\n"
-                text += self._write_ASTRA_dictionary(dic, n)
+                text += self._write_astra_dictionary(dic, n)
             return text
         else:
             raise ValueError(
@@ -237,33 +255,11 @@ class ApertureTranslator(BaseElementTranslator):
             A formatted string representing the object's properties in Elegant format.
         """
         self.start_write()
-        wholestring = ""
-        etype = self._convertType_Elegant(self.hardware_type)
-        string = self.name + ": " + etype
-        keys = []
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convertKeyword_Elegant(key) in elements_Elegant[etype]
-            ):
-                if value is not None:
-                    key = self._convertKeyword_Elegant(key)
-                    # if key == "dx":
-                    #     value = self.physical.middle.x
-                    # elif key == "dy":
-                    #     value = self.physical.middle.y
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    if key not in keys:
-                        tmpstring = ", " + key + " = " + str(value)
-                        if len(string + tmpstring) > 76:
-                            wholestring += string + ",&\n"
-                            string = ""
-                            string += tmpstring[2::]
-                        else:
-                            string += tmpstring
-                    keys.append(key)
-        wholestring += string + ";\n"
-        return wholestring
+        etype = self._convert_type_elegant(self.hardware_type)
+        terms = [
+            f"{key} = {self._flag(value)}"
+            for key, value in self._dump_items(
+                self._convert_keyword_elegant, elements_elegant[etype]
+            )
+        ]
+        return elegant_line(self.name + ": " + etype, terms)

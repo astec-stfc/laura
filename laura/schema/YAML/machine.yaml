@@ -7,15 +7,15 @@ version: "0.1.0"
 license: Apache Software License 2.0
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
 
 default_prefix: laura
 default_range: string
@@ -31,7 +31,7 @@ enums:
   LatticeTypeEnum:
     description: >-
       What a section or layout carries.  Mirrors
-      ``laura.models.elementList.LatticeType``.
+      ``laura.models.element_list.LatticeType``.
     permissible_values:
       beam:
         description: A beamline.
@@ -39,6 +39,20 @@ enums:
         description: An RF distribution line.
       laser:
         description: A laser transport line.
+
+  LatticeGeometryEnum:
+    description: >-
+      Whether the reference orbit closes on itself. Mirrors Bmad's
+      ``parameter[geometry]``.
+    permissible_values:
+      open:
+        description: >-
+          Single-pass beamline such as a linac or transfer line. Twiss
+          parameters propagate from a specified starting condition.
+      closed:
+        description: >-
+          Recirculating machine such as a storage ring, for which closed
+          orbits and periodic Twiss parameters are computed.
 
 classes:
 
@@ -58,6 +72,60 @@ classes:
           The number it resolves to.  The Python model accepts int or float and
           stores whichever was given; both go out as a double.
 
+  SpaceChargeSettings:
+    description: >-
+      How finely a code should resolve CSR and space charge over one section.
+
+      On the section: a bunch compressor is run with one
+      binning and the linac around it with another. 
+      The switches that turn the effects on stay per-element, as
+      they can vary.
+
+      All fields is optional; absence means "use the code's defaults".
+    class_uri: laura:SpaceChargeSettings
+    attributes:
+      number_of_bins:
+        range: integer
+        required: false
+        minimum_value: 1
+        description: >-
+          Longitudinal bins the bunch is divided into to build the collective
+          field.
+      step_size:
+        range: double
+        required: false
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+        description: >-
+          Distance between collective-field recalculations.
+      chamber_height:
+        range: double
+        required: false
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+        description: >-
+          Full height of the vacuum chamber for CSR shielding.
+      shield_images:
+        range: integer
+        required: false
+        minimum_value: 0
+        description: >-
+          Number of image charges to sum when modelling wall shielding.
+      bin_span:
+        range: integer
+        required: false
+        minimum_value: 1
+        description: >-
+          Width of a particle's deposition kernel, counted in bins.
+      sigma_cutoff:
+        range: double
+        required: false
+        minimum_value: 0.0
+        description: >-
+          Transverse beam size below which a slice is treated as having none.
+
   SectionLattice:
     description: >-
       A contiguous beamline section: an ordered run of elements.
@@ -70,6 +138,25 @@ classes:
       master_lattice:
         range: string
         description: Name of the master lattice this section belongs to.
+      geometry:
+        range: LatticeGeometryEnum
+        required: false
+        description: >-
+          Whether the reference orbit closes on itself. Per-section rather
+          than per-machine because a forked branch may differ from its
+          parent.
+      reference_energy:
+        range: double
+        required: false
+        description: Reference total energy of the design particle [eV].
+        minimum_value: 0.0
+        unit:
+          ucum_code: eV
+      space_charge:
+        range: SpaceChargeSettings
+        required: false
+        description: >-
+          Resolution of the collective-field calculation over this section.
       elements:
         multivalued: true
         range: AcceleratorElement
@@ -92,6 +179,28 @@ classes:
           The ring's revolution frequency [Hz], if this section is part of a
           closed ring.
 
+  LayoutPass:
+    description: >-
+      One traversal of one section by one beam path.
+    class_uri: laura:LayoutPass
+    attributes:
+      section:
+        range: string
+        required: true
+        description: Name of the section traversed on this pass.
+      direction:
+        range: integer
+        ifabsent: int(1)
+        description: >-
+          1 if this pass traverses the section forwards, -1 if backwards.
+          A property of the path, not of the section.
+      number:
+        range: integer
+        description: >-
+          Multipass occurrence number, counting from 1. Absent for
+          an ordinary single traversal and for repetition, where each
+          occurrence is a separate device with its own section.
+
   MachineLayout:
     description: >-
       A beamline layout: a contiguous sequence of sections.
@@ -104,6 +213,14 @@ classes:
       master_lattice:
         range: string
         description: Name of the master lattice this layout belongs to.
+      particle:
+        range: string
+        required: false
+        description: >-
+          Design particle species for this layout, overriding the
+          machine-wide value. Free text rather than an enum because the
+          accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside
+          the fundamental particles.
       sections:
         multivalued: true
         range: SectionLattice
@@ -125,6 +242,13 @@ classes:
         range: double
         description: >-
           The ring's revolution frequency [Hz], if this layout is a closed ring.
+      passes:
+        multivalued: true
+        range: LayoutPass
+        description: >-
+          The beam order, one entry per section traversal. Distinct from
+          sections, which is keyed by name and so cannot express a section
+          entered twice.
 
   MachineModel:
     description: >-
@@ -132,6 +256,14 @@ classes:
       sections, layouts, and named lattice configurations.
     class_uri: laura:MachineModel
     attributes:
+      particle:
+        range: string
+        required: false
+        description: >-
+          Machine-wide design particle species, overridable per layout. Free
+          text rather than an enum because the accepted set includes
+          arbitrary ions (e.g. ``#12C+3``) alongside the fundamental
+          particles.
       elements:
         multivalued: true
         range: AcceleratorElement

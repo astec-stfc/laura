@@ -1,6 +1,7 @@
-from .base import BaseElementTranslator
 from laura.models.simulation import WireSimulationElement
+
 from ..utils.functions import sanitize_string
+from .base import BaseElementTranslator
 
 
 class WireTranslator(BaseElementTranslator):
@@ -32,8 +33,8 @@ class WireTranslator(BaseElementTranslator):
             String representation of the element for MAD-X
         """
         self.start_write()
-        etype = self._convertType_Madx(self.hardware_type)
-        string = sanitize_string(self.name) + ": " + etype + f", l = {self.length}"
+        etype = self._convert_type_madx(self.hardware_type)
+        string = f"{sanitize_string(self.name)}: {etype}, l = {self.length}"
         if self.simulation.current:
             string += f", current = {{{self.simulation.current}}}"
         if self.simulation.interaction_length:
@@ -42,7 +43,7 @@ class WireTranslator(BaseElementTranslator):
         string += f", yma = {{{self.simulation.vertical_offset}}}"
         if at is not None:
             string += f", at = {at}"
-        return string + ";\n"
+        return f"{string};\n"
 
     def to_xsuite(self, beam_length: int) -> tuple:
         """

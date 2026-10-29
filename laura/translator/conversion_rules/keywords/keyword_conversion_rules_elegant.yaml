@@ -3,7 +3,7 @@ general:
   length: l
   entrance_edge_angle: e1
   exit_edge_angle: e2
-  edge_field_integral: fint
+  edge_field_integral_entrance: fint
   half_gap: hgap
   horizontal_size: x_max
   vertical_size: y_max
@@ -17,6 +17,11 @@ general:
   lsc_enable: lsc
   tilt_angle: tilt
   wakefield_definition: wakefile
+  wakefield_enable: zwake
+  t_column: tcolumn
+  wz_column: wzcolumn
+  wx_column: wxcolumn
+  wy_column: wycolumn
 dipole:
   isr_enable: isr
   sr_enable: synch_rad
@@ -31,21 +36,28 @@ dipole:
   n_kicks: n_slices
   half_gap: hgap
   angle: angle
+  dx_rot: eyaw
+  dy_rot: epitch
+  dz_rot: etilt
 quadrupole:
   isr_enable: isr
   sr_enable: synch_rad
   n_kicks: n_slices
-  dx_rot: pitch
-  dy_rot: yaw
-  dz_rot: tilt
+  dx_rot: yaw
+  dy_rot: pitch
+  order: multipole_order
 sextupole:
   isr_enable: isr
   sr_enable: synch_rad
   n_kicks: n_slices
+  dx_rot: yaw
+  dy_rot: pitch
 octupole:
   isr_enable: isr
   sr_enable: synch_rad
   n_kicks: n_slices
+  dx_rot: yaw
+  dy_rot: pitch
 rfcavity:
   frequency: freq
   field_amplitude: volt
@@ -65,7 +77,7 @@ crabcavity:
 rftmez0:
   field_amplitude: ez_peak
 solenoid:
-  field_amplitude: B
+  field_amplitude: b
 scatter:
   horizontal_scatter: x
   vertical_scatter: y
@@ -96,9 +108,11 @@ fel_modulator:
   horizontal_mode_number: laser_m
   vertical_mode_number: laser_n
 wiggler:
-  peak_field: B
-  strength: K
-  poles: poles
+  peak_magnetic_field: b
+  strength: k
+cwiggler:
+  peak_magnetic_field: by_max
+  num_periods: periods
 horizontal_corrector:
   hangle: kick
 vertical_corrector:

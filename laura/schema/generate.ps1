@@ -12,7 +12,6 @@ $ErrorActionPreference = "Stop"
 
 $SCHEMA   = "laura/schema/YAML/laura_schema.yaml"
 $OUT_DIR  = "laura/schema/generated"
-$DOCS_DIR = "docs/source/schema"
 # NOTE: The hand-maintained element-er.md (docs/source/Architecture/element-er.md)
 # contains a comprehensive classDiagram that gen-erdiagram cannot produce for
 # multi-file schemas.  Auto-generated output is written to $OUT_DIR instead so
@@ -21,7 +20,6 @@ $ER_FILE_AUTO = "$OUT_DIR/element-er-auto.md"
 
 # ── Ensure output directories exist ──────────────────────────────────────────
 New-Item -ItemType Directory -Force -Path $OUT_DIR  | Out-Null
-New-Item -ItemType Directory -Force -Path $DOCS_DIR | Out-Null
 
 # ── UTF-8 output ─────────────────────────────────────────────────────────────
 # Every artefact below is written through Write-Utf8 rather than Set-Content.
@@ -101,14 +99,6 @@ $gql = Get-Content "$OUT_DIR/laura_schema.graphql" -Raw
 $gql = [regex]::Replace($gql, '(?m)(type \w+\r?\n  \{\r?\n)  \}', "`$1    _placeholder: Boolean`n  }")
 $gql | Write-Utf8 "$OUT_DIR/laura_schema.graphql"
 
-Write-Host "Generating reference documentation..." -ForegroundColor Cyan
-# gen-doc writes but never prunes, so a renamed class or slot would leave its old
-# page behind for the Sphinx build to pick up. Clear the directory first.
-Get-ChildItem $DOCS_DIR -Filter *.md | Remove-Item -Force
-gen-doc -d $DOCS_DIR $SCHEMA | Out-Null   # gen-doc prints a stray "None"
-# Strip the MkDocs front matter gen-doc emits; see postprocess_docs.py.
-python "laura/schema/postprocess_docs.py" $DOCS_DIR
-
 Write-Host "Generating ER diagram (auto, written to generated/)..." -ForegroundColor Cyan
 # Written to generated/ — does NOT overwrite the hand-maintained
 # docs/source/Architecture/element-er.md (which has the full classDiagram).
@@ -131,7 +121,6 @@ Write-Host "  TypeScript  : $OUT_DIR/laura_types.ts"
 Write-Host "  SQL DDL     : $OUT_DIR/laura_schema.sql"
 Write-Host "  SQLAlchemy  : $OUT_DIR/laura_orm.py"
 Write-Host "  GraphQL     : $OUT_DIR/laura_schema.graphql"
-Write-Host "  Reference   : $DOCS_DIR/"
 Write-Host "  ER diagram  : $ER_FILE_AUTO (auto-generated skeleton)
   Full diagram: docs/source/Architecture/element-er.md (hand-maintained)"
 Write-Host "  Pydantic    : laura/models/_generated.py"

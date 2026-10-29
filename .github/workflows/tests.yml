@@ -11,11 +11,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  naming:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ruff
+        run: pip install "ruff==0.16.2"
+
+      - name: Check naming
+        run: ruff check laura/
+
+  test:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.12"]
 
     steps:
@@ -28,20 +45,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      # The conversion backends (xsuite, ocelot, ...) are deliberately not
-      # installed: no test imports them at module level, so this keeps CI to
-      # ~1 minute. Install .[conversion] here if that ever stops being true.
       - name: Install
-        run: pip install -e ".[full]"
+        run: pip install -e ".[full,test]"
 
+      # -m "" overrides the `not slow` deselection in pyproject's addopts. Without
+      # it CI inherits the local default and test_sql_exporter.py runs nowhere.
       - name: Run tests
-        run: pytest unit_tests -v
+        run: pytest unit_tests -v -m ""
 
-  # laura is consumed by astec-stfc/simba, which imports laura internals
-  # directly (Modules/Fields re-exports laura.translator.utils.fields, and
-  # Codes/RFTrack imports laura.translator.conversion_rules). Those imports are
-  # not covered by laura's own suite, so a rename here shows up as a red simba
-  # build days later. This job moves that discovery to the laura PR.
   downstream-simba:
     runs-on: ubuntu-latest
     steps:
@@ -63,19 +74,18 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
           cache: pip
 
-      # Order matters: install simba first so it pulls its pinned laura from
-      # PyPI, then overwrite it with this PR's laura. Installing laura first
-      # lets simba's own dependency resolution silently replace it.
       - name: Install simba, then this PR's laura over the top
         run: |
-          pip install -e "./simba[test]"
+          pip install -e "./simba[test,simcodes]"
           pip install -e "./laura"
 
       - name: Show which laura is actually in use
         run: python -c "import laura; print(laura.__file__)"
 
+      # No simcodes docker image is pulled here, so skip the tests that need it
+      # -- same split simba's own workflow uses.
       - name: Run simba's test suite
-        run: pytest simba/unit_tests -v
+        run: pytest simba/unit_tests -v -m "not needs_container"

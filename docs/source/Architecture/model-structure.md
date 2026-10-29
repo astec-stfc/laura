@@ -15,7 +15,7 @@ See [The LAURA Schema](../Schema.html) for the ontology itself,
 ```
 LAURA (MachineModel)
 │
-├── elements: Dict[str, AcceleratorElement]   (Python: baseElement)
+├── elements: Dict[str, AcceleratorElement]   (Python: BaseElement)
 │       All elements in the machine, keyed by name.
 │       May be a LazyElementDict (loads from YAML on first access).
 │
@@ -48,7 +48,7 @@ field_validator: validate_element_list
 model_post_init
        │
        ├─ If element_list is a file:
-       │     read_YAML_Combined_File → parse all elements → dict
+       │     read_yaml_combined_file → parse all elements → dict
        │
        ├─ If element_list is a directory:
        │     glob *.yaml → fast_get_element_metadata → LazyElementDict
@@ -112,7 +112,7 @@ Extends `MachineModel` with convenience getters:
 | `get_screens_and_cameras(...)` | Screen→camera mapping |
 | `get_rf_cavities(...)` | RF cavity names |
 | `get_elements_s_pos(...)` | Dict of s-positions |
-| `createDrifts(start, end, path)` | Elements with drifts inserted |
+| `create_drifts(start, end, path)` | Elements with drifts inserted |
 
 Each getter has a matching `all_*` property (`all_magnets`, `all_screens_and_cameras`,
 …) covering the whole machine rather than a range on one path.
@@ -167,7 +167,7 @@ For bent elements (dipoles), `start` and `end` account for the bending angle.
 
 `model_dump()` writes `middle`; `model_dump_s()` writes `s` (and `s_point` when
 it is not `middle`) instead, falling back to the standard output when no `s` has
-been resolved. `laura.Exporters.YAML` exposes this as `position_mode`.
+been resolved. `laura.exporters.yaml_exporter` exposes this as `position_mode`.
 
 ## Trajectory (`laura/models/trajectory.py`)
 

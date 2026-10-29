@@ -21,11 +21,12 @@ try:
         Undulator,
         VerticalCorrector,
     )
+
     _CHEETAH_AVAILABLE = True
 except ImportError as _err:
     raise ImportError(
         "cheetah-accelerator is not installed. "
-        "Install with: pip install \"laura-accelerator[cheetah]\""
+        'Install with: pip install "laura-accelerator[cheetah]"'
     ) from _err
 
 cheetah_conversion_rules = {
@@ -39,6 +40,7 @@ cheetah_conversion_rules = {
     "Beam_Arrival_Monitor": Screen,
     "Bunch_Length_Monitor": Screen,
     "Screen": Screen,
+    "WireScanner": Screen,
     "RCollimator": Aperture,
     "Collimator": Aperture,
     "Monitor": Screen,
@@ -64,9 +66,9 @@ cheetah_conversion_rules = {
     "Wakefield": Drift,
     "Laser": Drift,
     "Plasma": Drift,
-    "Wiggler": Undulator,
+    "TwissMatch": Drift,
     "Diagnostic": Screen,
-    "Photon_Monitor": Screen,
-    "TwissMatch": Marker,
     "MatrixTransform": CustomTransferMap,
+    "Photon_Monitor": Screen,
+    "Wiggler": Undulator,
 }

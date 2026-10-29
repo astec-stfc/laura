@@ -1,4 +1,4 @@
-"""Tests for laura.Exporters.RDF, laura.query.LAURAQuery, and
+"""Tests for laura.exporters.rdf_exporter, laura.query.LAURAQuery, and
 MachineModel.export_rdf / MachineModel.sparql."""
 
 import os
@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 
-from laura.models.element import Quadrupole, Marker, Dipole, Horizontal_Corrector
+from laura.models.element import Quadrupole, Marker, Dipole, HorizontalCorrector
 from laura.models.physical import Position
 from laura import LAURA
 
@@ -71,7 +71,7 @@ def sample_marker():
 @pytest.fixture
 def sample_corrector():
     """A type whose hardware_type label and schema class name differ."""
-    return Horizontal_Corrector(
+    return HorizontalCorrector(
         name="HCOR1",
         machine_area="SEC",
         magnetic={"length": 0.1, "horizontal_kick": 1e-4},
@@ -97,20 +97,20 @@ def small_machine(sample_marker, sample_quad, sample_dipole, sample_corrector):
 
 class TestBuildRdfGraph:
     def test_returns_graph(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         assert isinstance(g, rdflib.Graph)
 
     def test_element_count(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         # Each element gets at least rdf:type, name, and machine_area triples
         assert len(g) >= 3 * 3
 
     def test_rdf_type_triple(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
@@ -125,7 +125,7 @@ class TestBuildRdfGraph:
         ontology declares as an owl:DatatypeProperty -- a slot of
         CombinedCorrector -- rather than a class.
         """
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
@@ -142,7 +142,7 @@ class TestBuildRdfGraph:
         import pathlib
 
         import laura as laura_pkg
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         onto = rdflib.Graph()
         onto.parse(
@@ -161,7 +161,7 @@ class TestBuildRdfGraph:
         assert not undeclared, f"rdf:type URIs absent from the ontology: {undeclared}"
 
     def test_name_triple(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
@@ -171,7 +171,7 @@ class TestBuildRdfGraph:
 
     def test_physical_length_triple(self, small_machine):
         """``length`` hangs off the PhysicalElement node, not the element."""
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
@@ -188,7 +188,7 @@ class TestBuildRdfGraph:
 
     def test_position_triples(self, small_machine):
         """Coordinates live on a laura:Position node under laura:middle."""
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
@@ -211,7 +211,7 @@ class TestBuildRdfGraph:
         self, small_machine
     ):
         """The nesting is what makes an ontology-driven query possible at all."""
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         rows = list(
@@ -230,7 +230,7 @@ class TestBuildRdfGraph:
         )
 
     def test_machine_area_triple(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
@@ -251,7 +251,7 @@ class TestRelations:
     """Without these the export is a bag of unconnected element nodes."""
 
     def test_machine_node_links_every_element(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         assert (MACHINE, rdflib.RDF.type, LAURA_NS["MachineModel"]) in g
@@ -259,7 +259,7 @@ class TestRelations:
         assert linked == {"M1", "Q1", "D1", "HCOR1"}
 
     def test_section_membership(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         sec = rdflib.URIRef("https://w3id.org/laura/test/sections/SEC")
@@ -274,7 +274,7 @@ class TestRelations:
 
     def test_lattice_metadata(self, small_machine):
         """The BaseLatticeModel slots both SectionLattice and MachineLayout have."""
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         section = small_machine.sections["SEC"]
         section.section_type = "rf"
@@ -305,7 +305,7 @@ class TestRelations:
         assert defs == {"quad1_k1l": -2.0, "cav1_phase": 90.5}
 
     def test_layout_membership(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         layout = rdflib.URIRef("https://w3id.org/laura/test/layouts/beam")
@@ -316,7 +316,7 @@ class TestRelations:
         }
 
     def test_upstream_downstream_are_iris_between_elements(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         q1 = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
@@ -326,7 +326,7 @@ class TestRelations:
 
     def test_unknown_upstream_name_is_skipped(self, sample_marker):
         """A dangling IRI would fail the sh:class constraint on the slot."""
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         sample_marker.upstream = ["NOT_IN_THIS_MACHINE"]
         machine = LAURA(
@@ -338,7 +338,7 @@ class TestRelations:
         assert list(g.objects(None, LAURA_NS["upstream"])) == []
 
     def test_control_variables(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         q1 = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
@@ -368,7 +368,7 @@ class TestRelations:
 
     def test_dtype_is_serialised_by_name(self, small_machine):
         """It is held as the Python type object, not a string."""
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         dtypes = set(g.objects(None, LAURA_NS["dtype"]))
@@ -378,7 +378,7 @@ class TestRelations:
 
     def test_pv_for_a_magnet_is_reachable_by_sparql(self, small_machine):
         """The point of the exercise: one query from machine to PV address."""
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         rows = list(
@@ -407,7 +407,7 @@ class TestRelations:
 
 class TestExportMachineRdf:
     def test_writes_turtle_file(self, small_machine, tmp_path):
-        from laura.Exporters.RDF import export_machine_rdf
+        from laura.exporters.rdf_exporter import export_machine_rdf
 
         out = str(tmp_path / "machine.ttl")
         export_machine_rdf(small_machine, path=out, machine_name="test")
@@ -415,7 +415,7 @@ class TestExportMachineRdf:
         assert os.path.getsize(out) > 0
 
     def test_turtle_is_parseable(self, small_machine, tmp_path):
-        from laura.Exporters.RDF import export_machine_rdf
+        from laura.exporters.rdf_exporter import export_machine_rdf
 
         out = str(tmp_path / "machine.ttl")
         export_machine_rdf(small_machine, path=out, format="turtle", machine_name="test")
@@ -424,7 +424,7 @@ class TestExportMachineRdf:
         assert len(g2) > 0
 
     def test_writes_jsonld_file(self, small_machine, tmp_path):
-        from laura.Exporters.RDF import export_machine_rdf
+        from laura.exporters.rdf_exporter import export_machine_rdf
 
         out = str(tmp_path / "machine.jsonld")
         export_machine_rdf(small_machine, path=out, format="json-ld", machine_name="test")
@@ -432,14 +432,14 @@ class TestExportMachineRdf:
         assert os.path.getsize(out) > 0
 
     def test_writes_ntriples_file(self, small_machine, tmp_path):
-        from laura.Exporters.RDF import export_machine_rdf
+        from laura.exporters.rdf_exporter import export_machine_rdf
 
         out = str(tmp_path / "machine.nt")
         export_machine_rdf(small_machine, path=out, format="nt", machine_name="test")
         assert os.path.exists(out)
 
     def test_format_aliases(self, small_machine, tmp_path):
-        from laura.Exporters.RDF import export_machine_rdf
+        from laura.exporters.rdf_exporter import export_machine_rdf
 
         for alias in ("ttl", "turtle", "jsonld", "json-ld", "ntriples", "nt"):
             out = str(tmp_path / f"machine_{alias}.rdf")
@@ -450,7 +450,7 @@ class TestExportMachineRdf:
 
     def test_roundtrip_element_count(self, small_machine, tmp_path):
         """After exporting and re-parsing, every element should appear as a subject."""
-        from laura.Exporters.RDF import export_machine_rdf
+        from laura.exporters.rdf_exporter import export_machine_rdf
 
         out = str(tmp_path / "machine.ttl")
         export_machine_rdf(small_machine, path=out, format="turtle", machine_name="test")

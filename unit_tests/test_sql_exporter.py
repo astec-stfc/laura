@@ -1,4 +1,4 @@
-"""Tests for laura.Exporters.SQL — SQLAlchemy persistence of MachineModel.
+"""Tests for laura.exporters.sql_exporter — SQLAlchemy persistence of MachineModel.
 
 Phase 4 verification: apply DDL to SQLite, insert a machine model, query it back.
 """
@@ -10,7 +10,7 @@ import pytest
 
 from laura import LAURA
 from laura.models.element import Marker, Quadrupole, Dipole, Solenoid
-from laura.models.elementList import MachineModel, SectionLattice
+from laura.models.element_list import MachineModel, SectionLattice
 
 pytestmark = pytest.mark.slow
 
@@ -68,7 +68,7 @@ def bare_machine():
 def _import_sql():
     """Import SQL exporter; skip test if sqlalchemy is not installed."""
     pytest.importorskip("sqlalchemy")
-    from laura.Exporters.SQL import (
+    from laura.exporters.sql_exporter import (
         export_machine,
         load_machine_elements,
         load_machine_sections,
@@ -79,7 +79,7 @@ def _import_sql():
 def _load_orm_module():
     """The generated ORM, for assertions the public API does not expose."""
     pytest.importorskip("sqlalchemy")
-    from laura.Exporters.SQL import _load_orm
+    from laura.exporters.sql_exporter import _load_orm
 
     return _load_orm()
 
@@ -203,7 +203,7 @@ class TestSQLInternalHelpers:
 
     def _get_coerce(self):
         pytest.importorskip("sqlalchemy")
-        from laura.Exporters.SQL import _coerce_hardware_class
+        from laura.exporters.sql_exporter import _coerce_hardware_class
         return _coerce_hardware_class
 
     def test_valid_hardware_class_passes_through(self):
@@ -213,8 +213,8 @@ class TestSQLInternalHelpers:
 
     def test_all_schema_enum_members_valid(self):
         coerce = self._get_coerce()
-        from laura.Exporters.SQL import _valid_hardware_classes
-        for cls in _valid_hardware_classes():
+        from laura.exporters.sql_exporter import _VALID_HARDWARE_CLASSES
+        for cls in _VALID_HARDWARE_CLASSES:
             assert coerce(cls) == cls
 
     def test_invalid_string_returns_generic(self):
@@ -237,7 +237,7 @@ class TestSQLInternalHelpers:
     def test_load_orm_missing_file_raises(self):
         """_load_orm raises FileNotFoundError when the ORM file does not exist."""
         pytest.importorskip("sqlalchemy")
-        from laura.Exporters import SQL as sql_mod
+        from laura.exporters import sql_exporter as sql_mod
         original = sql_mod._ORM_PATH
         try:
             sql_mod._ORM_PATH = Path("/nonexistent/path/laura_orm.py")
@@ -517,7 +517,7 @@ class TestSQLExporterEdgeCases:
 def _get_export_submodel():
     """Import _export_submodel; skip if sqlalchemy not installed."""
     pytest.importorskip("sqlalchemy")
-    from laura.Exporters.SQL import _export_submodel
+    from laura.exporters.sql_exporter import _export_submodel
 
     return _export_submodel
 

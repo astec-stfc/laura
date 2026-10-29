@@ -5,10 +5,10 @@ Provides vector operations, geometric calculations, and angle computations.
 """
 
 import numpy as np
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..models.physical import Position, Rotation
+    pass
 
 
 def vector_length(x: float, y: float, z: float = 0.0) -> float:
@@ -82,8 +82,12 @@ def dot_product(
 
 
 def cross_product(
-    x1: float, y1: float, z1: float,
-    x2: float, y2: float, z2: float,
+    x1: float,
+    y1: float,
+    z1: float,
+    x2: float,
+    y2: float,
+    z2: float,
 ) -> tuple:
     """
     Calculate cross product of two 3D vectors.
