@@ -3,7 +3,6 @@ from warnings import warn
 
 import numpy as np
 
-from laura.models.constants import c, e, epsilon_0, m_e, pi
 from laura.models.laser import LaserElement
 from laura.models.plasma import PlasmaElement
 from laura.models.simulation import PlasmaSimulationElement

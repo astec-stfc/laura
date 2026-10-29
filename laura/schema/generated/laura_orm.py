@@ -82,12 +82,13 @@ class AcceleratorElement(Base):
     __tablename__ = 'AcceleratorElement'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     
     
     alias_rel = relationship( "AcceleratorElementAlias" )
@@ -124,7 +125,7 @@ class AcceleratorElement(Base):
     
 
     def __repr__(self):
-        return f"AcceleratorElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},)"
+        return f"AcceleratorElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},)"
 
 
 
@@ -153,7 +154,7 @@ class Position(Base):
 
 class Rotation(Base):
     """
-    Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi].
+    Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi]. The composition is Rz(psi) . Rx(phi) . Ry(theta), as implemented by laura.utils.rotation_matrix.euler_angles_to_rotation_matrix; each angle below names the axis that factor turns about. psi and theta were described the other way round until 2026-09-01, which is how the Bmad importer came to read x_pitch (a rotation about y) into psi.
     """
     __tablename__ = 'Rotation'
 
@@ -412,6 +413,31 @@ class ApertureElement(Base):
     
 
 
+class SpaceChargeSettings(Base):
+    """
+    How finely a code should resolve CSR and space charge over one section.
+On the section: a bunch compressor is run with one binning and the linac around it with another.  The switches that turn the effects on stay per-element, as they can vary.
+All fields is optional; absence means "use the code's defaults".
+    """
+    __tablename__ = 'SpaceChargeSettings'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    number_of_bins = Column(Integer())
+    step_size = Column(Float())
+    chamber_height = Column(Float())
+    shield_images = Column(Integer())
+    bin_span = Column(Integer())
+    sigma_cutoff = Column(Float())
+    
+
+    def __repr__(self):
+        return f"SpaceChargeSettings(id={self.id},number_of_bins={self.number_of_bins},step_size={self.step_size},chamber_height={self.chamber_height},shield_images={self.shield_images},bin_span={self.bin_span},sigma_cutoff={self.sigma_cutoff},)"
+
+
+
+    
+
+
 class SectionLattice(Base):
     """
     An ordered list of element names defining a contiguous beamline section.
@@ -420,6 +446,10 @@ class SectionLattice(Base):
 
     name = Column(Text(), primary_key=True, nullable=False )
     master_lattice = Column(Text())
+    geometry = Column(Enum('open', 'closed', name='LatticeGeometryEnum'))
+    reference_energy = Column(Float())
+    space_charge_id = Column(Integer(), ForeignKey('SpaceChargeSettings.id'))
+    space_charge = relationship("SpaceChargeSettings", uselist=False, foreign_keys=[space_charge_id])
     
     
     elements_rel = relationship( "SectionLatticeElements" )
@@ -428,7 +458,27 @@ class SectionLattice(Base):
     
 
     def __repr__(self):
-        return f"SectionLattice(name={self.name},master_lattice={self.master_lattice},)"
+        return f"SectionLattice(name={self.name},master_lattice={self.master_lattice},geometry={self.geometry},reference_energy={self.reference_energy},space_charge_id={self.space_charge_id},)"
+
+
+
+    
+
+
+class LayoutPass(Base):
+    """
+    One traversal of one section by one beam path.
+    """
+    __tablename__ = 'LayoutPass'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    section = Column(Text(), nullable=False )
+    direction = Column(Integer())
+    number = Column(Integer())
+    
+
+    def __repr__(self):
+        return f"LayoutPass(id={self.id},section={self.section},direction={self.direction},number={self.number},)"
 
 
 
@@ -443,15 +493,20 @@ class MachineLayout(Base):
 
     name = Column(Text(), primary_key=True, nullable=False )
     master_lattice = Column(Text())
+    particle = Column(Text())
     
     
     sections_rel = relationship( "MachineLayoutSections" )
     sections = association_proxy("sections_rel", "sections",
                                   creator=lambda x_: MachineLayoutSections(sections=x_))
     
+    
+    # ManyToMany
+    passes = relationship( "LayoutPass", secondary="MachineLayout_passes")
+    
 
     def __repr__(self):
-        return f"MachineLayout(name={self.name},master_lattice={self.master_lattice},)"
+        return f"MachineLayout(name={self.name},master_lattice={self.master_lattice},particle={self.particle},)"
 
 
 
@@ -465,6 +520,7 @@ class MachineModel(Base):
     __tablename__ = 'MachineModel'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    particle = Column(Text())
     
     
     # ManyToMany
@@ -480,7 +536,7 @@ class MachineModel(Base):
     
 
     def __repr__(self):
-        return f"MachineModel(id={self.id},)"
+        return f"MachineModel(id={self.id},particle={self.particle},)"
 
 
 
@@ -504,13 +560,57 @@ class MatrixValue(Base):
     
 
 
+class SampledWaveform(Base):
+    """
+    A pulse shape sampled at a sparse set of points, for a device whose strength is a program rather than a constant: an injection kicker, an extraction septum, a tune exciter driven from a measured trace. Only the knots are stored, and the value between them follows ``interpolation``.
+    """
+    __tablename__ = 'SampledWaveform'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    interpolation = Column(Enum('linear', 'hold', 'spline', name='WaveformInterpolationEnum'))
+    
+    
+    time_rel = relationship( "SampledWaveformTime" )
+    time = association_proxy("time_rel", "time",
+                                  creator=lambda x_: SampledWaveformTime(time=x_))
+    
+    
+    factor_rel = relationship( "SampledWaveformFactor" )
+    factor = association_proxy("factor_rel", "factor",
+                                  creator=lambda x_: SampledWaveformFactor(factor=x_))
+    
+
+    def __repr__(self):
+        return f"SampledWaveform(id={self.id},interpolation={self.interpolation},)"
+
+
+
+    
+
+
 class SimulationElement(Base):
     """
-    Base simulation attributes: field-map files and reference positions for tracking codes.
+    Base simulation attributes: field-map files, reference positions, and optional tracking controls for simulation codes.
     """
     __tablename__ = 'SimulationElement'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -519,7 +619,7 @@ class SimulationElement(Base):
     
 
     def __repr__(self):
-        return f"SimulationElement(id={self.id},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"SimulationElement(id={self.id},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -641,6 +741,7 @@ class MagneticElement(Base):
     edge_field_integral = Column(Float())
     edge_field_integral_entrance = Column(Float())
     edge_field_integral_exit = Column(Float())
+    exit_gap = Column(Float())
     fringe_field_coefficient = Column(Float())
     gradient = Column(Float())
     angle = Column(Float())
@@ -657,7 +758,7 @@ class MagneticElement(Base):
     
 
     def __repr__(self):
-        return f"MagneticElement(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"MagneticElement(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -1290,22 +1391,21 @@ class PlasmaElement(Base):
     
 
 
-class CorrectorMagnet(Base):
+class CombinedCorrectorMagnet(Base):
     """
-    Steering-corrector field, expressed as horizontal and vertical kicks rather than multipole coefficients.
+    The pair of steering-corrector fields inside one combined corrector.
     """
-    __tablename__ = 'Corrector_Magnet'
+    __tablename__ = 'CombinedCorrectorMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
-    length = Column(Float())
-    order = Column(Integer())
-    tilt = Column(Float())
-    horizontal_kick = Column(Float())
-    vertical_kick = Column(Float())
+    horizontal_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
+    horizontal = relationship("CorrectorMagnet", uselist=False, foreign_keys=[horizontal_id])
+    vertical_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
+    vertical = relationship("CorrectorMagnet", uselist=False, foreign_keys=[vertical_id])
     
 
     def __repr__(self):
-        return f"Corrector_Magnet(id={self.id},length={self.length},order={self.order},tilt={self.tilt},horizontal_kick={self.horizontal_kick},vertical_kick={self.vertical_kick},)"
+        return f"CombinedCorrectorMagnet(id={self.id},horizontal_id={self.horizontal_id},vertical_id={self.vertical_id},)"
 
 
 
@@ -1403,7 +1503,7 @@ class NonLinearLensMagnet(Base):
     """
     Integrable-optics non-linear lens field.  See the MAD-X manual and Danilov/Nagaitsev, PAC2011 WEP070.
     """
-    __tablename__ = 'NonLinearLens_Magnet'
+    __tablename__ = 'NonLinearLensMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     length = Column(Float())
@@ -1412,7 +1512,7 @@ class NonLinearLensMagnet(Base):
     
 
     def __repr__(self):
-        return f"NonLinearLens_Magnet(id={self.id},length={self.length},integrated_strength={self.integrated_strength},dimensional_parameter={self.dimensional_parameter},)"
+        return f"NonLinearLensMagnet(id={self.id},length={self.length},integrated_strength={self.integrated_strength},dimensional_parameter={self.dimensional_parameter},)"
 
 
 
@@ -3687,6 +3787,24 @@ class MachineLayoutSections(Base):
     
 
 
+class MachineLayoutPasses(Base):
+    """
+    None
+    """
+    __tablename__ = 'MachineLayout_passes'
+
+    MachineLayout_name = Column(Text(), ForeignKey('MachineLayout.name'), primary_key=True)
+    passes_id = Column(Integer(), ForeignKey('LayoutPass.id'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"MachineLayout_passes(MachineLayout_name={self.MachineLayout_name},passes_id={self.passes_id},)"
+
+
+
+    
+
+
 class MachineModelElements(Base):
     """
     None
@@ -3735,6 +3853,42 @@ class MachineModelLayouts(Base):
 
     def __repr__(self):
         return f"MachineModel_layouts(MachineModel_id={self.MachineModel_id},layouts_name={self.layouts_name},)"
+
+
+
+    
+
+
+class SampledWaveformTime(Base):
+    """
+    None
+    """
+    __tablename__ = 'SampledWaveform_time'
+
+    SampledWaveform_id = Column(Integer(), ForeignKey('SampledWaveform.id'), primary_key=True)
+    time = Column(Float(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"SampledWaveform_time(SampledWaveform_id={self.SampledWaveform_id},time={self.time},)"
+
+
+
+    
+
+
+class SampledWaveformFactor(Base):
+    """
+    None
+    """
+    __tablename__ = 'SampledWaveform_factor'
+
+    SampledWaveform_id = Column(Integer(), ForeignKey('SampledWaveform.id'), primary_key=True)
+    factor = Column(Float(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"SampledWaveform_factor(SampledWaveform_id={self.SampledWaveform_id},factor={self.factor},)"
 
 
 
@@ -5337,6 +5491,96 @@ class ScreenDownstream(Base):
 
     def __repr__(self):
         return f"Screen_downstream(Screen_name={self.Screen_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class WireScannerAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'WireScanner_alias'
+
+    WireScanner_name = Column(Text(), ForeignKey('WireScanner.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WireScanner_alias(WireScanner_name={self.WireScanner_name},alias={self.alias},)"
+
+
+
+    
+
+
+class WireScannerInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'WireScanner_inputs'
+
+    WireScanner_name = Column(Text(), ForeignKey('WireScanner.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WireScanner_inputs(WireScanner_name={self.WireScanner_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class WireScannerOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'WireScanner_outputs'
+
+    WireScanner_name = Column(Text(), ForeignKey('WireScanner.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WireScanner_outputs(WireScanner_name={self.WireScanner_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class WireScannerUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'WireScanner_upstream'
+
+    WireScanner_name = Column(Text(), ForeignKey('WireScanner.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WireScanner_upstream(WireScanner_name={self.WireScanner_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class WireScannerDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'WireScanner_downstream'
+
+    WireScanner_name = Column(Text(), ForeignKey('WireScanner.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WireScanner_downstream(WireScanner_name={self.WireScanner_name},downstream_name={self.downstream_name},)"
 
 
 
@@ -7161,6 +7405,96 @@ class SolenoidDownstream(Base):
     
 
 
+class CombinedSolenoidQuadrupoleAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole_alias'
+
+    CombinedSolenoidQuadrupole_name = Column(Text(), ForeignKey('CombinedSolenoidQuadrupole.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole_alias(CombinedSolenoidQuadrupole_name={self.CombinedSolenoidQuadrupole_name},alias={self.alias},)"
+
+
+
+    
+
+
+class CombinedSolenoidQuadrupoleInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole_inputs'
+
+    CombinedSolenoidQuadrupole_name = Column(Text(), ForeignKey('CombinedSolenoidQuadrupole.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole_inputs(CombinedSolenoidQuadrupole_name={self.CombinedSolenoidQuadrupole_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class CombinedSolenoidQuadrupoleOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole_outputs'
+
+    CombinedSolenoidQuadrupole_name = Column(Text(), ForeignKey('CombinedSolenoidQuadrupole.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole_outputs(CombinedSolenoidQuadrupole_name={self.CombinedSolenoidQuadrupole_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class CombinedSolenoidQuadrupoleUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole_upstream'
+
+    CombinedSolenoidQuadrupole_name = Column(Text(), ForeignKey('CombinedSolenoidQuadrupole.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole_upstream(CombinedSolenoidQuadrupole_name={self.CombinedSolenoidQuadrupole_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class CombinedSolenoidQuadrupoleDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole_downstream'
+
+    CombinedSolenoidQuadrupole_name = Column(Text(), ForeignKey('CombinedSolenoidQuadrupole.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole_downstream(CombinedSolenoidQuadrupole_name={self.CombinedSolenoidQuadrupole_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class WigglerAlias(Base):
     """
     None
@@ -7348,12 +7682,13 @@ class StandardElement(AcceleratorElement):
     __tablename__ = 'StandardElement'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -7390,7 +7725,7 @@ class StandardElement(AcceleratorElement):
     
 
     def __repr__(self):
-        return f"StandardElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"StandardElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -7409,22 +7744,35 @@ class MagnetSimulationElement(SimulationElement):
     __tablename__ = 'MagnetSimulationElement'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
-    n_kicks = Column(Integer())
     field_amplitude = Column(Float())
     n_slices = Column(Integer())
-    smooth = Column(Integer())
-    edge1_effects = Column(Boolean())
-    edge2_effects = Column(Boolean())
+    edge_field_integral = Column(Float())
+    edge1_effects = Column(Integer())
+    edge2_effects = Column(Integer())
+    fringe_model = Column(Text())
     sr_enable = Column(Boolean())
     isr_enable = Column(Boolean())
-    csr_enable = Column(Boolean())
     csr_bins = Column(Integer())
-    integration_order = Column(Integer())
     nonlinear = Column(Boolean())
     smoothing_half_width = Column(Integer())
     edge_order = Column(Integer())
-    deltaL = Column(Float())
     smooth_points = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Integer())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7433,7 +7781,7 @@ class MagnetSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"MagnetSimulationElement(id={self.id},n_kicks={self.n_kicks},field_amplitude={self.field_amplitude},n_slices={self.n_slices},smooth={self.smooth},edge1_effects={self.edge1_effects},edge2_effects={self.edge2_effects},sr_enable={self.sr_enable},isr_enable={self.isr_enable},csr_enable={self.csr_enable},csr_bins={self.csr_bins},integration_order={self.integration_order},nonlinear={self.nonlinear},smoothing_half_width={self.smoothing_half_width},edge_order={self.edge_order},deltaL={self.deltaL},smooth_points={self.smooth_points},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"MagnetSimulationElement(id={self.id},field_amplitude={self.field_amplitude},n_slices={self.n_slices},edge_field_integral={self.edge_field_integral},edge1_effects={self.edge1_effects},edge2_effects={self.edge2_effects},fringe_model={self.fringe_model},sr_enable={self.sr_enable},isr_enable={self.isr_enable},csr_bins={self.csr_bins},nonlinear={self.nonlinear},smoothing_half_width={self.smoothing_half_width},edge_order={self.edge_order},smooth_points={self.smooth_points},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7457,8 +7805,6 @@ class RFCavitySimulationElement(SimulationElement):
     wx_column = Column(Text())
     wy_column = Column(Text())
     wz_column = Column(Text())
-    n_kicks = Column(Integer())
-    lsc_bins = Column(Integer())
     change_p0 = Column(Integer())
     end1_focus = Column(Integer())
     end2_focus = Column(Integer())
@@ -7466,13 +7812,28 @@ class RFCavitySimulationElement(SimulationElement):
     current_bins = Column(Integer())
     interpolate_current_bins = Column(Integer())
     smooth_current_bins = Column(Integer())
-    smooth = Column(Integer())
     ez_peak = Column(Float())
     field_file_name = Column(Text())
     wakefile = Column(Text())
     zwakefile = Column(Text())
     trwakefile = Column(Text())
     field_amplitude = Column(Float(), nullable=False )
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Integer())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7481,7 +7842,7 @@ class RFCavitySimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"RFCavitySimulationElement(id={self.id},t_column={self.t_column},z_column={self.z_column},wx_column={self.wx_column},wy_column={self.wy_column},wz_column={self.wz_column},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},change_p0={self.change_p0},end1_focus={self.end1_focus},end2_focus={self.end2_focus},body_focus_model={self.body_focus_model},current_bins={self.current_bins},interpolate_current_bins={self.interpolate_current_bins},smooth_current_bins={self.smooth_current_bins},smooth={self.smooth},ez_peak={self.ez_peak},field_file_name={self.field_file_name},wakefile={self.wakefile},zwakefile={self.zwakefile},trwakefile={self.trwakefile},field_amplitude={self.field_amplitude},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"RFCavitySimulationElement(id={self.id},t_column={self.t_column},z_column={self.z_column},wx_column={self.wx_column},wy_column={self.wy_column},wz_column={self.wz_column},change_p0={self.change_p0},end1_focus={self.end1_focus},end2_focus={self.end2_focus},body_focus_model={self.body_focus_model},current_bins={self.current_bins},interpolate_current_bins={self.interpolate_current_bins},smooth_current_bins={self.smooth_current_bins},ez_peak={self.ez_peak},field_file_name={self.field_file_name},wakefile={self.wakefile},zwakefile={self.zwakefile},trwakefile={self.trwakefile},field_amplitude={self.field_amplitude},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7519,8 +7880,23 @@ class WakefieldSimulationElement(SimulationElement):
     scale_field_hz = Column(Float())
     equal_grid = Column(Float())
     interpolation_method = Column(Integer())
-    smooth = Column(Float())
     subbins = Column(Integer())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7529,7 +7905,7 @@ class WakefieldSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"WakefieldSimulationElement(id={self.id},t_column={self.t_column},z_column={self.z_column},wx_column={self.wx_column},wy_column={self.wy_column},wz_column={self.wz_column},allow_long_beam={self.allow_long_beam},bunched_beam={self.bunched_beam},change_momentum={self.change_momentum},factor={self.factor},interpolate={self.interpolate},scale_kick={self.scale_kick},scale_field_ex={self.scale_field_ex},scale_field_ey={self.scale_field_ey},scale_field_ez={self.scale_field_ez},scale_field_hx={self.scale_field_hx},scale_field_hy={self.scale_field_hy},scale_field_hz={self.scale_field_hz},equal_grid={self.equal_grid},interpolation_method={self.interpolation_method},smooth={self.smooth},subbins={self.subbins},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"WakefieldSimulationElement(id={self.id},t_column={self.t_column},z_column={self.z_column},wx_column={self.wx_column},wy_column={self.wy_column},wz_column={self.wz_column},allow_long_beam={self.allow_long_beam},bunched_beam={self.bunched_beam},change_momentum={self.change_momentum},factor={self.factor},interpolate={self.interpolate},scale_kick={self.scale_kick},scale_field_ex={self.scale_field_ex},scale_field_ey={self.scale_field_ey},scale_field_ez={self.scale_field_ez},scale_field_hx={self.scale_field_hx},scale_field_hy={self.scale_field_hy},scale_field_hz={self.scale_field_hz},equal_grid={self.equal_grid},interpolation_method={self.interpolation_method},subbins={self.subbins},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7548,16 +7924,28 @@ class DriftSimulationElement(SimulationElement):
     __tablename__ = 'DriftSimulationElement'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
-    lsc_bins = Column(Integer())
     lsc_interpolate = Column(Integer())
-    csr_enable = Column(Boolean())
-    lsc_enable = Column(Boolean())
     use_stupakov = Column(Integer())
-    csrdz = Column(Float())
     lsc_high_frequency_cutoff_start = Column(Float())
     lsc_high_frequency_cutoff_end = Column(Float())
     lsc_low_frequency_cutoff_start = Column(Float())
     lsc_low_frequency_cutoff_end = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7566,7 +7954,7 @@ class DriftSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"DriftSimulationElement(id={self.id},lsc_bins={self.lsc_bins},lsc_interpolate={self.lsc_interpolate},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},use_stupakov={self.use_stupakov},csrdz={self.csrdz},lsc_high_frequency_cutoff_start={self.lsc_high_frequency_cutoff_start},lsc_high_frequency_cutoff_end={self.lsc_high_frequency_cutoff_end},lsc_low_frequency_cutoff_start={self.lsc_low_frequency_cutoff_start},lsc_low_frequency_cutoff_end={self.lsc_low_frequency_cutoff_end},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"DriftSimulationElement(id={self.id},lsc_interpolate={self.lsc_interpolate},use_stupakov={self.use_stupakov},lsc_high_frequency_cutoff_start={self.lsc_high_frequency_cutoff_start},lsc_high_frequency_cutoff_end={self.lsc_high_frequency_cutoff_end},lsc_low_frequency_cutoff_start={self.lsc_low_frequency_cutoff_start},lsc_low_frequency_cutoff_end={self.lsc_low_frequency_cutoff_end},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7586,6 +7974,22 @@ class DiagnosticSimulationElement(SimulationElement):
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     output_filename = Column(Text())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7594,7 +7998,7 @@ class DiagnosticSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"DiagnosticSimulationElement(id={self.id},output_filename={self.output_filename},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"DiagnosticSimulationElement(id={self.id},output_filename={self.output_filename},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7636,6 +8040,22 @@ class PlasmaSimulationElement(SimulationElement):
     laser_envelope_n_longitudinal = Column(Integer())
     laser_envelope_n_radial = Column(Integer())
     laser_envelope_use_phase = Column(Boolean())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7644,7 +8064,7 @@ class PlasmaSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"PlasmaSimulationElement(id={self.id},wakefield_model={self.wakefield_model},bunch_pusher={self.bunch_pusher},dt_bunch={self.dt_bunch},n_out={self.n_out},min_longitudinal_position={self.min_longitudinal_position},max_longitudinal_position={self.max_longitudinal_position},plasma_min_longitudinal_position={self.plasma_min_longitudinal_position},plasma_max_longitudinal_position={self.plasma_max_longitudinal_position},n_longitudinal={self.n_longitudinal},n_radial={self.n_radial},particles_per_radial_cell={self.particles_per_radial_cell},particles_per_longitudinal_cell={self.particles_per_longitudinal_cell},particles_per_angular_cell={self.particles_per_angular_cell},r_max={self.r_max},r_max_plasma={self.r_max_plasma},r_min_plasma={self.r_min_plasma},dz_fields={self.dz_fields},plasma_pusher={self.plasma_pusher},laser_evolution={self.laser_evolution},laser_envelope_substeps={self.laser_envelope_substeps},laser_envelope_n_longitudinal={self.laser_envelope_n_longitudinal},laser_envelope_n_radial={self.laser_envelope_n_radial},laser_envelope_use_phase={self.laser_envelope_use_phase},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"PlasmaSimulationElement(id={self.id},wakefield_model={self.wakefield_model},bunch_pusher={self.bunch_pusher},dt_bunch={self.dt_bunch},n_out={self.n_out},min_longitudinal_position={self.min_longitudinal_position},max_longitudinal_position={self.max_longitudinal_position},plasma_min_longitudinal_position={self.plasma_min_longitudinal_position},plasma_max_longitudinal_position={self.plasma_max_longitudinal_position},n_longitudinal={self.n_longitudinal},n_radial={self.n_radial},particles_per_radial_cell={self.particles_per_radial_cell},particles_per_longitudinal_cell={self.particles_per_longitudinal_cell},particles_per_angular_cell={self.particles_per_angular_cell},r_max={self.r_max},r_max_plasma={self.r_max_plasma},r_min_plasma={self.r_min_plasma},dz_fields={self.dz_fields},plasma_pusher={self.plasma_pusher},laser_evolution={self.laser_evolution},laser_envelope_substeps={self.laser_envelope_substeps},laser_envelope_n_longitudinal={self.laser_envelope_n_longitudinal},laser_envelope_n_radial={self.laser_envelope_n_radial},laser_envelope_use_phase={self.laser_envelope_use_phase},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7672,6 +8092,22 @@ class TwissMatchSimulationElement(SimulationElement):
     eta_xp = Column(Float())
     eta_yp = Column(Float())
     from_beam = Column(Boolean())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7680,7 +8116,7 @@ class TwissMatchSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"TwissMatchSimulationElement(id={self.id},beta_x={self.beta_x},beta_y={self.beta_y},alpha_x={self.alpha_x},alpha_y={self.alpha_y},eta_x={self.eta_x},eta_y={self.eta_y},eta_xp={self.eta_xp},eta_yp={self.eta_yp},from_beam={self.from_beam},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"TwissMatchSimulationElement(id={self.id},beta_x={self.beta_x},beta_y={self.beta_y},alpha_x={self.alpha_x},alpha_y={self.alpha_y},eta_x={self.eta_x},eta_y={self.eta_y},eta_xp={self.eta_xp},eta_yp={self.eta_yp},from_beam={self.from_beam},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7694,12 +8130,28 @@ class TwissMatchSimulationElement(SimulationElement):
 
 class MatrixTransformSimulationElement(SimulationElement):
     """
-    Zero-, first-, and second-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+    Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
     """
     __tablename__ = 'MatrixTransformSimulationElement'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     apply = Column(Boolean())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7711,10 +8163,14 @@ class MatrixTransformSimulationElement(SimulationElement):
     r_matrix = relationship("MatrixValue", uselist=False, foreign_keys=[r_matrix_id])
     t_matrix_id = Column(Integer(), ForeignKey('MatrixValue.id'))
     t_matrix = relationship("MatrixValue", uselist=False, foreign_keys=[t_matrix_id])
+    u_matrix_id = Column(Integer(), ForeignKey('MatrixValue.id'))
+    u_matrix = relationship("MatrixValue", uselist=False, foreign_keys=[u_matrix_id])
+    spin_taylor_id = Column(Integer(), ForeignKey('MatrixValue.id'))
+    spin_taylor = relationship("MatrixValue", uselist=False, foreign_keys=[spin_taylor_id])
     
 
     def __repr__(self):
-        return f"MatrixTransformSimulationElement(id={self.id},apply={self.apply},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},c_matrix_id={self.c_matrix_id},r_matrix_id={self.r_matrix_id},t_matrix_id={self.t_matrix_id},)"
+        return f"MatrixTransformSimulationElement(id={self.id},apply={self.apply},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},c_matrix_id={self.c_matrix_id},r_matrix_id={self.r_matrix_id},t_matrix_id={self.t_matrix_id},u_matrix_id={self.u_matrix_id},spin_taylor_id={self.spin_taylor_id},)"
 
 
 
@@ -7736,6 +8192,22 @@ class ElectrostaticSeparatorSimulationElement(SimulationElement):
     horizontal_field = Column(Float())
     vertical_field = Column(Float())
     tilt = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7744,7 +8216,7 @@ class ElectrostaticSeparatorSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"ElectrostaticSeparatorSimulationElement(id={self.id},horizontal_field={self.horizontal_field},vertical_field={self.vertical_field},tilt={self.tilt},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"ElectrostaticSeparatorSimulationElement(id={self.id},horizontal_field={self.horizontal_field},vertical_field={self.vertical_field},tilt={self.tilt},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7766,11 +8238,29 @@ class ACDipoleSimulationElement(SimulationElement):
     field_amplitude = Column(Float())
     frequency = Column(Float())
     phase = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
     field_reference_position = Column(Text())
     scale_field = Column(Float())
+    waveform_id = Column(Integer(), ForeignKey('SampledWaveform.id'))
+    waveform = relationship("SampledWaveform", uselist=False, foreign_keys=[waveform_id])
     
     
     ramp_rel = relationship( "ACDipoleSimulationElementRamp" )
@@ -7779,7 +8269,7 @@ class ACDipoleSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"ACDipoleSimulationElement(id={self.id},field_amplitude={self.field_amplitude},frequency={self.frequency},phase={self.phase},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"ACDipoleSimulationElement(id={self.id},field_amplitude={self.field_amplitude},frequency={self.frequency},phase={self.phase},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},waveform_id={self.waveform_id},)"
 
 
 
@@ -7800,6 +8290,20 @@ class WireSimulationElement(SimulationElement):
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     current = Column(Float())
     interaction_length = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
     horizontal_offset = Column(Float())
     vertical_offset = Column(Float())
     field_definition = Column(Text())
@@ -7810,7 +8314,7 @@ class WireSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"WireSimulationElement(id={self.id},current={self.current},interaction_length={self.interaction_length},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"WireSimulationElement(id={self.id},current={self.current},interaction_length={self.interaction_length},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7831,11 +8335,25 @@ class BeamBeamSimulationElement(SimulationElement):
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     charge = Column(Float())
     n_particles = Column(Float())
-    horizontal_offset = Column(Float())
-    vertical_offset = Column(Float())
     horizontal_sigma = Column(Float())
     vertical_sigma = Column(Float())
     width = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7844,7 +8362,7 @@ class BeamBeamSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"BeamBeamSimulationElement(id={self.id},charge={self.charge},n_particles={self.n_particles},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},horizontal_sigma={self.horizontal_sigma},vertical_sigma={self.vertical_sigma},width={self.width},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"BeamBeamSimulationElement(id={self.id},charge={self.charge},n_particles={self.n_particles},horizontal_sigma={self.horizontal_sigma},vertical_sigma={self.vertical_sigma},width={self.width},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7866,6 +8384,22 @@ class RFMultipoleSimulationElement(SimulationElement):
     frequency = Column(Float())
     phase = Column(Float())
     field_amplitude = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7894,7 +8428,7 @@ class RFMultipoleSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"RFMultipoleSimulationElement(id={self.id},frequency={self.frequency},phase={self.phase},field_amplitude={self.field_amplitude},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"RFMultipoleSimulationElement(id={self.id},frequency={self.frequency},phase={self.phase},field_amplitude={self.field_amplitude},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -8118,7 +8652,7 @@ class DipoleMagnet(MagneticElement):
     """
     None
     """
-    __tablename__ = 'Dipole_Magnet'
+    __tablename__ = 'DipoleMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     order = Column(Integer())
@@ -8135,6 +8669,7 @@ class DipoleMagnet(MagneticElement):
     edge_field_integral = Column(Float())
     edge_field_integral_entrance = Column(Float())
     edge_field_integral_exit = Column(Float())
+    exit_gap = Column(Float())
     fringe_field_coefficient = Column(Float())
     gradient = Column(Float())
     angle = Column(Float())
@@ -8151,7 +8686,7 @@ class DipoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"Dipole_Magnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"DipoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8167,7 +8702,7 @@ class QuadrupoleMagnet(MagneticElement):
     """
     None
     """
-    __tablename__ = 'Quadrupole_Magnet'
+    __tablename__ = 'QuadrupoleMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     order = Column(Integer())
@@ -8184,6 +8719,7 @@ class QuadrupoleMagnet(MagneticElement):
     edge_field_integral = Column(Float())
     edge_field_integral_entrance = Column(Float())
     edge_field_integral_exit = Column(Float())
+    exit_gap = Column(Float())
     fringe_field_coefficient = Column(Float())
     gradient = Column(Float())
     angle = Column(Float())
@@ -8200,7 +8736,7 @@ class QuadrupoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"Quadrupole_Magnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"QuadrupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8216,7 +8752,7 @@ class SextupoleMagnet(MagneticElement):
     """
     Sextupole magnet field, principal multipole order 2.
     """
-    __tablename__ = 'Sextupole_Magnet'
+    __tablename__ = 'SextupoleMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     order = Column(Integer())
@@ -8233,6 +8769,7 @@ class SextupoleMagnet(MagneticElement):
     edge_field_integral = Column(Float())
     edge_field_integral_entrance = Column(Float())
     edge_field_integral_exit = Column(Float())
+    exit_gap = Column(Float())
     fringe_field_coefficient = Column(Float())
     gradient = Column(Float())
     angle = Column(Float())
@@ -8249,7 +8786,7 @@ class SextupoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"Sextupole_Magnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"SextupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8265,7 +8802,7 @@ class OctupoleMagnet(MagneticElement):
     """
     Octupole magnet field, principal multipole order 3.
     """
-    __tablename__ = 'Octupole_Magnet'
+    __tablename__ = 'OctupoleMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     order = Column(Integer())
@@ -8282,6 +8819,7 @@ class OctupoleMagnet(MagneticElement):
     edge_field_integral = Column(Float())
     edge_field_integral_entrance = Column(Float())
     edge_field_integral_exit = Column(Float())
+    exit_gap = Column(Float())
     fringe_field_coefficient = Column(Float())
     gradient = Column(Float())
     angle = Column(Float())
@@ -8298,7 +8836,59 @@ class OctupoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"Octupole_Magnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"OctupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class CombinedSolenoidQuadrupoleMagnet(MagneticElement):
+    """
+    Combined solenoid and quadrupole magnetic field.
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupoleMagnet'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    order = Column(Integer())
+    skew = Column(Boolean())
+    length = Column(Float())
+    settle_time = Column(Float())
+    entrance_edge_angle = Column(Text())
+    exit_edge_angle = Column(Text())
+    gap = Column(Float())
+    bore = Column(Float())
+    plane = Column(Enum('Horizontal', 'Vertical', 'Combined', name='BendingPlaneEnum'))
+    width = Column(Float())
+    tilt = Column(Float())
+    edge_field_integral = Column(Float())
+    edge_field_integral_entrance = Column(Float())
+    edge_field_integral_exit = Column(Float())
+    exit_gap = Column(Float())
+    fringe_field_coefficient = Column(Float())
+    gradient = Column(Float())
+    angle = Column(Float())
+    solenoid_fields_id = Column(Integer(), ForeignKey('SolenoidFields.id'))
+    solenoid_fields = relationship("SolenoidFields", uselist=False, foreign_keys=[solenoid_fields_id])
+    multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
+    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id])
+    systematic_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
+    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id])
+    random_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
+    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id])
+    field_integral_coefficients_id = Column(Integer(), ForeignKey('FieldIntegral.id'))
+    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id])
+    linear_saturation_coefficients_id = Column(Integer(), ForeignKey('LinearSaturationFit.id'))
+    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id])
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},solenoid_fields_id={self.solenoid_fields_id},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8317,12 +8907,13 @@ class Element(StandardElement):
     __tablename__ = 'Element'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -8359,7 +8950,7 @@ class Element(StandardElement):
     
 
     def __repr__(self):
-        return f"Element(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Element(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -8378,12 +8969,13 @@ class Lighting(StandardElement):
     __tablename__ = 'Lighting'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     lights_id = Column(Integer(), ForeignKey('LightingElement.id'))
     lights = relationship("LightingElement", uselist=False, foreign_keys=[lights_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
@@ -8422,7 +9014,7 @@ class Lighting(StandardElement):
     
 
     def __repr__(self):
-        return f"Lighting(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},lights_id={self.lights_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Lighting(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},lights_id={self.lights_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -8441,12 +9033,13 @@ class PowerSupply(StandardElement):
     __tablename__ = 'PowerSupply'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -8483,7 +9076,7 @@ class PowerSupply(StandardElement):
     
 
     def __repr__(self):
-        return f"PowerSupply(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"PowerSupply(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -8502,12 +9095,13 @@ class LowLevelRF(StandardElement):
     __tablename__ = 'LowLevelRF'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     llrf_id = Column(Integer(), ForeignKey('LowLevelRFElement.id'))
     llrf = relationship("LowLevelRFElement", uselist=False, foreign_keys=[llrf_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
@@ -8546,7 +9140,7 @@ class LowLevelRF(StandardElement):
     
 
     def __repr__(self):
-        return f"LowLevelRF(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},llrf_id={self.llrf_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"LowLevelRF(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},llrf_id={self.llrf_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -8565,12 +9159,13 @@ class RFModulator(StandardElement):
     __tablename__ = 'RFModulator'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     modulator_id = Column(Integer(), ForeignKey('RFModulatorElement.id'))
     modulator = relationship("RFModulatorElement", uselist=False, foreign_keys=[modulator_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
@@ -8609,7 +9204,7 @@ class RFModulator(StandardElement):
     
 
     def __repr__(self):
-        return f"RFModulator(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},modulator_id={self.modulator_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"RFModulator(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},modulator_id={self.modulator_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -8628,12 +9223,13 @@ class RFProtection(StandardElement):
     __tablename__ = 'RFProtection'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     protection_id = Column(Integer(), ForeignKey('RFProtectionElement.id'))
     protection = relationship("RFProtectionElement", uselist=False, foreign_keys=[protection_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
@@ -8672,7 +9268,7 @@ class RFProtection(StandardElement):
     
 
     def __repr__(self):
-        return f"RFProtection(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},protection_id={self.protection_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"RFProtection(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},protection_id={self.protection_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -8691,12 +9287,13 @@ class RFHeartbeat(StandardElement):
     __tablename__ = 'RFHeartbeat'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     heartbeat_id = Column(Integer(), ForeignKey('RFHeartbeatElement.id'))
     heartbeat = relationship("RFHeartbeatElement", uselist=False, foreign_keys=[heartbeat_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
@@ -8735,7 +9332,7 @@ class RFHeartbeat(StandardElement):
     
 
     def __repr__(self):
-        return f"RFHeartbeat(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},heartbeat_id={self.heartbeat_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"RFHeartbeat(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},heartbeat_id={self.heartbeat_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -8754,12 +9351,13 @@ class PID(StandardElement):
     __tablename__ = 'PID'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     pid_id = Column(Integer(), ForeignKey('PIDElement.id'))
     pid = relationship("PIDElement", uselist=False, foreign_keys=[pid_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
@@ -8798,7 +9396,7 @@ class PID(StandardElement):
     
 
     def __repr__(self):
-        return f"PID(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},pid_id={self.pid_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"PID(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},pid_id={self.pid_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -8817,12 +9415,13 @@ class LaserEnergyMeter(StandardElement):
     __tablename__ = 'LaserEnergyMeter'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     laser_id = Column(Integer(), ForeignKey('LaserEnergyMeterElement.id'))
     laser = relationship("LaserEnergyMeterElement", uselist=False, foreign_keys=[laser_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
@@ -8861,7 +9460,7 @@ class LaserEnergyMeter(StandardElement):
     
 
     def __repr__(self):
-        return f"LaserEnergyMeter(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},laser_id={self.laser_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"LaserEnergyMeter(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},laser_id={self.laser_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -8880,12 +9479,13 @@ class LaserHalfWavePlate(StandardElement):
     __tablename__ = 'LaserHalfWavePlate'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     laser_id = Column(Integer(), ForeignKey('LaserHalfWavePlateElement.id'))
     laser = relationship("LaserHalfWavePlateElement", uselist=False, foreign_keys=[laser_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
@@ -8924,7 +9524,7 @@ class LaserHalfWavePlate(StandardElement):
     
 
     def __repr__(self):
-        return f"LaserHalfWavePlate(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},laser_id={self.laser_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"LaserHalfWavePlate(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},laser_id={self.laser_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -8943,12 +9543,13 @@ class LaserMirror(StandardElement):
     __tablename__ = 'LaserMirror'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     laser_id = Column(Integer(), ForeignKey('LaserMirrorElement.id'))
     laser = relationship("LaserMirrorElement", uselist=False, foreign_keys=[laser_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
@@ -8987,7 +9588,7 @@ class LaserMirror(StandardElement):
     
 
     def __repr__(self):
-        return f"LaserMirror(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},laser_id={self.laser_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"LaserMirror(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},laser_id={self.laser_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9008,12 +9609,13 @@ class LaserAttenuator(StandardElement):
     maximum = Column(Float())
     minimum = Column(Float())
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9050,7 +9652,59 @@ class LaserAttenuator(StandardElement):
     
 
     def __repr__(self):
-        return f"LaserAttenuator(maximum={self.maximum},minimum={self.minimum},name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"LaserAttenuator(maximum={self.maximum},minimum={self.minimum},name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class CorrectorMagnet(DipoleMagnet):
+    """
+    Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.
+    """
+    __tablename__ = 'Corrector_Magnet'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    horizontal_kick = Column(Float())
+    vertical_kick = Column(Float())
+    order = Column(Integer())
+    skew = Column(Boolean())
+    length = Column(Float())
+    settle_time = Column(Float())
+    entrance_edge_angle = Column(Text())
+    exit_edge_angle = Column(Text())
+    gap = Column(Float())
+    bore = Column(Float())
+    plane = Column(Enum('Horizontal', 'Vertical', 'Combined', name='BendingPlaneEnum'))
+    width = Column(Float())
+    tilt = Column(Float())
+    edge_field_integral = Column(Float())
+    edge_field_integral_entrance = Column(Float())
+    edge_field_integral_exit = Column(Float())
+    exit_gap = Column(Float())
+    fringe_field_coefficient = Column(Float())
+    gradient = Column(Float())
+    angle = Column(Float())
+    multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
+    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id])
+    systematic_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
+    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id])
+    random_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
+    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id])
+    field_integral_coefficients_id = Column(Integer(), ForeignKey('FieldIntegral.id'))
+    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id])
+    linear_saturation_coefficients_id = Column(Integer(), ForeignKey('LinearSaturationFit.id'))
+    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id])
+    
+
+    def __repr__(self):
+        return f"Corrector_Magnet(id={self.id},horizontal_kick={self.horizontal_kick},vertical_kick={self.vertical_kick},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -9069,14 +9723,17 @@ class PhysicalAcceleratorElement(Element):
     __tablename__ = 'PhysicalAcceleratorElement'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9113,7 +9770,7 @@ class PhysicalAcceleratorElement(Element):
     
 
     def __repr__(self):
-        return f"PhysicalAcceleratorElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"PhysicalAcceleratorElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9132,14 +9789,17 @@ class TwissMatch(PhysicalAcceleratorElement):
     __tablename__ = 'TwissMatch'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('TwissMatchSimulationElement.id'))
     simulation = relationship("TwissMatchSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9176,7 +9836,7 @@ class TwissMatch(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"TwissMatch(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"TwissMatch(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9195,14 +9855,17 @@ class MatrixTransform(PhysicalAcceleratorElement):
     __tablename__ = 'MatrixTransform'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MatrixTransformSimulationElement.id'))
     simulation = relationship("MatrixTransformSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9239,7 +9902,7 @@ class MatrixTransform(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"MatrixTransform(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"MatrixTransform(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9258,14 +9921,17 @@ class ElectrostaticSeparator(PhysicalAcceleratorElement):
     __tablename__ = 'ElectrostaticSeparator'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('ElectrostaticSeparatorSimulationElement.id'))
     simulation = relationship("ElectrostaticSeparatorSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9302,7 +9968,7 @@ class ElectrostaticSeparator(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"ElectrostaticSeparator(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"ElectrostaticSeparator(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9321,14 +9987,17 @@ class ACDipole(PhysicalAcceleratorElement):
     __tablename__ = 'ACDipole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('ACDipoleSimulationElement.id'))
     simulation = relationship("ACDipoleSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9365,7 +10034,7 @@ class ACDipole(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"ACDipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"ACDipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9384,14 +10053,17 @@ class Wire(PhysicalAcceleratorElement):
     __tablename__ = 'Wire'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('WireSimulationElement.id'))
     simulation = relationship("WireSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9428,7 +10100,7 @@ class Wire(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Wire(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Wire(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9447,14 +10119,17 @@ class BeamBeam(PhysicalAcceleratorElement):
     __tablename__ = 'BeamBeam'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('BeamBeamSimulationElement.id'))
     simulation = relationship("BeamBeamSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9491,7 +10166,7 @@ class BeamBeam(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"BeamBeam(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"BeamBeam(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9510,14 +10185,17 @@ class RFMultipole(PhysicalAcceleratorElement):
     __tablename__ = 'RFMultipole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('RFMultipoleSimulationElement.id'))
     simulation = relationship("RFMultipoleSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9554,7 +10232,7 @@ class RFMultipole(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"RFMultipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"RFMultipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9573,14 +10251,17 @@ class Stage(PhysicalAcceleratorElement):
     __tablename__ = 'Stage'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9617,7 +10298,7 @@ class Stage(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Stage(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Stage(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9636,14 +10317,17 @@ class VacuumGauge(PhysicalAcceleratorElement):
     __tablename__ = 'VacuumGauge'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9680,7 +10364,7 @@ class VacuumGauge(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"VacuumGauge(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"VacuumGauge(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9699,16 +10383,19 @@ class Laser(PhysicalAcceleratorElement):
     __tablename__ = 'Laser'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     laser_id = Column(Integer(), ForeignKey('LaserElement.id'))
     laser = relationship("LaserElement", uselist=False, foreign_keys=[laser_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9745,7 +10432,7 @@ class Laser(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Laser(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},laser_id={self.laser_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Laser(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},laser_id={self.laser_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9764,16 +10451,19 @@ class Shutter(PhysicalAcceleratorElement):
     __tablename__ = 'Shutter'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     shutter_id = Column(Integer(), ForeignKey('ShutterElement.id'))
     shutter = relationship("ShutterElement", uselist=False, foreign_keys=[shutter_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9810,7 +10500,7 @@ class Shutter(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Shutter(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},shutter_id={self.shutter_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Shutter(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},shutter_id={self.shutter_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9829,16 +10519,19 @@ class Valve(PhysicalAcceleratorElement):
     __tablename__ = 'Valve'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     valve_id = Column(Integer(), ForeignKey('ValveElement.id'))
     valve = relationship("ValveElement", uselist=False, foreign_keys=[valve_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9875,7 +10568,7 @@ class Valve(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Valve(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},valve_id={self.valve_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Valve(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},valve_id={self.valve_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9894,14 +10587,17 @@ class Marker(PhysicalAcceleratorElement):
     __tablename__ = 'Marker'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9938,7 +10634,7 @@ class Marker(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Marker(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Marker(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9957,12 +10653,13 @@ class Aperture(PhysicalAcceleratorElement):
     __tablename__ = 'Aperture'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
     aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
@@ -10003,7 +10700,7 @@ class Aperture(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Aperture(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},aperture_id={self.aperture_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Aperture(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},aperture_id={self.aperture_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10022,14 +10719,17 @@ class Drift(PhysicalAcceleratorElement):
     __tablename__ = 'Drift'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DriftSimulationElement.id'))
     simulation = relationship("DriftSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10066,7 +10766,7 @@ class Drift(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Drift(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Drift(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10085,18 +10785,21 @@ class Magnet(PhysicalAcceleratorElement):
     __tablename__ = 'Magnet'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('MagneticElement.id'))
     magnetic = relationship("MagneticElement", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10133,7 +10836,7 @@ class Magnet(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Magnet(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Magnet(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10152,16 +10855,19 @@ class RFCavity(PhysicalAcceleratorElement):
     __tablename__ = 'RFCavity'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     cavity_id = Column(Integer(), ForeignKey('RFCavityElement.id'))
     cavity = relationship("RFCavityElement", uselist=False, foreign_keys=[cavity_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
     simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10198,7 +10904,7 @@ class RFCavity(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"RFCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"RFCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},cavity_id={self.cavity_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10217,16 +10923,19 @@ class Wakefield(PhysicalAcceleratorElement):
     __tablename__ = 'Wakefield'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     cavity_id = Column(Integer(), ForeignKey('WakefieldElement.id'))
     cavity = relationship("WakefieldElement", uselist=False, foreign_keys=[cavity_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('WakefieldSimulationElement.id'))
     simulation = relationship("WakefieldSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10263,7 +10972,7 @@ class Wakefield(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Wakefield(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Wakefield(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},cavity_id={self.cavity_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10282,16 +10991,19 @@ class Diagnostic(PhysicalAcceleratorElement):
     __tablename__ = 'Diagnostic'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('DiagnosticElement.id'))
     diagnostic = relationship("DiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10328,7 +11040,7 @@ class Diagnostic(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Diagnostic(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Diagnostic(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10347,18 +11059,21 @@ class Plasma(PhysicalAcceleratorElement):
     __tablename__ = 'Plasma'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     plasma_id = Column(Integer(), ForeignKey('PlasmaElement.id'))
     plasma = relationship("PlasmaElement", uselist=False, foreign_keys=[plasma_id])
     laser_id = Column(Integer(), ForeignKey('LaserElement.id'))
     laser = relationship("LaserElement", uselist=False, foreign_keys=[laser_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('PlasmaSimulationElement.id'))
     simulation = relationship("PlasmaSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10395,7 +11110,7 @@ class Plasma(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Plasma(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},plasma_id={self.plasma_id},laser_id={self.laser_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Plasma(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},plasma_id={self.plasma_id},laser_id={self.laser_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10414,14 +11129,17 @@ class HorizontalACDipole(ACDipole):
     __tablename__ = 'Horizontal_AC_Dipole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('ACDipoleSimulationElement.id'))
     simulation = relationship("ACDipoleSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10458,7 +11176,7 @@ class HorizontalACDipole(ACDipole):
     
 
     def __repr__(self):
-        return f"Horizontal_AC_Dipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Horizontal_AC_Dipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10477,14 +11195,17 @@ class VerticalACDipole(ACDipole):
     __tablename__ = 'Vertical_AC_Dipole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('ACDipoleSimulationElement.id'))
     simulation = relationship("ACDipoleSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10521,7 +11242,7 @@ class VerticalACDipole(ACDipole):
     
 
     def __repr__(self):
-        return f"Vertical_AC_Dipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Vertical_AC_Dipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10540,12 +11261,13 @@ class Collimator(Aperture):
     __tablename__ = 'Collimator'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
     aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
@@ -10586,7 +11308,7 @@ class Collimator(Aperture):
     
 
     def __repr__(self):
-        return f"Collimator(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},aperture_id={self.aperture_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Collimator(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},aperture_id={self.aperture_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10605,16 +11327,19 @@ class RFDeflectingCavity(RFCavity):
     __tablename__ = 'RFDeflectingCavity'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     cavity_id = Column(Integer(), ForeignKey('RFDeflectingCavityElement.id'))
     cavity = relationship("RFDeflectingCavityElement", uselist=False, foreign_keys=[cavity_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
     simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10651,7 +11376,7 @@ class RFDeflectingCavity(RFCavity):
     
 
     def __repr__(self):
-        return f"RFDeflectingCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"RFDeflectingCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},cavity_id={self.cavity_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10670,16 +11395,19 @@ class CrabCavity(RFCavity):
     __tablename__ = 'CrabCavity'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     cavity_id = Column(Integer(), ForeignKey('RFDeflectingCavityElement.id'))
     cavity = relationship("RFDeflectingCavityElement", uselist=False, foreign_keys=[cavity_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
     simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10716,7 +11444,7 @@ class CrabCavity(RFCavity):
     
 
     def __repr__(self):
-        return f"CrabCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"CrabCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},cavity_id={self.cavity_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10735,16 +11463,19 @@ class BeamPositionMonitor(Diagnostic):
     __tablename__ = 'BeamPositionMonitor'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('BPMDiagnosticElement.id'))
     diagnostic = relationship("BPMDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10781,7 +11512,7 @@ class BeamPositionMonitor(Diagnostic):
     
 
     def __repr__(self):
-        return f"BeamPositionMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"BeamPositionMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10800,16 +11531,19 @@ class BeamArrivalMonitor(Diagnostic):
     __tablename__ = 'BeamArrivalMonitor'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('BAMDiagnosticElement.id'))
     diagnostic = relationship("BAMDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10846,7 +11580,7 @@ class BeamArrivalMonitor(Diagnostic):
     
 
     def __repr__(self):
-        return f"BeamArrivalMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"BeamArrivalMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10865,16 +11599,19 @@ class BunchLengthMonitor(Diagnostic):
     __tablename__ = 'BunchLengthMonitor'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('BLMDiagnosticElement.id'))
     diagnostic = relationship("BLMDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10911,7 +11648,7 @@ class BunchLengthMonitor(Diagnostic):
     
 
     def __repr__(self):
-        return f"BunchLengthMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"BunchLengthMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10930,16 +11667,19 @@ class Camera(Diagnostic):
     __tablename__ = 'Camera'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('CameraDiagnosticElement.id'))
     diagnostic = relationship("CameraDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10976,7 +11716,7 @@ class Camera(Diagnostic):
     
 
     def __repr__(self):
-        return f"Camera(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Camera(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10995,16 +11735,19 @@ class Screen(Diagnostic):
     __tablename__ = 'Screen'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('ScreenDiagnosticElement.id'))
     diagnostic = relationship("ScreenDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11041,7 +11784,75 @@ class Screen(Diagnostic):
     
 
     def __repr__(self):
-        return f"Screen(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Screen(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class WireScanner(Diagnostic):
+    """
+    Wire scanner: thin wires stepped through the beam to measure its transverse profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation element.
+    """
+    __tablename__ = 'WireScanner'
+
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    inherits_from = Column(Text())
+    diagnostic_id = Column(Integer(), ForeignKey('DiagnosticElement.id'))
+    diagnostic = relationship("DiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
+    simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "WireScannerAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: WireScannerAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "WireScannerInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: WireScannerInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "WireScannerOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: WireScannerOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="WireScanner_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="WireScanner_downstream")
+    
+
+    def __repr__(self):
+        return f"WireScanner(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11060,16 +11871,19 @@ class ChargeDiagnostic(Diagnostic):
     __tablename__ = 'ChargeDiagnostic'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('ChargeDiagnosticElement.id'))
     diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11106,7 +11920,7 @@ class ChargeDiagnostic(Diagnostic):
     
 
     def __repr__(self):
-        return f"ChargeDiagnostic(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"ChargeDiagnostic(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11125,16 +11939,19 @@ class PhotonMonitor(Diagnostic):
     __tablename__ = 'PhotonMonitor'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('PhotonIntensityMonitorDiagnostic.id'))
     diagnostic = relationship("PhotonIntensityMonitorDiagnostic", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11171,7 +11988,7 @@ class PhotonMonitor(Diagnostic):
     
 
     def __repr__(self):
-        return f"PhotonMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"PhotonMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11190,18 +12007,21 @@ class Dipole(Magnet):
     __tablename__ = 'Dipole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('Dipole_Magnet.id'))
+    inherits_from = Column(Text())
+    magnetic_id = Column(Integer(), ForeignKey('DipoleMagnet.id'))
     magnetic = relationship("DipoleMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11238,7 +12058,7 @@ class Dipole(Magnet):
     
 
     def __repr__(self):
-        return f"Dipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Dipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11257,18 +12077,21 @@ class Quadrupole(Magnet):
     __tablename__ = 'Quadrupole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('Quadrupole_Magnet.id'))
+    inherits_from = Column(Text())
+    magnetic_id = Column(Integer(), ForeignKey('QuadrupoleMagnet.id'))
     magnetic = relationship("QuadrupoleMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11305,7 +12128,7 @@ class Quadrupole(Magnet):
     
 
     def __repr__(self):
-        return f"Quadrupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Quadrupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11324,18 +12147,21 @@ class Sextupole(Magnet):
     __tablename__ = 'Sextupole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('Sextupole_Magnet.id'))
+    inherits_from = Column(Text())
+    magnetic_id = Column(Integer(), ForeignKey('SextupoleMagnet.id'))
     magnetic = relationship("SextupoleMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11372,7 +12198,7 @@ class Sextupole(Magnet):
     
 
     def __repr__(self):
-        return f"Sextupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Sextupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11391,18 +12217,21 @@ class Octupole(Magnet):
     __tablename__ = 'Octupole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('Octupole_Magnet.id'))
+    inherits_from = Column(Text())
+    magnetic_id = Column(Integer(), ForeignKey('OctupoleMagnet.id'))
     magnetic = relationship("OctupoleMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11439,7 +12268,7 @@ class Octupole(Magnet):
     
 
     def __repr__(self):
-        return f"Octupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Octupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11458,18 +12287,21 @@ class Solenoid(Magnet):
     __tablename__ = 'Solenoid'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('Solenoid_Magnet.id'))
     magnetic = relationship("SolenoidMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11506,7 +12338,77 @@ class Solenoid(Magnet):
     
 
     def __repr__(self):
-        return f"Solenoid(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Solenoid(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class CombinedSolenoidQuadrupole(Magnet):
+    """
+    Magnet combining coaxial solenoid and quadrupole fields.
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole'
+
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    inherits_from = Column(Text())
+    magnetic_id = Column(Integer(), ForeignKey('CombinedSolenoidQuadrupoleMagnet.id'))
+    magnetic = relationship("CombinedSolenoidQuadrupoleMagnet", uselist=False, foreign_keys=[magnetic_id])
+    degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
+    simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "CombinedSolenoidQuadrupoleAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: CombinedSolenoidQuadrupoleAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "CombinedSolenoidQuadrupoleInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: CombinedSolenoidQuadrupoleInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "CombinedSolenoidQuadrupoleOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: CombinedSolenoidQuadrupoleOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="CombinedSolenoidQuadrupole_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="CombinedSolenoidQuadrupole_downstream")
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11525,12 +12427,13 @@ class Wiggler(Magnet):
     __tablename__ = 'Wiggler'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     laser_id = Column(Integer(), ForeignKey('LaserElement.id'))
     laser = relationship("LaserElement", uselist=False, foreign_keys=[laser_id])
     magnetic_id = Column(Integer(), ForeignKey('Wiggler_Magnet.id'))
@@ -11539,6 +12442,8 @@ class Wiggler(Magnet):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11575,7 +12480,7 @@ class Wiggler(Magnet):
     
 
     def __repr__(self):
-        return f"Wiggler(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},laser_id={self.laser_id},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Wiggler(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},laser_id={self.laser_id},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11594,18 +12499,21 @@ class NonLinearLens(Magnet):
     __tablename__ = 'NonLinearLens'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('NonLinearLens_Magnet.id'))
+    inherits_from = Column(Text())
+    magnetic_id = Column(Integer(), ForeignKey('NonLinearLensMagnet.id'))
     magnetic = relationship("NonLinearLensMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11642,7 +12550,7 @@ class NonLinearLens(Magnet):
     
 
     def __repr__(self):
-        return f"NonLinearLens(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"NonLinearLens(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11661,16 +12569,19 @@ class WallCurrentMonitor(ChargeDiagnostic):
     __tablename__ = 'WallCurrentMonitor'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('ChargeDiagnosticElement.id'))
     diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11707,7 +12618,7 @@ class WallCurrentMonitor(ChargeDiagnostic):
     
 
     def __repr__(self):
-        return f"WallCurrentMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"WallCurrentMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11726,16 +12637,19 @@ class FaradayCupMonitor(ChargeDiagnostic):
     __tablename__ = 'FaradayCupMonitor'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('ChargeDiagnosticElement.id'))
     diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11772,7 +12686,7 @@ class FaradayCupMonitor(ChargeDiagnostic):
     
 
     def __repr__(self):
-        return f"FaradayCupMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"FaradayCupMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11791,16 +12705,19 @@ class IntegratedCurrentTransformer(ChargeDiagnostic):
     __tablename__ = 'IntegratedCurrentTransformer'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('ChargeDiagnosticElement.id'))
     diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11837,7 +12754,7 @@ class IntegratedCurrentTransformer(ChargeDiagnostic):
     
 
     def __repr__(self):
-        return f"IntegratedCurrentTransformer(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"IntegratedCurrentTransformer(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11856,18 +12773,21 @@ class HorizontalCorrector(Dipole):
     __tablename__ = 'HorizontalCorrector'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
     magnetic = relationship("CorrectorMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11904,7 +12824,7 @@ class HorizontalCorrector(Dipole):
     
 
     def __repr__(self):
-        return f"HorizontalCorrector(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"HorizontalCorrector(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11923,18 +12843,21 @@ class VerticalCorrector(Dipole):
     __tablename__ = 'VerticalCorrector'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
+    inherits_from = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
     magnetic = relationship("CorrectorMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11971,7 +12894,7 @@ class VerticalCorrector(Dipole):
     
 
     def __repr__(self):
-        return f"VerticalCorrector(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"VerticalCorrector(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11992,18 +12915,21 @@ class CombinedCorrector(Dipole):
     Horizontal_Corrector = Column(Text())
     Vertical_Corrector = Column(Text())
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
-    magnetic = relationship("CorrectorMagnet", uselist=False, foreign_keys=[magnetic_id])
+    inherits_from = Column(Text())
+    magnetic_id = Column(Integer(), ForeignKey('CombinedCorrectorMagnet.id'))
+    magnetic = relationship("CombinedCorrectorMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -12040,7 +12966,7 @@ class CombinedCorrector(Dipole):
     
 
     def __repr__(self):
-        return f"CombinedCorrector(Horizontal_Corrector={self.Horizontal_Corrector},Vertical_Corrector={self.Vertical_Corrector},name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"CombinedCorrector(Horizontal_Corrector={self.Horizontal_Corrector},Vertical_Corrector={self.Vertical_Corrector},name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 

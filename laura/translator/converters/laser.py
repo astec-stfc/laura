@@ -194,7 +194,7 @@ class LaserTranslator(BaseElementTranslator):
             value = getattr(self.laser, param)
             if value is None:
                 continue
-            keyword = self._convertKeyword_FBPIC(param)
+            keyword = self._convert_keyword_fbpic(param)
             if keyword in accepted:
                 kwargs[keyword] = value
             elif param in model_fields and value != model_fields[param].default:

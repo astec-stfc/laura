@@ -2,9 +2,7 @@ import numpy as np
 from .sdds import write_sdds_field_file
 from warnings import warn
 from collections import Counter
-from .field_parameter import FieldParameter
-from ..units import UnitValue
-import re
+from .field_parameter import require_rf, set_field
 
 d = ",!?/&-:;@'\n \t"
 
@@ -17,15 +15,9 @@ def write_opal_field_file(
     orientation: str = None,
 ):
     """
-    Generate the field data in a format that is suitable for OPAL, based on the
-    :class:`~laura.translator.utils.fields.FieldMap` object provided.
-
-    See the `OPAL manual`_ for more details.
-
-    This is then written to a text file.
-    The `field_type` parameter determines the format of the file.
-
-    A warning is raised if the field type is not supported (perhaps elevate to a `NotImplementedError`?
+    Write the field data of a :class:`~laura.translator.utils.fields.FieldMap`
+    to an OPAL text file, in a format set by `field_type` (see the
+    `OPAL manual`_).
 
     .. _OPAL manual: https://amas.web.psi.ch/opal/Documentation/master/OPAL_Manual.html
 
@@ -145,7 +137,7 @@ def read_opal_field_file(
     frequency: float | None = None,
 ):
     """
-    Read an OPAL field file and convert it into a :class:`laura.translator.utils.fields.FieldMap` object
+    Read an OPAL field file into a :class:`~laura.translator.utils.fields.FieldMap` object.
 
     Parameters
     ----------
@@ -156,7 +148,7 @@ def read_opal_field_file(
     field_type: str
         The name of the field, see :attr:`~laura.translator.utils.fields.allowed_fields`
     cavity_type: str, optional
-        The type of RF cavity, see :attr:`~laura.translator.utils.fields.allowed_cavities`
+        The type of RF cavity, see :attr:`~laura.translator.utils.fields.hdf5.allowed_cavities`
     frequency: float, optional
         The frequency of the RF cavity.
 
@@ -175,15 +167,7 @@ def read_opal_field_file(
     """
     self.reset_dicts()
     setattr(self, "field_type", field_type)
-    if "Electro" in field_type:
-        if cavity_type is None:
-            raise ValueError(f"cavity_type must be provided for {field_type}")
-        else:
-            setattr(self, "cavity_type", cavity_type)
-        if frequency is None:
-            raise ValueError(f"frequency must be provided for {field_type}")
-        else:
-            setattr(self, "frequency", frequency)
+    require_rf(self, field_type, cavity_type, frequency)
     if field_type == "2DElectroDynamic":
         with open(filename) as f:
             rl = f.readlines()
@@ -198,36 +182,12 @@ def read_opal_field_file(
         )
         values = np.arange(0, self.radius, self.radius / (int(rl[3].split(" ")[2]) + 1))
         rpattern = np.repeat(values, int(rl[1].split(" ")[2]) + 1)
-        setattr(
-            self,
-            "z",
-            FieldParameter(name="z", value=UnitValue(zfull, units="m")),
-        )
-        setattr(
-            self,
-            "r",
-            FieldParameter(name="r", value=UnitValue(rpattern, units="m")),
-        )
-        setattr(
-            self,
-            "Ez",
-            FieldParameter(name="Ez", value=UnitValue(fdat[::, 0], units="V/m")),
-        )
-        setattr(
-            self,
-            "Er",
-            FieldParameter(name="Er", value=UnitValue(fdat[::, 1], units="V/m")),
-        )
-        setattr(
-            self,
-            "Ex",
-            FieldParameter(name="Ex", value=UnitValue(fdat[::, 2], units="V/m")),
-        )
-        setattr(
-            self,
-            "Br",
-            FieldParameter(name="Br", value=UnitValue(fdat[::, 3], units="T")),
-        )
+        set_field(self, "z", zfull, "m")
+        set_field(self, "r", rpattern, "m")
+        set_field(self, "Ez", fdat[::, 0], "V/m")
+        set_field(self, "Er", fdat[::, 1], "V/m")
+        set_field(self, "Ex", fdat[::, 2], "V/m")
+        set_field(self, "Br", fdat[::, 3], "T")
     elif field_type == "1DMagnetoStatic":
         with open(filename) as f:
             rl = f.readlines()
@@ -241,12 +201,8 @@ def read_opal_field_file(
             zend = float(rl[1].split(" ")[1]) * 1e-2
         fdat = np.loadtxt(filename, skiprows=3)
         zvals = np.linspace(zstart, zend, len(fdat))
-        setattr(self, "z", FieldParameter(name="z", value=UnitValue(zvals, units="m")))
-        setattr(
-            self,
-            "Bz",
-            FieldParameter(name="Bz", value=UnitValue(fdat / max(fdat), units="T")),
-        )
+        set_field(self, "z", zvals, "m")
+        set_field(self, "Bz", fdat / max(fdat), "T")
     elif field_type == "1DElectroDynamic":
         with open(filename) as f:
             rl = f.readlines()
@@ -257,13 +213,5 @@ def read_opal_field_file(
             setattr(self, "fourier", int(rl[0].split(" ")[1]))
             setattr(self, "frequency", float(rl[1]) * 1e6)
         fdat = np.loadtxt(filename, skiprows=2)
-        setattr(
-            self, "z", FieldParameter(name="z", value=UnitValue(fdat[::, 0], units="m"))
-        )
-        setattr(
-            self,
-            "Ez",
-            FieldParameter(
-                name="Ez", value=UnitValue(fdat[::, 1] / max(fdat[::, 1]), units="V/m")
-            ),
-        )
+        set_field(self, "z", fdat[::, 0], "m")
+        set_field(self, "Ez", fdat[::, 1] / max(fdat[::, 1]), "V/m")

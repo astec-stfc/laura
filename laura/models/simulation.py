@@ -1,11 +1,12 @@
 import re
-from typing import Any, ClassVar, Dict, List, Literal, Union
+from typing import Any, ClassVar, Dict, List, Union
 
 import numpy as np
-from pydantic import Field, computed_field, field_validator
+from pydantic import Field, computed_field, field_validator, model_validator
 
 from ..translator.utils.fields import FieldMap
 from ._generated import (
+    WaveformInterpolationEnum,
     _ACDipoleSimulationElementBase,
     _ApertureElementBase,
     _BeamBeamSimulationElementBase,
@@ -17,16 +18,17 @@ from ._generated import (
     _PlasmaSimulationElementBase,
     _RFCavitySimulationElementBase,
     _RFMultipoleSimulationElementBase,
+    _SampledWaveformBase,
     _SimulationElementBase,
     _TwissMatchSimulationElementBase,
     _WakefieldSimulationElementBase,
     _WireSimulationElementBase,
 )
-from .base_models import FunctionalMixin, IgnoreExtra
+from .base_models import FunctionalMixin
 
 
 class ApertureElement(_ApertureElementBase):
-    """Physical info model."""
+    """Aperture model."""
 
     pass
 
@@ -63,11 +65,13 @@ class DriftSimulationElement(_DriftSimulationElementBase):
     Drift simulation element model.
     """
 
-    pass
+    wakefield_definition: str | FieldMap | None = None
+    """A wake file name, or the sampled wake itself."""
 
 
 class DiagnosticSimulationElement(_DiagnosticSimulationElementBase):
-    pass
+    wakefield_definition: str | FieldMap | None = None
+    """A wake file name, or the sampled wake itself."""
 
 
 class PlasmaSimulationElement(_PlasmaSimulationElementBase):
@@ -157,7 +161,12 @@ class WakefieldSimulationElement(_WakefieldSimulationElementBase):
 
 
 class TwissMatchSimulationElement(_TwissMatchSimulationElementBase):
-    pass
+    @field_validator("beta_x", "beta_y")
+    @classmethod
+    def validate_beta(cls, value):
+        if value <= 0:
+            raise ValueError("Twiss beta must be greater than zero")
+        return value
 
     @computed_field
     @property
@@ -209,108 +218,66 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
     t_matrix: np.ndarray = Field(default_factory=lambda: np.zeros((6, 6, 6)))
     """T-matrix for the element (2nd order transformation matrix)."""
 
-    @field_validator("c_matrix", mode="before")
+    u_matrix: np.ndarray = Field(default_factory=lambda: np.zeros((6, 6, 6, 6)))
+    """U-matrix for the element (3rd order transformation matrix)."""
+
+    spin_taylor: List[Dict[str, Any]] = Field(default_factory=list)
+    """Sparse quaternion Taylor terms indexed as S1, Sx, Sy, and Sz (0--3)."""
+
+    @field_validator("c_matrix", "r_matrix", "t_matrix", "u_matrix", mode="before")
     @classmethod
-    def validate_c_matrix(cls, v):
+    def validate_matrix(cls, v, info):
+        letter = info.field_name[0]
+        example = {"c": "c1", "r": "r21", "t": "t513", "u": "u5132"}[letter]
+        shape = (6,) * (len(example) - 1)
         if isinstance(v, dict):
-            vector = np.zeros(6)
+            tensor = np.eye(6) if letter == "r" else np.zeros(shape)
 
             for key, value in v.items():
-                m = re.fullmatch(r"c(\d)", key.lower())
+                m = re.fullmatch(letter + r"(\d)" * len(shape), key.lower())
                 if not m:
                     raise ValueError(
-                        f"Invalid C-matrix element '{key}'. Expected e.g. c1."
+                        f"Invalid {letter.upper()}-matrix element '{key}'. "
+                        f"Expected e.g. {example}."
                     )
 
-                idx = int(m.group(1)) - 1
-
-                if not (0 <= idx < 6):
+                indices = tuple(int(index) - 1 for index in m.groups())
+                if not all(0 <= index < 6 for index in indices):
                     raise ValueError(
-                        f"C-matrix index out of range: {key}"
+                        f"{letter.upper()}-matrix index out of range: {key}"
                     )
 
-                vector[idx] = float(value)
-
-            return vector
-
-        arr = np.asarray(v, dtype=float)
-
-        if arr.shape != (6,):
-            raise ValueError(
-                f"c_matrix must have shape (6,), got {arr.shape}"
-            )
-
-        return arr
-
-    @field_validator("r_matrix", mode="before")
-    @classmethod
-    def validate_r_matrix(cls, v):
-        print(v)
-        if isinstance(v, dict):
-            matrix = np.eye(6)
-
-            for key, value in v.items():
-                m = re.fullmatch(r"r(\d)(\d)", key.lower())
-                if not m:
-                    raise ValueError(
-                        f"Invalid R-matrix element '{key}'. Expected e.g. r21."
-                    )
-
-                row = int(m.group(1)) - 1
-                col = int(m.group(2)) - 1
-
-                if not (0 <= row < 6 and 0 <= col < 6):
-                    raise ValueError(
-                        f"R-matrix index out of range: {key}"
-                    )
-
-                matrix[row, col] = float(value)
-
-            return matrix
-
-        arr = np.asarray(v, dtype=float)
-
-        if arr.shape != (6, 6):
-            raise ValueError(
-                f"r_matrix must have shape (6,6), got {arr.shape}"
-            )
-
-        return arr
-
-    @field_validator("t_matrix", mode="before")
-    @classmethod
-    def validate_t_matrix(cls, v):
-        if isinstance(v, dict):
-            tensor = np.zeros((6, 6, 6))
-
-            for key, value in v.items():
-                m = re.fullmatch(r"t(\d)(\d)(\d)", key.lower())
-                if not m:
-                    raise ValueError(
-                        f"Invalid T-matrix element '{key}'. Expected e.g. t513."
-                    )
-
-                i = int(m.group(1)) - 1
-                j = int(m.group(2)) - 1
-                k = int(m.group(3)) - 1
-
-                if not all(0 <= idx < 6 for idx in (i, j, k)):
-                    raise ValueError(
-                        f"T-matrix index out of range: {key}"
-                    )
-
-                tensor[i, j, k] = float(value)
+                tensor[indices] = float(value)
 
             return tensor
 
         arr = np.asarray(v, dtype=float)
-
-        if arr.shape != (6, 6, 6):
+        if arr.shape != shape:
+            shape_text = str(shape).replace(" ", "")
             raise ValueError(
-                f"t_matrix must have shape (6,6,6), got {arr.shape}"
+                f"{info.field_name} must have shape {shape_text}, got {arr.shape}"
             )
-
         return arr
+
+    @field_validator("spin_taylor", mode="before")
+    @classmethod
+    def validate_spin_taylor(cls, terms):
+        if terms is None:
+            return []
+        if not isinstance(terms, (list, tuple)):
+            raise ValueError("spin_taylor must be a list of terms")
+        required = {"index", "coef", *(f"exp{i}" for i in range(1, 7))}
+        for term in terms:
+            if not isinstance(term, dict):
+                raise ValueError("Each spin Taylor term must be a mapping")
+            missing = required - term.keys()
+            if missing:
+                raise ValueError(
+                    f"Spin Taylor term is missing: {', '.join(sorted(missing))}"
+                )
+            if term["index"] not in range(4):
+                raise ValueError("Spin Taylor component index must be between 0 and 3")
+        return terms
 
     @computed_field
     @property
@@ -322,7 +289,9 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
         return augmented
 
 
-class ElectrostaticSeparatorSimulationElement(_ElectrostaticSeparatorSimulationElementBase):
+class ElectrostaticSeparatorSimulationElement(
+    _ElectrostaticSeparatorSimulationElementBase
+):
     """
     Electrostatic separator simulation element model.
     """
@@ -341,6 +310,39 @@ class ElectrostaticSeparatorSimulationElement(_ElectrostaticSeparatorSimulationE
 
     tilt: float = 0.0
     """Rotation of the separator about the beam axis [rad]."""
+
+
+class SampledWaveform(_SampledWaveformBase):
+    """
+    Sampled pulse shape of a device whose strength is a program over time.
+    """
+
+    time: List[float] = Field(default_factory=list)
+    """Sample times, measured from the moment the device fires [s]."""
+
+    factor: List[float] = Field(default_factory=list)
+    """Strength at each sample time, as a fraction of the element's nominal
+    strength."""
+
+    interpolation: WaveformInterpolationEnum = WaveformInterpolationEnum.linear
+    """How the strength behaves between knots."""
+
+    @model_validator(mode="after")
+    def _check_knots(
+        self,  # noqa: N804 (pydantic after-validator takes self)
+    ) -> "SampledWaveform":
+        if len(self.time) != len(self.factor):
+            raise ValueError(
+                f"waveform has {len(self.time)} time(s) and "
+                f"{len(self.factor)} factor(s); they are the two columns of "
+                "one sampled trace and must be the same length."
+            )
+        if any(b < a for a, b in zip(self.time, self.time[1:])):
+            raise ValueError(
+                "waveform times must be non-decreasing; a trace that goes "
+                "backwards in time has no interpolation."
+            )
+        return self
 
 
 class ACDipoleSimulationElement(_ACDipoleSimulationElementBase):
@@ -366,6 +368,11 @@ class ACDipoleSimulationElement(_ACDipoleSimulationElementBase):
     ramp: List[int] = Field(default_factory=lambda: [0, 0, 0, 0])
     """Turn numbers ``[ramp1, ramp2, ramp3, ramp4]`` defining the ramp-up start,
     flat-top start, flat-top end and ramp-down end."""
+
+    waveform: SampledWaveform | None = None
+    """Sampled pulse shape, for a kicker or septum whose strength is a program
+    rather than a sinusoid. Carried instead of
+    :attr:`~frequency`/:attr:`~phase`/:attr:`~ramp`, not alongside them."""
 
 
 class WireSimulationElement(_WireSimulationElementBase):

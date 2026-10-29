@@ -4,148 +4,149 @@ LAURA Element Module
 The main class for representing accelerator elements in LAURA.
 """
 
-from laura._compat import DeprecatedMethodAliases
-from typing import Optional, Type, List, Union, Dict, Any
+import copy
 import os
-from pydantic import field_validator, Field
-from .control import (
-    ControlsInformation,
-    ScreenControlsInformation,
-    MirrorControlsInformation,
-    ShutterControlsInformation,
-)
-from .base_models import T, Aliases, IgnoreExtra
+from typing import Any, ClassVar, Dict, List, Optional, Union
+
+from pydantic import Field, field_validator
+
+from laura._compat import DeprecatedMethodAliases
+
+from ..utils import CascadingAccessMixin, FlowList, StringWithQuotes, flatten_dict
 from ._generated import (
     _AcceleratorElementBase,
-    _ElementBase,
-    _PhysicalAcceleratorElementBase,
-    _MagnetBase,
-    _TwissMatchBase,
-    _DiagnosticBase,
-    _BeamPositionMonitorBase,
+    _ACDipoleBase,
+    _ApertureBase,
     _BeamArrivalMonitorBase,
+    _BeamBeamBase,
+    _BeamPositionMonitorBase,
     _BunchLengthMonitorBase,
+    _PhotonMonitorBase,
     _CameraBase,
-    _ScreenBase,
     _ChargeDiagnosticBase,
-    _WallCurrentMonitorBase,
+    _CollimatorBase,
+    _CombinedCorrectorBase,
+    _CombinedSolenoidQuadrupoleBase,
+    _CrabCavityBase,
+    _DiagnosticBase,
+    _DipoleBase,
+    _DriftBase,
+    _ElectrostaticSeparatorBase,
+    _ElementBase,
     _FaradayCupMonitorBase,
+    _HorizontalACDipoleBase,
+    _HorizontalCorrectorBase,
     _IntegratedCurrentTransformerBase,
-    _StageBase,
-    _VacuumGaugeBase,
+    _LaserAttenuatorBase,
     _LaserBase,
     _LaserEnergyMeterBase,
     _LaserHalfWavePlateBase,
     _LaserMirrorBase,
-    _LaserAttenuatorBase,
-    _PlasmaBase,
     _LightingBase,
-    _PIDBase,
     _LowLevelRFBase,
-    _RFCavityBase,
-    _CrabCavityBase,
-    _WakefieldBase,
-    _RFDeflectingCavityBase,
-    _RFModulatorBase,
-    _RFProtectionBase,
-    _RFHeartbeatBase,
-    _ShutterBase,
-    _ValveBase,
+    _MagnetBase,
     _MarkerBase,
-    _ApertureBase,
-    _CollimatorBase,
-    _DriftBase,
     _MatrixTransformBase,
-    _ElectrostaticSeparatorBase,
-    _ACDipoleBase,
-    _HorizontalACDipoleBase,
-    _VerticalACDipoleBase,
-    _WireBase,
-    _BeamBeamBase,
-    _RFMultipoleBase,
-    _DipoleBase,
-    _QuadrupoleBase,
-    _SextupoleBase,
-    _OctupoleBase,
-    _SolenoidBase,
     _NonLinearLensBase,
-    _WigglerBase,
-    _HorizontalCorrectorBase,
+    _OctupoleBase,
+    _PhysicalAcceleratorElementBase,
+    _PIDBase,
+    _PlasmaBase,
+    _QuadrupoleBase,
+    _RFCavityBase,
+    _RFDeflectingCavityBase,
+    _RFHeartbeatBase,
+    _RFModulatorBase,
+    _RFMultipoleBase,
+    _RFProtectionBase,
+    _ScreenBase,
+    _SextupoleBase,
+    _ShutterBase,
+    _SolenoidBase,
+    _StageBase,
+    _TwissMatchBase,
+    _VacuumGaugeBase,
+    _ValveBase,
+    _VerticalACDipoleBase,
     _VerticalCorrectorBase,
-    _CombinedCorrectorBase,
+    _WakefieldBase,
+    _WallCurrentMonitorBase,
+    _WigglerBase,
+    _WireBase,
+    _WireScannerBase,
 )
-from ..utils import CascadingAccessMixin, flatten_dict, StringWithQuotes, FlowList
-from .manufacturer import ManufacturerElement
-from .electrical import ElectricalElement
-from .degauss import DegaussableElement
-from .physical import PhysicalElement, Rotation
-from .reference import ReferenceElement
-from .magnetic import (
-    MagneticElement,
-    DipoleMagnet,
-    QuadrupoleMagnet,
-    SextupoleMagnet,
-    OctupoleMagnet,
-    SolenoidMagnet,
-    NonLinearLensMagnet,
-    WigglerMagnet,
-    CorrectorMagnet,
+from .base_models import IgnoreExtra
+from .control import (
+    ControlsInformation,
+    MirrorControlsInformation,
+    ScreenControlsInformation,
+    ShutterControlsInformation,
 )
-from .plasma import PlasmaElement
 from .diagnostic import (
-    BeamPositionMonitorDiagnostic,
     BeamArrivalMonitorDiagnostic,
+    BeamPositionMonitorDiagnostic,
     BunchLengthMonitorDiagnostic,
     CameraDiagnostic,
-    ScreenDiagnostic,
     ChargeDiagnosticElement,
     PhotonIntensityMonitorDiagnostic,
+    ScreenDiagnostic,
 )
+from .electrical import ElectricalElement
 from .laser import (
     LaserElement,
     LaserEnergyMeterElement,
-    LaserMirrorElement,
     LaserHalfWavePlateElement,
 )
 from .lighting import LightingElement
+from .magnetic import (
+    CombinedCorrectorMagnet,
+    CombinedSolenoidQuadrupoleMagnet,
+    CorrectorMagnet,
+    DipoleMagnet,
+    MagneticElement,
+    NonLinearLensMagnet,
+    OctupoleMagnet,
+    QuadrupoleMagnet,
+    SextupoleMagnet,
+    SolenoidMagnet,
+    WigglerMagnet,
+)
+from .manufacturer import ManufacturerElement
+from .physical import PhysicalElement, Rotation
+from .plasma import PlasmaElement
 from .rf import (
-    PIDElement,
     LowLevelRFElement,
-    RFModulatorElement,
-    RFProtectionElement,
-    RFHeartbeatElement,
+    PIDElement,
     RFCavityElement,
     RFDeflectingCavityElement,
+    RFHeartbeatElement,
+    RFModulatorElement,
+    RFProtectionElement,
     WakefieldElement,
 )
 from .shutter import ShutterElement, ValveElement
 from .simulation import (
+    ACDipoleSimulationElement,
     ApertureElement,
-    RFCavitySimulationElement,
-    WakefieldSimulationElement,
-    MagnetSimulationElement,
-    DriftSimulationElement,
+    BeamBeamSimulationElement,
     DiagnosticSimulationElement,
+    DriftSimulationElement,
+    ElectrostaticSeparatorSimulationElement,
+    MagnetSimulationElement,
     MatrixTransformSimulationElement,
     PlasmaSimulationElement,
+    RFCavitySimulationElement,
+    RFMultipoleSimulationElement,
     SimulationElement,
     TwissMatchSimulationElement,
-    ElectrostaticSeparatorSimulationElement,
-    ACDipoleSimulationElement,
+    WakefieldSimulationElement,
     WireSimulationElement,
-    BeamBeamSimulationElement,
-    RFMultipoleSimulationElement,
 )
 
 # Re-export from utils for backwards compatibility
 flatten = flatten_dict
 string_with_quotes = StringWithQuotes
 flow_list = FlowList
-
-
-def _ensure_nested_default(instance: Any, attribute_name: str, factory) -> None:
-    if getattr(instance, attribute_name) is None:
-        setattr(instance, attribute_name, factory())
 
 
 def _identifies_same_type(class_name: str, hardware_type: str) -> bool:
@@ -243,7 +244,7 @@ class BaseElement(
         Dump the entire element model as a flat dictionary, with sub-models separated by "_".
 
         For example, if an element has `element.electrical.maxI` this will be keyed in the dictionary as
-        `eletrical_maxI: value`
+        `electrical_maxI: value`
 
         Returns
         -------
@@ -267,43 +268,98 @@ class BaseElement(
 class Element(BaseElement, _ElementBase):
     """
     Standard class for representing elements.
-    Inherits from `baseElement` which wraps schema base `_AcceleratorElementBase`.
-    Adds StandardElement fields: simulation, electrical, manufacturer, controls, reference.
-
-    Attributes:
-        simulation: :class:`~laura.models.simulation.SimulationElement`: The simulation attributes of the element.
-        electrical: :class:`~laura.models.electrical.ElectricalElement`: The electrical attributes of the element.
-        manufacturer: :class:`~laura.models.manufacturer.Manufacturer`: The manufacturer attributes of the element.
-        controls: :class:`~laura.models.control.ControlsInformation` | None: The control system attributes of the element.
-        reference: :class:`~laura.models.reference.ReferenceElement` | None: Reference information for the element.
     """
 
     manufacturer: Optional[ManufacturerElement] = Field(default=None)
+    """Manufacturer and serial-number data."""
 
     controls: ControlsInformation | None = None
     """Control-system process-variable definitions."""
 
+    _NESTED_DEFAULTS: ClassVar[Dict[str, Any]] = {
+        "simulation": SimulationElement,
+        "electrical": ElectricalElement,
+        "manufacturer": ManufacturerElement,
+    }
+    """Nested models built empty when an element is created without them, by
+    attribute; a subclass's entries add to (or override) its parents'."""
+
     def model_post_init(self, __context: Any) -> None:
         # Preserve prior convenience behavior while keeping declarations schema-first.
         super().model_post_init(__context)
-        try:
-            _ensure_nested_default(self, "simulation", SimulationElement)
-        except Exception:
-            # Subclass has a more specific simulation type; let it handle initialisation.
-            pass
-        _ensure_nested_default(self, "electrical", ElectricalElement)
-        _ensure_nested_default(self, "manufacturer", ManufacturerElement)
+        defaults = {}
+        for cls in reversed(type(self).__mro__):
+            defaults.update(vars(cls).get("_NESTED_DEFAULTS", {}))
+        for attribute, factory in defaults.items():
+            if getattr(self, attribute) is None:
+                setattr(self, attribute, factory())
+
+    _RETYPE_KEEPS: ClassVar[tuple] = (
+        "name",
+        "alias",
+        "machine_area",
+        "subelement",
+        "controls",
+        "physical",
+    )
+
+    def retype(self, hardware_type: Union[str, type], like=None, **fields) -> "Element":
+        """This element as another type, in the same place under the same name.
+
+        For when a second source knows better what a device is. ``name``,
+        ``alias``, ``machine_area``, ``subelement``, ``controls`` and
+        ``physical`` are kept; anything particular to the old type is not.
+
+        Parameters
+        ----------
+        hardware_type:
+            The new type: a class, or a name from ``ELEMENT_REGISTRY``.
+        like:
+            An element of the new type to take simulation settings from.
+        **fields:
+            Anything else to set on the new element.
+
+        Returns
+        -------
+        The new element. This one is left as it was.
+        """
+        cls = (
+            ELEMENT_REGISTRY[hardware_type]
+            if isinstance(hardware_type, str)
+            else hardware_type
+        )
+        data = {
+            key: copy.deepcopy(getattr(self, key))
+            for key in self._RETYPE_KEEPS
+            if key in cls.model_fields and getattr(self, key, None) is not None
+        }
+        data.update(fields)
+        old_simulation = getattr(self, "simulation", None)
+        simulation_type = cls.model_fields["simulation"].annotation
+        if old_simulation is not None and isinstance(
+            old_simulation, getattr(simulation_type, "__args__", (simulation_type,))
+        ):
+            data.setdefault("simulation", old_simulation.model_copy(deep=True))
+            return cls(**data)
+        new = cls(**data)
+        if new.simulation is not None and "simulation" not in fields:
+            if like is not None and isinstance(like.simulation, type(new.simulation)):
+                new.simulation = like.simulation.model_copy(deep=True)
+            if old_simulation is not None:
+                shared = old_simulation.model_dump(
+                    include=set(type(new.simulation).model_fields)
+                )
+                new.simulation = new.simulation.model_copy(update=shared)
+        return new
 
 
 class PhysicalBaseElement(Element, _PhysicalAcceleratorElementBase):
     """
     Element with a physical attribute; see :class:`~laura.models.physical.PhysicalElement`.
-
-    Attributes:
-        physical: PhysicalElement: The physical attributes of the element.
     """
 
     physical: Optional[PhysicalElement] = Field(default=None)
+    """Physical attributes of the element."""
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
@@ -344,26 +400,18 @@ class PhysicalBaseElement(Element, _PhysicalAcceleratorElementBase):
 class Magnet(PhysicalBaseElement, _MagnetBase):
     """
     Base class for representing magnets.
-    Inherits from PhysicalBaseElement, which provides proper attribute cascading
-    through __getattr__/__setattr__ and the IgnoreExtra mechanism.
-
-    Attributes:
-        hardware_class: Magnet (frozen, overrides schema)
-        degauss: :class:`~laura.models.degauss.DegaussableElement`: The degaussing attributes of the magnet.
-        simulation: :class:`~laura.models.simulation.MagnetSimulationElement`: The simulation attributes of the magnet.
-        magnetic: :class:`~laura.models.magnetic.MagneticElement` | None: The magnetic attributes of the magnet.
-        physical: :class:`~laura.models.physical.PhysicalElement` | None: Physical attributes of the magnet.
     """
 
     hardware_class: str = Field(default="Magnet", frozen=True)
     """Magnet hardware class."""
 
+    magnetic: Optional[MagneticElement] = None
+    """Magnetic attributes [optional for a base-level magnet]."""
+
     simulation: Optional[MagnetSimulationElement] = None
     """Magnet simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", MagnetSimulationElement)
+    _NESTED_DEFAULTS = {"simulation": MagnetSimulationElement}
 
     @property
     def bend_angle(self) -> Rotation:
@@ -388,25 +436,18 @@ class Magnet(PhysicalBaseElement, _MagnetBase):
 class Dipole(Magnet, _DipoleBase):
     """
     Dipole element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the dipole.
-        magnetic (:class:`~laura.models.magnetic.DipoleMagnet`): The magnetic attributes of the dipole.
     """
 
     hardware_type: str = Field(default="Dipole", frozen=True)
     """Dipole hardware type."""
 
     magnetic: DipoleMagnet = Field(default_factory=DipoleMagnet)
+    """Magnetic attributes of the dipole."""
 
 
 class Quadrupole(Magnet, _QuadrupoleBase):
     """
     Quadrupole element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the quadrupole.
-        magnetic (:class:`~laura.models.magnetic.QuadrupoleMagnet`): The magnetic attributes of the quadrupole.
     """
 
     hardware_type: str = Field(default="Quadrupole", frozen=True)
@@ -419,10 +460,6 @@ class Quadrupole(Magnet, _QuadrupoleBase):
 class Sextupole(Magnet, _SextupoleBase):
     """
     Sextupole element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the sextupole.
-        magnetic (:class:`~laura.models.magnetic.SextupoleMagnet`): The magnetic attributes of the sextupole.
     """
 
     hardware_type: str = Field(default="Sextupole", frozen=True)
@@ -435,10 +472,6 @@ class Sextupole(Magnet, _SextupoleBase):
 class Octupole(Magnet, _OctupoleBase):
     """
     Octupole element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the octupole.
-        magnetic (:class:`~laura.models.magnetic.OctupoleMagnet`): The magnetic attributes of the octupole.
     """
 
     hardware_type: str = Field(default="Octupole", frozen=True)
@@ -451,76 +484,53 @@ class Octupole(Magnet, _OctupoleBase):
 class HorizontalCorrector(Dipole, _HorizontalCorrectorBase):
     """
     Horizontal corrector element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the corrector.
-        magnetic (:class:`~laura.models.magnetic.CorrectorMagnet`): The magnetic
-        attributes of the corrector -- only ``horizontal_kick`` is expected to be
-        set.
     """
 
     hardware_type: str = Field(default="Horizontal_Corrector", frozen=True)
     """Horizontal corrector hardware type."""
 
     magnetic: CorrectorMagnet = Field(default_factory=CorrectorMagnet)
-    """Corrector magnetic attributes."""
+    """Corrector magnetic attributes; only ``horizontal_kick`` (the normal
+    component of ``multipoles.K0L``) is expected to be set."""
 
 
 class VerticalCorrector(Dipole, _VerticalCorrectorBase):
     """
     Vertical corrector element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the corrector.
-        magnetic (:class:`~laura.models.magnetic.CorrectorMagnet`): The magnetic
-        attributes of the corrector -- only ``vertical_kick`` is expected to be
-        set.
     """
 
     hardware_type: str = Field(default="Vertical_Corrector", frozen=True)
     """Vertical corrector hardware type."""
 
     magnetic: CorrectorMagnet = Field(default_factory=CorrectorMagnet)
-    """Corrector magnetic attributes."""
+    """Corrector magnetic attributes; only ``vertical_kick`` (the skew
+    component of ``multipoles.K0L``) is expected to be set."""
 
 
 class CombinedCorrector(Dipole, _CombinedCorrectorBase):
     """
     Combined (horizontal + vertical) corrector element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the corrector.
-        magnetic (:class:`~laura.models.magnetic.CorrectorMagnet`): The magnetic
-        attributes of the corrector; both ``horizontal_kick`` and ``vertical_kick``
-        may be set independently.
-        Horizontal_Corrector (str): Name of a separately-defined
-        :class:`HorizontalCorrector` element this combined corrector is paired
-        with, for hardware/PS bookkeeping (see e.g. ``LAURA.get_correctors``) --
-        this is a cross-reference, not where the horizontal kick strength lives.
-        Vertical_Corrector (str): As ``Horizontal_Corrector``, for the paired
-        :class:`VerticalCorrector` element.
     """
 
     hardware_type: str = Field(default="Combined_Corrector", frozen=True)
     """Combined corrector hardware type."""
 
-    magnetic: CorrectorMagnet = Field(default_factory=CorrectorMagnet)
-    """Corrector magnetic attributes."""
+    magnetic: CombinedCorrectorMagnet = Field(default_factory=CombinedCorrectorMagnet)
+    """Per-plane corrector magnetic attributes: a ``horizontal`` and a
+    ``vertical`` :class:`~laura.models.magnetic.CorrectorMagnet`."""
 
-    HorizontalCorrector: str | None = Field(default=None, frozen=True)
-    """Name of horizontal corrector."""
+    Horizontal_Corrector: str | None = Field(default=None, frozen=True)  # noqa: N815
+    """Name of the paired :class:`HorizontalCorrector` element, for hardware/PS
+    bookkeeping; a cross-reference, not where the kick strength lives."""
 
-    VerticalCorrector: str | None = Field(default=None, frozen=True)
-    """Name of vertical corrector."""
+    Vertical_Corrector: str | None = Field(default=None, frozen=True)  # noqa: N815
+    """Name of the paired :class:`VerticalCorrector` element; see
+    ``Horizontal_Corrector``."""
 
 
 class Solenoid(Magnet, _SolenoidBase):
     """
     Solenoid element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the solenoid.
-        magnetic (:class:`~laura.models.magnetic.SolenoidMagnet`): The magnetic attributes of the solenoid.
     """
 
     hardware_type: str = Field(default="Solenoid", frozen=True)
@@ -530,13 +540,23 @@ class Solenoid(Magnet, _SolenoidBase):
     """Magnetic attributes of the solenoid."""
 
 
+class CombinedSolenoidQuadrupole(Magnet, _CombinedSolenoidQuadrupoleBase):
+    """
+    Magnet combining coaxial solenoid and quadrupole fields.
+    """
+
+    hardware_type: str = Field(default="CombinedSolenoidQuadrupole", frozen=True)
+    """Sol-quad hardware type."""
+
+    magnetic: CombinedSolenoidQuadrupoleMagnet = Field(
+        default_factory=CombinedSolenoidQuadrupoleMagnet
+    )
+    """Magnetic attributes of the sol-quad."""
+
+
 class NonLinearLens(Magnet, _NonLinearLensBase):
     """
     Non-linear lens element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the NLL.
-        magnetic (:class:`~laura.models.magnetic.NonLinearLensMagnet`): The magnetic attributes of the NLL.
     """
 
     hardware_type: str = Field(default="NonLinearLens", frozen=True)
@@ -549,11 +569,6 @@ class NonLinearLens(Magnet, _NonLinearLensBase):
 class Wiggler(Magnet, _WigglerBase):
     """
     Wiggler element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the wiggler.
-        magnetic (:class:`~laura.models.magnetic.WigglerMagnet`): The magnetic attributes of the wiggler.
-        laser (:class:`~laura.models.laser.Laser_Magnet` or None): The laser associated with the wiggler.
     """
 
     hardware_type: str = Field(default="Wiggler", frozen=True)
@@ -569,11 +584,6 @@ class Wiggler(Magnet, _WigglerBase):
 class TwissMatch(PhysicalBaseElement, _TwissMatchBase):
     """
     Twiss matching element. Used for changing the Twiss parameters of the beam.
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
-        hardware_class (str): The hardware class of the element.
-        simulation (:class:`~laura.models.simulation.TwissMatchSimulationElement`): The simulation attributes of the matching element.
     """
 
     hardware_type: str = Field(default="TwissMatch", frozen=True)
@@ -585,18 +595,12 @@ class TwissMatch(PhysicalBaseElement, _TwissMatchBase):
     simulation: Optional[TwissMatchSimulationElement] = None
     """TwissMatch simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", TwissMatchSimulationElement)
+    _NESTED_DEFAULTS = {"simulation": TwissMatchSimulationElement}
+
 
 class MatrixTransform(PhysicalBaseElement, _MatrixTransformBase):
     """
-    Matrix transform element. Applies an instantaneous matrix kick to the beam, up to 2nd order.
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
-        hardware_class (str): The hardware class of the element.
-        simulation (:class:`~laura.models.simulation.MatrixSimulationElement`): The simulation attributes of the matrix element.
+    Matrix transform element. Applies an instantaneous matrix kick to the beam, up to 3rd order.
     """
 
     hardware_type: str = Field(default="MatrixTransform", frozen=True)
@@ -605,25 +609,15 @@ class MatrixTransform(PhysicalBaseElement, _MatrixTransformBase):
     hardware_class: str = Field(default="Simulation", frozen=True)
     """Twiss match hardware class."""
 
-    simulation: MatrixTransformSimulationElement = Field(
-        default_factory=MatrixTransformSimulationElement
-    )
-    """Simulation attributes of the matrix element."""
+    simulation: Optional[MatrixTransformSimulationElement] = None
+    """Matrix transform simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", MatrixTransformSimulationElement)
+    _NESTED_DEFAULTS = {"simulation": MatrixTransformSimulationElement}
 
 
 class Diagnostic(PhysicalBaseElement, _DiagnosticBase):
     """
     Base class for representing diagnostics.
-
-    Attributes:
-        hardware_type (str): The hardware type of the diagnostic.
-        hardware_class (str): The hardware class of the diagnostic.
-        simulation: (:class:`~laura.models.simulation.DiagnosticSimulationElement`): The simulation
-        attributes of the diagnostic (including its `output_filename`).
     """
 
     hardware_type: str = Field(default="Diagnostic", frozen=True)
@@ -635,20 +629,12 @@ class Diagnostic(PhysicalBaseElement, _DiagnosticBase):
     simulation: Optional[DiagnosticSimulationElement] = None
     """Diagnostic simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", DiagnosticSimulationElement)
+    _NESTED_DEFAULTS = {"simulation": DiagnosticSimulationElement}
 
 
 class BeamPositionMonitor(Diagnostic, _BeamPositionMonitorBase):
     """
     BPM element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the diagnostic.
-        hardware_model (str): The specific hardware model of the diagnostic (i.e. Stripline, Cavity).
-        diagnostic: (:class:`~laura.models.diagnostic.BeamPositionMonitorDiagnostic`): The diagnostic
-        attributes of the BPM.
     """
 
     hardware_type: str = Field(
@@ -662,20 +648,12 @@ class BeamPositionMonitor(Diagnostic, _BeamPositionMonitorBase):
     diagnostic: Optional[BeamPositionMonitorDiagnostic] = None
     """BPM diagnostic attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "diagnostic", BeamPositionMonitorDiagnostic)
+    _NESTED_DEFAULTS = {"diagnostic": BeamPositionMonitorDiagnostic}
 
 
 class BeamArrivalMonitor(Diagnostic, _BeamArrivalMonitorBase):
     """
     BAM element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the diagnostic.
-        hardware_model (str): The specific hardware model of the diagnostic.
-        diagnostic: (:class:`~laura.models.diagnostic.BeamArrivalMonitorDiagnostic`): The diagnostic
-        attributes of the BAM.
     """
 
     hardware_type: str = Field(default="Beam_Arrival_Monitor", frozen=True, alias="BAM")
@@ -687,20 +665,12 @@ class BeamArrivalMonitor(Diagnostic, _BeamArrivalMonitorBase):
     diagnostic: Optional[BeamArrivalMonitorDiagnostic] = None
     """BAM diagnostic attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "diagnostic", BeamArrivalMonitorDiagnostic)
+    _NESTED_DEFAULTS = {"diagnostic": BeamArrivalMonitorDiagnostic}
 
 
 class BunchLengthMonitor(Diagnostic, _BunchLengthMonitorBase):
     """
     BLM element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the diagnostic.
-        hardware_model (str): The specific hardware model of the diagnostic.
-        diagnostic: (:class:`~laura.models.diagnostic.BunchLengthMonitorDiagnostic`): The diagnostic
-        attributes of the BLM.
     """
 
     hardware_type: str = Field(default="Bunch_Length_Monitor", frozen=True, alias="BLM")
@@ -712,20 +682,12 @@ class BunchLengthMonitor(Diagnostic, _BunchLengthMonitorBase):
     diagnostic: Optional[BunchLengthMonitorDiagnostic] = None
     """BLM diagnostic attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "diagnostic", BunchLengthMonitorDiagnostic)
+    _NESTED_DEFAULTS = {"diagnostic": BunchLengthMonitorDiagnostic}
 
 
-class PhotonMonitor(Diagnostic):
+class PhotonMonitor(Diagnostic, _PhotonMonitorBase):
     """
     Photon monitor element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the diagnostic.
-        hardware_model (str): The specific hardware model of the diagnostic.
-        intensity: (:class:`~laura.models.diagnostic.PhotonIntensityMonitorDiagnostic`): The diagnostic
-        attributes of the intensity monitor.
     """
 
     hardware_type: str = Field(
@@ -737,21 +699,15 @@ class PhotonMonitor(Diagnostic):
     hardware_model: str = Field(default="Photon_Monitor", frozen=True)
     """Photon monitor hardware model."""
 
-    intensity: PhotonIntensityMonitorDiagnostic = Field(
-        default_factory=PhotonIntensityMonitorDiagnostic
-    )
+    diagnostic: Optional[PhotonIntensityMonitorDiagnostic] = None
     """Diagnostic attributes of the intensity monitor."""
+
+    _NESTED_DEFAULTS = {"diagnostic": PhotonIntensityMonitorDiagnostic}
 
 
 class Camera(Diagnostic, _CameraBase):
     """
     Camera element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the diagnostic.
-        hardware_model (str): The specific hardware model of the diagnostic.
-        diagnostic: (:class:`~laura.models.diagnostic.CameraDiagnostic`): The diagnostic
-        attributes of the Camera.
     """
 
     hardware_type: str = Field(default="Camera", frozen=True)
@@ -763,20 +719,12 @@ class Camera(Diagnostic, _CameraBase):
     diagnostic: Optional[CameraDiagnostic] = None
     """Camera diagnostic attributes, including the sensor geometry."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "diagnostic", CameraDiagnostic)
+    _NESTED_DEFAULTS = {"diagnostic": CameraDiagnostic}
 
 
 class Screen(Diagnostic, _ScreenBase):
     """
     Screen element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the diagnostic.
-        hardware_model (str): The specific hardware model of the diagnostic.
-        diagnostic: (:class:`~laura.models.diagnostic.ScreenDiagnostic`): The diagnostic
-        attributes of the Screen.
     """
 
     hardware_type: str = Field(default="Screen", frozen=True)
@@ -789,20 +737,25 @@ class Screen(Diagnostic, _ScreenBase):
     """Screen diagnostic attributes."""
 
     controls: ScreenControlsInformation | None = None
+    """Screen control attributes of the element."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "diagnostic", ScreenDiagnostic)
+    _NESTED_DEFAULTS = {"diagnostic": ScreenDiagnostic}
+
+
+class WireScanner(Diagnostic, _WireScannerBase):
+    """
+    Wire scanner element: thin wires stepped through the beam to measure its
+    transverse profile. Unrelated to :class:`Wire`, the beam-beam compensating
+    wire.
+    """
+
+    hardware_type: str = Field(default="WireScanner", frozen=True)
+    """Wire scanner hardware type."""
 
 
 class ChargeDiagnostic(Diagnostic, _ChargeDiagnosticBase):
     """
     Generic charge diagnostic element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the diagnostic.
-        diagnostic: (:class:`~laura.models.diagnostic.ChargeDiagnosticElement`): The diagnostic
-        attributes of the diagnostic.
     """
 
     hardware_type: str = Field(default="ChargeDiagnostic", frozen=True)
@@ -811,17 +764,12 @@ class ChargeDiagnostic(Diagnostic, _ChargeDiagnosticBase):
     diagnostic: Optional[ChargeDiagnosticElement] = None
     """Charge diagnostic attributes; inherited by the WCM/Faraday cup/ICT subclasses."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "diagnostic", ChargeDiagnosticElement)
+    _NESTED_DEFAULTS = {"diagnostic": ChargeDiagnosticElement}
 
 
 class WallCurrentMonitor(ChargeDiagnostic, _WallCurrentMonitorBase):
     """
     WCM charge diagnostic element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the diagnostic.
     """
 
     hardware_type: str = Field(default="Wall_Current_Monitor", frozen=True, alias="WCM")
@@ -831,9 +779,6 @@ class WallCurrentMonitor(ChargeDiagnostic, _WallCurrentMonitorBase):
 class FaradayCupMonitor(ChargeDiagnostic, _FaradayCupMonitorBase):
     """
     FCM charge diagnostic element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the diagnostic.
     """
 
     hardware_type: str = Field(default="Faraday_Cup_Monitor", frozen=True, alias="FCM")
@@ -843,9 +788,6 @@ class FaradayCupMonitor(ChargeDiagnostic, _FaradayCupMonitorBase):
 class IntegratedCurrentTransformer(ChargeDiagnostic, _IntegratedCurrentTransformerBase):
     """
     ICT charge diagnostic element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the diagnostic.
     """
 
     hardware_type: str = Field(
@@ -857,10 +799,6 @@ class IntegratedCurrentTransformer(ChargeDiagnostic, _IntegratedCurrentTransform
 class Stage(PhysicalBaseElement, _StageBase):
     """
     Moveable stage element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the stage.
-        hardware_model (str): The hardware model of the stage.
     """
 
     hardware_class: str = Field(default="Stage", frozen=True)
@@ -876,10 +814,6 @@ class Stage(PhysicalBaseElement, _StageBase):
 class VacuumGauge(PhysicalBaseElement, _VacuumGaugeBase):
     """
     Vacuum gauge element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the gauge.
-        hardware_model (str): The hardware model of the gauge.
     """
 
     hardware_class: str = Field(default="Vacuum", frozen=True)
@@ -895,11 +829,6 @@ class VacuumGauge(PhysicalBaseElement, _VacuumGaugeBase):
 class Laser(PhysicalBaseElement, _LaserBase):
     """
     Laser element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the laser.
-        hardware_model (str): The hardware model of the laser.
-        laser (:class:`~laura.models.laser.LaserElement`): The laser attributes of the laser.
     """
 
     hardware_class: str = Field(default="Laser", frozen=True)
@@ -911,20 +840,12 @@ class Laser(PhysicalBaseElement, _LaserBase):
     hardware_model: str = Field(default="Laser", frozen=True)
     """Laser hardware model."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "laser", LaserElement)
+    _NESTED_DEFAULTS = {"laser": LaserElement}
 
 
 class LaserEnergyMeter(Element, _LaserEnergyMeterBase):
     """
     Laser energy meter element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the laser energy meter.
-        hardware_model (str): The hardware model of the laser energy meter.
-        laser (:class:`~laura.models.laser.LaserEnergyMeterElement`): The laser-related attributes of the
-        energy meter.
     """
 
     hardware_class: str = Field(default="Laser", frozen=True)
@@ -937,20 +858,12 @@ class LaserEnergyMeter(Element, _LaserEnergyMeterBase):
     """Laser energy meter hardware model.
     #TODO should be manufacturer?"""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "laser", LaserEnergyMeterElement)
+    _NESTED_DEFAULTS = {"laser": LaserEnergyMeterElement}
 
 
 class LaserHalfWavePlate(Element, _LaserHalfWavePlateBase):
     """
     Laser half-wave plate element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the HWP.
-        hardware_model (str): The hardware model of the HWP.
-        laser (:class:`~laura.models.laser.LaserHalfWavePlateElement`): The laser-related attributes of the
-        HWP.
     """
 
     hardware_class: str = Field(default="Laser", frozen=True)
@@ -963,20 +876,12 @@ class LaserHalfWavePlate(Element, _LaserHalfWavePlateBase):
     """Laser half-wave plate hardware model.
     #TODO should be manufacturer?"""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "laser", LaserHalfWavePlateElement)
+    _NESTED_DEFAULTS = {"laser": LaserHalfWavePlateElement}
 
 
 class LaserMirror(Element, _LaserMirrorBase):
     """
     Laser mirror element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the mirror.
-        hardware_model (str): The hardware model of the mirror.
-        controls (:class:`~laura.models.controls.MirrorControlsInformation`): The control-related attributes of the
-        mirror.
     """
 
     hardware_class: str = Field(default="Laser", frozen=True)
@@ -995,9 +900,6 @@ class LaserMirror(Element, _LaserMirrorBase):
 class LaserAttenuator(Element, _LaserAttenuatorBase):
     """
     Laser attenuator element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the attenuator.
     """
 
     hardware_class: str = Field(default="Laser", frozen=True)
@@ -1012,13 +914,6 @@ class LaserAttenuator(Element, _LaserAttenuatorBase):
 class Plasma(PhysicalBaseElement, _PlasmaBase):
     """
     Plasma element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
-        simulation (:class:`~laura.models.simulation.PlasmaSimulationElement`): The simulation
-        attributes of the plasma.
-        plasma (:class:`~laura.models.plasma.PlasmaElement`): The plasma attributes of the plasma.
-        laser (:class:`~laura.models.laser.LaserElement` or None): The laser assosicated with the plasma
     """
 
     hardware_class: str = Field(default="Plasma", frozen=True)
@@ -1030,20 +925,19 @@ class Plasma(PhysicalBaseElement, _PlasmaBase):
     simulation: Optional[PlasmaSimulationElement] = None
     """Plasma simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", PlasmaSimulationElement)
-        _ensure_nested_default(self, "plasma", PlasmaElement)
+    laser: Optional[LaserElement] = None
+    """Laser attributes."""
+
+    _NESTED_DEFAULTS = {
+        "simulation": PlasmaSimulationElement,
+        "plasma": PlasmaElement,
+        "laser": LaserElement,
+    }
 
 
 class Lighting(Element, _LightingBase):
     """
     Lighting element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
-        hardware_model (str): The hardware model of the element.
-        lights (:class:`~laura.models.lighting.LightingElement`): The lighting element.
     """
 
     hardware_class: str = Field(default="Lighting", frozen=True)
@@ -1055,9 +949,7 @@ class Lighting(Element, _LightingBase):
     hardware_model: str = Field(default="LED", frozen=True)
     """Lighting hardware model."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "lights", LightingElement)
+    _NESTED_DEFAULTS = {"lights": LightingElement}
 
 
 class PowerSupply(Element):
@@ -1078,11 +970,6 @@ class PowerSupply(Element):
 class PID(Element, _PIDBase):
     """
     Proportional-integral-derivative feedback element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
-        hardware_model (str): The hardware model of the element.
-        PID (:class:`~laura.models.RF.PIDElement`): The PID element.
     """
 
     hardware_class: str = Field(default="Feedback", frozen=True)
@@ -1101,11 +988,6 @@ class PID(Element, _PIDBase):
 class LowLevelRF(Element, _LowLevelRFBase):
     """
     Low-level RF element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
-        hardware_model (str): The hardware model of the element.
-        LLRF (:class:`~laura.models.RF.LowLevelRFElement`): The LLRF element.
     """
 
     hardware_class: str = Field(default="RF", frozen=True)
@@ -1124,13 +1006,6 @@ class LowLevelRF(Element, _LowLevelRFBase):
 class RFCavity(PhysicalBaseElement, _RFCavityBase):
     """
     RFCavity element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the RF cavity.
-        hardware_model (str): The specific hardware model of the RF cavity.
-        cavity (:class:`~laura.models.RF.RFCavityElement`): The RF cavity attributes of the element.
-        simulation: (:class:`~laura.models.simulation.RFCavitySimulationElement`): The simulation
-        attributes of the RF cavity.
     """
 
     hardware_class: str = Field(default="RF", frozen=True)
@@ -1145,21 +1020,23 @@ class RFCavity(PhysicalBaseElement, _RFCavityBase):
     simulation: Optional[RFCavitySimulationElement] = None
     """RF cavity simulation attributes."""
 
+    cavity: Optional[RFCavityElement] = None
+    """RF cavity structure parameters."""
+
+    _cavity_model: ClassVar[type] = RFCavityElement
+    """Which model fills an empty ``cavity``."""
+
+    _NESTED_DEFAULTS = {"simulation": RFCavitySimulationElement}
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        _ensure_nested_default(self, "cavity", RFCavityElement)
+        if self.cavity is None:
+            self.cavity = type(self)._cavity_model()
 
 
 class Wakefield(PhysicalBaseElement, _WakefieldBase):
     """
     Wakefield element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the wakefield.
-        hardware_model (str): The specific hardware model of the wakefield.
-        cavity: (:class:`~laura.models.RF.WakefieldElement`): The wakefield cavity attributes of the element.
-        simulation: (:class:`~laura.models.simulation.WakefieldSimulationElement`): The simulation
-        attributes of the wakefield cavity.
     """
 
     hardware_class: str = Field(default="Wakefield", frozen=True)
@@ -1171,25 +1048,21 @@ class Wakefield(PhysicalBaseElement, _WakefieldBase):
     hardware_model: str = Field(default="Dielectric", frozen=True)
     """Wakefield hardware model."""
 
+    cavity: Optional[WakefieldElement] = None
+    """Wakefield structure parameters."""
+
     simulation: Optional[WakefieldSimulationElement] = None
     """Wakefield simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "cavity", WakefieldElement)
-        _ensure_nested_default(self, "simulation", WakefieldSimulationElement)
+    _NESTED_DEFAULTS = {
+        "cavity": WakefieldElement,
+        "simulation": WakefieldSimulationElement,
+    }
 
 
 class RFDeflectingCavity(RFCavity, _RFDeflectingCavityBase):
     """
     RF Deflecting Cavity element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the RF cavity.
-        hardware_model (str): The specific hardware model of the RF cavity.
-        cavity (:class:`~laura.models.RF.RFDeflectingCavityElement`): The RF cavity attributes of the element.
-        simulation: (:class:`~laura.models.simulation.RFCavitySimulationElement`): The simulation
-        attributes of the RF cavity.
     """
 
     hardware_type: str = Field(default="RFDeflectingCavity", frozen=True)
@@ -1198,22 +1071,17 @@ class RFDeflectingCavity(RFCavity, _RFDeflectingCavityBase):
     hardware_model: str = Field(default="SBand", frozen=True)
     """RF deflecting cavity hardware model."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "cavity", RFDeflectingCavityElement)
-        _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
+    cavity: Optional[RFDeflectingCavityElement] = None
+    """Deflecting-cavity RF structure parameters."""
+
+    _cavity_model: ClassVar[type] = RFDeflectingCavityElement
+
+    _NESTED_DEFAULTS = {"simulation": RFCavitySimulationElement}
 
 
 class CrabCavity(RFCavity, _CrabCavityBase):
     """
     Crab Cavity element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the crab cavity.
-        hardware_model (str): The specific hardware model of the crab cavity.
-        cavity (:class:`~laura.models.RF.RFDeflectingCavityElement`): The RF cavity attributes of the element.
-        simulation: (:class:`~laura.models.simulation.RFCavitySimulationElement`): The simulation
-        attributes of the crab cavity.
     """
 
     hardware_type: str = Field(default="CrabCavity", frozen=True)
@@ -1225,20 +1093,14 @@ class CrabCavity(RFCavity, _CrabCavityBase):
     cavity: Optional[RFDeflectingCavityElement] = None
     """Crab-cavity RF structure parameters."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "cavity", RFDeflectingCavityElement)
-        _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
+    _cavity_model: ClassVar[type] = RFDeflectingCavityElement
+
+    _NESTED_DEFAULTS = {"simulation": RFCavitySimulationElement}
 
 
 class RFModulator(Element, _RFModulatorBase):
     """
     RF Modulator element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the RF modulator.
-        hardware_model (str): The specific hardware model of the RF modulator.
-        modulator (:class:`~laura.models.RF.RFModulatorElement`): The RF modulator attributes of the element.
     """
 
     hardware_class: str = Field(default="RF", frozen=True)
@@ -1251,19 +1113,12 @@ class RFModulator(Element, _RFModulatorBase):
     """RF modulator hardware model.
     #TODO move to manufacturer?"""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "modulator", RFModulatorElement)
+    _NESTED_DEFAULTS = {"modulator": RFModulatorElement}
 
 
 class RFProtection(Element, _RFProtectionBase):
     """
     RF Protection element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the RF protection system.
-        hardware_model (str): The specific hardware model of the RF protection system.
-        modulator (:class:`~laura.models.RF.RFProtectionElement`): The RF protection attributes of the element.
     """
 
     hardware_class: str = Field(default="RF", frozen=True)
@@ -1282,10 +1137,6 @@ class RFProtection(Element, _RFProtectionBase):
 class RFHeartbeat(Element, _RFHeartbeatBase):
     """
     RF Heartbeat element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the RF heartbeat system.
-        heartbeat (:class:`~laura.models.RF.RFHeartbeatElement`): The RF heartbeat attributes of the element.
     """
 
     hardware_class: str = Field(default="RF", frozen=True)
@@ -1294,18 +1145,12 @@ class RFHeartbeat(Element, _RFHeartbeatBase):
     hardware_type: str = Field(default="RFHeartbeat", frozen=True)
     """RF heartbeat hardware type."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "heartbeat", RFHeartbeatElement)
+    _NESTED_DEFAULTS = {"heartbeat": RFHeartbeatElement}
 
 
 class Shutter(PhysicalBaseElement, _ShutterBase):
     """
     Shutter element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the shutter.
-        shutter (:class:`~laura.models.shutter.ShutterElement`): The shutter attributes of the element.
     """
 
     hardware_class: str = Field(default="Shutter", frozen=True)
@@ -1317,18 +1162,12 @@ class Shutter(PhysicalBaseElement, _ShutterBase):
     controls: ShutterControlsInformation | None = None
     """Shutter control attributes of the element."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "shutter", ShutterElement)
+    _NESTED_DEFAULTS = {"shutter": ShutterElement}
 
 
 class Valve(PhysicalBaseElement, _ValveBase):
     """
     Vacuum valve element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the valve.
-        valve (:class:`~laura.models.shutter.ValveElement`): The valve attributes of the element.
     """
 
     hardware_class: str = Field(default="Vacuum", frozen=True)
@@ -1337,20 +1176,12 @@ class Valve(PhysicalBaseElement, _ValveBase):
     hardware_type: str = Field(default="Valve", frozen=True)
     """Valve hardware type."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "valve", ValveElement)
+    _NESTED_DEFAULTS = {"valve": ValveElement}
 
 
 class Marker(PhysicalBaseElement, _MarkerBase):
     """
     Marker element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the marker.
-        hardware_model (str): The hardware model of the marker.
-        simulation (:class:`~laura.models.simulation.DiagnosticSimulationElement`): The simulation
-        attributes of the marker.
     """
 
     hardware_class: str = Field(default="Marker", frozen=True)
@@ -1365,20 +1196,12 @@ class Marker(PhysicalBaseElement, _MarkerBase):
     simulation: Optional[DiagnosticSimulationElement] = None
     """Marker simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", DiagnosticSimulationElement)
+    _NESTED_DEFAULTS = {"simulation": DiagnosticSimulationElement}
 
 
 class Aperture(PhysicalBaseElement, _ApertureBase):
     """
     Aperture element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the aperture.
-        hardware_model (str): The hardware model of the aperture.
-        aperture (:class:`~laura.models.simulation.ApertureElement`): The simulation
-        attributes of the aperture.
     """
 
     hardware_class: str = Field(default="Aperture", frozen=True)
@@ -1390,18 +1213,12 @@ class Aperture(PhysicalBaseElement, _ApertureBase):
     hardware_model: str = Field(default="Simulation", frozen=True)
     """Aperture hardware model."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "aperture", ApertureElement)
+    _NESTED_DEFAULTS = {"aperture": ApertureElement}
 
 
 class Collimator(Aperture, _CollimatorBase):
     """
     Collimator element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the collimator.
-        hardware_model (str): The hardware model of the collimator.
     """
 
     hardware_type: str = Field(default="Collimator", frozen=True)
@@ -1414,11 +1231,6 @@ class Collimator(Aperture, _CollimatorBase):
 class Drift(PhysicalBaseElement, _DriftBase):
     """
     Drift element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the marker.
-        simulation (:class:`~laura.models.simulation.DriftSimulationElement`): The simulation
-        attributes of the drift.
     """
 
     hardware_type: str = Field(default="Drift", frozen=True)
@@ -1427,9 +1239,7 @@ class Drift(PhysicalBaseElement, _DriftBase):
     simulation: Optional[DriftSimulationElement] = None
     """Drift simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", DriftSimulationElement)
+    _NESTED_DEFAULTS = {"simulation": DriftSimulationElement}
 
 
 class ElectrostaticSeparator(PhysicalBaseElement, _ElectrostaticSeparatorBase):
@@ -1437,26 +1247,18 @@ class ElectrostaticSeparator(PhysicalBaseElement, _ElectrostaticSeparatorBase):
     Electrostatic separator element: a static-field electrode pair providing a
     transverse deflection (see the MAD-X ``ELSEPARATOR`` element; no equivalent
     exists in ELEGANT or Xsuite).
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
-        hardware_class (str): The hardware class of the element.
-        simulation (:class:`~laura.models.simulation.ElectrostaticSeparatorSimulationElement`):
-        The simulation attributes of the separator.
     """
 
     hardware_type: str = Field(default="ElectrostaticSeparator", frozen=True)
     """Electrostatic separator hardware type."""
 
-    hardware_class: str = Field(default="Generic", frozen=True)
+    hardware_class: str = Field(default="ElectrostaticSeparator", frozen=True)
     """Electrostatic separator hardware class."""
 
     simulation: Optional[ElectrostaticSeparatorSimulationElement] = None
     """Electrostatic-separator simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", ElectrostaticSeparatorSimulationElement)
+    _NESTED_DEFAULTS = {"simulation": ElectrostaticSeparatorSimulationElement}
 
 
 class ACDipole(PhysicalBaseElement, _ACDipoleBase):
@@ -1464,31 +1266,20 @@ class ACDipole(PhysicalBaseElement, _ACDipoleBase):
     Base class for AC dipole / tune-exciter elements: a thin, RF-driven kicker
     used for AC-dipole tune and optics measurements (see the MAD-X
     ``HACDIPOLE``/``VACDIPOLE`` elements and the Xsuite ``ACDipole`` element).
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
-        hardware_class (str): The hardware class of the element.
-        simulation (:class:`~laura.models.simulation.ACDipoleSimulationElement`):
-        The simulation attributes of the exciter.
     """
 
-    hardware_class: str = Field(default="Magnet", frozen=True)
+    hardware_class: str = Field(default="ACDipole", frozen=True)
     """AC dipole hardware class."""
 
     simulation: Optional[ACDipoleSimulationElement] = None
     """AC-dipole simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", ACDipoleSimulationElement)
+    _NESTED_DEFAULTS = {"simulation": ACDipoleSimulationElement}
 
 
 class HorizontalACDipole(ACDipole, _HorizontalACDipoleBase):
     """
     Horizontal AC dipole / tune-exciter element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
     """
 
     hardware_type: str = Field(default="Horizontal_AC_Dipole", frozen=True)
@@ -1498,9 +1289,6 @@ class HorizontalACDipole(ACDipole, _HorizontalACDipoleBase):
 class VerticalACDipole(ACDipole, _VerticalACDipoleBase):
     """
     Vertical AC dipole / tune-exciter element.
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
     """
 
     hardware_type: str = Field(default="Vertical_AC_Dipole", frozen=True)
@@ -1512,26 +1300,18 @@ class Wire(PhysicalBaseElement, _WireBase):
     Compensating wire element: a current-carrying wire used for long-range
     beam-beam compensation (see the MAD-X ``WIRE`` element and the Xsuite
     ``Wire`` element).
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
-        hardware_class (str): The hardware class of the element.
-        simulation (:class:`~laura.models.simulation.WireSimulationElement`):
-        The simulation attributes of the wire.
     """
 
     hardware_type: str = Field(default="Wire", frozen=True)
     """Wire hardware type."""
 
-    hardware_class: str = Field(default="Diagnostic", frozen=True)
+    hardware_class: str = Field(default="Wire", frozen=True)
     """Wire hardware class."""
 
     simulation: Optional[WireSimulationElement] = None
     """Wire simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", WireSimulationElement)
+    _NESTED_DEFAULTS = {"simulation": WireSimulationElement}
 
 
 class BeamBeam(PhysicalBaseElement, _BeamBeamBase):
@@ -1539,26 +1319,18 @@ class BeamBeam(PhysicalBaseElement, _BeamBeamBase):
     Beam-beam interaction element: a weak-strong kick representing the
     electromagnetic field of an opposing (colliding) bunch (see the MAD-X
     ``BEAMBEAM`` element).
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
-        hardware_class (str): The hardware class of the element.
-        simulation (:class:`~laura.models.simulation.BeamBeamSimulationElement`):
-        The simulation attributes of the interaction.
     """
 
     hardware_type: str = Field(default="BeamBeam", frozen=True)
     """Beam-beam hardware type."""
 
-    hardware_class: str = Field(default="Simulation", frozen=True)
+    hardware_class: str = Field(default="BeamBeam", frozen=True)
     """Beam-beam hardware class."""
 
     simulation: Optional[BeamBeamSimulationElement] = None
     """Beam-beam simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", BeamBeamSimulationElement)
+    _NESTED_DEFAULTS = {"simulation": BeamBeamSimulationElement}
 
 
 class RFMultipole(PhysicalBaseElement, _RFMultipoleBase):
@@ -1566,26 +1338,18 @@ class RFMultipole(PhysicalBaseElement, _RFMultipoleBase):
     Thin RF multipole element: a zero-length multipole kick whose strength
     oscillates at an RF frequency, up to 5th order (see the MAD-X
     ``RFMULTIPOLE`` element and the Xsuite ``RFMultipole`` element).
-
-    Attributes:
-        hardware_type (str): The hardware type of the element.
-        hardware_class (str): The hardware class of the element.
-        simulation (:class:`~laura.models.simulation.RFMultipoleSimulationElement`):
-        The simulation attributes of the multipole.
     """
 
     hardware_type: str = Field(default="RFMultipole", frozen=True)
     """RF multipole hardware type."""
 
-    hardware_class: str = Field(default="RF", frozen=True)
+    hardware_class: str = Field(default="RFMultipole", frozen=True)
     """RF multipole hardware class."""
 
     simulation: Optional[RFMultipoleSimulationElement] = None
     """RF-multipole simulation attributes."""
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", RFMultipoleSimulationElement)
+    _NESTED_DEFAULTS = {"simulation": RFMultipoleSimulationElement}
 
 
 ELEMENT_REGISTRY: dict[str, type] = {
@@ -1610,10 +1374,12 @@ __getattr__ = deprecated_aliases(
         "Bunch_Length_Monitor": "BunchLengthMonitor",
         "Combined_Corrector": "CombinedCorrector",
         "Faraday_Cup_Monitor": "FaradayCupMonitor",
+        "Horizontal_AC_Dipole": "HorizontalACDipole",
         "Horizontal_Corrector": "HorizontalCorrector",
         "Integrated_Current_Transformer": "IntegratedCurrentTransformer",
         "Low_Level_RF": "LowLevelRF",
         "Photon_Monitor": "PhotonMonitor",
+        "Vertical_AC_Dipole": "VerticalACDipole",
         "Vertical_Corrector": "VerticalCorrector",
         "Wall_Current_Monitor": "WallCurrentMonitor",
         "baseElement": "BaseElement",

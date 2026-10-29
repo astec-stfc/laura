@@ -46,6 +46,11 @@ enum HardwareClassEnum
     Generic
     Monitor
     Simulation
+    ElectrostaticSeparator
+    ACDipole
+    Wire
+    BeamBeam
+    RFMultipole
   }
 
 enum IOTypeEnum
@@ -85,6 +90,12 @@ enum LaserProfileTypeEnum
     file
   }
 
+enum LatticeGeometryEnum
+  {
+    open
+    closed
+  }
+
 enum NumericDtypeEnum
   {
     int8
@@ -99,6 +110,13 @@ enum NumericDtypeEnum
     float64
   }
 
+enum WaveformInterpolationEnum
+  {
+    linear
+    hold
+    spline
+  }
+
 type AcceleratorElement
   {
     name: String!
@@ -109,6 +127,7 @@ type AcceleratorElement
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -125,6 +144,7 @@ interface ACDipole
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -134,11 +154,28 @@ interface ACDipole
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: ACDipoleSimulationElement
   }
 
 type ACDipoleSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -148,6 +185,7 @@ type ACDipoleSimulationElement
     frequency: Float
     phase: Float
     ramp: [Int]
+    waveform: SampledWaveform
   }
 
 type Aperture
@@ -159,6 +197,7 @@ type Aperture
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -198,6 +237,7 @@ type BeamArrivalMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -207,6 +247,7 @@ type BeamArrivalMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: BAMDiagnosticElement
     hardwareType: String
@@ -221,6 +262,7 @@ type BeamBeam
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -230,12 +272,29 @@ type BeamBeam
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: BeamBeamSimulationElement
   }
 
 type BeamBeamSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -243,8 +302,6 @@ type BeamBeamSimulationElement
     scaleField: Float
     charge: Float
     nParticles: Float
-    horizontalOffset: Float
-    verticalOffset: Float
     horizontalSigma: Float
     verticalSigma: Float
     width: Float
@@ -259,6 +316,7 @@ type BeamPositionMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -268,6 +326,7 @@ type BeamPositionMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: BPMDiagnosticElement
     hardwareType: String
@@ -292,6 +351,7 @@ type BunchLengthMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -301,6 +361,7 @@ type BunchLengthMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: BLMDiagnosticElement
     hardwareType: String
@@ -315,6 +376,7 @@ type Camera
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -324,6 +386,7 @@ type Camera
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: CameraDiagnosticElement
     hardwareType: String
@@ -409,6 +472,7 @@ type ChargeDiagnostic
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -418,6 +482,7 @@ type ChargeDiagnostic
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
@@ -437,6 +502,7 @@ type Collimator
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -486,6 +552,7 @@ type CrabCavity
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -495,6 +562,7 @@ type CrabCavity
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: RFCavitySimulationElement
     cavity: RFDeflectingCavityElement
     hardwareType: String
@@ -517,6 +585,7 @@ type Diagnostic
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -526,6 +595,7 @@ type Diagnostic
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     diagnostic: DiagnosticElement
     simulation: DiagnosticSimulationElement
   }
@@ -537,6 +607,22 @@ type DiagnosticElement
 
 type DiagnosticSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -554,6 +640,7 @@ type Drift
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -563,27 +650,40 @@ type Drift
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: DriftSimulationElement
   }
 
 type DriftSimulationElement
   {
+    nKicks: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
-    lscBins: Int
     lscInterpolate: Int
-    csrEnable: Boolean
-    lscEnable: Boolean
     useStupakov: Int
-    csrdz: Float
     lscHighFrequencyCutoffStart: Float
     lscHighFrequencyCutoffEnd: Float
     lscLowFrequencyCutoffStart: Float
     lscLowFrequencyCutoffEnd: Float
+    lscBins: Int
+    csrdz: Float
   }
 
 type ElectricalElement
@@ -602,6 +702,7 @@ type ElectrostaticSeparator
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -611,12 +712,29 @@ type ElectrostaticSeparator
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: ElectrostaticSeparatorSimulationElement
   }
 
 type ElectrostaticSeparatorSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -637,6 +755,7 @@ type Element
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -669,6 +788,7 @@ type FaradayCupMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -678,6 +798,7 @@ type FaradayCupMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
@@ -697,6 +818,7 @@ type HorizontalACDipole
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -706,6 +828,7 @@ type HorizontalACDipole
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: ACDipoleSimulationElement
     hardwareType: String
   }
@@ -719,6 +842,7 @@ type IntegratedCurrentTransformer
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -728,6 +852,7 @@ type IntegratedCurrentTransformer
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
@@ -742,6 +867,7 @@ type Laser
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -752,6 +878,7 @@ type Laser
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     laser: LaserElement
     hardwareType: String
   }
@@ -765,6 +892,7 @@ type LaserAttenuator
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -808,6 +936,7 @@ type LaserEnergyMeter
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -835,6 +964,7 @@ type LaserHalfWavePlate
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -862,6 +992,7 @@ type LaserMirror
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -891,6 +1022,13 @@ type LaserMirrorSense
     down: Float
   }
 
+type LayoutPass
+  {
+    section: String!
+    direction: Int
+    number: Int
+  }
+
 type Lighting
   {
     name: String!
@@ -900,6 +1038,7 @@ type Lighting
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -953,6 +1092,7 @@ type LowLevelRF
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -979,11 +1119,14 @@ type MachineLayout
   {
     name: String!
     masterLattice: String
+    particle: String
     sections: [String]
+    passes: [LayoutPass]
   }
 
 type MachineModel
   {
+    particle: String
     elements: [AcceleratorElement]
     sections: [SectionLattice]
     layouts: [MachineLayout]
@@ -999,6 +1142,7 @@ type Magnet
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1008,6 +1152,7 @@ type Magnet
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     magnetic: MagneticElement
     degauss: DegaussableElement
     simulation: MagnetSimulationElement
@@ -1034,6 +1179,7 @@ type MagneticElement
     edgeFieldIntegral: Float
     edgeFieldIntegralEntrance: Float
     edgeFieldIntegralExit: Float
+    exitGap: Float
     fringeFieldCoefficient: Float
     gradient: Float
     angle: Float
@@ -1041,27 +1187,40 @@ type MagneticElement
 
 type MagnetSimulationElement
   {
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    numSteps: Int
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
-    nKicks: Int
     fieldAmplitude: Float
     nSlices: Int
-    smooth: Int
-    edge1Effects: Boolean
-    edge2Effects: Boolean
+    edgeFieldIntegral: Float
+    edge1Effects: Int
+    edge2Effects: Int
+    fringeModel: String
     srEnable: Boolean
     isrEnable: Boolean
-    csrEnable: Boolean
     csrBins: Int
-    integrationOrder: Int
     nonlinear: Boolean
     smoothingHalfWidth: Int
     edgeOrder: Int
-    deltaL: Float
     smoothPoints: Float
+    nKicks: Int
+    integrationOrder: Int
+    deltaL: Float
+    smooth: Int
   }
 
 type ManufacturerElement
@@ -1079,6 +1238,7 @@ type Marker
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1089,6 +1249,7 @@ type Marker
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
   }
 
@@ -1101,6 +1262,7 @@ type MatrixTransform
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1110,12 +1272,29 @@ type MatrixTransform
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: MatrixTransformSimulationElement
   }
 
 type MatrixTransformSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1125,6 +1304,8 @@ type MatrixTransformSimulationElement
     cMatrix: MatrixValue
     rMatrix: MatrixValue
     tMatrix: MatrixValue
+    uMatrix: MatrixValue
+    spinTaylor: MatrixValue
   }
 
 scalar MatrixValue
@@ -1160,6 +1341,7 @@ type PhotonMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1169,6 +1351,7 @@ type PhotonMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: PhotonIntensityMonitorDiagnostic
     hardwareType: String
@@ -1185,6 +1368,7 @@ type PhysicalAcceleratorElement
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1195,6 +1379,7 @@ type PhysicalAcceleratorElement
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
   }
 
 type PhysicalElement
@@ -1221,6 +1406,7 @@ type PID
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1268,6 +1454,7 @@ type Plasma
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1277,6 +1464,7 @@ type Plasma
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     plasma: PlasmaElement
     laser: LaserElement
     hardwareType: String
@@ -1308,6 +1496,22 @@ type PlasmaElement
 
 type PlasmaSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1354,6 +1558,7 @@ type PowerSupply
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1390,6 +1595,7 @@ type RFCavity
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1399,6 +1605,7 @@ type RFCavity
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     cavity: RFCavityElement
     hardwareType: String
     simulation: RFCavitySimulationElement
@@ -1425,6 +1632,19 @@ type RFCavityElement
 
 type RFCavitySimulationElement
   {
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1435,8 +1655,6 @@ type RFCavitySimulationElement
     wxColumn: String
     wyColumn: String
     wzColumn: String
-    nKicks: Int
-    lscBins: Int
     changeP0: Int
     end1Focus: Int
     end2Focus: Int
@@ -1444,13 +1662,15 @@ type RFCavitySimulationElement
     currentBins: Int
     interpolateCurrentBins: Int
     smoothCurrentBins: Int
-    smooth: Int
     ezPeak: Float
     fieldFileName: String
     wakefile: String
     zwakefile: String
     trwakefile: String
     fieldAmplitude: Float!
+    nKicks: Int
+    lscBins: Int
+    smooth: Int
   }
 
 type RFDeflectingCavity
@@ -1462,6 +1682,7 @@ type RFDeflectingCavity
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1471,6 +1692,7 @@ type RFDeflectingCavity
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: RFCavitySimulationElement
     cavity: RFDeflectingCavityElement
     hardwareType: String
@@ -1500,6 +1722,7 @@ type RFHeartbeat
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1527,6 +1750,7 @@ type RFModulator
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1554,6 +1778,7 @@ type RFMultipole
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1563,12 +1788,29 @@ type RFMultipole
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: RFMultipoleSimulationElement
   }
 
 type RFMultipoleSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1592,6 +1834,7 @@ type RFProtection
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1617,6 +1860,13 @@ type Rotation
     theta: Float
   }
 
+type SampledWaveform
+  {
+    time: [Float]
+    factor: [Float]
+    interpolation: WaveformInterpolationEnum
+  }
+
 type Screen
   {
     name: String!
@@ -1626,6 +1876,7 @@ type Screen
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1635,6 +1886,7 @@ type Screen
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: ScreenDiagnosticElement
     hardwareType: String
@@ -1652,6 +1904,9 @@ type SectionLattice
   {
     name: String!
     masterLattice: String
+    geometry: LatticeGeometryEnum
+    referenceEnergy: Float
+    spaceCharge: SpaceChargeSettings
     elements: [String]
   }
 
@@ -1664,6 +1919,7 @@ type Shutter
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1674,6 +1930,7 @@ type Shutter
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     shutter: ShutterElement
     hardwareType: String
   }
@@ -1685,11 +1942,37 @@ type ShutterElement
 
 type SimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
+  }
+
+type SpaceChargeSettings
+  {
+    numberOfBins: Int
+    stepSize: Float
+    chamberHeight: Float
+    shieldImages: Int
+    binSpan: Int
+    sigmaCutoff: Float
   }
 
 type Stage
@@ -1701,6 +1984,7 @@ type Stage
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1711,6 +1995,7 @@ type Stage
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
   }
 
@@ -1724,6 +2009,7 @@ type StandardElement
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1752,6 +2038,7 @@ type TwissMatch
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1761,12 +2048,29 @@ type TwissMatch
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: TwissMatchSimulationElement
   }
 
 type TwissMatchSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1792,6 +2096,7 @@ type VacuumGauge
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1802,6 +2107,7 @@ type VacuumGauge
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
   }
 
@@ -1814,6 +2120,7 @@ type Valve
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1824,6 +2131,7 @@ type Valve
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     valve: ValveElement
     hardwareType: String
   }
@@ -1842,6 +2150,7 @@ type VerticalACDipole
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1851,6 +2160,7 @@ type VerticalACDipole
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: ACDipoleSimulationElement
     hardwareType: String
   }
@@ -1864,6 +2174,7 @@ type Wakefield
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1873,6 +2184,7 @@ type Wakefield
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     cavity: WakefieldElement
     hardwareType: String
     simulation: WakefieldSimulationElement
@@ -1887,6 +2199,21 @@ type WakefieldElement
 
 type WakefieldSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1911,8 +2238,8 @@ type WakefieldSimulationElement
     scaleFieldHz: Float
     equalGrid: Float
     interpolationMethod: Int
-    smooth: Float
     subbins: Int
+    smooth: Float
   }
 
 type WallCurrentMonitor
@@ -1924,6 +2251,7 @@ type WallCurrentMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1933,6 +2261,7 @@ type WallCurrentMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
@@ -1947,6 +2276,7 @@ type Wire
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1956,12 +2286,54 @@ type Wire
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: WireSimulationElement
   }
 
+type WireScanner
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inheritsFrom: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    aperture: ApertureElement
+    diagnostic: DiagnosticElement
+    simulation: DiagnosticSimulationElement
+    hardwareType: String
+  }
+
 type WireSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1969,7 +2341,5 @@ type WireSimulationElement
     scaleField: Float
     current: Float
     interactionLength: Float
-    horizontalOffset: Float
-    verticalOffset: Float
   }
 

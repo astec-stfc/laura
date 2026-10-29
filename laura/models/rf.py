@@ -1,8 +1,8 @@
 from pydantic import Field, field_validator, create_model
-from typing import List, Type, Union
+from typing import List, Union
 
 from laura._compat import DeprecatedMethodAliases
-from .base_models import IgnoreExtra, T, ModelBase, FunctionalMixin
+from .base_models import IgnoreExtra, ModelBase, FunctionalMixin
 from ._generated import (
     _RFCavityElementBase,
     _WakefieldElementBase,
@@ -39,11 +39,6 @@ def _coerce_pid_range(v: Union[str, List, None], range_type):
 class RFCavityElement(_RFCavityElementBase, FunctionalMixin):
     """
     RF Cavity model.
-    """
-
-    structure_type: str = "StandingWave"
-    """Type of RF structure
-    #TODO make this literal.
     """
 
     attenuation_constant: float = 0
@@ -135,7 +130,7 @@ class PIDWeightRange(PIDPhaseRange):
 
 
 class PIDElement(_PIDElementBase):
-    """LLRF info model."""
+    """PID info model."""
 
     @field_validator("phase_range", mode="before")
     @classmethod
@@ -198,20 +193,20 @@ class LowLevelRFElement(DeprecatedMethodAliases, _LowLevelRFElementBase, IgnoreE
     def _create_llrf_channels_model(fields: dict):
         inputs = {}
         for name in llrffieldnames:
-            if "ONE_RECORD_" + str.upper(name) + "_POWER" in fields:
-                substr = "ONE_RECORD_" + str.upper(name)
+            if f"ONE_RECORD_{str.upper(name)}_POWER" in fields:
+                substr = f"ONE_RECORD_{str.upper(name)}"
                 inputs[str.upper(name)] = LLRFChannelIndex(
-                    power=fields[substr + "_POWER"], phase=fields[substr + "_PHASE"]
+                    power=fields[f"{substr}_POWER"], phase=fields[f"{substr}_PHASE"]
                 )
             for cav in cavitynames:
                 if (
-                    "ONE_RECORD_" + str.upper(cav) + "_" + str.upper(name) + "_POWER"
+                    f"ONE_RECORD_{str.upper(cav)}_{str.upper(name)}_POWER"
                     in fields
                 ):
-                    subname = str.upper(cav) + "_" + str.upper(name)
-                    substr = "ONE_RECORD_" + subname
+                    subname = f"{str.upper(cav)}_{str.upper(name)}"
+                    substr = f"ONE_RECORD_{subname}"
                     inputs[subname] = LLRFChannelIndex(
-                        power=fields[substr + "_POWER"], phase=fields[substr + "_PHASE"]
+                        power=fields[f"{substr}_POWER"], phase=fields[f"{substr}_PHASE"]
                     )
         model_fields = {i: (LLRFChannelIndex, Field()) for i in inputs.keys()}
         llrf_channels = create_model(
