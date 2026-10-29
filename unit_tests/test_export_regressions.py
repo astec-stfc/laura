@@ -47,6 +47,21 @@ def test_cheetah_dipole_without_fringe_integrals():
     assert float(obj.fringe_integral_exit) == float(obj.fringe_integral)
 
 
+def test_cheetah_tw_cavity_voltage_is_scaled_once():
+    """The ``voltage`` property already carries the travelling-wave factor."""
+    pytest.importorskip("cheetah")
+    cavity = translate(
+        RFCavity(
+            name="C", machine_area="S", physical={"length": 1.0},
+            cavity={"structure_type": "TravellingWave", "n_cells": 30.0, "cell_length": 0.0333,
+                    "mode_numerator": 2, "mode_denominator": 3, "phase": 0.0},
+            simulation={"field_amplitude": 20e6},
+        )
+    )
+    assert cavity.voltage_factor() != 1.0
+    assert float(cavity.to_cheetah().voltage) == pytest.approx(20e6 * cavity.voltage_factor())
+
+
 @pytest.mark.parametrize(
     "element",
     [

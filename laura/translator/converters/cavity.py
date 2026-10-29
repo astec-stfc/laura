@@ -433,20 +433,12 @@ class RFCavityTranslator(BaseElementTranslator):
                 self._convert_keyword_cheetah(key) in buffers
             ):
                 key = self._convert_keyword_cheetah(key)
+                # "voltage" lands on the voltage property, travelling-wave factor included
                 value = (
                     getattr(self, key)
                     if hasattr(self, key) and getattr(self, key) is not None
                     else value
                 )
-                if key == "voltage":
-                    if self.structure_type == "TravellingWave":
-                        value = value * abs(
-                            (self.get_cells() + 3.8)
-                            * self.cavity.cell_length
-                            * (1 / np.sqrt(2))
-                        )
-                    else:
-                        value = value
                 if isinstance(value, float):
                     dt = float64
                     setattr(
