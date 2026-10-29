@@ -1,8 +1,4 @@
-"""Tests for the newly-added element types (ElectrostaticSeparator, AC dipoles,
-Wire, BeamBeam, RFMultipole) and the fixes made to the already-existing
-MatrixTransform/CrabCavity wiring, plus the MAD-X twcavity/ecollimator
-sub-type selection.
-"""
+"""Exports of the less common element types."""
 
 import pytest
 
@@ -11,24 +7,38 @@ pytest.importorskip("h5py")
 
 from laura.models.element import (  # noqa: E402
     ElectrostaticSeparator,
-    Horizontal_AC_Dipole,
-    Vertical_AC_Dipole,
+    HorizontalACDipole,
+    VerticalACDipole,
     Wire,
+    WireScanner,
     BeamBeam,
     RFMultipole,
     MatrixTransform,
     TwissMatch,
     CrabCavity,
-    RFDeflectingCavity,
     RFCavity,
     Aperture,
     Collimator,
     Marker,
 )
-from laura.models.elementList import SectionLattice, MachineModel  # noqa: E402
+from laura.models.element_list import SectionLattice, MachineModel  # noqa: E402
 from laura.translator.converters.converter import translate_elements  # noqa: E402
 from laura.translator.converters.section import SectionLatticeTranslator  # noqa: E402
 from laura.translator.converters.model import MachineModelTranslator  # noqa: E402
+
+
+def _madx_element(element):
+    madx = pytest.importorskip("cpymad.madx").Madx(stdout=False)
+    madx.input(translate_elements([element])[element.name].to_madx())
+    return madx.elements[element.name]
+
+
+def _crab():
+    return CrabCavity(
+        name="cc1", machine_area="S",
+        cavity={"phase": 0.0, "structure_type": "StandingWave"},
+        simulation={"field_amplitude": 5e6}, physical={"length": 1.0},
+    )
 
 
 class TestElectrostaticSeparator:
@@ -44,23 +54,19 @@ class TestElectrostaticSeparator:
         assert "ey = 1.0" in out
 
     def test_madx_parses(self):
-        pytest.importorskip("cpymad")
-        from cpymad.madx import Madx
         es = ElectrostaticSeparator(
             name="es1", machine_area="S", simulation={"horizontal_field": 2e6},
         )
-        madx = Madx(stdout=False)
-        madx.input(translate_elements([es])["es1"].to_madx())
-        assert madx.elements["es1"].ex == pytest.approx(2.0)
+        assert _madx_element(es).ex == pytest.approx(2.0)
 
 
 class TestACDipole:
     def test_madx_horizontal_and_vertical(self):
-        hac = Horizontal_AC_Dipole(
+        hac = HorizontalACDipole(
             name="hac1", machine_area="S",
             simulation={"field_amplitude": 1e6, "frequency": 1e5, "phase": 0.0, "ramp": [1, 2, 3, 4]},
         )
-        vac = Vertical_AC_Dipole(
+        vac = VerticalACDipole(
             name="vac1", machine_area="S", simulation={"field_amplitude": 2e6, "frequency": 2e5},
         )
         d = translate_elements([hac, vac])
@@ -73,21 +79,17 @@ class TestACDipole:
         assert "vac1: vacdipole" in v_out
 
     def test_madx_parses(self):
-        pytest.importorskip("cpymad")
-        from cpymad.madx import Madx
-        hac = Horizontal_AC_Dipole(
+        hac = HorizontalACDipole(
             name="hac1", machine_area="S", simulation={"field_amplitude": 1e6, "frequency": 1e5},
         )
-        madx = Madx(stdout=False)
-        madx.input(translate_elements([hac])["hac1"].to_madx())
-        assert madx.elements["hac1"].volt == pytest.approx(1.0)
+        assert _madx_element(hac).volt == pytest.approx(1.0)
 
     def test_xsuite(self):
         pytest.importorskip("xtrack")
-        hac = Horizontal_AC_Dipole(
+        hac = HorizontalACDipole(
             name="hac1", machine_area="S", simulation={"field_amplitude": 1e3, "frequency": 1e5},
         )
-        vac = Vertical_AC_Dipole(
+        vac = VerticalACDipole(
             name="vac1", machine_area="S", simulation={"field_amplitude": 1e3, "frequency": 1e5},
         )
         d = translate_elements([hac, vac])
@@ -100,49 +102,46 @@ class TestACDipole:
 
     def test_xsuite_revolution_frequency_conversion(self):
         pytest.importorskip("xtrack")
-        hac = Horizontal_AC_Dipole(
+        hac = HorizontalACDipole(
             name="hac1", machine_area="S", simulation={"field_amplitude": 1e3, "frequency": 1e5},
         )
         translator = translate_elements([hac])["hac1"]
-        # default: raw Hz value passed through unconverted
+        # default: raw Hz passed through
         _, _, props = translator.to_xsuite(beam_length=1)
         assert props["freq"] == pytest.approx(1e5)
-        # explicit revolution frequency: converted to Xsuite's per-turn convention
+        # with a revolution frequency: Xsuite's per-turn convention
         _, _, props = translator.to_xsuite(beam_length=1, revolution_frequency=1e6)
         assert props["freq"] == pytest.approx(0.1)
 
 
 class TestRevolutionFrequencyCascade:
-    """`revolution_frequency` is an optional attribute on SectionLattice,
-    MachineLayout, and MachineModel; SectionLatticeTranslator.to_xsuite feeds
-    its own value through to any ACDipoleTranslator elements it translates,
-    and MachineLayoutTranslator/MachineModelTranslator cascade their own value
-    down to child sections/layouts that don't define their own."""
+    """Layouts and models cascade `revolution_frequency` to sections without their own."""
 
-    def _lattice(self, revolution_frequency=None):
-        hac = Horizontal_AC_Dipole(
+    @pytest.fixture(autouse=True)
+    def _xtrack(self):
+        pytest.importorskip("xtrack")
+
+    def _lattice(self):
+        hac = HorizontalACDipole(
             name="hac1", machine_area="S1", simulation={"field_amplitude": 1e3, "frequency": 1e5},
         )
         m = Marker(name="m1", machine_area="S1", hardware_class="Marker")
-        return hac, m, revolution_frequency
+        return hac, m
 
     def test_section_level(self):
-        pytest.importorskip("xtrack")
-        hac, m, _ = self._lattice()
+        hac, m = self._lattice()
         section = SectionLattice(name="S1", order=["m1", "hac1"], elements=[m, hac], revolution_frequency=2e6)
         line = SectionLatticeTranslator.from_section(section).to_xsuite(beam_length=1, save=False)
         assert line["hac1"].freq == pytest.approx(1e5 / 2e6)
 
     def test_section_without_its_own_frequency_stays_unconverted(self):
-        pytest.importorskip("xtrack")
-        hac, m, _ = self._lattice()
+        hac, m = self._lattice()
         section = SectionLattice(name="S1", order=["m1", "hac1"], elements=[m, hac])
         line = SectionLatticeTranslator.from_section(section).to_xsuite(beam_length=1, save=False)
         assert line["hac1"].freq == pytest.approx(1e5)
 
     def test_cascades_from_machine_model_to_section(self):
-        pytest.importorskip("xtrack")
-        hac, m, _ = self._lattice()
+        hac, m = self._lattice()
         mm = MachineModel(
             layout={"default_layout": "beam1", "layouts": {"beam1": ["S1"]}},
             section={"sections": {"S1": ["m1", "hac1"]}},
@@ -154,16 +153,36 @@ class TestRevolutionFrequencyCascade:
         assert line["hac1"].freq == pytest.approx(1e5 / 4e6)
 
     def test_categorical_string_parameters_do_not_trigger_deferred_expression_path(self):
-        # ACDipole's `plane` ("h"/"v") is a plain categorical string, not a
-        # functional-definition reference, so it must not be mistaken for a
-        # symbolic value (which would route construction through env.new(),
-        # and ACDipole is not in xtrack's env.new() allow-list).
-        pytest.importorskip("xtrack")
-        hac, m, _ = self._lattice()
+        # A symbolic-looking `plane` would route through env.new(), whose allow-list lacks ACDipole.
+        hac, m = self._lattice()
         section = SectionLattice(name="S1", order=["m1", "hac1"], elements=[m, hac])
-        # Should not raise.
         line = SectionLatticeTranslator.from_section(section).to_xsuite(beam_length=1, save=False)
         assert line["hac1"].plane == "h"
+
+
+class TestWireScanner:
+    """``WireScanner`` is a profile diagnostic, unrelated to the beam-beam ``Wire``."""
+
+    def test_is_a_diagnostic_and_registered(self):
+        from laura.models.element import Diagnostic, ELEMENT_REGISTRY
+
+        ws = WireScanner(name="ws1", machine_area="S")
+        assert isinstance(ws, Diagnostic)
+        assert not isinstance(ws, Wire)
+        assert ws.hardware_type == "WireScanner"
+        assert ELEMENT_REGISTRY["WireScanner"] is WireScanner
+
+    @pytest.mark.parametrize(
+        "method, expected",
+        [
+            ("to_elegant", "ws1: watch"),
+            ("to_bmad", "ws1: instrument"),
+            ("to_madx", "ws1: instrument"),
+        ],
+    )
+    def test_exports_as_a_passive_diagnostic(self, method, expected):
+        ws = WireScanner(name="ws1", machine_area="S")
+        assert getattr(translate_elements([ws])["ws1"], method)().startswith(expected)
 
 
 class TestWire:
@@ -179,12 +198,8 @@ class TestWire:
         assert "xma = {0.01}" in out
 
     def test_madx_parses(self):
-        pytest.importorskip("cpymad")
-        from cpymad.madx import Madx
         w = Wire(name="w1", machine_area="S", simulation={"current": 100, "horizontal_offset": 0.01})
-        madx = Madx(stdout=False)
-        madx.input(translate_elements([w])["w1"].to_madx())
-        assert list(madx.elements["w1"].current) == pytest.approx([100.0])
+        assert list(_madx_element(w).current) == pytest.approx([100.0])
 
     def test_xsuite(self):
         pytest.importorskip("xtrack")
@@ -209,13 +224,9 @@ class TestBeamBeam:
         assert "sigx = 1e-05" in out
 
     def test_madx_parses(self):
-        pytest.importorskip("cpymad")
-        from cpymad.madx import Madx
-        bb = BeamBeam(name="bb1", machine_area="S", simulation={"charge": -1.0, "n_particles": 1e11})
-        madx = Madx(stdout=False)
-        madx.input(translate_elements([bb])["bb1"].to_madx())
-        assert madx.elements["bb1"].npart == pytest.approx(1e11)
-        assert madx.elements["bb1"].charge == pytest.approx(-1.0)
+        bb = _madx_element(BeamBeam(name="bb1", machine_area="S", simulation={"charge": -1.0, "n_particles": 1e11}))
+        assert bb.npart == pytest.approx(1e11)
+        assert bb.charge == pytest.approx(-1.0)
 
     def test_elegant_charge_is_total_coulombs(self):
         from laura.models.constants import elementary_charge
@@ -262,15 +273,11 @@ class TestRFMultipole:
         assert "knl = {0.0, 0.1, 0.0, 0.0, 0.0}" in out
 
     def test_madx_parses(self):
-        pytest.importorskip("cpymad")
-        from cpymad.madx import Madx
         rfm = RFMultipole(
             name="rfm1", machine_area="S",
             simulation={"frequency": 4e8, "field_amplitude": 1e6, "knl": [0, 0.1, 0, 0, 0]},
         )
-        madx = Madx(stdout=False)
-        madx.input(translate_elements([rfm])["rfm1"].to_madx())
-        assert list(madx.elements["rfm1"].knl)[1] == pytest.approx(0.1)
+        assert list(_madx_element(rfm).knl)[1] == pytest.approx(0.1)
 
     def test_xsuite(self):
         pytest.importorskip("xtrack")
@@ -284,8 +291,6 @@ class TestRFMultipole:
 
 
 class TestMatrixTransformAndCrabCavityDispatch:
-    """Both were added to the model but not fully wired into translate_elements()."""
-
     def test_matrix_transform_dispatches_to_dedicated_translator(self):
         from laura.translator.converters.matrix import MatrixTransformTranslator
         mt = MatrixTransform(name="mt1", machine_area="S", simulation={"r_matrix": {"r21": 0.5}})
@@ -298,12 +303,7 @@ class TestMatrixTransformAndCrabCavityDispatch:
 
     def test_crab_cavity_dispatches_to_rfcavity_translator(self):
         from laura.translator.converters.cavity import RFCavityTranslator
-        cc = CrabCavity(
-            name="cc1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
-            simulation={"field_amplitude": 5e6}, physical={"length": 1.0},
-        )
-        assert isinstance(translate_elements([cc])["cc1"], RFCavityTranslator)
+        assert isinstance(translate_elements([_crab()])["cc1"], RFCavityTranslator)
 
     def test_matrix_transform_madx(self):
         mt = MatrixTransform(
@@ -318,34 +318,43 @@ class TestMatrixTransformAndCrabCavityDispatch:
             name="mt1", machine_area="S", simulation={"r_matrix": {"r21": 0.5}}, physical={"length": 0.5},
         )
         out = translate_elements([mt])["mt1"].to_elegant()
-        # element name/type must be the string's own prefix, not appended after
-        # the parameters (this was the pre-existing bug).
         assert out.startswith("mt1: ematrix")
         assert out.strip().endswith(";")
         assert "L = 0.5" in out
         assert "R21 = 0.5" in out
 
-    def test_crab_cavity_elegant_uses_rfdf_not_rfca(self):
-        cc = CrabCavity(
-            name="cc1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
-            simulation={"field_amplitude": 5e6}, physical={"length": 1.0},
+    def test_matrix_transform_elegant_writes_the_diagonal_out(self):
+        """elegant's EMATRIX starts from the zero matrix; MAD-X's `matrix` from the identity."""
+        mt = MatrixTransform(
+            name="mt1", machine_area="S",
+            simulation={"r_matrix": {"r12": 1.677, "r34": 1.677}},
+            physical={"length": 1.677},
         )
-        out = translate_elements([cc])["cc1"].to_elegant()
+        out = translate_elements([mt])["mt1"].to_elegant()
+        for i in range(1, 7):
+            assert f"R{i}{i} = 1.0" in out
+        assert "R12 = 1.677" in out
+        assert "R34 = 1.677" in out
+        # zeros are still omitted
+        assert out.count("R") == 8
+
+    def test_matrix_transform_elegant_writes_an_identity_matrix(self):
+        """With only a length, elegant would build the zero matrix."""
+        mt = MatrixTransform(name="mt1", machine_area="S", physical={"length": 0.5})
+        out = translate_elements([mt])["mt1"].to_elegant()
+        for i in range(1, 7):
+            assert f"R{i}{i} = 1.0" in out
+
+    def test_crab_cavity_elegant_uses_rfdf_not_rfca(self):
+        out = translate_elements([_crab()])["cc1"].to_elegant()
         assert "cc1: rfdf" in out
         assert "voltage = 5000000.0" in out
-        # +90 degree ELEGANT phase convention applied
-        assert "phase = 90.0" in out
-        # no duplicate n_kicks entries (pre-existing bug)
+        # RFDF kicks as cos(phase + wt): see test_crab_cavity_phase.py
+        assert "phase = 0.0" in out
         assert out.count("n_kicks") == 1
 
     def test_crab_cavity_madx(self):
-        cc = CrabCavity(
-            name="cc1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
-            simulation={"field_amplitude": 5e6}, physical={"length": 1.0},
-        )
-        out = translate_elements([cc])["cc1"].to_madx()
+        out = translate_elements([_crab()])["cc1"].to_madx()
         assert "cc1: crabcavity" in out
         assert "volt = 5.0" in out
 
@@ -353,35 +362,101 @@ class TestMatrixTransformAndCrabCavityDispatch:
         pytest.importorskip("xtrack")
         pytest.importorskip("ocelot")
         pytest.importorskip("cheetah")
-        cc = CrabCavity(
-            name="cc1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
-            simulation={"field_amplitude": 5e6}, physical={"length": 1.0},
-        )
-        translator = translate_elements([cc])["cc1"]
+        translator = translate_elements([_crab()])["cc1"]
         assert translator.to_xsuite(beam_length=1)[1].__name__ == "CrabCavity"
         assert translator.to_ocelot() is not None
         assert translator.to_cheetah() is not None
 
+    def test_thin_cavity_survives_ocelot(self):
+        """Ocelot divides by a cavity's length; CLIC DR's RF is thin."""
+        oc = pytest.importorskip("ocelot")
+        cav = RFCavity(
+            name="rf", machine_area="S", physical={"length": 0.0},
+            cavity={"phase": 0.0, "frequency": 3e9, "structure_type": "StandingWave"},
+            simulation={"field_amplitude": 4.5e6},
+        )
+        element = translate_elements([cav])["rf"].to_ocelot()
+        assert 0 < element.l < 1e-8
+        twiss = oc.Twiss()
+        twiss.E, twiss.beta_x, twiss.beta_y = 2.86, 1.0, 1.0
+        oc.twiss(oc.MagneticLattice([oc.Drift(l=1.0), element]), twiss)
+
 
 class TestMadxCavityAndAperture:
-    def test_travelling_wave_cavity_uses_twcavity(self):
+    # MAD-X's twcavity does not accelerate, so TW cavities are rfcavity too (focusing via a MATRIX).
+    # ELEGANT defaults to SRS (standing wave); TW cavities request TW1 to match MAD-X/Ocelot focusing.
+    @pytest.mark.parametrize(
+        "cavity, method, expected",
+        [
+            ({"structure_type": "TravellingWave", "mode_numerator": 2, "mode_denominator": 3},
+             "to_madx", "c1: rfcavity"),
+            ({"structure_type": "StandingWave"}, "to_madx", "c1: rfcavity"),
+            ({"structure_type": "TravellingWave", "mode_numerator": 2, "mode_denominator": 3},
+             "to_elegant", "body_focus_model = TW1"),
+            ({"structure_type": "StandingWave"}, "to_elegant", "body_focus_model = SRS"),
+        ],
+        ids=["tw-madx", "sw-madx", "tw-elegant", "sw-elegant"],
+    )
+    def test_cavity_export(self, cavity, method, expected):
         cav = RFCavity(
             name="c1", machine_area="S",
-            cavity={"structure_Type": "TravellingWave", "phase": 0.0},
+            cavity={"phase": 0.0, **cavity},
             simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
         )
-        out = translate_elements([cav])["c1"].to_madx()
-        assert "c1: twcavity" in out
+        assert expected in getattr(translate_elements([cav])["c1"], method)()
 
     def test_standing_wave_cavity_uses_rfcavity(self):
         cav = RFCavity(
             name="c1", machine_area="S",
-            cavity={"structure_Type": "StandingWave", "phase": 0.0},
+            cavity={"structure_type": "StandingWave", "phase": 0.0},
             simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
         )
         out = translate_elements([cav])["c1"].to_madx()
         assert "c1: rfcavity" in out
+
+    def test_travelling_wave_cavity_elegant_uses_tw1_body_focus_model(self):
+        # ELEGANT's own default (BODY_FOCUS_MODEL=SRS) is the standing-wave
+        # model -- travelling-wave cavities must request TW1 explicitly so
+        # ELEGANT's focusing matches MAD-X's tw_matrix_cavity and Ocelot's
+        # add_tw1_focusing (both built from tw1_focusing_matrix).
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={
+                "structure_type": "TravellingWave",
+                "phase": 0.0,
+                "mode_numerator": 2,
+                "mode_denominator": 3,
+            },
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        out = translate_elements([cav])["c1"].to_elegant()
+        assert "body_focus_model = TW1" in out
+
+    def test_travelling_wave_cavity_tw_focusing_off_uses_standing_wave(self):
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={
+                "structure_type": "TravellingWave",
+                "phase": 0.0,
+                "mode_numerator": 2,
+                "mode_denominator": 3,
+            },
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        tr = translate_elements([cav])["c1"]
+        assert tr.to_cheetah().cavity_type == "traveling_wave"
+        tr.tw_focusing = False
+        assert "body_focus_model = SRS" in tr.to_elegant()
+        assert tr.to_cheetah().cavity_type == "standing_wave"
+
+    def test_standing_wave_cavity_elegant_uses_default_body_focus_model(self):
+        cav = RFCavity(
+            name="c1", machine_area="S",
+            cavity={"structure_type": "StandingWave", "phase": 0.0},
+            simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
+        )
+        out = translate_elements([cav])["c1"].to_elegant()
+        assert "body_focus_model = SRS" in out
 
     def test_elliptical_aperture_uses_ecollimator(self):
         ap = Aperture(
@@ -399,3 +474,28 @@ class TestMadxCavityAndAperture:
         )
         out = translate_elements([col])["col1"].to_madx()
         assert "col1: rcollimator" in out
+
+
+@pytest.mark.parametrize("geometry, change_p0", [("closed", 0), ("open", 1), (None, 1)])
+def test_ring_cavity_leaves_the_reference_momentum_alone(geometry, change_p0):
+    """A ring's reference is its design momentum; ELEGANT refuses closed optics otherwise."""
+    cavity = RFCavity(
+        name="rf", machine_area="S", physical={"length": 0.0},
+        cavity={"phase": 0.0, "frequency": 3e9, "structure_type": "StandingWave"},
+        simulation={"field_amplitude": 4.5e6},
+    )
+    section = SectionLattice(name="S", order=["rf"], elements=[cavity], geometry=geometry)
+    written = SectionLatticeTranslator.from_section(section).to_elegant()
+    assert f"change_p0 = {change_p0}" in written
+    assert cavity.simulation.change_p0 == 1  # the lattice keeps its own
+
+
+@pytest.mark.parametrize("length, written", [(0.0, False), (1.0, True)])
+def test_thin_cavity_has_no_body_focusing(length, written):
+    """ELEGANT's body focusing scales as 1/L."""
+    cavity = RFCavity(
+        name="rf", machine_area="S", physical={"length": length},
+        cavity={"phase": 0.0, "frequency": 2e9, "structure_type": "StandingWave"},
+        simulation={"field_amplitude": 4.5e6},
+    )
+    assert ("body_focus_model" in translate_elements([cavity])["rf"].to_elegant()) is written

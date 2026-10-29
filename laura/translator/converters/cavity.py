@@ -1,16 +1,21 @@
-from pydantic import computed_field, model_validator
-import numpy as np
-from .base import BaseElementTranslator
-from laura.models.RF import RFCavityElement
-from laura.models.simulation import RFCavitySimulationElement
-from laura.translator.utils.fields import field
 from typing import Dict
+from warnings import warn
+
+import numpy as np
+from pydantic import computed_field, model_validator
+
+from laura.models.rf import RFCavityElement
+from laura.models.simulation import RFCavitySimulationElement
+from laura.translator.utils.fields import FieldMap
+
 from ..converters import (
-    elements_Elegant,
-    elements_Opal,
-    elements_Madx,
+    elements_bmad,
+    elements_elegant,
+    elements_madx,
+    elements_opal,
 )
 from ..utils.functions import sanitize_string
+from .base import BaseElementTranslator, ocelot_attributes
 
 
 class RFCavityTranslator(BaseElementTranslator):
@@ -33,6 +38,16 @@ class RFCavityTranslator(BaseElementTranslator):
 
     zwakefile: str | None = None
     """Name of longitudinal wakefile associated with the cavity."""
+
+    tw_focusing: bool = True
+    """Use travelling-wave transverse focusing for TravellingWave cavities. Set from
+    :attr:`~laura.translator.converters.section.SectionLatticeTranslator.tw_focusing`."""
+
+    bmad_geometry: str | None = None
+    """Geometry of the branch this cavity is being written into, when known.
+
+    Set to ``"closed"`` by :meth:`SectionLatticeTranslator.to_bmad` so the
+    cavity can pick the form Bmad allows there; see :meth:`to_bmad`."""
 
     @model_validator(mode="before")
     @classmethod
@@ -62,7 +77,16 @@ class RFCavityTranslator(BaseElementTranslator):
     @computed_field
     @property
     def structure_type(self) -> str:
-        return self.cavity.structure_type
+        """
+        The structure type, spelled the one way the rest of this class tests for.
+        Works for US and British spelling (Travelling/Traveling wave)
+        """
+        value = str(getattr(self.cavity, "structure_type", "StandingWave"))
+        return {
+            "travellingwave": "TravellingWave",
+            "travelingwave": "TravellingWave",
+            "standingwave": "StandingWave",
+        }.get(value.replace("_", "").lower(), value)
 
     @property
     def phase(self) -> float:
@@ -99,54 +123,89 @@ class RFCavityTranslator(BaseElementTranslator):
     def wzcolumn(self) -> str | None:
         return f'"{self.simulation.wz_column}"' if self.simulation.wz_column else None
 
-    def set_wakefield_column_names(self, wakefield_file_name: str) -> None:
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad RF or crab-cavity definition.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        etype = self._convert_type_bmad(self.hardware_type)
+        if etype == "lcavity" and self.bmad_geometry == "closed":
+            etype = "rfcavity"
+        parameters = self._bmad_parameters(etype)
+        frequency, voltage = parameters.get("rf_frequency"), parameters.get("voltage")
+        if etype == "rfcavity" and isinstance(frequency, (int, float)) and frequency == 0:
+            # Tao cannot find a closed orbit through an rfcavity with rf_frequency = 0
+            # (the maps hold NaN), so a cavity that is off is written as the drift it is.
+            if isinstance(voltage, (int, float)) and voltage == 0:
+                warn(
+                    f"RF cavity {self.name!r} has zero voltage and zero frequency; "
+                    "written to Bmad as a drift of the same length."
+                )
+                return self._format_bmad(
+                    "drift", {"l": parameters["l"]} if "l" in parameters else {}
+                )
+            warn(
+                f"RF cavity {self.name!r} has zero frequency but voltage {voltage}; "
+                "Bmad cannot track a closed orbit through an rfcavity with "
+                "rf_frequency = 0."
+            )
+        phase = self.cavity.phase
+        # Bmad's crab kick is sin(2*pi*phi0 - wt): phase 0 (full kick) is phi0 = 1/4
+        sign, offset = (1, 90) if etype == "crab_cavity" else (-1, 0)
+        parameters["phi0"] = (
+            f"({sign} * ({phase}) + {offset}) / 360"
+            if not self._resolve_functional and self.is_functional(phase)
+            else (sign * self.resolve(phase) + offset) / 360
+        )
+        voltage = parameters.get("voltage")
+        if voltage is not None and self.structure_type == "TravellingWave":
+            factor = abs(
+                (self.get_cells() + 3.8) * self.cavity.cell_length * (1 / np.sqrt(2))
+            )
+            parameters["voltage"] = (
+                f"({voltage}) * {factor}"
+                if not self._resolve_functional and self.is_functional(voltage)
+                else factor * self.resolve(voltage)
+            )
+        if "cavity_type" in elements_bmad[etype]:
+            structure = str(self.structure_type).replace("_", "").lower()
+            parameters["cavity_type"] = {
+                "standingwave": "standing_wave",
+                "travellingwave": "traveling_wave",
+                "travelingwave": "traveling_wave",
+            }.get(structure, structure)
+        self._bmad_sr_wake(parameters)
+        return self._format_bmad(etype, parameters)
+
+    def set_wakefield_column_names(self, wakefield_file_name: str | None) -> None:
         """
         Set the column names for the wakefield file, based on ``wakefield_definition``.
 
         Parameters
         ----------
-        wakefield_file_name: str
-            Name of the wakefield file
+        wakefield_file_name: str or None
+            Name of the wakefield file; nothing is set if there is no file
         """
+        if wakefield_file_name is None:
+            return
         if all([x is not None for x in [self.wxcolumn, self.wycolumn, self.wzcolumn]]):
-            self.wakefile = '"' + wakefield_file_name + '"'
+            self.wakefile = f'"{wakefield_file_name}"'
             return
         elif self.wzcolumn is not None and all(
             [x is None for x in [self.wxcolumn, self.wycolumn]]
         ):
-            self.zwakefile = '"' + wakefield_file_name + '"'
+            self.zwakefile = f'"{wakefield_file_name}"'
             return
         elif self.wzcolumn is None and all(
             [x is not None for x in [self.wxcolumn, self.wycolumn]]
         ):
-            self.trwakefile = '"' + wakefield_file_name + '"'
+            self.trwakefile = f'"{wakefield_file_name}"'
             return
-
-    def _wakefield_active(self) -> bool:
-        """
-        Whether this cavity should be written with its wakefield applied.
-
-        False if wakefields have been switched off for the element, if no
-        wakefield definition is set, or if the definition carries no usable
-        data.
-
-        Returns
-        -------
-        bool
-            True if a usable wakefield is defined and enabled
-        """
-        if not getattr(self.simulation, "wakefield_enable", True):
-            return False
-        wake = self.simulation.wakefield_definition
-        if wake is None or wake == "":
-            return False
-        if not isinstance(wake, str):
-            # a field object: only usable if it has a longitudinal coordinate
-            try:
-                wake.z_values
-            except Exception:
-                return False
-        return True
 
     def to_elegant(self) -> str:
         """
@@ -159,26 +218,18 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         wholestring = ""
-        etype = self._convertType_Elegant(self.hardware_type)
+        etype = self._convert_type_elegant(self.hardware_type)
         if self.hardware_type == "RFCavity" and not self._wakefield_active():
             etype = "rfca"
-            # if self.simulation.field_definition is not None:
-            # etype = "rftmez0"
-            # if ".sdds" not in self.simulation.field_definition:
-            #     field_file_name = self.generate_field_file_name(
-            #     self.simulation.field_definition, code="elegant"
-            # )
-        else:
+        elif self._wakefield_active():
             wakefield_file_name = self.generate_field_file_name(
                 self.simulation.wakefield_definition, code="elegant"
             )
             self.set_wakefield_column_names(wakefield_file_name)
-        string = self.name + ": " + etype
+        string = f"{self.name}: {etype}"
         preferred = {
             "n_kicks": (
-                "simulation_n_kicks"
-                if self.simulation.n_kicks
-                else "cavity_n_cells"
+                "simulation_n_kicks" if self.simulation.n_kicks else "cavity_n_cells"
             )
         }
         keys = []
@@ -194,93 +245,105 @@ class RFCavityTranslator(BaseElementTranslator):
         ):
             preferred[output] = direct if getattr(self, direct) is not None else nested
         emitted = set()
+        # `_convert_keyword_elegant`, built once rather than per key
+        convert = self._keyword_converter_elegant(
+            self._convert_type_elegant(self.hardware_type)
+        )
         for source_key, value in self.full_dump(
             resolve=self._resolve_functional
         ).items():
-            converted_key = self._convertKeyword_Elegant(
-                source_key, updated_type=self.hardware_type
-            ).lower()
+            converted_key = convert(source_key).lower()
             if preferred.get(converted_key, source_key) != source_key:
                 continue
             if converted_key in emitted:
                 continue
             if (
                 source_key not in {"name", "type", "commandtype"}
-                and converted_key in elements_Elegant[etype]
+                and converted_key in elements_elegant[etype]
+                and value is not None
             ):
-                if value is not None:
-                    key = converted_key
-                    emitted.add(key)
-                    # rftmez0 uses frequency instead of freq
-                    if etype == "rftmez0" and key == "freq":
-                        key = "frequency"
-                    functional = self.is_functional(value)
-                    if self.hardware_type in ["RFCavity", "RFDeflectingCavity", "CrabCavity"]:
-                        if key == "phase":
-                            if etype == "rftmez0":
-                                # If using rftmez0 or similar
-                                if functional:
-                                    value = self._rpn(value, 360.0, "/", 2 * 3.14159, "*")
-                                else:
-                                    value = (value / 360.0) * (2 * 3.14159)
+                key = converted_key
+                emitted.add(key)
+                # rftmez0 uses frequency instead of freq
+                if etype == "rftmez0" and key == "freq":
+                    key = "frequency"
+                functional = self.is_functional(value)
+                if self.hardware_type in [
+                    "RFCavity",
+                    "RFDeflectingCavity",
+                    "CrabCavity",
+                ]:
+                    if key == "phase":
+                        if etype == "rftmez0":
+                            # If using rftmez0 or similar
+                            if functional:
+                                value = self._rpn(value, 360.0, "/", 2 * 3.14159, "*")
                             else:
-                                # In ELEGANT all phases are +90degrees!!
-                                value = self._rpn(90, value, "-") if functional else 90 - value
-
-                    # In ELEGANT the voltages need to be compensated
-                    if key == "volt":
-                        if self.structure_type == "TravellingWave":
-                            factor = abs(
-                                (self.get_cells() + 3.8)
-                                * self.cavity.cell_length
-                                * (1 / np.sqrt(2))
-                            )
+                                value = (value / 360.0) * (2 * 3.14159)
+                        elif etype in ("rfdf", "rftm110"):
+                            # elegant's deflectors kick as cos(phase + wt)
+                            value = self._rpn(0, value, "-") if functional else 0 - value
+                        else:
                             value = (
-                                self._rpn(factor, value, "*")
-                                if functional
-                                else factor * value
+                                self._rpn(90, value, "-") if functional else 90 - value
                             )
-                        elif functional:
-                            value = self._elegant_value(value)
-                    elif key == "voltage" and functional:
-                        value = self._elegant_value(value)
-                    # If using rftmez0 or similar
-                    if key == "ez_peak":
+
+                # In ELEGANT the voltages need to be compensated
+                if key == "volt":
+                    if self.structure_type == "TravellingWave":
+                        factor = abs(
+                            (self.get_cells() + 3.8)
+                            * self.cavity.cell_length
+                            * (1 / np.sqrt(2))
+                        )
                         value = (
-                            self._rpn(1e-3 / np.sqrt(2), value, "*", "abs")
+                            self._rpn(factor, value, "*")
                             if functional
-                            else abs(1e-3 / (np.sqrt(2)) * value)
+                            else factor * value
                         )
+                    elif functional:
+                        value = self._elegant_value(value)
+                elif key == "voltage" and functional:
+                    value = self._elegant_value(value)
+                # If using rftmez0 or similar
+                if key == "ez_peak":
+                    value = (
+                        self._rpn(1e-3 / np.sqrt(2), value, "*", "abs")
+                        if functional
+                        else abs(1e-3 / (np.sqrt(2)) * value)
+                    )
 
-                    if key == "wakefile":
-                        value = value
+                if key == "wakefile":
+                    value = value
 
-                    # In CAVITY NKICK = n_cells
-                    if (
-                        key == "n_kicks"
-                        and source_key == "cavity_n_cells"
-                        and self.get_cells() > 1
-                    ):
-                        value = 3 * self.get_cells()
+                if key == "body_focus_model" and not self.length:
+                    continue
+                if (
+                    key == "body_focus_model"
+                    and self.structure_type == "TravellingWave"
+                    and self.tw_focusing
+                ):
+                    value = "TW1"
 
-                    if key == "n_bins" and not functional and value > 0 and self.verbose:
-                        print(
-                            "WARNING: Cavity n_bins is not zero - check log file to ensure correct behaviour!"
-                        )
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    if key not in keys:
-                        # print("elegant cavity", key, value)
-                        tmpstring = ", " + key + " = " + str(value)
-                        # if len(string + tmpstring) > 156:
-                        #     wholestring += string + ",&\n"
-                        #     print(wholestring)
-                        #     string = ""
-                        #     string += tmpstring[2::]
-                        # else:
-                        string += tmpstring
-                    keys.append(key)
-        wholestring += string + ";\n"
+                # In CAVITY NKICK = n_cells
+                if (
+                    key == "n_kicks"
+                    and source_key == "cavity_n_cells"
+                    and self.get_cells() > 1
+                ):
+                    value = 3 * self.get_cells()
+
+                if key == "n_bins" and not functional and value > 0 and self.verbose:
+                    print(
+                        "WARNING: Cavity n_bins is not zero - check log file to ensure correct behaviour!"
+                    )
+                value = 1 if value is True else value
+                value = 0 if value is False else value
+                if key not in keys:
+                    string += f", {key} = {value!s}"
+                keys.append(key)
+        self._warn_dropped_misalignment("elegant", emitted, "tilt" in emitted)
+        wholestring += f"{string};\n"
         return wholestring
 
     def to_ocelot(self) -> object:
@@ -289,41 +352,45 @@ class RFCavityTranslator(BaseElementTranslator):
 
         Returns
         -------
-        tuple
+        object
             Ocelot Cavity object
         """
         from ..conversion_rules.codes import ocelot_conversion
 
-        type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
+        type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
         self.start_write()
         self.generate_field_file_name(
             self.simulation.wakefield_definition, code="astra"
         )
-        obj = type_conversion_rules_Ocelot[self.hardware_type](eid=self.name)
+        obj = type_conversion_rules_ocelot[self.hardware_type](eid=self.name)
+        attributes = ocelot_attributes(type(obj))
+        convert = self._keyword_converter("ocelot")
         for key, value in self.full_dump().items():
             if (
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convertKeyword_Ocelot(key) in obj.__class__().element.__dict__
+                and (value.size > 0 if isinstance(value, np.ndarray) else value)
+                and convert(key) in attributes
             ):
-                if value:
-                    key = self._convertKeyword_Ocelot(key).lower()
-                    if self.hardware_type in ["RFCavity", "RFDeflectingCavity"]:
-                        if key == "v":
-                            if self.structure_type == "TravellingWave":
-                                value = (
-                                    value
-                                    * 1e-9
-                                    * abs(
-                                        (self.get_cells() + 3.8)
-                                        * self.cavity.cell_length
-                                        * (1 / np.sqrt(2))
-                                    )
+                key = convert(key).lower()
+                if self.hardware_type in ["RFCavity", "RFDeflectingCavity"]:
+                    if key == "v":
+                        if self.structure_type == "TravellingWave":
+                            value = (
+                                value
+                                * 1e-9
+                                * abs(
+                                    (self.get_cells() + 3.8)
+                                    * self.cavity.cell_length
+                                    * (1 / np.sqrt(2))
                                 )
-                            else:
-                                value = value * 1e-9
-                    setattr(obj, key, value)
+                            )
+                        else:
+                            value = value * 1e-9
+                setattr(obj, key, value)
+        if not obj.l:
+            obj.l = 1e-9
         return obj
 
     def to_cheetah(self) -> object:
@@ -332,15 +399,16 @@ class RFCavityTranslator(BaseElementTranslator):
 
         Returns
         -------
-        tuple
+        object
             Cheetah Cavity object
         """
-        from ..conversion_rules.codes import cheetah_conversion
-        from torch import tensor, float64
+        from torch import float64, tensor
 
-        type_conversion_rules_Cheetah = cheetah_conversion.cheetah_conversion_rules
+        from ..conversion_rules.codes import cheetah_conversion
+
+        type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_Cheetah[self.hardware_type](
+        obj = type_conversion_rules_cheetah[self.hardware_type](
             name=self.name,
             length=tensor(self.physical.length, dtype=float64),
             sanitize_name=True,
@@ -350,9 +418,9 @@ class RFCavityTranslator(BaseElementTranslator):
         )._buffers
         for key, value in self.full_dump().items():
             if (key not in ["name", "type", "commandtype"]) and (
-                self._convertKeyword_Cheetah(key) in buffers
+                self._convert_keyword_cheetah(key) in buffers
             ):
-                key = self._convertKeyword_Cheetah(key)
+                key = self._convert_keyword_cheetah(key)
                 value = (
                     getattr(self, key)
                     if hasattr(self, key) and getattr(self, key) is not None
@@ -370,17 +438,21 @@ class RFCavityTranslator(BaseElementTranslator):
                 if isinstance(value, float):
                     dt = float64
                     setattr(
-                        obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
+                        obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
                 elif isinstance(value, int):
                     from torch import int64
 
                     dt = int64
                     setattr(
-                        obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
+                        obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
         if hasattr(obj, "cavity_type"):
-            obj.cavity_type = "standing_wave"
+            if self.cavity.structure_type == "TravellingWave" and self.tw_focusing:
+                obj.cavity_type = "traveling_wave"
+            else:
+                obj.cavity_type = "standing_wave"
+        self._cheetah_float64(obj)
         return obj
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
@@ -406,74 +478,52 @@ class RFCavityTranslator(BaseElementTranslator):
         field_file_name = self.generate_field_file_name(
             self.simulation.field_definition, code="astra"
         )
-        efield_def = [
-            "FILE_EFieLD",
-            {"value": "'" + field_file_name + "'", "default": ""},
-        ]
-        return self._write_ASTRA_dictionary(
-            dict(
-                [
-                    ["C_pos", {"value": field_ref_pos[2] + self.dz, "default": 0}],
-                    efield_def,
-                    ["C_numb", {"value": self.get_cells()}],
-                    [
-                        "Nue",
-                        {
-                            "value": float(self.cavity.frequency) / 1e9,
-                            "default": 2998.5,
-                        },
-                    ],
-                    [
-                        "MaxE",
-                        {
-                            "value": float(self.field_amplitude) / 1e6,
-                            "default": 0,
-                        },
-                    ],
-                    ["Phi", {"value": crest - self.phase, "default": 0.0}],
-                    ["C_smooth", {"value": self.simulation.smooth, "default": None}],
-                    [
-                        "C_xoff",
-                        {
-                            "value": field_ref_pos[0] + self.dx,
-                            "default": None,
-                            "type": "not_zero",
-                        },
-                    ],
-                    [
-                        "C_yoff",
-                        {
-                            "value": field_ref_pos[1] + self.dy,
-                            "default": None,
-                            "type": "not_zero",
-                        },
-                    ],
-                    [
-                        "C_xrot",
-                        {
-                            "value": self.x_rot + self.dx_rot,
-                            "default": None,
-                            "type": "not_zero",
-                        },
-                    ],
-                    [
-                        "C_yrot",
-                        {
-                            "value": self.y_rot + self.dy_rot,
-                            "default": None,
-                            "type": "not_zero",
-                        },
-                    ],
-                    [
-                        "C_zrot",
-                        {
-                            "value": self.z_rot + self.dz_rot,
-                            "default": None,
-                            "type": "not_zero",
-                        },
-                    ],
-                ]
-            ),
+        if field_file_name is None:
+            raise ValueError(
+                f"{self.name}: ASTRA cavities need a field map "
+                "(simulation.field_definition)."
+            )
+        return self._write_astra_dictionary(
+            {
+                "C_pos": {"value": field_ref_pos[2] + self.dz, "default": 0},
+                "FILE_EFieLD": {"value": f"'{field_file_name}'", "default": ""},
+                "C_numb": {"value": self.get_cells()},
+                "Nue": {
+                    "value": float(self.cavity.frequency) / 1e9,
+                    "default": 2998.5,
+                },
+                "MaxE": {
+                    "value": float(self.field_amplitude) / 1e6,
+                    "default": 0,
+                },
+                "Phi": {"value": crest - self.phase, "default": 0.0},
+                "C_smooth": {"value": self.simulation.smooth, "default": None},
+                "C_xoff": {
+                    "value": field_ref_pos[0] + self.dx,
+                    "default": None,
+                    "type": "not_zero",
+                },
+                "C_yoff": {
+                    "value": field_ref_pos[1] + self.dy,
+                    "default": None,
+                    "type": "not_zero",
+                },
+                "C_xrot": {
+                    "value": self._astra_rotation("x"),
+                    "default": None,
+                    "type": "not_zero",
+                },
+                "C_yrot": {
+                    "value": self._astra_rotation("y"),
+                    "default": None,
+                    "type": "not_zero",
+                },
+                "C_zrot": {
+                    "value": self._astra_rotation("z"),
+                    "default": None,
+                    "type": "not_zero",
+                },
+            },
             n,
         )
 
@@ -493,18 +543,22 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         from ..conversion_rules.codes import xsuite_conversion
 
-        type_conversion_rules_Xsuite = xsuite_conversion.xsuite_conversion_rules
+        type_conversion_rules_xsuite = xsuite_conversion.xsuite_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_Xsuite[self.hardware_type]
+        obj = type_conversion_rules_xsuite[self.hardware_type]
         properties = {}
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (key not in ["name", "type", "commandtype"]) and (
-                self._convertKeyword_Xsuite(key) in list(obj.__dict__.keys())
+                self._convert_keyword_xsuite(key) in list(obj.__dict__.keys())
             ):
-                key = self._convertKeyword_Xsuite(key)
+                key = self._convert_keyword_xsuite(key)
                 functional = self.is_functional(value)
-                if key == "phase" and not functional:
-                    value = np.radians(90 - value)
+                if key == "phase":
+                    value = (
+                        f"(90 - ({value})) * {np.pi / 180}"
+                        if functional
+                        else np.radians(90 - value)
+                    )
                 if key == "voltage" and not functional:
                     if self.structure_type == "TravellingWave":
                         value = value * abs(
@@ -514,9 +568,10 @@ class RFCavityTranslator(BaseElementTranslator):
                         )
                     else:
                         value = value
-                if key == "num_kicks" and self.get_cells() > 1:
+                if key == "num_kicks" and value is None and self.get_cells() > 1:
                     value = 3 * self.get_cells()
-                properties.update({key: value})
+                if value is not None:
+                    properties.update({key: value})
         return self.name, obj, properties
 
     def to_bdsim(
@@ -567,7 +622,7 @@ class RFCavityTranslator(BaseElementTranslator):
         ``lag = (90 - phase) / 360`` -- the same +90 degree convention used for
         ELEGANT, expressed as a fraction of 360 degrees rather than degrees.
 
-        A travelling-wave cavity (``cavity.structure_Type == "TravellingWave"``)
+        A travelling-wave cavity (``cavity.structure_type == "TravellingWave"``)
         is written as a MAD-X ``TWCAVITY`` rather than the standing-wave
         ``RFCAVITY``.
 
@@ -583,52 +638,39 @@ class RFCavityTranslator(BaseElementTranslator):
             String representation of the element for MAD-X
         """
         self.start_write()
-        etype = self._convertType_Madx(self.hardware_type)
-        if self.structure_type == "TravellingWave" and etype == "rfcavity":
-            etype = "twcavity"
-        string = sanitize_string(self.name) + ": " + etype
-        for key, value in self.full_dump(resolve=self._resolve_functional).items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convertKeyword_Madx(key, updated_type=self.hardware_type)
-                in elements_Madx[etype]
-            ):
-                if value is not None:
-                    key = self._convertKeyword_Madx(
-                        key, updated_type=self.hardware_type
+        etype = self._convert_type_madx(self.hardware_type)
+        string = f"{sanitize_string(self.name)}: {etype}"
+        for key, value in self._dump_items(
+            self._convert_keyword_madx,
+            elements_madx[etype],
+            resolve=self._resolve_functional,
+            unique=False,
+        ):
+            functional = self.is_functional(value) and not self._resolve_functional
+            if key == "lag":
+                value = (
+                    f"(90 - ({value})) / 360" if functional else (90 - value) / 360.0
+                )
+            if key == "volt":
+                if self.structure_type == "TravellingWave":
+                    factor = abs(
+                        (self.get_cells() + 3.8)
+                        * self.cavity.cell_length
+                        * (1 / np.sqrt(2))
                     )
-                    functional = self.is_functional(value) and not self._resolve_functional
-                    deferred = functional
-                    if key == "lag":
-                        value = (
-                            f"(90 - ({value})) / 360"
-                            if functional
-                            else (90 - value) / 360.0
-                        )
-                    if key == "volt":
-                        if self.structure_type == "TravellingWave":
-                            factor = abs(
-                                (self.get_cells() + 3.8)
-                                * self.cavity.cell_length
-                                * (1 / np.sqrt(2))
-                            )
-                        else:
-                            factor = 1.0
-                        value = (
-                            f"({value}) * {factor / 1e6}"
-                            if functional
-                            else factor * value / 1e6
-                        )
-                    if key == "freq" and not functional:
-                        value = value / 1e6
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    string += f", {key} {':=' if deferred else '='} {value}"
+                else:
+                    factor = 1.0
+                value = (
+                    f"({value}) * {factor / 1e6}"
+                    if functional
+                    else factor * value / 1e6
+                )
+            if key == "freq" and not functional:
+                value = value / 1e6
+            string += f", {key} {':=' if functional else '='} {self._flag(value)}"
         if at is not None:
             string += f", at = {at}"
-        return string + ";\n"
+        return f"{string};\n"
 
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
         """
@@ -647,43 +689,25 @@ class RFCavityTranslator(BaseElementTranslator):
             A formatted string representing the object's properties in OPAL format.
         """
         self.start_write()
-        etype = self._convertType_Opal(self.hardware_type)
+        etype = self._convert_type_opal(self.hardware_type)
         if self.structure_type == "TravellingWave":
             etype = "travelingwave"
-        wholestring = self.name.replace("-", "_") + ": " + etype
-        field_file_name = self.generate_field_file_name(
-            self.simulation.field_definition, code="opal"
-        )
+        wholestring = f"{self.name.replace('-', '_')}: {etype}"
         if etype.lower() == "drift" or self.simulation.field_definition is None:
             return ""
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convertKeyword_Opal(key) in elements_Opal[etype]
-            ):
-                if value is not None:
-                    key = self._convertKeyword_Opal(key)
-                    if key == "lag":
-                        value = -value * np.pi / 180
-                    if key == "freq":
-                        value = value / 1e6
-                    if key == "volt":
-                        value = value / 1e6
-                    val = 1 if value is True else value
-                    val = 0 if value is False else val
-                    if val is not None:
-                        tmpstring = ", " + key + " = " + str(val)
-                        wholestring += tmpstring
-        if isinstance(self.simulation.field_definition, field):
-            wholestring += (
-                ', fmapfn = "'
-                + self.generate_field_file_name(
-                    self.simulation.field_definition, code="opal"
-                )
-                + '"'
-            )
+        for key, value in self._dump_items(
+            self._convert_keyword_opal,
+            elements_opal[etype],
+            unique=False,
+            overrides=self._opal_alignment(),
+        ):
+            if key == "lag":
+                value = -value * np.pi / 180
+            if key in ("freq", "volt"):
+                value = value / 1e6
+            wholestring += f", {key} = {self._flag(value)}"
+        if isinstance(self.simulation.field_definition, FieldMap):
+            wholestring += f', fmapfn = "{self.generate_field_file_name(self.simulation.field_definition, code="opal")}"'
             if self.structure_type == "TravellingWave":
                 mode = float(self.simulation.field_definition.mode_numerator) / float(
                     self.simulation.field_definition.mode_denominator
@@ -754,67 +778,16 @@ class RFCavityTranslator(BaseElementTranslator):
         output = ""
         if field_file_name is not None:
             output = (
-                "f"
-                + subname
-                + " = "
-                + str(self.cavity.frequency)
-                + ";\n"
-                + "w"
-                + subname
-                + " = 2*pi*f"
-                + subname
-                + ";\n"
-                + "phi"
-                + subname
-                + " = "
-                + str((self.cavity.crest + 90 - self.phase + 0) % 360.0)
-                + "/deg;\n"
+                f"f{subname} = {self.cavity.frequency!s};\n"
+                f"w{subname} = 2*pi*f{subname};\n"
+                f"phi{subname} = {(self.cavity.crest + 90 - self.phase + 0) % 360.0!s}/deg;\n"
             )
             if self.structure_type == "TravellingWave":
-                output += (
-                    "ffac"
-                    + subname
-                    + " = 1.007 * "
-                    + str((9.0 / (2.0 * np.pi)) * self.field_amplitude)
-                    + ";\n"
-                )
+                output += f"ffac{subname} = 1.007 * {9.0 / (2.0 * np.pi) * self.field_amplitude!s};\n"
             else:
-                output += (
-                    "ffac"
-                    + subname
-                    + " = "
-                    + str(self.field_amplitude)
-                    + ";\n"
-                )
+                output += f"ffac{subname} = {self.field_amplitude!s};\n"
 
-            # if False and self.Structure_Type == 'TravellingWave' and hasattr(self, 'attenuation_constant') and hasattr(self, 'shunt_impedance') and hasattr(self, 'design_power') and hasattr(self, 'design_gamma'):
-            #     '''
-            #     trwlinac(ECS,ao,Rs,Po,P,Go,thetao,phi,w,L)
-            #     '''
-            #     relpos, relrot = ccs.relative_position(self.middle, self.global_rotation)
-            #     power = float(self.field_amplitude) / 25e6 * float(self.design_power)
-            #     output += 'trwlinac' + '( ' + ccs.name + ', "z", '+ str(relpos[2]+self.coupling_cell_length) + ', ' + str(self.attenuation_constant / self.length) + ', ' + str(float(self.shunt_impedance) / self.length)\
-            #             + ', ' + str(float(self.design_power) / self.length) + ', ' + str(power / self.length) + ', ' + str(1000/0.511) + ', ' + str(self.crest)\
-            #             + ', '+str(self.phase)+', w'+subname+', ' + str(self.length) + ');\n'
-            # else:
-            output += (
-                "map1D_TM"
-                + '("'
-                + self.ccs.name
-                + '", '
-                + ccs_label
-                + ", "
-                + value_text
-                + ', "'
-                + str(field_file_name)
-                + '", "z", "Ez", ffac'
-                + subname
-                + ", phi"
-                + subname
-                + ", w"
-                + subname
-                + ");\n"
-            )
+            output += f'map1D_TM("{self.ccs.name}", {ccs_label}, {value_text}, "{field_file_name!s}", "z", "Ez", ffac{subname}, phi{subname}, w{subname});\n'
         else:
             output = ""
         return output

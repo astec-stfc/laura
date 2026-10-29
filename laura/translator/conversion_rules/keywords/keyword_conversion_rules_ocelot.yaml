@@ -2,7 +2,8 @@ general:
   length: l
   entrance_edge_angle: e1
   exit_edge_angle: e2
-  edge_field_integral: fint
+  edge_field_integral_entrance: fint
+  edge_field_integral_exit: fintx
   half_gap: gap
   horizontal_size: x_max
   vertical_size: y_max

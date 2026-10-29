@@ -47,7 +47,7 @@ bash laura/schema/generate.sh
 | `generated/laura_ontology.owl` | `gen-owl` | OWL ontology for Protégé / reasoners |
 | `generated/laura_context.jsonld` | `gen-jsonld-context` | JSON-LD context for linked-data export |
 | `generated/laura_shacl.ttl` | `gen-shacl` | SHACL shapes for RDF validation |
-| `generated/laura_orm.py` | `generate_orm.py` | SQLAlchemy ORM used by `laura.Exporters.SQL` |
+| `generated/laura_orm.py` | `generate_orm.py` | SQLAlchemy ORM used by `laura.exporters.SQL` |
 | `generated/laura_schema.sql` | `gen-sqltables` | Plain SQL DDL |
 | `generated/laura_schema.graphql` | `gen-graphql` | GraphQL schema |
 | `generated/laura_types.ts` | `gen-typescript` | TypeScript types |
@@ -55,10 +55,9 @@ bash laura/schema/generate.sh
 | `generated/element-er-auto.md` | `gen-erdiagram` | Auto-generated ER skeleton (incomplete for multi-file schemas) |
 | `docs/source/Architecture/element-er.md` | *hand-maintained* | Full Mermaid `classDiagram` of the element hierarchy |
 
-`gen-doc` writes but never prunes, so the generation scripts clear
-`docs/source/schema/*.md` before running it — a renamed class would otherwise
-leave its old page behind for the Sphinx build to pick up. Do not put anything
-hand-written in that directory.
+`docs/source/schema/` is not committed: `docs/source/conf.py` regenerates it on
+every Sphinx build through `postprocess_docs.generate`, which clears the
+directory first. Do not put anything hand-written in it.
 
 ## Using validation in Python
 
@@ -66,9 +65,9 @@ Pass `validate=True` to any YAML loading function to check the raw YAML
 against the JSON Schema before Pydantic parsing:
 
 ```python
-from laura.Importers.YAML_Loader import read_YAML_Element_File
+from laura.importers.yaml_loader import read_yaml_element_file
 
-element = read_YAML_Element_File("path/to/element.yaml", validate=True)
+element = read_yaml_element_file("path/to/element.yaml", validate=True)
 ```
 
 The JSON Schema file (`generated/laura_element.schema.json`) must exist

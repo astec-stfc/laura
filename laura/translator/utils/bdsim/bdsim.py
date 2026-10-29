@@ -157,6 +157,8 @@ def element_aperture_params(aperture) -> dict:
     if aperture is None:
         return {}
     shape = getattr(aperture, "shape", None)
+    # gmad has no planar type; LAURA treats it as rectangular everywhere else
+    shape = "rectangular" if shape == "planar" else shape
     radius = getattr(aperture, "radius", None)
     horizontal = getattr(aperture, "horizontal_size", None)
     vertical = getattr(aperture, "vertical_size", None)

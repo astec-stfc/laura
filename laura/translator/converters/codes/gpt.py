@@ -1,6 +1,10 @@
-from pydantic import BaseModel, ConfigDict, computed_field
 from typing import List
+
 import numpy as np
+from pydantic import BaseModel, ConfigDict, computed_field
+
+from laura._compat import DeprecatedMethodAliases
+
 from ...utils.classes import get_grid_size
 from ...utils.functions import chop
 
@@ -16,78 +20,33 @@ gpt_unsupported = [
     "CrabCavity",
 ]
 
-def orthonormalize(M):
-    """
-    Enforce orthonormal rotation matrix using Gram-Schmidt.
-    """
 
-    x = M[:, 0]
-    y = M[:, 1]
-
-    x = x / np.linalg.norm(x)
-
-    y = y - np.dot(x, y) * x
-    y = y / np.linalg.norm(y)
-
-    z = np.cross(x, y)
-
-    return np.column_stack((x, y, z))
-
-def Rx(a):
+def Rx(a):  # noqa N806
     c, s = np.cos(a), np.sin(a)
-    return np.array([
-        [1, 0, 0],
-        [0, c, -s],
-        [0, s,  c]
-    ])
+    return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
 
 
-def Ry(a):
+def Ry(a):  # noqa N806
     c, s = np.cos(a), np.sin(a)
-    return np.array([
-        [ c, 0, s],
-        [ 0, 1, 0],
-        [-s, 0, c]
-    ])
+    return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
 
 
-def Rz(a):
+def Rz(a):  # noqa N806
     c, s = np.cos(a), np.sin(a)
-    return np.array([
-        [c, -s, 0],
-        [s,  c, 0],
-        [0,  0, 1]
-    ])
+    return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
 
 
 def euler_to_matrix(psi, phi, theta):
     """
-    Consistent with GPT right-handed convention.
-    Using intrinsic X→Y→Z (adjust if needed).
+    Rotation matrix ``Rz(theta) @ Ry(phi) @ Rx(psi)`` (GPT right-handed convention).
     """
     return Rz(theta) @ Ry(phi) @ Rx(psi)
 
-def matrix_to_euler(M):
-    """
-    Inverse of:
-    M = Rz(theta) @ Ry(phi) @ Rx(psi)
-    Returns psi, phi, theta
-    """
 
-    phi = np.arcsin(-M[2,0])
-
-    if abs(np.cos(phi)) > 1e-12:
-        psi   = np.arctan2(M[2,1], M[2,2])
-        theta = np.arctan2(M[1,0], M[0,0])
-    else:
-        # Gimbal lock fallback
-        psi   = 0.0
-        theta = np.arctan2(-M[0,1], M[1,1])
-
-    return psi, phi, theta
-
-
-class gpt_ccs(BaseModel):
+class GptCcs(DeprecatedMethodAliases, BaseModel):
+    _DEPRECATED_METHOD_ALIASES = {
+        "M": "rotation_matrix",
+    }
 
     model_config = ConfigDict(
         extra="allow",
@@ -111,14 +70,14 @@ class gpt_ccs(BaseModel):
         return np.array(self.position)
 
     @property
-    def M(self):
+    def rotation_matrix(self):
         """Rotation matrix of this CCS (ECS→parent)."""
         psi, phi, theta = self.rotation
         return euler_to_matrix(psi, phi, theta)
 
     @property
     def name_as_str(self):
-        return '"' + self.name + '"'
+        return f'"{self.name}"'
 
     # ----------------------------
     # Proper rigid-body transform
@@ -164,44 +123,41 @@ class gpt_ccs(BaseModel):
         finalpos = np.array([0, 0, abs(self.intersect) + length])
         return finalpos, finalrot
 
-    @property
-    def name_as_str(self):
-        return '"' + self.name + '"'
-
-    def ccs_text(self, position, rotation):
+    def ccs_text(self, position, rotation, offset=(0.0, 0.0, 0.0)):
         finalpos, finalrot = self.relative_position(position, rotation)
+        finalpos = finalpos + np.asarray(offset)
         x, y, z = finalpos
         psi, phi, theta = finalrot
         ccs_label = ""
         value_text = ""
         if abs(x) > 0:
             ccs_label += "x"
-            value_text += "," + str(x)
+            value_text += f",{x!s}"
         if abs(y) > 0:
             ccs_label += "y"
-            value_text += "," + str(y)
+            value_text += f",{y!s}"
         if abs(z) > 0:
             ccs_label += "z"
-            value_text += "," + str(z)
+            value_text += f",{z!s}"
         if abs(psi) > 0:
             ccs_label += "X"
-            value_text += "," + str(psi)
+            value_text += f",{psi!s}"
         if abs(phi) > 0:
             ccs_label += "Y"
-            value_text += "," + str(phi)
+            value_text += f",{phi!s}"
         if abs(theta) > 0:
             ccs_label += "Z"
-            value_text += "," + str(theta)
+            value_text += f",{theta!s}"
         if ccs_label == "" and value_text == "":
             ccs_label = "z"
-            value_text = "," + str(0)
-        return '"' + ccs_label + '"', value_text.strip(",")
+            value_text = f",{0!s}"
+        return f'"{ccs_label}"', value_text.strip(",")
 
+    @staticmethod
     def gpt_coordinates(
-            self,
-            position: list | np.ndarray,
-            angle: float = 0.0,
-            tilt: float = 0.0,
+        position: list | np.ndarray,
+        angle: float = 0.0,
+        tilt: float = 0.0,
     ) -> str:
         """
         Get the GPT coordinates for a given position and rotation
@@ -210,8 +166,10 @@ class gpt_ccs(BaseModel):
         ----------
         position: list | np.ndarray
             The lattice position.
-        rotation: float
-            The element rotation
+        angle: float
+            The angle of the element
+        tilt: float
+            The tilt of the element
 
         Returns
         -------
@@ -221,136 +179,23 @@ class gpt_ccs(BaseModel):
         x, y, z = chop(position, 1e-6)
         output = ""
         for c in [-x, y, z]:
-            output += str(c) + ", "
-        if np.isclose(tilt, np.pi/2):
+            output += f"{c!s}, "
+        angle = -angle
+        if np.isclose(tilt, np.pi / 2):
             output += f"0, cos({angle}), -sin({angle}), -sin({tilt}), cos({tilt}) ,0"
         else:
             output += f"cos({angle}), 0, -sin({angle}), -sin({tilt}), cos({tilt}) ,0"
         return output
 
 
-#
-# class gpt_ccs(BaseModel):
-#
-#     model_config = ConfigDict(
-#         extra="allow",
-#         arbitrary_types_allowed=True,
-#         validate_assignment=True,
-#         populate_by_name=True,
-#     )
-#
-#     name: str
-#
-#     position: List[float] = [0.0, 0.0, 0.0]
-#
-#     rotation: List[float] = [0.0, 0.0, 0.0]
-#
-#     intersect: float = 0.0
-#
-#     @computed_field
-#     @property
-#     def psi(self) -> float:
-#         return self.rotation[0]
-#
-#     @computed_field
-#     @property
-#     def phi(self) -> float:
-#         return self.rotation[1]
-#
-#     @computed_field
-#     @property
-#     def theta(self) -> float:
-#         return self.rotation[2]
-#
-#     @computed_field
-#     @property
-#     def x(self) -> float:
-#         return self.position[0]
-#
-#     @computed_field
-#     @property
-#     def y(self) -> float:
-#         return self.position[1]
-#
-#     @computed_field
-#     @property
-#     def z(self) -> float:
-#         return self.position[2]
-#
-#     def relative_position(
-#         self, position: np.ndarray | list, rotation: np.ndarray | list
-#     ) -> tuple:
-#         x, y, z = position
-#         pitch, yaw, roll = rotation
-#         length = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2 + (z - self.z) ** 2)
-#         finalrot = np.array([pitch - self.psi, yaw - self.phi, roll - self.theta])
-#         finalpos = np.array([0, 0, abs(self.intersect) + length])
-#         return finalpos, finalrot
-#
-#     @property
-#     def name_as_str(self):
-#         return '"' + self.name + '"'
-#
-#     def ccs_text(self, position, rotation):
-#         finalpos, finalrot = self.relative_position(position, rotation)
-#         x, y, z = finalpos
-#         psi, phi, theta = finalrot
-#         ccs_label = ""
-#         value_text = ""
-#         if abs(x) > 0:
-#             ccs_label += "x"
-#             value_text += "," + str(x)
-#         if abs(y) > 0:
-#             ccs_label += "y"
-#             value_text += "," + str(y)
-#         if abs(z) > 0:
-#             ccs_label += "z"
-#             value_text += "," + str(z)
-#         if abs(psi) > 0:
-#             ccs_label += "X"
-#             value_text += "," + str(psi)
-#         if abs(phi) > 0:
-#             ccs_label += "Y"
-#             value_text += "," + str(phi)
-#         if abs(theta) > 0:
-#             ccs_label += "Z"
-#             value_text += "," + str(theta)
-#         if ccs_label == "" and value_text == "":
-#             ccs_label = "z"
-#             value_text = "," + str(0)
-#         return '"' + ccs_label + '"', value_text.strip(",")
-#
-#     def gpt_coordinates(
-#         self, position: list | np.ndarray, rotation: list | np.ndarray
-#     ) -> str:
-#         """
-#         Get the GPT coordinates for a given position and rotation
-#
-#         Parameters
-#         ----------
-#         position: list | np.ndarray
-#             The lattice position.
-#         rotation: float
-#             The element rotation
-#
-#         Returns
-#         -------
-#         str
-#             A GPT-formatted position string.
-#         """
-#         x, y, z = chop(position, 1e-6)
-#         psi, phi, theta = rotation
-#         output = ""
-#         for c in [-x, y, z]:
-#             output += str(c) + ", "
-#         output += "cos(" + str(theta) + "), 0, -sin(" + str(theta) + "), 0, 1 ,0"
-#         return output
-
-
-class gpt_element(BaseModel):
+class GptElement(DeprecatedMethodAliases, BaseModel):
     """
     Generic class for generating headers for GPT.
     """
+
+    _DEPRECATED_METHOD_ALIASES = {
+        "write_GPT": "write_gpt",
+    }
 
     model_config = ConfigDict(
         extra="allow",
@@ -365,27 +210,26 @@ class gpt_element(BaseModel):
 
     exclude: List = ["exclude", "objectname", "objecttype", "particle_definition"]
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         """
-        Write the text for the GPT namelist based on its
-        :attr:`~objectdefaults`, :attr:`~objectname`.
+        Write ``objectname(value, ...);`` from the non-excluded fields.
 
         Returns
         -------
         str
             GPT-compatible string representing the namelist
         """
-        output = str(self.objectname) + "("
+        output = f"{self.objectname!s}("
         for key, val in self.model_dump().items():
             if key not in self.exclude and val is not None:
                 k = key.lower()
-                output += str(getattr(self, k)) + ", "
+                output += f"{getattr(self, k)!s}, "
         output = output[:-2]
         output += ");\n"
         return output
 
 
-class gpt_setfile(gpt_element):
+class GptSetFile(GptElement):
     """
     Class for setting filenames in GPT via `setfile`.
     """
@@ -413,7 +257,7 @@ class gpt_setfile(gpt_element):
         self.exclude.extend(["time"])
 
 
-class gpt_charge(gpt_element):
+class GptCharge(GptElement):
     """
     Class for generating the `settotalcharge` namelist for GPT.
     """
@@ -430,14 +274,14 @@ class gpt_charge(gpt_element):
     objecttype: str = "gpt_charge"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
-        output = str(self.objectname) + "("
-        output += str(self.set) + ","
-        output += str(-1 * abs(self.charge)) + ");\n"
+    def write_gpt(self, *args, **kwargs) -> str:
+        output = f"{self.objectname!s}("
+        output += f"{self.set!s},"
+        output += f"{-1 * abs(self.charge)!s});\n"
         return output
 
 
-class gpt_setreduce(gpt_element):
+class GptSetReduce(GptElement):
     """
     Class for reducing the number of particles via `setreduce`.
 
@@ -455,14 +299,14 @@ class gpt_setreduce(gpt_element):
     objecttype: str = "gpt_setreduce"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
-        output = str(self.objectname) + "("
-        output += str(self.set) + ","
-        output += str(self.setreduce) + ");\n"
+    def write_gpt(self, *args, **kwargs) -> str:
+        output = f"{self.objectname!s}("
+        output += f"{self.set!s},"
+        output += f"{self.setreduce!s});\n"
         return output
 
 
-class gpt_accuracy(gpt_element):
+class GptAccuracy(GptElement):
     """
     Class for setting the accuracy of tracking via `accuracy` in GPT.
     """
@@ -476,14 +320,12 @@ class gpt_accuracy(gpt_element):
     accuracy: int = 6
     """Accuracy for GPT tracking"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
-        output = (
-            "accuracy(" + str(self.accuracy) + ");\n"
-        )  # 'setrmacrodist(\"beam\","u",1e-9,0) ;\n'
+    def write_gpt(self, *args, **kwargs) -> str:
+        output = f"accuracy({self.accuracy!s});\n"  # 'setrmacrodist(\"beam\","u",1e-9,0) ;\n'
         return output
 
 
-class gpt_spacecharge(gpt_element):
+class GptSpaceCharge(GptElement):
     """
     Class for preparing space charge calculations in GPT via `spacecharge`.
     """
@@ -507,8 +349,35 @@ class gpt_spacecharge(gpt_element):
         super().model_post_init(__context)
         self.exclude.extend(["cathode", "ngrids", "space_charge_mode"])
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def space_charge_enabled(self) -> bool:
+        """
+        Whether space charge should be written at all.
+
+        ``space_charge_mode`` is a string, so spellings such as ``"None"`` and
+        ``"off"`` must count as off rather than as truthy.
+
+        Returns
+        -------
+        bool
+            True if space charge is requested.
+        """
+        mode = self.space_charge_mode
+        if mode is None or mode is False:
+            return False
+        if isinstance(mode, str) and mode.strip().lower() in (
+            "",
+            "none",
+            "false",
+            "off",
+            "0",
+        ):
+            return False
+        return True
+
+    def write_gpt(self, *args, **kwargs) -> str:
         output = ""
+        if not self.space_charge_enabled():
+            return output
         if isinstance(self.space_charge_mode, str) and self.cathode:
             if self.ngrids is None:
                 self.ngrids = get_grid_size(self.npart / self.sample_interval)
@@ -528,7 +397,7 @@ class gpt_spacecharge(gpt_element):
         return output
 
 
-class gpt_tout(gpt_element):
+class GptTout(GptElement):
     """
     Class for setting up the beam dump rate via `tout`.
     """
@@ -551,19 +420,19 @@ class gpt_tout(gpt_element):
     objecttype: str = "gpt_tout"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         self.starttime = 0 if self.starttime < 0 else self.starttime
-        output = str(self.objectname) + "("
+        output = f"{self.objectname!s}("
         if self.starttime is not None:
-            output += str(self.starttime) + ","
+            output += f"{self.starttime!s},"
         else:
-            output += str(self.startpos) + "/c,"
-        output += str(self.endpos) + ","
-        output += str(self.step) + ");\n"
+            output += f"{self.startpos!s}/c,"
+        output += f"{self.endpos!s},"
+        output += f"{self.step!s});\n"
         return output
 
 
-class gpt_csr1d(gpt_element):
+class GptCsr1D(GptElement):
     """
     Class for preparing CSR calculations via `csr1d`.
     """
@@ -574,12 +443,19 @@ class gpt_csr1d(gpt_element):
     objecttype: str = "gpt_csr1d"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
-        output = str(self.objectname) + "();\n"
+    options: list = []
+    """Flat sequence of ``csr1d`` name/value pairs, e.g.
+    ``["MinCurvature", 2.0, "Points", 400]``."""
+
+    def write_gpt(self, *args, **kwargs) -> str:
+        args_text = ", ".join(
+            f'"{o}"' if isinstance(o, str) else repr(o) for o in self.options
+        )
+        output = f"{self.objectname!s}({args_text});\n"
         return output
 
 
-class gpt_writefloorplan(gpt_element):
+class GptWriteFloorPlan(GptElement):
     """
     Class for writing the lattice floor plan via `writefloorplan`.
     """
@@ -593,12 +469,12 @@ class gpt_writefloorplan(gpt_element):
     objecttype: str = "gpt_writefloorplan"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
-        output = str(self.objectname) + "(" + self.filename + ");\n"
+    def write_gpt(self, *args, **kwargs) -> str:
+        output = f"{self.objectname!s}({self.filename});\n"
         return output
 
 
-class gpt_Zminmax(gpt_element):
+class GptZMinMax(GptElement):
     """
     Class for setting the boundaries in z for discarding particles via `Zminmax`
     """
@@ -618,21 +494,12 @@ class gpt_Zminmax(gpt_element):
     objecttype: str = "gpt_Zminmax"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs):
-        output = (
-            str(self.objectname)
-            + "("
-            + self.ECS
-            + ", "
-            + str(self.zmin)
-            + ", "
-            + str(self.zmax)
-            + ");\n"
-        )
+    def write_gpt(self, *args, **kwargs):
+        output = f"{self.objectname!s}({self.ECS}, {self.zmin!s}, {self.zmax!s});\n"
         return output
 
 
-class gpt_forwardscatter(gpt_element):
+class GptForwardScatter(GptElement):
     """
     Class for scattering particles via `forwardscatter`.
     """
@@ -655,21 +522,14 @@ class gpt_forwardscatter(gpt_element):
     objecttype: str = "gpt_forwardscatter"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         output = (
-            str(self.objectname)
-            + "("
-            + self.ECS
-            + ', "'
-            + str(self.name)
-            + '", '
-            + str(self.probability)
-            + ");\n"
+            f'{self.objectname!s}({self.ECS}, "{self.name!s}", {self.probability!s});\n'
         )
         return output
 
 
-class gpt_scatterplate(gpt_element):
+class GptScatterPlate(GptElement):
     """
     Class for scattering particles off a plate via `scatterplate`.
     """
@@ -698,25 +558,14 @@ class gpt_scatterplate(gpt_element):
     objecttype: str = "gpt_scatterplate"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
-        output = (
-            str(self.objectname)
-            + "("
-            + self.ECS
-            + ", "
-            + str(self.a)
-            + ", "
-            + str(self.b)
-            + ') scatter="'
-            + str(self.model)
-            + '";\n'
-        )
+    def write_gpt(self, *args, **kwargs) -> str:
+        output = f'{self.objectname!s}({self.ECS}, {self.a!s}, {self.b!s}) scatter="{self.model!s}";\n'
         return output
 
 
-class gpt_dtmaxt(gpt_element):
+class GptDtMaxT(GptElement):
     """
-    Class for setting up minimum, maximmum temporal step sizes for tracking via `dtmaxt`.
+    Class for setting the maximum temporal step size between two times via `dtmaxt`.
     """
 
     tend: float = 0.0
@@ -734,27 +583,20 @@ class gpt_dtmaxt(gpt_element):
     objecttype: str = "gpt_dtmaxt"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         output = (
-            str(self.objectname)
-            + "("
-            + str(self.tstart)
-            + ", "
-            + str(self.tend)
-            + ", "
-            + str(self.dtmax)
-            + ");\n"
+            f"{self.objectname!s}({self.tstart!s}, {self.tend!s}, {self.dtmax!s});\n"
         )
         return output
 
 
-class gpt_dtmint(gpt_element):
+class GptDtMinT(GptElement):
     """
     Class for specifying the minimum timestep size via `dtmin`.
     """
 
     dtmin: float = 0.0
-    """Maximum temporal step size"""
+    """Minimum temporal step size"""
 
     objectname: str = "dtmin"
     """Name of object"""
@@ -762,6 +604,31 @@ class gpt_dtmint(gpt_element):
     objecttype: str = "gpt_dtmint"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs):
-        output = str(self.objectname) + " = " + str(self.dtmin) + ";\n"
+    def write_gpt(self, *args, **kwargs):
+        output = f"{self.objectname!s} = {self.dtmin!s};\n"
         return output
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "gpt_Zminmax": "GptZMinMax",
+        "gpt_accuracy": "GptAccuracy",
+        "gpt_ccs": "GptCcs",
+        "gpt_charge": "GptCharge",
+        "gpt_csr1d": "GptCsr1D",
+        "gpt_dtmaxt": "GptDtMaxT",
+        "gpt_dtmint": "GptDtMinT",
+        "gpt_element": "GptElement",
+        "gpt_forwardscatter": "GptForwardScatter",
+        "gpt_scatterplate": "GptScatterPlate",
+        "gpt_setfile": "GptSetFile",
+        "gpt_setreduce": "GptSetReduce",
+        "gpt_spacecharge": "GptSpaceCharge",
+        "gpt_tout": "GptTout",
+        "gpt_writefloorplan": "GptWriteFloorPlan",
+    },
+)

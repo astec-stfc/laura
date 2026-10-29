@@ -5,6 +5,7 @@ Provides efficient computation of rotation matrices from Euler angles and
 lattice geometry calculations based on Position and Rotation.
 """
 
+
 import numpy as np
 from typing import TYPE_CHECKING
 
@@ -42,31 +43,35 @@ def euler_angles_to_rotation_matrix(
     sr = np.sin(roll)
 
     # Rotation matrices
-    Ry = np.array([
-        [cy, 0, -sy],
-        [0, 1, 0],
-        [sy, 0, cy],
-    ])
-    
-    Rx = np.array([
-        [1, 0, 0],
-        [0, cp, -sp],
-        [0, sp, cp],
-    ])
-    
-    Rz = np.array([
-        [cr, -sr, 0],
-        [sr, cr, 0],
-        [0, 0, 1],
-    ])
+    Ry = np.array(
+        [
+            [cy, 0, -sy],
+            [0, 1, 0],
+            [sy, 0, cy],
+        ]
+    )
+
+    Rx = np.array(
+        [
+            [1, 0, 0],
+            [0, cp, -sp],
+            [0, sp, cp],
+        ]
+    )
+
+    Rz = np.array(
+        [
+            [cr, -sr, 0],
+            [sr, cr, 0],
+            [0, 0, 1],
+        ]
+    )
 
     # Apply in order: Rz @ Rx @ Ry (rightmost is applied first to column vectors)
     return np.dot(Rz, np.dot(Rx, Ry))
 
 
-def position_rotated(
-    position: "Position", rotation: "Rotation"
-) -> "Position":
+def position_rotated(position: "Position", rotation: "Rotation") -> "Position":
     """
     Apply rotation to a position vector.
 
@@ -86,39 +91,7 @@ def position_rotated(
     return Position(x=rotated_vec[0], y=rotated_vec[1], z=rotated_vec[2])
 
 
-def element_start_position(
-    middle: "Position", rotation: "Rotation", length: float
-) -> "Position":
-    """
-    Calculate element entrance position from middle position and rotation.
-
-    The entrance is length/2 upstream along the element's s-axis.
-
-    Args:
-        middle: Element center position
-        rotation: Element orientation
-        length: Element length
-
-    Returns:
-        Entrance position
-    """
-    from ..models.physical import Position  # Avoid circular import
-
-    # Vector pointing upstream (negative s)
-    upstream = np.array([0.0, 0.0, -length / 2.0])
-
-    # Rotate to element frame
-    matrix = euler_angles_to_rotation_matrix(rotation.theta, rotation.phi, rotation.psi)
-    offset = matrix @ upstream
-    
-    return Position(
-        x=middle.x + offset[0],
-        y=middle.y + offset[1],
-        z=middle.z + offset[2],
-    )
-
-
-def rotation_matrix_to_euler(R: np.ndarray) -> tuple:
+def rotation_matrix_to_euler(R: np.ndarray) -> tuple: # noqa N803
     """
     Extract (yaw, pitch, roll) Euler angles from a 3x3 rotation matrix.
 
@@ -146,33 +119,3 @@ def rotation_matrix_to_euler(R: np.ndarray) -> tuple:
     return yaw, pitch, roll
 
 
-def element_end_position(
-    middle: "Position", rotation: "Rotation", length: float
-) -> "Position":
-    """
-    Calculate element exit position from middle position and rotation.
-
-    The exit is length/2 downstream along the element's s-axis.
-
-    Args:
-        middle: Element center position
-        rotation: Element orientation
-        length: Element length
-
-    Returns:
-        Exit position
-    """
-    from ..models.physical import Position  # Avoid circular import
-
-    # Vector pointing downstream (positive s)
-    downstream = np.array([0.0, 0.0, length / 2.0])
-
-    # Rotate to element frame
-    matrix = euler_angles_to_rotation_matrix(rotation.theta, rotation.phi, rotation.psi)
-    offset = matrix @ downstream
-    
-    return Position(
-        x=middle.x + offset[0],
-        y=middle.y + offset[1],
-        z=middle.z + offset[2],
-    )

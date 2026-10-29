@@ -1,6 +1,6 @@
 """SPARQL query interface for LAURA machine models.
 
-Wraps a :class:`~laura.models.elementList.MachineModel` in an in-memory
+Wraps a :class:`~laura.models.element_list.MachineModel` in an in-memory
 rdflib graph and exposes SPARQL SELECT queries over it via
 :meth:`LAURAQuery.sparql`, along with convenience helpers for common lookups.
 
@@ -33,7 +33,7 @@ class LAURAQuery:
     Parameters
     ----------
     machine:
-        :class:`~laura.models.elementList.MachineModel` to query.
+        :class:`~laura.models.element_list.MachineModel` to query.
     machine_name:
         Logical accelerator name used when building element IRIs.
         Default ``"machine"``.
@@ -62,7 +62,7 @@ class LAURAQuery:
 
     def _get_graph(self):
         if self._graph is None:
-            from .Exporters.RDF import build_rdf_graph  # deferred import
+            from .exporters.rdf_exporter import build_rdf_graph  # deferred import
 
             self._graph = build_rdf_graph(
                 self._machine, machine_name=self._machine_name
@@ -128,11 +128,11 @@ class LAURAQuery:
         return [
             r["name"]
             for r in self.sparql(
-                f'SELECT ?name WHERE {{\n'
-                f'    ?elem laura:machine_area ?a ;\n'
-                f'          laura:name ?name .\n'
+                f"SELECT ?name WHERE {{\n"
+                f"    ?elem laura:machine_area ?a ;\n"
+                f"          laura:name ?name .\n"
                 f'    FILTER(str(?a) = "{safe}")\n'
-                f'}}'
+                f"}}"
             )
         ]
 
@@ -168,10 +168,10 @@ class LAURAQuery:
         return [
             r["name"]
             for r in self.sparql(
-                f'SELECT ?name WHERE {{\n'
-                f'    ?elem laura:hardware_class ?c ;\n'
-                f'          laura:name ?name .\n'
+                f"SELECT ?name WHERE {{\n"
+                f"    ?elem laura:hardware_class ?c ;\n"
+                f"          laura:name ?name .\n"
                 f'    FILTER(str(?c) = "{safe}")\n'
-                f'}}'
+                f"}}"
             )
         ]

@@ -1,21 +1,26 @@
 import builtins
-from pydantic import (
-    ValidationError,
-    field_validator,
-    model_serializer,
-    ConfigDict, Field,
-)
-from pydantic import ValidationInfo
-from typing import Any, Callable, Dict, Type
+import math
 import operator
+import re
 from dataclasses import fields, is_dataclass
-from laura.utils.dynamics import resolve_response, response_path
-from laura.utils.signals import resolve_signal, signal_path
+from typing import Any, Callable, ClassVar, Dict, Mapping, Type
 from warnings import warn
 
+from pydantic import (
+    ConfigDict,
+    Field,
+    ValidationError,
+    ValidationInfo,
+    field_validator,
+    model_serializer,
+)
+
+from laura.utils.dynamics import resolve_response, response_path
+from laura.utils.signals import resolve_signal, signal_path
+
 from ._generated import (
-    _ControlVariableBase,
     _ControlsInformationBase,
+    _ControlVariableBase,
 )
 
 OPS = {
@@ -48,6 +53,14 @@ def eval_expr(expr, context):
     op = OPS[expr["op"]]
     args = [eval_expr(a, context) for a in expr["args"]]
     return op(*args)
+
+
+_DOTTED_PATH = re.compile(r"[A-Za-z_]\w*(\.[A-Za-z_]\w*)*")
+
+
+def shape_terms(entry: int | str) -> list[str]:
+    """The ``*``-separated terms of one `ControlVariable.shape` entry."""
+    return [term.strip() for term in str(entry).split("*")]
 
 
 def set_attr_by_path(obj, path: str, value):
@@ -89,7 +102,9 @@ def validate_callable_spec(
         v = {key: path(v)}
 
     if not isinstance(v, dict):
-        warn(f"`{field}` for {who} must be a {label} class, instance or dict, got {type(v).__name__}")
+        warn(
+            f"`{field}` for {who} must be a {label} class, instance or dict, got {type(v).__name__}"
+        )
         return None
 
     if key not in v:
@@ -103,12 +118,6 @@ def validate_callable_spec(
         warn(f"Cannot resolve `{field}` for {who}: {exc}")
         return None
 
-    # Construct the class to validate the supplied arguments: a kw_only dataclass
-    # rejects unknown keys, missing required ones, and -- for the built-ins,
-    # which are `type_checked` -- wrong types. Reproducing those checks here
-    # would only duplicate what the constructor already enforces. Fields with
-    # init=False (runtime state) are likewise rejected, since they are not
-    # constructor arguments.
     kwargs = {k: val for k, val in v.items() if k != key}
     try:
         obj_cls(**kwargs)
@@ -153,13 +162,6 @@ class ControlVariable(_ControlVariableBase):
         controls_info.apply(element)
         print(element.magnetic.k1l)  # Should reflect the updated value based on the control variable
     """
-
-    # Slots below override `_ControlVariableBase` where the Python type is
-    # richer than the LinkML range can express, or where the schema's
-    # cardinality is looser than this model wants. Everything else --
-    # `units`, `description`, `read_only`, `control_type`, `target`,
-    # `readback`, `setpoint` -- is inherited from the generated base,
-    # including the `type` alias on `control_type`.
 
     identifier: str
     """Unique identifier for the control variable."""
@@ -222,7 +224,6 @@ class ControlVariable(_ControlVariableBase):
     model_config = ConfigDict(
         arbitrary_types_allowed=False,
         extra="allow",
-        # frozen=True,
     )
 
     def __init__(self, **data):
@@ -232,14 +233,8 @@ class ControlVariable(_ControlVariableBase):
     @classmethod
     def validate_update(cls, v: Any, info: ValidationInfo) -> Dict | None:
         """Checks that the `update` function resolves to a signal dataclass and that the
-        keyword arguments supplied for it match that class' fields.
-
-        Accepts a signal class, a signal instance, or a dict of the form
-        ``{"function": <name>, **kwargs}``; all are normalised to the dict form,
-        with "function" rewritten to a fully qualified import path
-        (``laura.utils.signals.Sinusoid``) so that a serialised definition can be
-        resolved without LAURA. Anything invalid warns and returns None, leaving
-        the variable without an update function.
+        keyword arguments supplied for it match that class' fields; see
+        :func:`validate_callable_spec`.
         """
         # `identifier` is declared before `update`, so it is already validated here.
         return validate_callable_spec(
@@ -297,26 +292,95 @@ class ControlVariable(_ControlVariableBase):
             return v
         raise TypeError(f"dtype must be a type or string, got {type(v)}")
 
+    @field_validator("shape", mode="before")
+    @classmethod
+    def validate_shape(cls, v: list | str | None, info: ValidationInfo) -> list | None:
+        """Check that every `shape` entry is a positive integer, a dotted attribute
+        path on the owning element, or a ``*``-separated product of those.
+        Only the spelling is checked here; see :meth:`resolve_shape`.
+        """
+        who = info.data.get("identifier", "<unknown>")
+        if isinstance(v, str):
+            v = [v]
+        for entry in v or []:
+            for term in shape_terms(entry):
+                try:
+                    size = int(term)
+                except ValueError:
+                    if not _DOTTED_PATH.fullmatch(term):
+                        raise ValueError(
+                            f"shape entry '{entry}' of {who} is neither a dimension "
+                            "nor a dotted attribute path"
+                        ) from None
+                else:
+                    if size < 1:
+                        raise ValueError(
+                            f"shape entry '{entry}' of {who} is not a positive dimension"
+                        )
+        return v
+
+    def resolve_shape(self, owner) -> tuple[int, ...]:
+        """Resolve `shape` against `owner`, the element this variable belongs to."""
+        if not self.shape:
+            raise ValueError(f"{self} has no shape to resolve")
+        return tuple(
+            math.prod(
+                self._resolve_dimension(owner, term) for term in shape_terms(entry)
+            )
+            for entry in self.shape
+        )
+
+    def _resolve_dimension(self, owner, term: str) -> int:
+        try:
+            return int(term)
+        except ValueError:
+            pass
+        value = owner
+        for attr in term.split("."):
+            try:
+                value = (
+                    value[attr] if isinstance(value, Mapping) else getattr(value, attr)
+                )
+            except (KeyError, AttributeError):
+                raise ValueError(
+                    f"shape of {self} refers to '{term}', which does not resolve "
+                    f"on {type(owner).__name__}"
+                ) from None
+        if isinstance(value, float) and value.is_integer():
+            value = int(value)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ValueError(
+                f"shape of {self} refers to '{term}', which is {value!r} and not "
+                "a positive dimension"
+            )
+        return value
+
     # Default values that should be omitted from serialised output to keep
-    # YAML exports clean.  Only exact matches are suppressed.
-    _SERIALIZE_DEFAULTS: dict = {
+    # YAML exports clean.  Only exact matches are suppressed.  ClassVar, or
+    # pydantic makes it a private attribute and deep-copies it per instance.
+    _SERIALIZE_DEFAULTS: ClassVar[dict] = {
         "units": "Arb. Units",
         "read_only": True,
         "control_type": "statistical",
         "description": "Default Description",
     }
 
-    @model_serializer
-    def serialize(self):
-        # Collect declared fields + extra fields (e.g. auto_buffer, buffer_size)
+    def unstripped_dump(self) -> dict:
+        """As `serialize`, but keeping fields that happen to equal a documented
+        default."""
         data = {k: getattr(self, k) for k in self.__class__.model_fields}
         if self.model_extra:
             data.update(self.model_extra)
+        data["type"] = data.pop("control_type")
         # Convert dtype to its string name
         if isinstance(data.get("dtype"), type):
             data["dtype"] = data["dtype"].__name__
         # Remove None values
-        data = {k: v for k, v in data.items() if v is not None}
+        return {k: v for k, v in data.items() if v is not None}
+
+    @model_serializer
+    def serialize(self):
+        data = self.unstripped_dump()
         # Remove known defaults
         for key, default_val in self._SERIALIZE_DEFAULTS.items():
             if data.get(key) == default_val:
@@ -337,18 +401,46 @@ class ControlVariable(_ControlVariableBase):
 class ControlsInformation(_ControlsInformationBase):
     """
     Model representing a collection of control variables.
+
+    A ``schema`` may be given instead of writing out ``variables`` in full: it
+    names a YAML template of variables shared by elements of a type (see
+    :func:`laura.importers.yaml_loader.resolve_controls_schema`), with ``{name}``
+    replaced by the element name (or ``identifier_pattern``). Any ``variables``
+    given alongside are layered on top, field by field.
+
+    The expansion happens at YAML load time, so ``variables`` is always fully
+    resolved; ``schema``/``identifier_pattern`` only record where it came from.
     """
 
     # Narrowed from the generated base's `_ControlVariableBase` values so the
     # validators and helpers on `ControlVariable` are available.
-    variables: Dict[str, ControlVariable]
+    variables: Dict[str, ControlVariable] = Field(default_factory=dict)
     """Dictionary mapping variable names to `~laura.models.control.ControlVariable` instances."""
+
+    schema_: str | None = Field(default=None, alias="schema")
+    """Path to a shared controls schema file that `variables` was expanded from, if any."""
+
+    identifier_pattern: str | None = None
+    """Overrides what `{name}` in the schema is substituted with (defaults to the
+    element's own name); use when this element's identifiers are prefixed with
+    something other than its own name."""
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         extra="allow",
         frozen=True,
+        populate_by_name=True,
     )
+
+    @model_serializer(mode="wrap")
+    def serialize(self, handler):
+        # Emit "schema" (the YAML/input spelling), matching how ControlVariable
+        # renames control_type -> "type"; otherwise a dumped dict can't be fed
+        # back in under the name it was written with.
+        data = handler(self)
+        if "schema_" in data:
+            data["schema"] = data.pop("schema_")
+        return data
 
     def __getattr__(self, name: str) -> ControlVariable:
         try:
@@ -398,14 +490,6 @@ class ControlsInformation(_ControlsInformationBase):
             if hasattr(element, param):
                 ctx.update({param: getattr(element, param)})
         return ctx
-
-    # @staticmethod
-    # def build_context(element):
-    #     return {
-    #         **{k: v.value for k, v in element.controls.variables.items()},
-    #         "magnetic": element.magnetic,
-    #         "physical": element.physical,
-    #     }
 
     def apply(self, element):
         ctx = self.build_context(element)

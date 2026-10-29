@@ -13,14 +13,14 @@ try:
     from xtrack.beam_elements import Multipole as Multipole_xs
     from xtrack.beam_elements import Magnet as Magnet_xs
     from xtrack.beam_elements import Marker as Marker_xs
-    from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
     from xtrack.beam_elements import SecondOrderTaylorMap as SecondOrderTaylorMap_xs
     from xtrack.beam_elements import CrabCavity as CrabCavity_xs
+    from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
+    from xtrack.monitors import BeamPositionMonitor as BeamPositionMonitor_xs
     _XSUITE_AVAILABLE = True
 except ImportError as _err:
     raise ImportError(
-        "xsuite is not installed. "
-        "Install with: pip install \"laura-accelerator[xsuite]\""
+        'xsuite is not installed. Install with: pip install "laura-accelerator[xsuite]"'
     ) from _err
 
 from laura.models.element import (
@@ -64,19 +64,21 @@ xsuite_conversion_rules = {
     "Sextupole": Sextupole_xs,
     "Octupole": Octupole_xs,
     "Decapole": Multipole_xs,
-    "Beam_Position_Monitor": ParticlesMonitor_xs,
+    "Beam_Position_Monitor": BeamPositionMonitor_xs,
     "Beam_Arrival_Monitor": Drift_xs,
     "Bunch_Length_Monitor": Drift_xs,
     "Screen": ParticlesMonitor_xs,
     "Marker": Marker_xs,
+    "Diagnostic": Marker_xs,
+    "WireScanner": Marker_xs,
     "Rcollimator": Drift_xs,
     "Collimator": Drift_xs,
     "Monitor": Marker_xs,
     "Wall_Current_Monitor": Drift_xs,
     "Integrated_Current_Transformer": Drift_xs,
-    "Faraday_Cup": Drift_xs,
+    "Faraday_Cup_Monitor": Drift_xs,
     "RFCavity": Cavity_xs,
-    "RFDeflectingCavity": Cavity_xs,
+    "RFDeflectingCavity": CrabCavity_xs,
     "Aperture": Drift_xs,
     "Shutter": Drift_xs,
     "Valve": Drift_xs,
@@ -98,6 +100,5 @@ xsuite_conversion_rules = {
     "Laser": Drift_xs,
     "TwissMatch": Drift_xs,
     "MatrixTransform": SecondOrderTaylorMap_xs,
-    "CrabCavity": CrabCavity_xs,
-    "Target": Marker_xs,
+    "CrabCavity": CrabCavity_xs
 }

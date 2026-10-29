@@ -8,7 +8,6 @@ set -euo pipefail
 
 SCHEMA="laura/schema/YAML/laura_schema.yaml"
 OUT_DIR="laura/schema/generated"
-DOCS_DIR="docs/source/schema"
 # NOTE: The hand-maintained element-er.md (docs/source/Architecture/element-er.md)
 # contains a comprehensive classDiagram that gen-erdiagram cannot produce for
 # multi-file schemas.  Auto-generated output is written to $OUT_DIR instead so
@@ -16,7 +15,7 @@ DOCS_DIR="docs/source/schema"
 ER_FILE_AUTO="$OUT_DIR/element-er-auto.md"
 
 # ── Ensure output directories exist ──────────────────────────────────────────
-mkdir -p "$OUT_DIR" "$DOCS_DIR"
+mkdir -p "$OUT_DIR"
 
 echo "Linting schema..."
 # Advisory only. The schema carries ~50 standard_naming warnings for physics
@@ -84,14 +83,6 @@ path.write_text(patched)
 print(f"  Patched {content.count(chr(10)+'  {'+chr(10)+'  }')} empty types")
 EOF
 
-echo "Generating reference documentation..."
-# gen-doc writes but never prunes, so a renamed class or slot would leave its old
-# page behind for the Sphinx build to pick up. Clear the directory first.
-rm -f "$DOCS_DIR"/*.md
-gen-doc -d "$DOCS_DIR" "$SCHEMA"
-# Strip the MkDocs front matter gen-doc emits; see postprocess_docs.py.
-python "laura/schema/postprocess_docs.py" "$DOCS_DIR"
-
 echo "Generating ER diagram (auto, written to generated/)..."
 # Written to generated/ — does NOT overwrite the hand-maintained
 # docs/source/Architecture/element-er.md (which has the full classDiagram).
@@ -114,7 +105,6 @@ echo "  TypeScript  : $OUT_DIR/laura_types.ts"
 echo "  SQL DDL     : $OUT_DIR/laura_schema.sql"
 echo "  SQLAlchemy  : $OUT_DIR/laura_orm.py"
 echo "  GraphQL     : $OUT_DIR/laura_schema.graphql"
-echo "  Reference   : $DOCS_DIR/"
 echo "  ER diagram  : $ER_FILE_AUTO (auto-generated skeleton)"
 echo "  Full diagram: docs/source/Architecture/element-er.md (hand-maintained)"
 echo "  Pydantic    : laura/models/_generated.py"

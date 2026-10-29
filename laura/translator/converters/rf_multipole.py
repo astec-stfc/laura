@@ -1,8 +1,9 @@
 from warnings import warn
 
-from .base import BaseElementTranslator
 from laura.models.simulation import RFMultipoleSimulationElement
+
 from ..utils.functions import sanitize_string
+from .base import BaseElementTranslator
 
 
 class RFMultipoleTranslator(BaseElementTranslator):
@@ -36,8 +37,8 @@ class RFMultipoleTranslator(BaseElementTranslator):
             String representation of the element for MAD-X
         """
         self.start_write()
-        etype = self._convertType_Madx(self.hardware_type)
-        string = sanitize_string(self.name) + ": " + etype + f", l = {self.length}"
+        etype = self._convert_type_madx(self.hardware_type)
+        string = f"{sanitize_string(self.name)}: {etype}, l = {self.length}"
 
         volt = self.simulation.field_amplitude
         functional = not self._resolve_functional and self.is_functional(volt)
@@ -66,7 +67,7 @@ class RFMultipoleTranslator(BaseElementTranslator):
             string += f", psl = {{{', '.join(str(v) for v in self.simulation.psl)}}}"
         if at is not None:
             string += f", at = {at}"
-        return string + ";\n"
+        return f"{string};\n"
 
     def to_xsuite(self, beam_length: int) -> tuple:
         """

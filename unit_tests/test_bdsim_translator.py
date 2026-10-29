@@ -23,12 +23,12 @@ pytest.importorskip("pybdsim")
 
 from laura.models.element import (  # noqa: E402
     Dipole,
-    Horizontal_Corrector,
+    HorizontalCorrector,
     Marker,
     Quadrupole,
     Sextupole,
 )
-from laura.models.elementList import ElementList, SectionLattice  # noqa: E402
+from laura.models.element_list import ElementList, SectionLattice  # noqa: E402
 from laura.models.physical import PhysicalElement, Position  # noqa: E402
 from laura.translator.converters.converter import translate_elements  # noqa: E402
 from laura.translator.converters.section import SectionLatticeTranslator  # noqa: E402
@@ -59,8 +59,10 @@ def _dipole(k0l=0.15, edges="angle/2"):
 class TestKeywordCoverage:
     def test_bend_keeps_edge_angles_and_fringe_fields(self):
         """The parameters pybdsim only accepts via **kwargs must survive."""
-        gmad = str(_translate(_dipole()).to_bdsim())
-        for keyword in ("e1=", "e2=", "fint=", "hgap=", "l=", "angle="):
+        dipole = _dipole()
+        dipole.magnetic.edge_field_integral = 0.5
+        gmad = str(_translate(dipole).to_bdsim())
+        for keyword in ("e1=", "e2=", "fint=", "fintx=", "hgap=", "l=", "angle="):
             assert keyword in gmad, f"{keyword} missing from {gmad!r}"
 
     @pytest.mark.parametrize(
@@ -87,7 +89,7 @@ def _sextupole():
 
 class TestElementTyping:
     def test_single_plane_corrector_becomes_a_kicker_with_its_kick(self):
-        corrector = Horizontal_Corrector(
+        corrector = HorizontalCorrector(
             name="C1", machine_area="T", physical=PhysicalElement(length=0.1)
         )
         corrector.magnetic.length = 0.1
@@ -139,7 +141,7 @@ class TestChargeSign:
         ] == pytest.approx(-5.0)
 
     def test_negative_charge_flips_a_corrector_kick(self):
-        corrector = Horizontal_Corrector(
+        corrector = HorizontalCorrector(
             name="C1", machine_area="T", physical=PhysicalElement(length=0.1)
         )
         corrector.magnetic.length = 0.1
@@ -334,7 +336,7 @@ def test_magnets_that_bypass_magneticelement_still_have_tilt(element_name, has_t
     MagneticElement, so they had no tilt slot until it was added to the schema."""
     import laura.models.magnetic as magnetic_models
 
-    model = getattr(magnetic_models, f"{element_name}_Magnet")
+    model = getattr(magnetic_models, f"{element_name}Magnet")
     assert ("tilt" in model.model_fields) is has_tilt
 
 
@@ -465,10 +467,14 @@ class TestApertureAndOffsets:
         a beam-pipe cross-section and carries no apertureType.
         """
         from laura.models._generated import ApertureShapeEnum
+        from laura.models.simulation import ApertureElement
         from laura.translator.utils.bdsim import BDSIM_APERTURE_TYPES
+        from laura.translator.utils.bdsim.bdsim import element_aperture_params
 
-        shapes = {member.value for member in ApertureShapeEnum} - {"scraper"}
+        shapes = {member.value for member in ApertureShapeEnum} - {"scraper", "planar"}
         assert shapes <= BDSIM_APERTURE_TYPES, sorted(shapes - BDSIM_APERTURE_TYPES)
+        planar = ApertureElement(shape="planar", horizontal_size=0.02, vertical_size=0.01)
+        assert element_aperture_params(planar)["apertureType"] == "rectangular"
 
     def test_a_scraper_carries_extents_but_no_aperture_type(self):
         from laura.models.simulation import ApertureElement
@@ -585,8 +591,8 @@ class TestWireScanner:
 
     def test_falls_back_to_a_diagnostic_in_codes_without_one(self):
         translator = _translate(self._wire_scanner())
-        assert "monitor" in translator.to_madx()
-        assert "mark" in translator.to_elegant()
+        assert "instrument" in translator.to_madx()
+        assert "watch" in translator.to_elegant()
 
     def test_is_distinct_from_the_compensating_wire(self):
         from laura.models.element import Wire, WireScanner

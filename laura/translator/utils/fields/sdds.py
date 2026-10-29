@@ -1,48 +1,32 @@
 import numpy as np
 
-from ..units import UnitValue
-
-from .FieldParameter import FieldParameter
+from .field_parameter import FIELD_NAMES, set_field
 from warnings import warn
-from ..SDDSFile import SDDSFile, SDDS_Types
+from ..sdds_file import SDDSFile, SddsTypes
 
-SDDS_FIELD_NAMES = (
-    "x",
-    "y",
-    "z",
-    "r",
-    "t",
-    "Ex",
-    "Ey",
-    "Ez",
-    "Er",
-    "Bx",
-    "By",
-    "Bz",
-    "Br",
-    "Wx",
-    "Wy",
-    "Wz",
-    "Wr",
-    "G",
-)
+SDDS_FIELD_NAMES = FIELD_NAMES
+
+# field_type: (column names, column units)
+_SDDS_COLUMNS = {
+    "LongitudinalWake": (["z", "t", "Wz"], ["m", "s", "V/C"]),
+    "TransverseWake": (["z", "t", "Wx", "Wy"], ["m", "s", "V/C/m", "V/C/m"]),
+    "3DWake": (["z", "t", "Wx", "Wy", "Wz"], ["m", "s", "V/C/m", "V/C/m", "V/C"]),
+    "1DElectroDynamic": (["z", "Ez"], ["m", "V"]),
+}
 
 
-def write_SDDS_field_file(self, sddsindex: int = 0, ascii: bool = False) -> str:
+def write_sdds_field_file(self, sddsindex: int = 0, ascii: bool = False) -> str:
     """
-    Generate the field data in a format that is suitable for SDDS, based on the
-    :class:`~laura.translatoru.utils.fields.field` object provided.
-    This is then written to an SDDS file.
-    The `field_type` parameter determines the format of the file.
-
-    A warning is raised if the field type is not supported (perhaps elevate to a `NotImplementedError`?)
+    Write the field data of a :class:`~laura.translator.utils.fields.FieldMap`
+    to an SDDS file, in a format set by `field_type`. Unsupported field types
+    raise a warning.
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object
     sddsindex: int
-        Must be provided for :class:`~laura.translator.utils.SDDSFile.SddsFile` class
+        Must be provided for the :class:`~laura.translator.utils.sdds_file.SDDSFile` class
     ascii: bool, optional
         Convert to ascii?
 
@@ -55,63 +39,24 @@ def write_SDDS_field_file(self, sddsindex: int = 0, ascii: bool = False) -> str:
     sddsfile = SDDSFile(index=sddsindex, ascii=ascii)
     zdata = self.z_values
     tdata = self.t_values
-    if self.field_type == "LongitudinalWake":
-        wzdata = self.Wz.value.val
-        cnames = ["z", "t", "Wz"]
-        cunits = ["m", "s", "V/C"]
-        ccolumns = [
-            zdata,
-            tdata,
-            wzdata,
-        ]
-    elif self.field_type == "TransverseWake":
-        wxdata = self.Wx.value.val
-        wydata = self.Wy.value.val
-        ccolumns = np.array(
-            [
-                zdata,
-                tdata,
-                wxdata,
-                wydata,
-            ]
-        )
-        cnames = ["z", "t", "Wx", "Wy"]
-        cunits = ["m", "s", "V/C/m", "V/C/m"]
-    elif self.field_type == "3DWake":
-        wxdata = self.Wx.value.val
-        wydata = self.Wy.value.val
-        wzdata = self.Wz.value.val
-        ccolumns = np.array(
-            [
-                zdata,
-                tdata,
-                wxdata,
-                wydata,
-                wzdata,
-            ]
-        )
-        cnames = ["z", "t", "Wx", "Wy", "Wz"]
-        cunits = ["m", "s", "V/C/m", "V/C/m", "V/C"]
-    elif self.field_type == "1DElectroDynamic":
-        ezdata = self.Ez.value.val
-        cnames = ["z", "Ez"]
-        cunits = ["m", "V"]
-        ccolumns = [
-            zdata,
-            ezdata,
-        ]
-    else:
+    if self.field_type not in _SDDS_COLUMNS:
         warn(f"Field type {self.field_type} not supported for SDDS")
         return
+    cnames, cunits = _SDDS_COLUMNS[self.field_type]
+    data = {"z": zdata, "t": tdata}
+    ccolumns = [data[n] if n in data else getattr(self, n).value.val for n in cnames]
+    # Stacked as before, so ragged wake columns still raise
+    if self.field_type in ("TransverseWake", "3DWake"):
+        ccolumns = np.array(ccolumns)
     if ccolumns is not None:
-        ctypes = [SDDS_Types.SDDS_DOUBLE for _ in ccolumns]
+        ctypes = [SddsTypes.SDDS_DOUBLE for _ in ccolumns]
         csymbols = ["" for _ in ccolumns]
         sddsfile.add_columns(cnames, ccolumns, ctypes, cunits, csymbols)
         sddsfile.write_file(sdds_filename)
     return sdds_filename
 
 
-def read_SDDS_field_file(
+def read_sdds_field_file(
     self,
     filename: str,
     field_type: str,
@@ -119,7 +64,7 @@ def read_SDDS_field_file(
     **column_names: str | None,
 ) -> None:
     """
-    Read SDDS columns into a :class:`laura.translator.utils.fields.field`.
+    Read SDDS columns into a :class:`~laura.translator.utils.fields.FieldMap`.
 
     Columns named like a LAURA field attribute are mapped automatically,
     case-insensitively. Supported attributes are ``x``, ``y``, ``z``, ``r``,
@@ -135,7 +80,7 @@ def read_SDDS_field_file(
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object to be updated.
     filename: str
         The path to the SDDS field file
@@ -151,6 +96,8 @@ def read_SDDS_field_file(
     -------
     None
 
+    Raises
+    ------
     ValueError
         If a column mapping names an unsupported LAURA field attribute.
     """
@@ -169,12 +116,12 @@ def read_SDDS_field_file(
     self.reset_dicts()
     setattr(self, "field_type", field_type)
     try:
-        elegantObject = SDDSFile(index=1, ascii=True)
+        elegant_object = SDDSFile(index=1, ascii=True)
     except Exception:
-        elegantObject = SDDSFile(index=1, ascii=False)
-    elegantObject.read_file(filename, page=-1)
+        elegant_object = SDDSFile(index=1, ascii=False)
+    elegant_object.read_file(filename, page=-1)
     unit_fallbacks = {"m": "z", "s": "t", "V/C": "Wz"}
-    for key, value in elegantObject._columns.items():
+    for key, value in elegant_object._columns.items():
         target = columns.get(key.lower()) or fields.get(key.lower())
         target = target or unit_fallbacks.get(value.unit)
         if target is None:
@@ -183,11 +130,20 @@ def read_SDDS_field_file(
                 "use column_map or a <field>_column keyword"
             )
             continue
-        setattr(
-            self,
-            target,
-            FieldParameter(
-                name=target,
-                value=UnitValue(np.array(value.data), units=value.unit),
-            ),
-        )
+        set_field(self, target, np.array(value.data), value.unit)
+
+
+# ---------------------------------------------------------------------------
+# Backwards compatibility: names renamed for PEP 8. Served lazily with a
+# DeprecationWarning so downstream consumers (astec-stfc/simba) keep working.
+# ---------------------------------------------------------------------------
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "read_SDDS_field_file": "read_sdds_field_file",
+        "write_SDDS_field_file": "write_sdds_field_file",
+    },
+)

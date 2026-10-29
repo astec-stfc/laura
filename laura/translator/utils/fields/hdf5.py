@@ -1,8 +1,9 @@
 import os
-import h5py
-from .FieldParameter import FieldParameter
-from ..units import UnitValue
 from warnings import warn
+
+import h5py
+
+from .field_parameter import FIELD_NAMES, FieldParameter, set_field
 
 allowed_cavities = [
     "StandingWave",
@@ -17,13 +18,13 @@ tw_required_attrs = [
 ]
 
 
-def read_HDF5_field_file(self, filename: str) -> str:
+def read_hdf5_field_file(self, filename: str) -> str:
     """
-    Read an HDF5 field file and convert it into a :class:`laura.translator.utils.fields.field` object
+    Read an HDF5 field file into a :class:`~laura.translator.utils.fields.FieldMap` object.
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object.
     filename: str
         The path to the HDF5 field file
@@ -76,22 +77,15 @@ def read_HDF5_field_file(self, filename: str) -> str:
                         )
                     else:
                         setattr(self, param, h5file.attrs[param])
+        if "length" in h5file.attrs:
+            self.reference_length = float(h5file.attrs["length"])
         length_set = (
             False if self.field_type != "2DElectroDynamic" else h5file.attrs["length"]
         )
         for key in h5file:
             if not length_set:
                 self.length = len(h5file[key][()])
-            setattr(
-                self,
-                key,
-                FieldParameter(
-                    name=key,
-                    value=UnitValue(h5file[key][()], units=h5file[key].attrs["units"]),
-                ),
-            )
-        # if ("z" not in list(h5file.keys())) and ("t" in list(h5file.keys())):
-        #     setattr(self, "z", self.t.value * speed_of_light)
+            set_field(self, key, h5file[key][()], h5file[key].attrs["units"])
         for param in ["Ex", "Ey", "Ez", "Er", "Bx", "By", "Bz", "Br", "G"]:
             if getattr(self, param).value is not None:
                 lessthancond = 0.99 > round(max(abs(getattr(self, param).value.val)), 4)
@@ -106,15 +100,14 @@ def read_HDF5_field_file(self, filename: str) -> str:
     return filename
 
 
-def write_HDF5_field_file(self):
+def write_hdf5_field_file(self):
     """
-    Write the :class:`laura.translator.utils.fields.field` object to an HDF5 file.
-    All of the attributes of the class are read, and if they are defined and in the correct format,
-    they are written to the file.
+    Write the :class:`~laura.translator.utils.fields.FieldMap` object to an HDF5 file,
+    including every attribute that is defined and in the correct format.
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object to be saved.
 
     Returns
@@ -141,25 +134,7 @@ def write_HDF5_field_file(self):
             if hasattr(self, att):
                 if getattr(self, att) is not None:
                     h5file.attrs[att] = getattr(self, att)
-        dsets = [
-            "x",
-            "y",
-            "z",
-            "r",
-            "Ex",
-            "Ey",
-            "Ez",
-            "Er",
-            "Bx",
-            "By",
-            "Bz",
-            "Br",
-            "Wx",
-            "Wy",
-            "Wz",
-            "Wr",
-            "G",
-        ]
+        dsets = [n for n in FIELD_NAMES if n != "t"]
         for dset in dsets:
             if isinstance(getattr(self, dset), FieldParameter):
                 if getattr(self, dset).value is not None:
@@ -168,3 +143,15 @@ def write_HDF5_field_file(self):
                     )
                     dataset.attrs["units"] = getattr(self, dset).value.units
     return self.filename
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "read_HDF5_field_file": "read_hdf5_field_file",
+        "write_HDF5_field_file": "write_hdf5_field_file",
+    },
+)

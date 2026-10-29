@@ -3,23 +3,30 @@ import re
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Dict, Optional
 from warnings import warn
+
 import numpy as np
-from pydantic import BaseModel, PrivateAttr, model_validator
-from typing import Dict, Optional, Union
-from ...utils.elegant import SDDSFile
-import laura.models.element as LAURA_elements
-from laura.models.elementList import (
-    SectionLattice,
-    MachineLayout,
+from pydantic import PrivateAttr, model_validator
+
+import laura.models.element as laura_elements
+from laura.models.element_list import (
     MachineModel,
-    ElementList,
+    SectionLattice,
 )
-from ...utils.elegant.sdds_classes_APS import SDDS_Params
-from ...utils.fields import field
-from ....Exporters.YAML import export_machine_combined_file, PositionMode
-from .. import keyword_conversion_rules_elegant
+
+from ...utils.elegant import sdds_file
+from ...utils.elegant.sdds_classes_aps import SddsParams
+from ...utils.fields import FieldMap
 from ...utils.functions import merge_layout_elements, number_repeated_names
+from .. import keyword_conversion_rules_elegant
+from .importer import (
+    LatticeImporter,
+    apply_misalignment,
+    check_layouts,
+    infer_geometry,
+    keyword_rules,
+)
 
 elegant_unsupported = [
     "Plasma",
@@ -28,7 +35,58 @@ elegant_unsupported = [
     "CrabCavity",
 ]
 
-class ElegantLatticeImporter(BaseModel):
+
+# Strengths ELEGANT states per metre and LAURA stores integrated.
+_PER_METRE_STRENGTHS = frozenset({"k1", "k2", "k3"})
+
+_LINE_MEMBER_RE = re.compile(r"^\s*(-)?\s*(?:(\d+)\s*\*\s*)?(-)?\s*(.+?)\s*$")
+_INCLUDE_RE = re.compile(
+    r'(?im)^[ \t]*#include[ \t]+(?:"([^"]+)"|<([^>]+)>|([^\s]+))[ \t]*$'
+)
+
+
+def _read_lattice_text(path: Path, stack: Optional[set] = None) -> str:
+    # Inline nested includes so source metadata sees the same lattice as ELEGANT.
+    path = path.resolve()
+    active = set() if stack is None else stack
+    if path in active:
+        raise ValueError(f"Circular ELEGANT #include involving {path}")
+    active.add(path)
+
+    def inline(match: "re.Match") -> str:
+        included = path.parent / next(group for group in match.groups() if group)
+        if not included.is_file():
+            raise FileNotFoundError(f"ELEGANT #include file not found: {included}")
+        return _read_lattice_text(included, active)
+
+    try:
+        return _INCLUDE_RE.sub(inline, path.read_text())
+    finally:
+        active.remove(path)
+
+
+def _expand_line_member(member: str, lookup: Dict[str, tuple]) -> list:
+    """Recursively expand one ``LINE`` member."""
+    lead_neg, count_str, mid_neg, base = _LINE_MEMBER_RE.match(member.strip()).groups()
+    base = base.strip('"')
+    reverse = bool(lead_neg) or bool(mid_neg)
+    count = int(count_str) if count_str else 1
+    found = lookup.get(base.lower())
+    if not found:
+        result = [base]
+    else:
+        result = [
+            element
+            for sub_member in found[1].split(",")
+            for element in _expand_line_member(sub_member, lookup)
+        ]
+    if reverse:
+        result = list(reversed(result))
+    return result * count
+
+
+class ElegantLatticeImporter(LatticeImporter):
+    machine_area: str = "Lattice"
 
     params_file: Optional[str] = None
     """Name of ELEGANT parameters file"""
@@ -39,14 +97,17 @@ class ElegantLatticeImporter(BaseModel):
     beamline: Optional[str] = None
     """Optional beamline selector for source import."""
 
+    uniform_integration: bool = False
+    """If true, drop the ``EDGE_ORDER`` and ``N_SLICES`` a ``source_file`` leaves at
+    ELEGANT's defaults, so bends export with LAURA's second-order edges and
+    auto-scaled kick count."""
+
     elegant_data: Dict = {}
     """Dictionary containing data about the ELEGANT lattice"""
 
     elements: Dict = {}
     """Dictionary containing converted
     :class:`~laura.models.element.Element` objects"""
-
-    functional_definitions: Dict[str, Union[int, float]] = {}
 
     lattice_name: Optional[str] = None
     """Best-effort lattice name, parsed from ``source_file``'s own top-level
@@ -57,6 +118,10 @@ class ElegantLatticeImporter(BaseModel):
     _source_outputs: Dict[str, str] = PrivateAttr(default_factory=dict)
     _source_tmp: object = PrivateAttr(default=None)
     _source_expressions: Dict[str, Dict[str, str]] = PrivateAttr(default_factory=dict)
+    _source_parameters: Dict[str, set[str]] = PrivateAttr(default_factory=dict)
+    """Parameters each element actually sets in ``source_file``, where the
+    parameter dump also carries ELEGANT's defaults."""
+    _unscaled_definitions: Dict[str, float] = PrivateAttr(default_factory=dict)
     _source_lines: Dict[str, list[str]] = PrivateAttr(default_factory=dict)
     _source_roots: list[str] = PrivateAttr(default_factory=list)
     _source_sections: list[str] = PrivateAttr(default_factory=list)
@@ -104,17 +169,7 @@ class ElegantLatticeImporter(BaseModel):
         root = use.group(1) if use else next(reversed(lines))
         lookup = {name.lower(): (name, body) for name, body in lines.items()}
 
-        def expand(name: str) -> list[str]:
-            found = lookup.get(name.lower())
-            if not found:
-                return [name]
-            return [
-                element
-                for member in found[1].split(",")
-                for element in expand(member.strip().strip('"'))
-            ]
-
-        sequence = expand(root)
+        sequence = _expand_line_member(root, lookup)
         result = {}
         for name, output_name in zip(sequence, number_repeated_names(sequence)):
             key = name.lower()
@@ -123,7 +178,7 @@ class ElegantLatticeImporter(BaseModel):
         return result
 
     @model_validator(mode="after")
-    def _check_input(self):
+    def _check_input(self):  # noqa: N804
         if (self.params_file is not None) == (self.source_file is not None):
             raise ValueError("Give either source_file or params_file.")
         return self
@@ -144,7 +199,7 @@ class ElegantLatticeImporter(BaseModel):
     def _prepare_source(self) -> None:
         if self._source_outputs:
             return
-        text = Path(self.source_file).read_text()
+        text = _read_lattice_text(Path(self.source_file))
         text = re.sub(r"!.*", "", text).replace("&\n", " ")
         self.functional_definitions = {
             name: float(value)
@@ -153,9 +208,13 @@ class ElegantLatticeImporter(BaseModel):
                 text,
             )
         }
+        self._unscaled_definitions = dict(self.functional_definitions)
         for element, parameters in re.findall(
             r"(?im)^\s*([^\s:%]+)\s*:\s*[^,\n]+,(.*)$", text
         ):
+            self._source_parameters[element.strip('"').lower()] = {
+                name.lower() for name in re.findall(r"(\w+)\s*=", parameters)
+            }
             expressions = {
                 name.lower(): value
                 for name, value in re.findall(r'(\w+)\s*=\s*"([^"]+)"', parameters)
@@ -165,9 +224,9 @@ class ElegantLatticeImporter(BaseModel):
                 )
             }
             if expressions:
-                self._source_expressions[element.lower()] = expressions
+                self._source_expressions[element.strip('"').lower()] = expressions
         line_bodies = dict(
-            re.findall(r"(?im)^\s*([^\s:]+)\s*:\s*line\s*=\s*\(([^)]*)\)", text)
+            re.findall(r'(?im)^\s*"?([^\s:"]+)"?\s*:\s*line\s*=\s*\(([^)]*)\)', text)
         )
         self._source_lines = {
             name: [member.strip() for member in body.split(",") if member.strip()]
@@ -184,10 +243,7 @@ class ElegantLatticeImporter(BaseModel):
             self.lattice_name = self.beamline
         else:
             referenced = {
-                re.sub(r"^(?:\d+\*)?-?", "", member.strip())
-                .strip()
-                .strip('"')
-                .lower()
+                re.sub(r"^(?:\d+\*)?-?", "", member.strip()).strip().strip('"').lower()
                 for body in line_bodies.values()
                 for member in body.split(",")
             }
@@ -195,12 +251,22 @@ class ElegantLatticeImporter(BaseModel):
             beamlines = roots or beamlines
         self._source_roots = beamlines.copy()
         if len(beamlines) == 1:
+            raw_members = [
+                member.strip() for member in line_bodies[beamlines[0]].split(",")
+            ]
             members = [
-                re.sub(r"^(?:\d+\*)?-?", "", member.strip()).strip().strip('"')
-                for member in line_bodies[beamlines[0]].split(",")
+                re.sub(r"^(?:\d+\*)?-?", "", member).strip().strip('"')
+                for member in raw_members
             ]
             lookup = {name.lower(): name for name in line_bodies}
-            if members and all(member.lower() in lookup for member in members):
+            undecorated = not any(
+                re.match(r"^\d+\s*\*|^-", member) for member in raw_members
+            )
+            if (
+                undecorated
+                and members
+                and all(member.lower() in lookup for member in members)
+            ):
                 self.lattice_name = beamlines[0]
                 beamlines = list(
                     dict.fromkeys(lookup[member.lower()] for member in members)
@@ -215,22 +281,28 @@ class ElegantLatticeImporter(BaseModel):
             root = directory / name
             command = directory / f"{name}.ele"
             saved = directory / f"{name}.lte"
-            command.write_text(
-                "&run_setup\n"
-                f' lattice = "{Path(self.source_file).resolve()}",\n'
-                f' use_beamline = "{name}",\n'
-                f' rootname = "{root}",\n'
-                " p_central_mev = 100,\n"
-                "&end\n"
-                "&save_lattice\n"
-                f' filename = "{saved}",\n'
-                " output_seq = 2,\n"
-                " suppress_defaults = 0,\n"
-                "&end\n"
-            )
+
+            def _write_command(output_seq: int) -> None:
+                # POSIX separators: elegant processes escapes inside quoted
+                # strings, so a Windows "...\newBST" would read "\n" as a newline.
+                command.write_text(
+                    "&run_setup\n"
+                    f' lattice = "{Path(self.source_file).resolve().as_posix()}",\n'
+                    f' use_beamline = "{name}",\n'
+                    f' rootname = "{root.as_posix()}",\n'
+                    " p_central_mev = 100,\n"
+                    "&end\n"
+                    "&save_lattice\n"
+                    f' filename = "{saved.as_posix()}",\n'
+                    f" output_seq = {output_seq},\n"
+                    " suppress_defaults = 0,\n"
+                    "&end\n"
+                )
+
+            _write_command(2)
             try:
                 subprocess.run(
-                    ["elegant", str(command)],
+                    ["elegant", command.as_posix()],
                     cwd=Path(self.source_file).resolve().parent,
                     check=True,
                     capture_output=True,
@@ -240,10 +312,32 @@ class ElegantLatticeImporter(BaseModel):
                 raise ImportError(
                     "The elegant executable is required for ELEGANT source import."
                 ) from exc
-            except subprocess.CalledProcessError as exc:
-                raise ValueError(
-                    f"ELEGANT could not load beamline {name!r}: {exc.stderr or exc.stdout}"
-                ) from exc
+            except subprocess.CalledProcessError:
+                _write_command(0)
+                try:
+                    subprocess.run(
+                        ["elegant", command.as_posix()],
+                        cwd=Path(self.source_file).resolve().parent,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                except subprocess.CalledProcessError as exc2:
+                    output = "\n".join(filter(None, (exc2.stdout, exc2.stderr)))
+                    lines = [
+                        line.strip() for line in output.splitlines() if line.strip()
+                    ]
+                    cause = next(
+                        (
+                            line
+                            for line in reversed(lines)
+                            if line.lower().startswith("error")
+                        ),
+                        lines[-1] if lines else "no output",
+                    )
+                    raise ValueError(
+                        f"ELEGANT could not load beamline {name!r}: {cause}\n\n{output}"
+                    ) from exc2
             self._source_outputs[name] = str(saved)
 
     def _select_source_output(self, name: str) -> None:
@@ -261,30 +355,40 @@ class ElegantLatticeImporter(BaseModel):
         if self.source_file and not self.params_file:
             self._prepare_source()
             self._select_source_output(next(iter(self._source_outputs)))
-        params = SDDS_Params(self.params_file)
+        params = SddsParams(self.params_file)
         if self.source_file:
-            params.elegantParams = self._saved_lattice_params(self.params_file)
-        self.elegant_data, filenames = params.create_element_dictionary()
+            params.elegant_params = self._saved_lattice_params(self.params_file)
+        self.elegant_data, filenames = params.create_element_dictionary(
+            self.machine_area
+        )
+        unscalable = self._rescale_strength_symbols()
         for name, data in self.elegant_data.items():
-            source_name = name.lower()
-            expressions = self._source_expressions.get(source_name, {})
-            if not expressions and source_name.rpartition(".")[2].isdigit():
-                expressions = self._source_expressions.get(
-                    source_name.rpartition(".")[0], {}
-                )
-            length = data.get("magnetic", {}).get(
-                "length", data.get("physical", {}).get("length", data.get("l", 0.0))
-            )
+            expressions = self._expressions_for(name)
+            simulation = data.get("simulation", {})
+            if self.uniform_integration and self.source_file:
+                stated = self._from_source(self._source_parameters, name)
+                if "edge_order" not in stated:
+                    simulation.pop("edge_order", None)
+                if not {"n_slices", "n_kicks"} & stated:
+                    simulation.pop("n_slices", None)
+            if "n_slices" in simulation:
+                simulation.setdefault("n_kicks", simulation["n_slices"])
+            length = self._length_of(data)
             for parameter in ("k0", "k1", "k2", "k3", "angle"):
                 expression = expressions.get(parameter)
+                if (
+                    parameter in _PER_METRE_STRENGTHS
+                    and self._rpn_symbol(expression) in unscalable
+                ):
+                    continue
                 if expression and self._rpn_symbol(
                     expression, 0.0 if parameter == "angle" else length
                 ):
                     data[parameter] = expressions[parameter]
-            rules = keyword_conversion_rules_elegant["general"]
-            element_type = data["hardware_type"].lower()
-            if element_type in keyword_conversion_rules_elegant:
-                rules = keyword_conversion_rules_elegant[element_type] | rules
+            self._read_misalignment(name, data, (params.elegant_params or {}).get(name))
+            rules = keyword_rules(
+                keyword_conversion_rules_elegant, data["hardware_type"]
+            )
             source_to_laura = {
                 source.lower(): target for target, source in rules.items()
             }
@@ -305,22 +409,72 @@ class ElegantLatticeImporter(BaseModel):
                     if isinstance(nested, dict) and target in nested:
                         nested[target] = expression
             wakefiles = filenames.get(name, {})
-            wakefile = wakefiles.get("zwakefile") or wakefiles.get("wakefile")
-            if wakefile and data["hardware_type"] == "RFCavity":
-                wakepath = Path(wakefile)
+            wakefile = wakefiles.get("wakefile")
+            zwakefile = wakefiles.get("zwakefile") or wakefile
+            trwakefile = wakefiles.get("trwakefile") or wakefile
+            if (zwakefile or trwakefile) and data["hardware_type"] == "RFCavity":
+                if zwakefile and trwakefile and zwakefile != trwakefile:
+                    warn(
+                        f"ELEGANT RFCavity {name!r} uses separate longitudinal and "
+                        "transverse wake files; LAURA stores one structured wake, so "
+                        "both native filenames were preserved instead."
+                    )
+                    continue
+                selected = zwakefile or trwakefile
+                wakepath = Path(selected)
                 if not wakepath.is_absolute():
                     imported_from = self.source_file or self.params_file
                     wakepath = Path(imported_from).resolve().parent / wakepath
                 simulation = data.setdefault("simulation", {})
-                simulation["wakefield_definition"] = field(
-                    filename=str(wakepath.resolve()),
-                    field_type="LongitudinalWake",
-                    t_column=simulation.get("t_column"),
-                    wz_column=simulation.get("wz_column"),
+                wake = FieldMap(
+                    field_type=(
+                        "3DWake"
+                        if zwakefile and trwakefile
+                        else "LongitudinalWake"
+                        if zwakefile
+                        else "TransverseWake"
+                    )
                 )
+                wake.filename = str(wakepath.resolve())
+                simulation["wakefield_definition"] = wake
                 for raw_name in ("wakefile", "zwakefile", "trwakefile"):
                     simulation.pop(raw_name, None)
         return self.elegant_data, filenames
+
+    @staticmethod
+    def _read_misalignment(name: str, data: dict, raw: dict | None) -> None:
+        """Alignment errors from ``raw`` elegant parameters into ``data``, as
+        the exporter writes them; ``TILT`` is read as ``magnetic.tilt``."""
+        cls = laura_elements.ELEMENT_REGISTRY.get(data["hardware_type"]) or getattr(
+            laura_elements, data["hardware_type"], laura_elements.Drift
+        )
+        # a CSRDRIFT's DZ is its step, not an offset
+        if not raw or issubclass(cls, laura_elements.Drift):
+            return
+        get = dict(
+            zip(
+                (p.lower() for p in raw["ElementParameter"]),
+                raw["ParameterValue"],
+                strict=True,
+            )
+        ).get
+        yaw = get("yaw") or get("eyaw") or 0.0
+        pitch = get("pitch") or get("epitch") or 0.0
+        if (yaw or pitch) and get("malign_method") != 2:
+            warn(f"ELEGANT {name!r}: pitch/yaw without MALIGN_METHOD=2 not imported.")
+            yaw = pitch = 0.0
+        data.setdefault("physical", {})
+        apply_misalignment(
+            data,
+            cls,
+            dx=get("dx") or 0.0,
+            dy=get("dy") or 0.0,
+            roll=0.0,
+            dz=get("dz") or 0.0,
+            dx_rot=-yaw,
+            dy_rot=pitch,
+            dz_rot=get("etilt") or 0.0,
+        )
 
     def create_laura_element_dictionary(self):
         if not self.elegant_data:
@@ -337,6 +491,14 @@ class ElegantLatticeImporter(BaseModel):
 
             v = self._convert_k_to_kl(v)
             v = self._convert_ele_phase_to_phase(v)
+            if vtype == "Solenoid":
+                v = self._convert_b_to_s0l(v, elem_length)
+            if vtype == "Combined_Corrector":
+                # A combined corrector's introspected magnetic defaults hold only its
+                # two planes, so the generic keyword mapping never places ``l`` and the
+                # magnetic length stays 0 (exporters write the kicker with ``l = 0``).
+                # The model shares a flat ``length`` between both planes.
+                v.setdefault("magnetic", {}).setdefault("length", elem_length)
 
             physical = {
                 "s": cumulative_s,
@@ -348,87 +510,21 @@ class ElegantLatticeImporter(BaseModel):
             else:
                 v["physical"] = physical
 
-            self.elements.update({k: getattr(LAURA_elements, vtype)(**v)})
+            cls = laura_elements.ELEMENT_REGISTRY.get(vtype) or getattr(
+                laura_elements, vtype
+            )
+            self.elements.update({k: cls(**v)})
         return self.elements
 
-    def create_section(
-        self, section: Optional[Dict] = None
-    ) -> Dict[str, SectionLattice]:
-        """Build a named :class:`SectionLattice` from imported elements.
-
-        Parameters
-        ----------
-        section: dict, optional
-            ``{section_name: [first_element_name, last_element_name]}``. When
-            omitted, a single section spanning the *entire* imported lattice
-            (its first through last element, in beamline order) is derived
-            automatically -- the natural default; if not, set to
-            :meth:`_default_name`.
-        """
-        if not self.elements:
-            self.create_laura_element_dictionary()
-        if section is None:
-            names = list(self.elements)
-            if not names:
-                raise ValueError("No elements were imported; cannot build a section.")
-            section = {self._default_name(): [names[0], names[-1]]}
-        if len(section) != 1:
-            raise ValueError("A section definition must contain exactly one section.")
-        secname, bounds = next(iter(section.items()))
-        if len(bounds) != 2:
-            raise ValueError(
-                "A section definition must contain first and last elements."
-            )
-        names = list(self.elements)
-        try:
-            first, last = names.index(bounds[0]), names.index(bounds[1])
-        except ValueError as exc:
-            missing = bounds[0] if bounds[0] not in self.elements else bounds[1]
-            raise KeyError(f"element {missing} not found in lattice") from exc
-        if first > last:
-            raise ValueError("The first section element must precede the last.")
-        elems = dict(list(self.elements.items())[first : last + 1])
-        seclat = SectionLattice(
-            order=list(elems),
-            elements=ElementList(elements=elems),
-            name=secname,
-            functional_definitions=self.functional_definitions,
-        )
-        seclat.resolve_positions(self.elements)
-        return {secname: seclat}
-
-    def create_layout(
-        self, name: Optional[str] = None, sections: Optional[Dict] = None
-    ) -> MachineLayout:
-        """Build a :class:`MachineLayout` from one or more sections.
-
-        Parameters
-        ----------
-        name: str, optional
-            Layout name. Defaults to :meth:`_default_name` when omitted.
-        sections: dict, optional
-            ``{section_name: [first_element_name, last_element_name]}`` for
-            each section. When omitted, a single auto-derived section
-            spanning the whole imported lattice is used (see
-            :meth:`create_section`).
-        """
-        if self.source_file and sections is None:
-            self._prepare_source()
-            layout_sections = {
-                beamline: self._source_section(beamline)
-                for beamline in self._source_sections
-            }
-        elif sections is None:
-            layout_sections = self.create_section()
-        else:
-            layout_sections = {}
-            for secname, secpos in sections.items():
-                layout_sections.update(self.create_section({secname: secpos}))
-        return MachineLayout(
-            name=name or self._default_name(),
-            sections=layout_sections,
-            functional_definitions=self.functional_definitions,
-        )
+    def _default_sections(self) -> Dict[str, SectionLattice]:
+        """One section per top-level ``LINE`` of ``source_file``, if given."""
+        if not self.source_file:
+            return self.create_section()
+        self._prepare_source()
+        return {
+            beamline: self._source_section(beamline)
+            for beamline in self._source_sections
+        }
 
     def _source_section_blocks(
         self, root: str, min_section_length: int
@@ -439,7 +535,9 @@ class ElegantLatticeImporter(BaseModel):
         def member_name(member: str) -> tuple[str, int]:
             value = member.strip()
             match = re.match(r"^(\d+)\s*\*\s*(.*)$", value)
-            repeats, value = (int(match.group(1)), match.group(2)) if match else (1, value)
+            repeats, value = (
+                (int(match.group(1)), match.group(2)) if match else (1, value)
+            )
             return value.lstrip("-").strip().strip('"'), repeats
 
         def expanded_length(name: str, stack: tuple[str, ...] = ()) -> int:
@@ -447,7 +545,9 @@ class ElegantLatticeImporter(BaseModel):
             if key is None:
                 return 1
             if key.lower() in stack:
-                raise ValueError(f"Recursive ELEGANT LINE definition involving {key!r}.")
+                raise ValueError(
+                    f"Recursive ELEGANT LINE definition involving {key!r}."
+                )
             return sum(
                 repeats * expanded_length(child, stack + (key.lower(),))
                 for child, repeats in map(member_name, self._source_lines[key])
@@ -495,28 +595,12 @@ class ElegantLatticeImporter(BaseModel):
             raise ValueError("min_section_length must be at least 1.")
 
         if not self.source_file:
-            layout = self.create_layout()
-            return MachineModel(
-                elements={
-                    element.name: element
-                    for section in layout.sections.values()
-                    for element in section.elements.list()
-                },
-                section={
-                    "sections": {
-                        name: section.order for name, section in layout.sections.items()
-                    }
-                },
-                layout={
-                    "layouts": {layout.name: list(layout.sections)},
-                    "default_layout": layout.name,
-                },
-                functional_definitions=self.functional_definitions,
-            )
+            return self._single_layout_model()
 
         self._prepare_source()
         elements = {}
         section_definitions = {}
+        built_sections = {}
         layout_definitions = {}
         skipped_layouts = []
 
@@ -528,6 +612,8 @@ class ElegantLatticeImporter(BaseModel):
             blocks = self._source_section_blocks(root, min_section_length)
             if sum(count for _, count in blocks) != len(full_section.order):
                 blocks = [(root, len(full_section.order))]
+            if len(blocks) == 1:
+                infer_geometry(full_section)
 
             layout_sections = []
             offset = 0
@@ -548,55 +634,67 @@ class ElegantLatticeImporter(BaseModel):
                     [name for name, _ in members],
                     root,
                 )
+                if len(blocks) == 1:
+                    built_sections[section_name] = full_section
                 layout_sections.append(section_name)
             layout_definitions[root] = layout_sections
 
-        if skipped_layouts:
-            warn(
-                "Skipped ELEGANT layouts shorter than min_section_length="
-                f"{min_section_length}: {', '.join(skipped_layouts)}"
-            )
-        if not layout_definitions:
-            raise ValueError(
-                "No ELEGANT layouts meet min_section_length="
-                f"{min_section_length}."
-            )
-        default_layout = next(iter(layout_definitions))
-        return MachineModel(
-            elements=elements,
-            section={"sections": section_definitions},
-            layout={
-                "layouts": layout_definitions,
-                "default_layout": default_layout,
-            },
-            master_lattice=str(Path(self.source_file).resolve().parent),
-            functional_definitions=self.functional_definitions,
+        check_layouts(
+            layout_definitions, skipped_layouts, min_section_length, "ELEGANT layouts"
+        )
+        return self._layouts_model(
+            elements,
+            section_definitions,
+            built_sections,
+            layout_definitions,
+            self.functional_definitions,
         )
 
-    def export_yaml(
-        self,
-        path: str,
-        source: Union[SectionLattice, MachineLayout, MachineModel],
-        position_mode: PositionMode = "s",
-    ) -> None:
-        """Export this importer's resolved lattice to a combined LAURA YAML file.
+    @staticmethod
+    def _from_source(table: dict, name: str):
+        """``table``'s entry for ``name``, or for its base name when ``name``
+        is a numbered repeat (``B1.3``)."""
+        source_name = name.lower()
+        found = table.get(source_name, {})
+        if not found and source_name.rpartition(".")[2].isdigit():
+            found = table.get(source_name.rpartition(".")[0], {})
+        return found
 
-        Defaults to ``position_mode="s"`` (arc-length positioning). Call
-        :meth:`~laura.models.elementList.SectionLattice.resolve_positions` on
-        ``source`` first so every element's ``s`` value is populated.
+    def _expressions_for(self, name: str) -> Dict[str, str]:
+        return self._from_source(self._source_expressions, name)
 
-        Parameters
-        ----------
-        path: str
-            Directory in which to write ``summary.yaml``.
-        source: SectionLattice | MachineLayout | MachineModel
-            The section, layout, or complete model to export.
-        position_mode: "global" | "s" | "reference"
-            Position representation forwarded to
-            :func:`~laura.Exporters.YAML.export_machine_combined_file`; see
-            there for the meaning of each mode.
+    @staticmethod
+    def _length_of(data: dict) -> float:
+        return data.get("magnetic", {}).get(
+            "length", data.get("physical", {}).get("length", data.get("l", 0.0))
+        )
+
+    def _rescale_strength_symbols(self) -> set:
+        """Integrate symbols a bare per-metre strength (``k1="kx"``) names.
+
+        LAURA's ``KnL`` is integrated, so ``kx`` becomes ``kx * L``. Returns
+        the symbols that stay unscaled -- used any other way, or needing two
+        values -- whose bare strengths must import numerically.
         """
-        export_machine_combined_file(path, source, position_mode=position_mode)
+        unscaled = self._unscaled_definitions or self.functional_definitions
+        scaled, unscalable = {}, set()
+        for name, data in self.elegant_data.items():
+            length = float(self._length_of(data) or 0.0)
+            for parameter, expression in self._expressions_for(name).items():
+                symbol = self._rpn_symbol(expression)
+                if symbol and parameter in _PER_METRE_STRENGTHS and length:
+                    value = unscaled[symbol] * length
+                    if symbol in scaled and not np.isclose(scaled[symbol], value):
+                        unscalable.add(symbol)
+                    scaled[symbol] = value
+                else:
+                    unscalable.update(
+                        token for token in expression.split() if token in unscaled
+                    )
+        self.functional_definitions.update(
+            {name: value for name, value in scaled.items() if name not in unscalable}
+        )
+        return unscalable
 
     def _rpn_symbol(self, value, length=0.0) -> str | None:
         if not isinstance(value, str):
@@ -613,9 +711,19 @@ class ElegantLatticeImporter(BaseModel):
                     pass
         return None
 
+    def _convert_b_to_s0l(self, v, length: float) -> dict:
+        """SOLE's ``B`` [T] becomes the integrated field ``S0L`` [T*m]."""
+        field = v.get("simulation", {}).pop("field_amplitude", None)
+        if field:
+            symbol = self._rpn_symbol(field, length)
+            v["magnetic"].setdefault("fields", {})["S0L"] = (
+                symbol or float(field) * length
+            )
+        return v
+
     def _convert_k_to_kl(self, v) -> dict:
         multi = {}
-        if "angle" in v:
+        if "angle" in v and "magnetic" in v:
             symbol = self._rpn_symbol(v["angle"])
             if symbol:
                 v["k0"] = symbol
@@ -642,8 +750,14 @@ class ElegantLatticeImporter(BaseModel):
         if "cavity" in v:
             if "phase" in v["cavity"]:
                 value = v["cavity"]["phase"]
+                # inverse of RFCavityTranslator.to_elegant: deflectors take -phase
+                deflector = v.get("hardware_type") in (
+                    "RFDeflectingCavity",
+                    "CrabCavity",
+                )
+                offset = 0 if deflector else 90
                 tokens = value.strip('"').split() if isinstance(value, str) else []
-                if len(tokens) == 3 and tokens[0] == "90" and tokens[2] == "-":
+                if len(tokens) == 3 and tokens[0] == str(offset) and tokens[2] == "-":
                     symbol = self._rpn_symbol(tokens[1])
                     v["cavity"]["phase"] = symbol or value
                 else:
@@ -651,16 +765,16 @@ class ElegantLatticeImporter(BaseModel):
                     if symbol:
                         converted = f"{symbol}_laura_phase"
                         self.functional_definitions[converted] = (
-                            90 - self.functional_definitions[symbol]
+                            offset - self.functional_definitions[symbol]
                         )
                         v["cavity"]["phase"] = converted
                     else:
-                        v["cavity"]["phase"] = 90 - value
+                        v["cavity"]["phase"] = offset - value
         return v
 
     @staticmethod
     def import_sdds_params_file(filename: str, page: int = 0) -> list:
-        elegantObject = SDDSFile(index=1)
-        elegantObject.read_file(filename, page=page)
-        elegantData = elegantObject.data
-        return elegantData
+        elegant_object = sdds_file.SDDSFile(index=1)
+        elegant_object.read_file(filename, page=page)
+        elegant_data = elegant_object.data
+        return elegant_data

@@ -75,6 +75,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -104,7 +111,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -193,6 +200,36 @@
       "additionalProperties": false,
       "description": "Simulation attributes for an AC dipole / tune exciter.",
       "properties": {
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_amplitude": {
           "anyOf": [
             {
@@ -229,6 +266,57 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "phase": {
           "anyOf": [
             {
@@ -260,6 +348,48 @@
             "null"
           ]
         },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation."
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "wakefield_definition": {
           "description": "Path to the wakefield impedance file.",
           "type": [
@@ -273,6 +403,17 @@
             "boolean",
             "null"
           ]
+        },
+        "waveform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SampledWaveform"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Sampled pulse shape, for a device whose strength is a program rather than a sinusoid -- an injection kicker or an extraction septum."
         }
       },
       "title": "ACDipoleSimulationElement",
@@ -315,6 +456,13 @@
         },
         "hardware_type": {
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -459,6 +607,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -488,7 +643,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -644,6 +799,7 @@
         "circular",
         "rectangular",
         "elliptical",
+        "planar",
         "scraper"
       ],
       "title": "ApertureShapeEnum",
@@ -781,6 +937,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -810,7 +973,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -971,6 +1134,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -1000,7 +1170,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -1096,6 +1266,36 @@
             "null"
           ]
         },
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
           "type": [
@@ -1111,7 +1311,7 @@
           ]
         },
         "horizontal_offset": {
-          "description": "Horizontal opposing-bunch centroid offset [m].",
+          "description": "Horizontal simulation offset from the reference orbit [m].",
           "type": [
             "number",
             "null"
@@ -1124,10 +1324,54 @@
             "null"
           ]
         },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "n_particles": {
           "description": "Number of particles in the opposing bunch.",
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -1138,8 +1382,43 @@
             "null"
           ]
         },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation."
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "vertical_offset": {
-          "description": "Vertical opposing-bunch centroid offset [m].",
+          "description": "Vertical simulation offset from the reference orbit [m].",
           "type": [
             "number",
             "null"
@@ -1264,6 +1543,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -1293,7 +1579,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -1485,6 +1771,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -1514,7 +1807,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -1686,6 +1979,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -1715,7 +2015,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -2296,6 +2596,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -2325,7 +2632,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -2501,6 +2808,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -2530,7 +2844,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -2716,6 +3030,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -2736,7 +3057,7 @@
         "magnetic": {
           "anyOf": [
             {
-              "$ref": "#/$defs/CorrectorMagnet"
+              "$ref": "#/$defs/CombinedCorrectorMagnet"
             },
             {
               "type": "null"
@@ -2756,7 +3077,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -2839,6 +3160,36 @@
         "hardware_class"
       ],
       "title": "CombinedCorrector",
+      "type": "object"
+    },
+    "CombinedCorrectorMagnet": {
+      "additionalProperties": false,
+      "description": "The pair of steering-corrector fields inside one combined corrector.",
+      "properties": {
+        "horizontal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrectorMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Horizontal-plane corrector field, with its own calibration."
+        },
+        "vertical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrectorMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vertical-plane corrector field, with its own calibration."
+        }
+      },
+      "title": "CombinedCorrectorMagnet",
       "type": "object"
     },
     "CombinedSolenoidQuadrupole": {
@@ -2928,6 +3279,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -2968,7 +3326,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -3073,7 +3431,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -3106,6 +3478,14 @@
             }
           ],
           "description": "Fringe-field exit edge angle [rad]."
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "field_integral_coefficients": {
           "anyOf": [
@@ -3290,6 +3670,10 @@
             "null"
           ]
         },
+        "element_dtype": {
+          "$ref": "#/$defs/NumericDtypeEnum",
+          "description": "Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container."
+        },
         "expression": {
           "description": "Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.",
           "type": [
@@ -3329,6 +3713,23 @@
           "description": "Name of the set-point variable this readback follows.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "shape": {
+          "description": "Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those.",
+          "items": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -3401,39 +3802,229 @@
     },
     "CorrectorMagnet": {
       "additionalProperties": false,
-      "description": "Steering-corrector field, expressed as horizontal and vertical kicks rather than multipole coefficients.",
+      "description": "Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.",
       "properties": {
-        "horizontal_kick": {
-          "description": "Horizontal deflection [rad]. May be a functional expression.",
+        "angle": {
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
           "type": [
             "number",
             "null"
           ]
+        },
+        "bore": {
+          "description": "Magnet bore radius [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral": {
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "entrance_edge_angle": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fringe-field entrance edge angle [rad]."
+        },
+        "exit_edge_angle": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fringe-field exit edge angle [rad]."
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_integral_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldIntegral"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Polynomial calibration of integrated field vs. current."
+        },
+        "fringe_field_coefficient": {
+          "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gap": {
+          "description": "Full gap between pole faces [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gradient": {
+          "description": "Peak field gradient [T/m] (quads) or peak field [T] (dipoles).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "horizontal_kick": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Horizontal deflection [rad]. May be a functional expression. Derived from multipoles.K0L.normal."
         },
         "length": {
-          "description": "Magnetic length [m].",
-          "minimum": 0,
+          "description": "Magnetic (effective) length [m].",
+          "minimum": 0.0,
           "type": [
             "number",
             "null"
           ]
         },
+        "linear_saturation_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LinearSaturationFit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Bi-linear saturation calibration."
+        },
+        "multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Integrated multipole field components."
+        },
         "order": {
-          "description": "Multipole order (0, a dipole field).",
+          "const": 0,
+          "description": "Principal multipole order (0 = dipole, 1 = quad, ?).",
+          "minimum": -1,
           "type": [
             "integer",
             "null"
           ]
         },
+        "plane": {
+          "$ref": "#/$defs/BendingPlaneEnum",
+          "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
+        },
+        "random_multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Random multipole errors at the reference radius."
+        },
+        "settle_time": {
+          "description": "Power-supply settle time after a change [s].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "skew": {
+          "description": "Whether the magnet is rotated 45? to produce a skew field component.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "systematic_multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Systematic (design) multipole errors at the reference radius."
+        },
         "tilt": {
-          "description": "Roll of the corrector about the beam axis [rad].",
+          "description": "Global tilt about the beam axis [rad].",
           "type": [
             "number",
             "null"
           ]
         },
         "vertical_kick": {
-          "description": "Vertical deflection [rad]. May be a functional expression.",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vertical deflection [rad]. May be a functional expression. Derived from multipoles.K0L.skew."
+        },
+        "width": {
+          "description": "Physical width of the magnet in the bending plane [m].",
           "type": [
             "number",
             "null"
@@ -3530,6 +4121,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -3559,7 +4157,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -3731,6 +4329,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -3771,7 +4376,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -3876,7 +4481,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -3909,6 +4528,14 @@
             }
           ],
           "description": "Fringe-field exit edge angle [rad]."
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "field_integral_coefficients": {
           "anyOf": [
@@ -4159,6 +4786,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -4188,7 +4822,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -4283,6 +4917,36 @@
       "additionalProperties": false,
       "description": "Simulation attributes for beam-diagnostic elements.",
       "properties": {
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
           "type": [
@@ -4297,6 +4961,57 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "output_filename": {
           "description": "Output filename for diagnostic data.",
           "type": [
@@ -4306,6 +5021,48 @@
         },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation."
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
           "type": [
             "number",
             "null"
@@ -4416,6 +5173,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -4456,7 +5220,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -4561,7 +5325,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -4594,6 +5372,14 @@
             }
           ],
           "description": "Fringe-field exit edge angle [rad]."
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "field_integral_coefficients": {
           "anyOf": [
@@ -4801,6 +5587,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -4830,7 +5623,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -4920,14 +5713,30 @@
       "description": "Simulation attributes for field-free drift sections.",
       "properties": {
         "csr_enable": {
-          "description": "Enable CSR drift calculations.",
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
           "type": [
             "boolean",
             "null"
           ]
         },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "csrdz": {
           "description": "Step size for CSR calculations.",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
           "type": [
             "number",
             "null"
@@ -4947,6 +5756,21 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "lsc_bins": {
           "description": "Number of bins for LSC calculations.",
           "type": [
@@ -4955,7 +5779,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Enable LSC drift calculations.",
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
           "type": [
             "boolean",
             "null"
@@ -4996,6 +5820,28 @@
             "null"
           ]
         },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
           "type": [
@@ -5003,10 +5849,52 @@
             "null"
           ]
         },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation."
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "use_stupakov": {
           "description": "Use Stupakov formula.",
           "type": [
             "integer",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -5133,6 +6021,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -5162,7 +6057,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -5251,6 +6146,36 @@
       "additionalProperties": false,
       "description": "Simulation attributes for a static electrostatic separator.",
       "properties": {
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
           "type": [
@@ -5279,6 +6204,57 @@
           ],
           "description": "Horizontal deflecting electric field [V/m]."
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
           "type": [
@@ -5286,10 +6262,45 @@
             "null"
           ]
         },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation."
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "tilt": {
           "description": "Rotation about the beam axis [rad].",
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -5306,6 +6317,13 @@
             }
           ],
           "description": "Vertical deflecting electric field [V/m]."
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "wakefield_definition": {
           "description": "Path to the wakefield impedance file.",
@@ -5384,6 +6402,13 @@
         },
         "hardware_type": {
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -5632,6 +6657,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -5661,7 +6693,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -5870,6 +6902,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -5899,7 +6938,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -6071,6 +7110,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -6111,7 +7157,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -6307,6 +7353,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -6336,7 +7389,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -6582,6 +7635,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -6622,7 +7682,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -6767,6 +7827,13 @@
         "hardware_type": {
           "const": "LaserAttenuator",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -7032,6 +8099,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -7210,6 +8284,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -7383,6 +8464,13 @@
         "hardware_type": {
           "const": "LaserMirror",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -7592,6 +8680,44 @@
       "title": "LaserProfileTypeEnum",
       "type": "string"
     },
+    "LatticeGeometryEnum": {
+      "description": "Whether the reference orbit closes on itself. Mirrors Bmad's ``parameter[geometry]``.",
+      "enum": [
+        "open",
+        "closed"
+      ],
+      "title": "LatticeGeometryEnum",
+      "type": "string"
+    },
+    "LayoutPass": {
+      "additionalProperties": false,
+      "description": "One traversal of one section by one beam path.",
+      "properties": {
+        "direction": {
+          "description": "1 if this pass traverses the section forwards, -1 if backwards. A property of the path, not of the section.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "number": {
+          "description": "Multipass occurrence number, counting from 1. Absent for an ordinary single traversal and for repetition, where each occurrence is a separate device with its own section.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "section": {
+          "description": "Name of the section traversed on this pass.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "section"
+      ],
+      "title": "LayoutPass",
+      "type": "object"
+    },
     "Lighting": {
       "additionalProperties": false,
       "description": "Experimental-hall lighting element.",
@@ -7652,6 +8778,13 @@
         "hardware_type": {
           "const": "Lighting",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -7892,6 +9025,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -8069,6 +9209,23 @@
           "description": "Unique layout name.",
           "type": "string"
         },
+        "particle": {
+          "description": "Design particle species for this layout, overriding the machine-wide value. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "passes": {
+          "description": "The beam order, one entry per section traversal. Distinct from sections, which is keyed by name and so cannot express a section entered twice.",
+          "items": {
+            "$ref": "#/$defs/LayoutPass"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "sections": {
           "description": "Ordered list of section names.",
           "items": {
@@ -8135,6 +9292,13 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "particle": {
+          "description": "Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -8238,6 +9402,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -8278,7 +9449,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -8375,42 +9546,58 @@
           ]
         },
         "csr_enable": {
-          "description": "Enable coherent synchrotron radiation.",
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
           "type": [
             "boolean",
             "null"
           ]
         },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "deltaL": {
           "description": "Longitudinal step-size override for thick-lens integration [m].",
+          "minimum": 0,
           "type": [
             "number",
             "null"
           ]
         },
         "edge1_effects": {
-          "description": "Enable entrance-edge focussing effects.",
+          "description": "Entrance-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.",
           "type": [
-            "boolean",
+            "integer",
             "null"
           ]
         },
         "edge2_effects": {
-          "description": "Enable exit-edge focussing effects.",
+          "description": "Exit-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.",
           "type": [
-            "boolean",
+            "integer",
             "null"
           ]
         },
         "edge_field_integral": {
-          "description": "Fringe-field integral for edge focussing.",
+          "description": "Per-simulation override of the magnet's fringe-field integral. Absent means \"use ``MagneticElement.edge_field_integral``\".",
           "type": [
             "number",
             "null"
           ]
         },
         "edge_order": {
-          "description": "Polynomial order of the edge-field expansion.",
+          "description": "Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-order terms). Unset / default is second order.",
           "type": [
             "integer",
             "null"
@@ -8444,8 +9631,23 @@
             "null"
           ]
         },
+        "fringe_model": {
+          "description": "Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "integration_order": {
           "description": "Order of the symplectic integrator.",
+          "minimum": 1,
           "type": [
             "integer",
             "null"
@@ -8455,6 +9657,27 @@
           "description": "Enable incoherent synchrotron-radiation emittance growth.",
           "type": [
             "boolean",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -8481,6 +9704,14 @@
             "null"
           ]
         },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
           "type": [
@@ -8489,11 +9720,18 @@
           ]
         },
         "smooth": {
-          "description": "Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).",
-          "type": [
-            "integer",
-            "null"
-          ]
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth)."
         },
         "smooth_points": {
           "description": "Number of points used to smooth the field map [ASTRA].",
@@ -8509,10 +9747,38 @@
             "null"
           ]
         },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "sr_enable": {
           "description": "Enable synchrotron-radiation energy loss.",
           "type": [
             "boolean",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -8554,7 +9820,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -8587,6 +9867,14 @@
             }
           ],
           "description": "Fringe-field exit edge angle [rad]."
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "field_integral_coefficients": {
           "anyOf": [
@@ -8815,6 +10103,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -8844,7 +10139,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -9005,6 +10300,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -9034,7 +10336,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -9141,6 +10443,36 @@
           ],
           "description": "C-matrix (zeroth-order transfer vector)."
         },
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
           "type": [
@@ -9152,6 +10484,57 @@
           "description": "Longitudinal origin of the field map [m].",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -9173,6 +10556,27 @@
             "null"
           ]
         },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation."
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "spin_taylor": {
           "anyOf": [
             {
@@ -9183,6 +10587,13 @@
             }
           ],
           "description": "Sparse quaternion Taylor terms. Each term stores a quaternion component index, coefficient, and six orbital exponents."
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "t_matrix": {
           "anyOf": [
@@ -9195,6 +10606,13 @@
           ],
           "description": "T-matrix (second-order transfer tensor)."
         },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "u_matrix": {
           "anyOf": [
             {
@@ -9205,6 +10623,13 @@
             }
           ],
           "description": "U-matrix (third-order transfer tensor)."
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "wakefield_definition": {
           "description": "Path to the wakefield impedance file.",
@@ -9437,6 +10862,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -9477,7 +10909,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -9600,6 +11032,23 @@
       "title": "NonLinearLensMagnet",
       "type": "object"
     },
+    "NumericDtypeEnum": {
+      "description": "Numeric storage type of a control variable's value, or of an individual element of a waveform's array.",
+      "enum": [
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "float32",
+        "float64"
+      ],
+      "title": "NumericDtypeEnum",
+      "type": "string"
+    },
     "Octupole": {
       "additionalProperties": false,
       "description": "Octupole magnet.",
@@ -9687,6 +11136,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -9727,7 +11183,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -9832,7 +11288,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -9865,6 +11335,14 @@
             }
           ],
           "description": "Fringe-field exit edge angle [rad]."
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "field_integral_coefficients": {
           "anyOf": [
@@ -10056,6 +11534,13 @@
         "hardware_type": {
           "const": "PID",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -10400,6 +11885,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -10429,7 +11921,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -10589,6 +12081,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -10618,7 +12117,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -10893,6 +12392,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -10933,7 +12439,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -11109,6 +12615,36 @@
             "null"
           ]
         },
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "dt_bunch": {
           "description": "Time-step control for bunch evolution (or 'auto').",
           "type": [
@@ -11137,6 +12673,42 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "max_longitudinal_position": {
           "description": "Maximum longitudinal position [m].",
           "type": [
@@ -11148,6 +12720,13 @@
           "description": "Minimum longitudinal position [m].",
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -11167,6 +12746,14 @@
         },
         "n_radial": {
           "description": "Number of grid points in the radial direction.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
           "type": [
             "integer",
             "null"
@@ -11202,6 +12789,48 @@
         },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation."
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
           "type": [
             "number",
             "null"
@@ -11321,6 +12950,13 @@
         "hardware_type": {
           "const": "PowerSupply",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -11509,6 +13145,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -11549,7 +13192,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -11654,7 +13297,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -11687,6 +13344,14 @@
             }
           ],
           "description": "Fringe-field exit edge angle [rad]."
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "field_integral_coefficients": {
           "anyOf": [
@@ -11905,6 +13570,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -11934,7 +13606,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -12169,10 +13841,40 @@
             "null"
           ]
         },
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "current_bins": {
           "description": "Number of current bins.",
           "type": [
             "integer",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -12229,6 +13931,21 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "interpolate_current_bins": {
           "description": "Flag indicating current-bin interpolation.",
           "type": [
@@ -12243,8 +13960,30 @@
             "null"
           ]
         },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "n_kicks": {
-          "description": "Number of cavity kicks to apply.",
+          "description": "Number of cavity kicks to apply. Unset leaves it to the code.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
           "type": [
             "integer",
             "null"
@@ -12258,16 +13997,37 @@
           ]
         },
         "smooth": {
-          "description": "Cavity smoothing parameter.",
-          "type": [
-            "integer",
-            "null"
-          ]
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cavity smoothing parameter."
         },
         "smooth_current_bins": {
           "description": "Flag indicating current-bin smoothing.",
           "type": [
             "integer",
+            "null"
+          ]
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -12278,10 +14038,24 @@
             "null"
           ]
         },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "trwakefile": {
           "description": "Transverse wake file name.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -12435,6 +14209,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -12464,7 +14245,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -12723,6 +14504,13 @@
           ],
           "description": "RF heartbeat parameters."
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -12885,6 +14673,13 @@
         "hardware_type": {
           "const": "RFModulator",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -13079,6 +14874,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -13108,7 +14910,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -13197,6 +14999,36 @@
       "additionalProperties": false,
       "description": "Simulation attributes for a thin RF multipole kick.",
       "properties": {
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_amplitude": {
           "anyOf": [
             {
@@ -13233,6 +15065,21 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "knl": {
           "description": "Integrated normal multipole strengths, dipole through decapole.",
           "items": {
@@ -13250,6 +15097,42 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -13289,6 +15172,48 @@
         },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation."
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
           "type": [
             "number",
             "null"
@@ -13372,6 +15297,13 @@
         "hardware_type": {
           "const": "RFProtection",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -13580,7 +15512,7 @@
     },
     "Rotation": {
       "additionalProperties": false,
-      "description": "Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi].",
+      "description": "Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi]. The composition is Rz(psi) . Rx(phi) . Ry(theta), as implemented by laura.utils.rotation_matrix.euler_angles_to_rotation_matrix; each angle below names the axis that factor turns about. psi and theta were described the other way round until 2026-09-01, which is how the Bmad importer came to read x_pitch (a rotation about y) into psi.",
       "properties": {
         "phi": {
           "description": "Rotation about the horizontal (x) axis [rad].",
@@ -13592,7 +15524,7 @@
           ]
         },
         "psi": {
-          "description": "Rotation about the vertical (y) axis [rad].",
+          "description": "Rotation about the longitudinal (z) axis [rad].",
           "maximum": 3.141592653589793,
           "minimum": -3.141592653589793,
           "type": [
@@ -13601,7 +15533,7 @@
           ]
         },
         "theta": {
-          "description": "Rotation about the longitudinal (z) axis [rad].",
+          "description": "Rotation about the vertical (y) axis [rad].",
           "maximum": 3.141592653589793,
           "minimum": -3.141592653589793,
           "type": [
@@ -13611,6 +15543,38 @@
         }
       },
       "title": "Rotation",
+      "type": "object"
+    },
+    "SampledWaveform": {
+      "additionalProperties": false,
+      "description": "A pulse shape sampled at a sparse set of points, for a device whose strength is a program rather than a constant: an injection kicker, an extraction septum, a tune exciter driven from a measured trace. Only the knots are stored, and the value between them follows ``interpolation``.",
+      "properties": {
+        "factor": {
+          "description": "Strength at each of the times in ``time``, as a fraction of the element's nominal strength; 1.0 is full strength.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "interpolation": {
+          "$ref": "#/$defs/WaveformInterpolationEnum",
+          "description": "How the strength behaves between the sampled knots."
+        },
+        "time": {
+          "description": "Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as ``factor``.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "title": "SampledWaveform",
       "type": "object"
     },
     "Screen": {
@@ -13700,6 +15664,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -13729,7 +15700,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -13895,6 +15866,10 @@
             "null"
           ]
         },
+        "geometry": {
+          "$ref": "#/$defs/LatticeGeometryEnum",
+          "description": "Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent."
+        },
         "master_lattice": {
           "description": "Name of the master lattice this section belongs to.",
           "type": [
@@ -13905,6 +15880,25 @@
         "name": {
           "description": "Unique section name.",
           "type": "string"
+        },
+        "reference_energy": {
+          "description": "Reference total energy of the design particle [eV].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "space_charge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpaceChargeSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Resolution of the collective-field calculation over this section."
         }
       },
       "required": [
@@ -14000,6 +15994,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -14040,7 +16041,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -14145,7 +16146,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -14178,6 +16193,14 @@
             }
           ],
           "description": "Fringe-field exit edge angle [rad]."
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "field_integral_coefficients": {
           "anyOf": [
@@ -14385,6 +16408,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -14414,7 +16444,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -14530,8 +16560,38 @@
     },
     "SimulationElement": {
       "additionalProperties": false,
-      "description": "Base simulation attributes: field-map files and reference positions for tracking codes.",
+      "description": "Base simulation attributes: field-map files, reference positions, and optional tracking controls for simulation codes.",
       "properties": {
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
           "type": [
@@ -14546,8 +16606,101 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation."
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
           "type": [
             "number",
             "null"
@@ -14658,6 +16811,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -14698,7 +16858,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -14975,6 +17135,62 @@
       "title": "SolenoidMagnet",
       "type": "object"
     },
+    "SpaceChargeSettings": {
+      "additionalProperties": false,
+      "description": "How finely a code should resolve CSR and space charge over one section.\nOn the section: a bunch compressor is run with one binning and the linac around it with another.  The switches that turn the effects on stay per-element, as they can vary.\nAll fields is optional; absence means \"use the code's defaults\".",
+      "properties": {
+        "bin_span": {
+          "description": "Width of a particle's deposition kernel, counted in bins.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "chamber_height": {
+          "description": "Full height of the vacuum chamber for CSR shielding.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "number_of_bins": {
+          "description": "Longitudinal bins the bunch is divided into to build the collective field.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "shield_images": {
+          "description": "Number of image charges to sum when modelling wall shielding.",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "sigma_cutoff": {
+          "description": "Transverse beam size below which a slice is treated as having none.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "step_size": {
+          "description": "Distance between collective-field recalculations.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "SpaceChargeSettings",
+      "type": "object"
+    },
     "Stage": {
       "additionalProperties": false,
       "description": "Motorised positioning stage.",
@@ -15051,6 +17267,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -15080,7 +17303,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -15224,6 +17447,13 @@
         },
         "hardware_type": {
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -15437,6 +17667,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -15466,7 +17703,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -15583,6 +17820,36 @@
             "null"
           ]
         },
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "eta_x": {
           "description": "Horizontal dispersion.",
           "type": [
@@ -15632,8 +17899,101 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation."
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
           "type": [
             "number",
             "null"
@@ -15733,6 +18093,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -15762,7 +18129,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -15923,6 +18290,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -15952,7 +18326,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -16130,6 +18504,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -16159,7 +18540,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -16331,6 +18712,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -16371,7 +18759,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -16543,6 +18931,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -16572,7 +18967,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -16714,6 +19109,36 @@
             "null"
           ]
         },
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "equal_grid": {
           "description": "Interpolation between equidistant and equal-charge grids.",
           "type": [
@@ -16742,6 +19167,21 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "interpolate": {
           "description": "Interpolate points in wake file.",
           "type": [
@@ -16751,6 +19191,42 @@
         },
         "interpolation_method": {
           "description": "Interpolation method for ASTRA.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
           "type": [
             "integer",
             "null"
@@ -16813,9 +19289,30 @@
           ]
         },
         "smooth": {
-          "description": "Smoothing parameter for Gaussian interpolation.",
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing parameter for Gaussian interpolation."
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
           "type": [
-            "number",
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -16830,6 +19327,20 @@
           "description": "Time column in the wake file.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -16966,6 +19477,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -16995,7 +19513,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -17079,6 +19597,16 @@
       ],
       "title": "WallCurrentMonitor",
       "type": "object"
+    },
+    "WaveformInterpolationEnum": {
+      "description": "How a sampled waveform behaves between the points it was sampled at.",
+      "enum": [
+        "linear",
+        "hold",
+        "spline"
+      ],
+      "title": "WaveformInterpolationEnum",
+      "type": "string"
     },
     "Wiggler": {
       "additionalProperties": false,
@@ -17167,6 +19695,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -17218,7 +19753,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -17467,6 +20002,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -17496,7 +20038,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -17583,7 +20125,7 @@
     },
     "WireScanner": {
       "additionalProperties": false,
-      "description": "Intercepting wire scanner for transverse profile measurement.",
+      "description": "Wire scanner: thin wires stepped through the beam to measure its transverse profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation element.",
       "properties": {
         "alias": {
           "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
@@ -17668,6 +20210,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -17697,7 +20246,7 @@
           "description": "Manufacturer and serial-number data."
         },
         "material": {
-          "description": "Element material. ",
+          "description": "Element material.",
           "type": [
             "string",
             "null"
@@ -17810,8 +20359,38 @@
       "additionalProperties": false,
       "description": "Simulation attributes for a compensating wire.",
       "properties": {
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "current": {
           "description": "Current carried by the wire [A].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
           "type": [
             "number",
             "null"
@@ -17832,9 +20411,17 @@
           ]
         },
         "horizontal_offset": {
-          "description": "Horizontal wire offset from the reference orbit [m].",
+          "description": "Horizontal simulation offset from the reference orbit [m].",
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -17845,6 +20432,42 @@
             "null"
           ]
         },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled. Off by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
           "type": [
@@ -17852,8 +20475,43 @@
             "null"
           ]
         },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation."
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "vertical_offset": {
-          "description": "Vertical wire offset from the reference orbit [m].",
+          "description": "Vertical simulation offset from the reference orbit [m].",
           "type": [
             "number",
             "null"
@@ -17917,6 +20575,13 @@
     },
     "hardware_type": {
       "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "inherits_from": {
+      "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
       "type": [
         "string",
         "null"

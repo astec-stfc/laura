@@ -17,6 +17,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 -- # Class: StandardElement Description: Accelerator element with control-system, electrical, manufacturer, simulation, and reference sub-models.
 --     * Slot: name Description: Unique element name within the machine.
 --     * Slot: hardware_class Description: Functional category (e.g., ``Magnet``, ``Diagnostic``).
@@ -25,6 +26,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
 --     * Slot: manufacturer_id Description: Manufacturer and serial-number data.
@@ -38,6 +40,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
 --     * Slot: manufacturer_id Description: Manufacturer and serial-number data.
@@ -52,6 +55,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -64,11 +68,11 @@
 --     * Slot: x Description: Horizontal component [m].
 --     * Slot: y Description: Vertical component [m].
 --     * Slot: z Description: Longitudinal (beam-direction) component [m].
--- # Class: Rotation Description: Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi].
+-- # Class: Rotation Description: Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi]. The composition is Rz(psi) . Rx(phi) . Ry(theta), as implemented by laura.utils.rotation_matrix.euler_angles_to_rotation_matrix; each angle below names the axis that factor turns about. psi and theta were described the other way round until 2026-09-01, which is how the Bmad importer came to read x_pitch (a rotation about y) into psi.
 --     * Slot: id
 --     * Slot: phi Description: Rotation about the horizontal (x) axis [rad].
---     * Slot: psi Description: Rotation about the vertical (y) axis [rad].
---     * Slot: theta Description: Rotation about the longitudinal (z) axis [rad].
+--     * Slot: psi Description: Rotation about the longitudinal (z) axis [rad].
+--     * Slot: theta Description: Rotation about the vertical (y) axis [rad].
 -- # Class: ElementPositionError Description: Alignment position and rotation errors for a physically-located element.
 --     * Slot: id
 --     * Slot: position_id Description: Positional misalignment error [m].
@@ -109,6 +113,7 @@
 --     * Slot: control_type Description: Kind of quantity this variable carries. Accepted in YAML as ``type``.
 --     * Slot: target Description: Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value.
 --     * Slot: expression Description: Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.
+--     * Slot: element_dtype Description: Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container.
 --     * Slot: states Description: Mapping of state name to underlying control-system value, for ``control_type: state``.
 --     * Slot: readback Description: Name of the readback variable this set-point drives.
 --     * Slot: setpoint Description: Name of the set-point variable this readback follows.
@@ -132,6 +137,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -148,6 +154,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -164,6 +171,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -180,6 +188,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -196,6 +205,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -212,6 +222,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -228,6 +239,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -244,6 +256,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -260,6 +273,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -276,6 +290,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -292,6 +307,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -308,6 +324,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: laser_id Description: Laser-beam parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -325,6 +342,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: shutter_id Description: Shutter interlock configuration.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -352,6 +370,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: valve_id Description: Valve configuration.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -369,6 +388,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -385,6 +405,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: aperture_id Description: Aperture geometry parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -401,6 +422,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: aperture_id Description: Aperture geometry parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -417,6 +439,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
@@ -432,6 +455,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: lights_id Description: Lighting configuration.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
@@ -446,29 +470,67 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
 --     * Slot: manufacturer_id Description: Manufacturer and serial-number data.
 --     * Slot: controls_id Description: Control-system process-variable definitions.
 --     * Slot: reference_id Description: Links to design drawings and files.
+-- # Class: SpaceChargeSettings Description: How finely a code should resolve CSR and space charge over one section.On the section: a bunch compressor is run with one binning and the linac around it with another.  The switches that turn the effects on stay per-element, as they can vary.All fields is optional; absence means "use the code's defaults".
+--     * Slot: id
+--     * Slot: number_of_bins Description: Longitudinal bins the bunch is divided into to build the collective field.
+--     * Slot: step_size Description: Distance between collective-field recalculations.
+--     * Slot: chamber_height Description: Full height of the vacuum chamber for CSR shielding.
+--     * Slot: shield_images Description: Number of image charges to sum when modelling wall shielding.
+--     * Slot: bin_span Description: Width of a particle's deposition kernel, counted in bins.
+--     * Slot: sigma_cutoff Description: Transverse beam size below which a slice is treated as having none.
 -- # Class: SectionLattice Description: An ordered list of element names defining a contiguous beamline section.
 --     * Slot: name Description: Unique section name.
 --     * Slot: master_lattice Description: Name of the master lattice this section belongs to.
+--     * Slot: geometry Description: Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent.
+--     * Slot: reference_energy Description: Reference total energy of the design particle [eV].
 --     * Slot: beampipe_aperture_type Description: Cross-sectional beam pipe aperture shape.
 --     * Slot: beampipe_size Description: Size of beam pipe [m]. A single value for a circular aperture, or two values (horizontal, vertical) for a rectangular or elliptical one.
 --     * Slot: beampipe_material Description: Beam pipe material
+--     * Slot: space_charge_id Description: Resolution of the collective-field calculation over this section.
+-- # Class: LayoutPass Description: One traversal of one section by one beam path.
+--     * Slot: id
+--     * Slot: section Description: Name of the section traversed on this pass.
+--     * Slot: direction Description: 1 if this pass traverses the section forwards, -1 if backwards. A property of the path, not of the section.
+--     * Slot: number Description: Multipass occurrence number, counting from 1. Absent for an ordinary single traversal and for repetition, where each occurrence is a separate device with its own section.
 -- # Class: MachineLayout Description: An ordered list of section names defining a beamline layout (a contiguous sequence of sections).
 --     * Slot: name Description: Unique layout name.
 --     * Slot: master_lattice Description: Name of the master lattice this layout belongs to.
+--     * Slot: particle Description: Design particle species for this layout, overriding the machine-wide value. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.
 -- # Class: MachineModel Description: Top-level container for a complete accelerator lattice: elements, sections, layouts, and named lattice configurations.
 --     * Slot: id
+--     * Slot: particle Description: Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.
 --     * Slot: beampipe_aperture_type Description: Cross-sectional beam pipe aperture shape.
 --     * Slot: beampipe_size Description: Size of beam pipe [m]. A single value for a circular aperture, or two values (horizontal, vertical) for a rectangular or elliptical one.
 --     * Slot: beampipe_material Description: Beam pipe material
 -- # Class: MatrixValue Description: An unconstrained serializable matrix value. The handwritten matrix model validates dense arrays and named coefficient mappings into NumPy arrays.
 --     * Slot: id
--- # Class: SimulationElement Description: Base simulation attributes: field-map files and reference positions for tracking codes.
+-- # Class: SampledWaveform Description: A pulse shape sampled at a sparse set of points, for a device whose strength is a program rather than a constant: an injection kicker, an extraction septum, a tune exciter driven from a measured trace. Only the knots are stored, and the value between them follows ``interpolation``.
 --     * Slot: id
+--     * Slot: interpolation Description: How the strength behaves between the sampled knots.
+-- # Class: SimulationElement Description: Base simulation attributes: field-map files, reference positions, and optional tracking controls for simulation codes.
+--     * Slot: id
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins used in longitudinal space-charge calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Smoothing control for field or wake interpolation.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -476,23 +538,35 @@
 --     * Slot: scale_field Description: Multiplicative scale factor applied to the field map.
 -- # Class: MagnetSimulationElement Description: Simulation attributes specific to magnets: integrator settings, fringe-field model, and radiation flags.
 --     * Slot: id
---     * Slot: n_kicks Description: Number of integration kicks.
 --     * Slot: field_amplitude Description: Field amplitude scaling for magnet tracking.
 --     * Slot: n_slices Description: Number of longitudinal slices for thick-lens tracking.
---     * Slot: smooth Description: Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).
---     * Slot: edge_field_integral Description: Fringe-field integral for edge focussing.
---     * Slot: edge1_effects Description: Enable entrance-edge focussing effects.
---     * Slot: edge2_effects Description: Enable exit-edge focussing effects.
+--     * Slot: edge_field_integral Description: Per-simulation override of the magnet's fringe-field integral. Absent means "use ``MagneticElement.edge_field_integral``".
+--     * Slot: edge1_effects Description: Entrance-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.
+--     * Slot: edge2_effects Description: Exit-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.
+--     * Slot: fringe_model Description: Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code.
 --     * Slot: sr_enable Description: Enable synchrotron-radiation energy loss.
 --     * Slot: isr_enable Description: Enable incoherent synchrotron-radiation emittance growth.
---     * Slot: csr_enable Description: Enable coherent synchrotron radiation.
 --     * Slot: csr_bins Description: Number of longitudinal bins for the CSR mesh.
---     * Slot: integration_order Description: Order of the symplectic integrator.
 --     * Slot: nonlinear Description: Include higher-order (sextupole+) field components.
 --     * Slot: smoothing_half_width Description: Half-width of the current-profile smoothing kernel.
---     * Slot: edge_order Description: Polynomial order of the edge-field expansion.
---     * Slot: deltaL Description: Longitudinal step-size override for thick-lens integration [m].
+--     * Slot: edge_order Description: Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-order terms). Unset / default is second order.
 --     * Slot: smooth_points Description: Number of points used to smooth the field map [ASTRA].
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins used in longitudinal space-charge calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the symplectic integrator.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal step-size override for thick-lens integration [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -505,8 +579,6 @@
 --     * Slot: wx_column Description: Horizontal wake column in the wake file.
 --     * Slot: wy_column Description: Vertical wake column in the wake file.
 --     * Slot: wz_column Description: Longitudinal wake column in the wake file.
---     * Slot: n_kicks Description: Number of cavity kicks to apply.
---     * Slot: lsc_bins Description: Number of longitudinal space-charge bins.
 --     * Slot: change_p0 Description: Flag indicating whether the cavity changes reference momentum.
 --     * Slot: end1_focus Description: Apply entrance focusing.
 --     * Slot: end2_focus Description: Apply exit focusing.
@@ -514,13 +586,28 @@
 --     * Slot: current_bins Description: Number of current bins.
 --     * Slot: interpolate_current_bins Description: Flag indicating current-bin interpolation.
 --     * Slot: smooth_current_bins Description: Flag indicating current-bin smoothing.
---     * Slot: smooth Description: Cavity smoothing parameter.
 --     * Slot: ez_peak Description: Peak longitudinal electric field.
 --     * Slot: field_file_name Description: Cavity field file name.
 --     * Slot: wakefile Description: Wake file name.
 --     * Slot: zwakefile Description: Longitudinal wake file name.
 --     * Slot: trwakefile Description: Transverse wake file name.
 --     * Slot: field_amplitude Description: Cavity field amplitude.
+--     * Slot: n_kicks Description: Number of cavity kicks to apply. Unset leaves it to the code.
+--     * Slot: lsc_bins Description: Number of longitudinal space-charge bins.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Cavity smoothing parameter.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -547,8 +634,23 @@
 --     * Slot: scale_field_hz Description: z-component of the horizontal direction vector.
 --     * Slot: equal_grid Description: Interpolation between equidistant and equal-charge grids.
 --     * Slot: interpolation_method Description: Interpolation method for ASTRA.
---     * Slot: smooth Description: Smoothing parameter for Gaussian interpolation.
 --     * Slot: subbins Description: Sub-binning parameter.
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins used in longitudinal space-charge calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Smoothing parameter for Gaussian interpolation.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -556,16 +658,28 @@
 --     * Slot: scale_field Description: Multiplicative scale factor applied to the field map.
 -- # Class: DriftSimulationElement Description: Simulation attributes for field-free drift sections.
 --     * Slot: id
---     * Slot: lsc_bins Description: Number of bins for LSC calculations.
 --     * Slot: lsc_interpolate Description: Flag to allow interpolation of computed LSC wake.
---     * Slot: csr_enable Description: Enable CSR drift calculations.
---     * Slot: lsc_enable Description: Enable LSC drift calculations.
 --     * Slot: use_stupakov Description: Use Stupakov formula.
---     * Slot: csrdz Description: Step size for CSR calculations.
 --     * Slot: lsc_high_frequency_cutoff_start Description: High-frequency cutoff start for LSC.
 --     * Slot: lsc_high_frequency_cutoff_end Description: High-frequency cutoff end for LSC.
 --     * Slot: lsc_low_frequency_cutoff_start Description: Low-frequency cutoff start for LSC.
 --     * Slot: lsc_low_frequency_cutoff_end Description: Low-frequency cutoff end for LSC.
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins for LSC calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Step size for CSR calculations.
+--     * Slot: smooth Description: Smoothing control for field or wake interpolation.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -574,6 +688,22 @@
 -- # Class: DiagnosticSimulationElement Description: Simulation attributes for beam-diagnostic elements.
 --     * Slot: id
 --     * Slot: output_filename Description: Output filename for diagnostic data.
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins used in longitudinal space-charge calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Smoothing control for field or wake interpolation.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -594,6 +724,22 @@
 --     * Slot: r_max_plasma Description: Maximum radial extension of the plasma column.
 --     * Slot: dz_fields Description: Interval for plasma wakefield updates.
 --     * Slot: plasma_pusher Description: Pusher used to evolve the plasma in time.
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins used in longitudinal space-charge calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Smoothing control for field or wake interpolation.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -610,6 +756,22 @@
 --     * Slot: eta_xp Description: Horizontal dispersion derivative.
 --     * Slot: eta_yp Description: Vertical dispersion derivative.
 --     * Slot: from_beam Description: Compute transform from tracked beam properties.
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins used in longitudinal space-charge calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Smoothing control for field or wake interpolation.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -618,6 +780,22 @@
 -- # Class: MatrixTransformSimulationElement Description: Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
 --     * Slot: id
 --     * Slot: apply Description: Whether to apply the transfer map.
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins used in longitudinal space-charge calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Smoothing control for field or wake interpolation.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -633,6 +811,22 @@
 --     * Slot: horizontal_field Description: Horizontal deflecting electric field [V/m].
 --     * Slot: vertical_field Description: Vertical deflecting electric field [V/m].
 --     * Slot: tilt Description: Rotation about the beam axis [rad].
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins used in longitudinal space-charge calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Smoothing control for field or wake interpolation.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -643,17 +837,48 @@
 --     * Slot: field_amplitude Description: Peak kick voltage/amplitude of the exciter.
 --     * Slot: frequency Description: Drive frequency [Hz].
 --     * Slot: phase Description: Phase lag [deg].
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins used in longitudinal space-charge calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Smoothing control for field or wake interpolation.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
 --     * Slot: field_reference_position Description: Longitudinal origin of the field map [m].
 --     * Slot: scale_field Description: Multiplicative scale factor applied to the field map.
+--     * Slot: waveform_id Description: Sampled pulse shape, for a device whose strength is a program rather than a sinusoid -- an injection kicker or an extraction septum.
 -- # Class: WireSimulationElement Description: Simulation attributes for a compensating wire.
 --     * Slot: id
 --     * Slot: current Description: Current carried by the wire [A].
 --     * Slot: interaction_length Description: Effective interaction length [m].
---     * Slot: horizontal_offset Description: Horizontal wire offset from the reference orbit [m].
---     * Slot: vertical_offset Description: Vertical wire offset from the reference orbit [m].
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins used in longitudinal space-charge calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Smoothing control for field or wake interpolation.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -663,11 +888,25 @@
 --     * Slot: id
 --     * Slot: charge Description: Opposing-beam particle charge in units of the elementary charge.
 --     * Slot: n_particles Description: Number of particles in the opposing bunch.
---     * Slot: horizontal_offset Description: Horizontal opposing-bunch centroid offset [m].
---     * Slot: vertical_offset Description: Vertical opposing-bunch centroid offset [m].
 --     * Slot: horizontal_sigma Description: Horizontal RMS size of the opposing bunch [m].
 --     * Slot: vertical_sigma Description: Vertical RMS size of the opposing bunch [m].
 --     * Slot: width Description: Opposing-bunch length for the 3-D weak-strong model [m].
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins used in longitudinal space-charge calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Smoothing control for field or wake interpolation.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -678,6 +917,22 @@
 --     * Slot: frequency Description: RF frequency [Hz].
 --     * Slot: phase Description: Overall phase lag [deg].
 --     * Slot: field_amplitude Description: Longitudinal voltage [V].
+--     * Slot: n_kicks Description: Number of integration kicks.
+--     * Slot: lsc_bins Description: Number of bins used in longitudinal space-charge calculations.
+--     * Slot: csr_enable Description: Whether coherent synchrotron radiation effects are enabled.
+--     * Slot: lsc_enable Description: Whether longitudinal space-charge effects are enabled. Off by default.
+--     * Slot: tracking_method Description: Phase-space tracking algorithm requested from the target code.
+--     * Slot: mat6_calc_method Description: Method used to calculate the element's 6x6 transfer matrix.
+--     * Slot: spin_tracking_method Description: Spin-tracking algorithm requested from the target code.
+--     * Slot: integration_order Description: Order of the target code's integration formula.
+--     * Slot: num_steps Description: Number of integration steps through the element.
+--     * Slot: deltaL Description: Longitudinal integration step size [m].
+--     * Slot: csr_method Description: Coherent-synchrotron-radiation tracking method.
+--     * Slot: space_charge_method Description: Space-charge tracking method.
+--     * Slot: csrdz Description: Longitudinal step size between CSR kicks [m].
+--     * Slot: smooth Description: Smoothing control for field or wake interpolation.
+--     * Slot: horizontal_offset Description: Horizontal simulation offset from the reference orbit [m].
+--     * Slot: vertical_offset Description: Vertical simulation offset from the reference orbit [m].
 --     * Slot: field_definition Description: Path to the 3-D field-map file.
 --     * Slot: wakefield_definition Description: Path to the wakefield impedance file.
 --     * Slot: wakefield_enable Description: Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.
@@ -692,6 +947,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -738,7 +994,10 @@
 --     * Slot: plane Description: Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).
 --     * Slot: width Description: Physical width of the magnet in the bending plane [m].
 --     * Slot: tilt Description: Global tilt about the beam axis [rad].
---     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless).
+--     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
+--     * Slot: edge_field_integral_entrance Description: Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: edge_field_integral_exit Description: Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: exit_gap Description: Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.
 --     * Slot: fringe_field_coefficient Description: Coefficient controlling the fringe-field roll-off rate.
 --     * Slot: gradient Description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
 --     * Slot: angle Description: Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.
@@ -760,6 +1019,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: cavity_id Description: RF structure parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -777,6 +1037,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: cavity_id Description: RF structure parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -794,6 +1055,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: cavity_id Description: Crab-cavity RF structure parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -811,6 +1073,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: cavity_id Description: Wakefield structure parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -827,6 +1090,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: llrf_id Description: LLRF parameters.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
@@ -841,6 +1105,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: modulator_id Description: Modulator parameters.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
@@ -855,6 +1120,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: protection_id Description: RF protection parameters.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
@@ -869,6 +1135,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: heartbeat_id Description: RF heartbeat parameters.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
@@ -883,6 +1150,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: pid_id Description: PID gain parameters.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
@@ -991,6 +1259,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: diagnostic_id Description: Instrument-specific diagnostic parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -1008,6 +1277,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: diagnostic_id Description: Instrument-specific diagnostic parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -1025,6 +1295,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: diagnostic_id Description: Instrument-specific diagnostic parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -1042,6 +1313,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: diagnostic_id Description: Instrument-specific diagnostic parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -1059,6 +1331,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: diagnostic_id Description: Instrument-specific diagnostic parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -1076,6 +1349,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: diagnostic_id Description: Instrument-specific diagnostic parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -1084,7 +1358,7 @@
 --     * Slot: manufacturer_id Description: Manufacturer and serial-number data.
 --     * Slot: controls_id Description: Control-system process-variable definitions.
 --     * Slot: reference_id Description: Links to design drawings and files.
--- # Class: WireScanner Description: Intercepting wire scanner for transverse profile measurement.
+-- # Class: WireScanner Description: Wire scanner: thin wires stepped through the beam to measure its transverse profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation element.
 --     * Slot: material Description: Element material.
 --     * Slot: name Description: Unique element name within the machine.
 --     * Slot: hardware_class Description: Functional category (e.g., ``Magnet``, ``Diagnostic``).
@@ -1093,6 +1367,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: diagnostic_id Description: Instrument-specific diagnostic parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -1110,6 +1385,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: diagnostic_id Description: Instrument-specific diagnostic parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -1127,6 +1403,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: diagnostic_id Description: Instrument-specific diagnostic parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -1144,6 +1421,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: diagnostic_id Description: Instrument-specific diagnostic parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -1161,6 +1439,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: diagnostic_id Description: Instrument-specific diagnostic parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -1178,6 +1457,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: diagnostic_id Description: Instrument-specific diagnostic parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
 --     * Slot: aperture_id Description: Aperture of the element.
@@ -1263,6 +1543,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: plasma_id Description: Plasma channel parameters.
 --     * Slot: laser_id Description: Laser driving the plasma stage.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -1280,6 +1561,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: laser_id Description: Energy-meter instrument parameters.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
@@ -1294,6 +1576,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: laser_id Description: Half-wave plate parameters.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
@@ -1308,6 +1591,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: laser_id Description: Mirror steering parameters.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
@@ -1336,6 +1620,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: simulation_id Description: Simulation / tracking attributes.
 --     * Slot: electrical_id Description: Power-supply electrical limits.
 --     * Slot: manufacturer_id Description: Manufacturer and serial-number data.
@@ -1368,7 +1653,7 @@
 --     * Slot: ramp_decay_length Description: Exponential decay length of the density ramp [m].
 --     * Slot: density_profile Description: If True, use a user-defined profile; if False, use a flat-top model.
 --     * Slot: parabolic_coefficient Description: Parabolic coefficient for a transverse density profile.
--- # Class: Dipole_Magnet
+-- # Class: DipoleMagnet
 --     * Slot: id
 --     * Slot: order Description: Principal multipole order (0 = dipole, 1 = quad, ?).
 --     * Slot: skew Description: Whether the magnet is rotated 45? to produce a skew field component.
@@ -1381,7 +1666,10 @@
 --     * Slot: plane Description: Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).
 --     * Slot: width Description: Physical width of the magnet in the bending plane [m].
 --     * Slot: tilt Description: Global tilt about the beam axis [rad].
---     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless).
+--     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
+--     * Slot: edge_field_integral_entrance Description: Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: edge_field_integral_exit Description: Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: exit_gap Description: Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.
 --     * Slot: fringe_field_coefficient Description: Coefficient controlling the fringe-field roll-off rate.
 --     * Slot: gradient Description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
 --     * Slot: angle Description: Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.
@@ -1399,6 +1687,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -1408,7 +1697,7 @@
 --     * Slot: manufacturer_id Description: Manufacturer and serial-number data.
 --     * Slot: controls_id Description: Control-system process-variable definitions.
 --     * Slot: reference_id Description: Links to design drawings and files.
--- # Class: Quadrupole_Magnet
+-- # Class: QuadrupoleMagnet
 --     * Slot: id
 --     * Slot: order Description: Principal multipole order (0 = dipole, 1 = quad, ?).
 --     * Slot: skew Description: Whether the magnet is rotated 45? to produce a skew field component.
@@ -1421,7 +1710,10 @@
 --     * Slot: plane Description: Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).
 --     * Slot: width Description: Physical width of the magnet in the bending plane [m].
 --     * Slot: tilt Description: Global tilt about the beam axis [rad].
---     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless).
+--     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
+--     * Slot: edge_field_integral_entrance Description: Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: edge_field_integral_exit Description: Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: exit_gap Description: Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.
 --     * Slot: fringe_field_coefficient Description: Coefficient controlling the fringe-field roll-off rate.
 --     * Slot: gradient Description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
 --     * Slot: angle Description: Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.
@@ -1439,6 +1731,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -1448,7 +1741,7 @@
 --     * Slot: manufacturer_id Description: Manufacturer and serial-number data.
 --     * Slot: controls_id Description: Control-system process-variable definitions.
 --     * Slot: reference_id Description: Links to design drawings and files.
--- # Class: Sextupole_Magnet Description: Sextupole magnet field, principal multipole order 2.
+-- # Class: SextupoleMagnet Description: Sextupole magnet field, principal multipole order 2.
 --     * Slot: id
 --     * Slot: order Description: Principal multipole order (0 = dipole, 1 = quad, ?).
 --     * Slot: skew Description: Whether the magnet is rotated 45? to produce a skew field component.
@@ -1461,7 +1754,10 @@
 --     * Slot: plane Description: Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).
 --     * Slot: width Description: Physical width of the magnet in the bending plane [m].
 --     * Slot: tilt Description: Global tilt about the beam axis [rad].
---     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless).
+--     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
+--     * Slot: edge_field_integral_entrance Description: Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: edge_field_integral_exit Description: Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: exit_gap Description: Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.
 --     * Slot: fringe_field_coefficient Description: Coefficient controlling the fringe-field roll-off rate.
 --     * Slot: gradient Description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
 --     * Slot: angle Description: Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.
@@ -1479,6 +1775,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -1488,7 +1785,7 @@
 --     * Slot: manufacturer_id Description: Manufacturer and serial-number data.
 --     * Slot: controls_id Description: Control-system process-variable definitions.
 --     * Slot: reference_id Description: Links to design drawings and files.
--- # Class: Octupole_Magnet Description: Octupole magnet field, principal multipole order 3.
+-- # Class: OctupoleMagnet Description: Octupole magnet field, principal multipole order 3.
 --     * Slot: id
 --     * Slot: order Description: Principal multipole order (0 = dipole, 1 = quad, ?).
 --     * Slot: skew Description: Whether the magnet is rotated 45? to produce a skew field component.
@@ -1501,7 +1798,10 @@
 --     * Slot: plane Description: Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).
 --     * Slot: width Description: Physical width of the magnet in the bending plane [m].
 --     * Slot: tilt Description: Global tilt about the beam axis [rad].
---     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless).
+--     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
+--     * Slot: edge_field_integral_entrance Description: Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: edge_field_integral_exit Description: Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: exit_gap Description: Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.
 --     * Slot: fringe_field_coefficient Description: Coefficient controlling the fringe-field roll-off rate.
 --     * Slot: gradient Description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
 --     * Slot: angle Description: Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.
@@ -1519,6 +1819,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -1541,7 +1842,10 @@
 --     * Slot: plane Description: Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).
 --     * Slot: width Description: Physical width of the magnet in the bending plane [m].
 --     * Slot: tilt Description: Global tilt about the beam axis [rad].
---     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless).
+--     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
+--     * Slot: edge_field_integral_entrance Description: Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: edge_field_integral_exit Description: Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: exit_gap Description: Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.
 --     * Slot: fringe_field_coefficient Description: Coefficient controlling the fringe-field roll-off rate.
 --     * Slot: gradient Description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
 --     * Slot: angle Description: Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.
@@ -1559,6 +1863,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -1568,13 +1873,33 @@
 --     * Slot: manufacturer_id Description: Manufacturer and serial-number data.
 --     * Slot: controls_id Description: Control-system process-variable definitions.
 --     * Slot: reference_id Description: Links to design drawings and files.
--- # Class: Corrector_Magnet Description: Steering-corrector field, expressed as horizontal and vertical kicks rather than multipole coefficients.
+-- # Class: Corrector_Magnet Description: Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.
 --     * Slot: id
---     * Slot: length Description: Magnetic length [m].
---     * Slot: order Description: Multipole order (0, a dipole field).
---     * Slot: tilt Description: Roll of the corrector about the beam axis [rad].
---     * Slot: horizontal_kick Description: Horizontal deflection [rad]. May be a functional expression.
---     * Slot: vertical_kick Description: Vertical deflection [rad]. May be a functional expression.
+--     * Slot: horizontal_kick Description: Horizontal deflection [rad]. May be a functional expression. Derived from multipoles.K0L.normal.
+--     * Slot: vertical_kick Description: Vertical deflection [rad]. May be a functional expression. Derived from multipoles.K0L.skew.
+--     * Slot: order Description: Principal multipole order (0 = dipole, 1 = quad, ?).
+--     * Slot: skew Description: Whether the magnet is rotated 45? to produce a skew field component.
+--     * Slot: length Description: Magnetic (effective) length [m].
+--     * Slot: settle_time Description: Power-supply settle time after a change [s].
+--     * Slot: entrance_edge_angle Description: Fringe-field entrance edge angle [rad].
+--     * Slot: exit_edge_angle Description: Fringe-field exit edge angle [rad].
+--     * Slot: gap Description: Full gap between pole faces [m].
+--     * Slot: bore Description: Magnet bore radius [m].
+--     * Slot: plane Description: Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).
+--     * Slot: width Description: Physical width of the magnet in the bending plane [m].
+--     * Slot: tilt Description: Global tilt about the beam axis [rad].
+--     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
+--     * Slot: edge_field_integral_entrance Description: Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: edge_field_integral_exit Description: Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: exit_gap Description: Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.
+--     * Slot: fringe_field_coefficient Description: Coefficient controlling the fringe-field roll-off rate.
+--     * Slot: gradient Description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
+--     * Slot: angle Description: Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.
+--     * Slot: multipoles_id Description: Integrated multipole field components.
+--     * Slot: systematic_multipoles_id Description: Systematic (design) multipole errors at the reference radius.
+--     * Slot: random_multipoles_id Description: Random multipole errors at the reference radius.
+--     * Slot: field_integral_coefficients_id Description: Polynomial calibration of integrated field vs. current.
+--     * Slot: linear_saturation_coefficients_id Description: Bi-linear saturation calibration.
 -- # Class: HorizontalCorrector Description: Horizontal steering corrector.
 --     * Slot: material Description: Element material.
 --     * Slot: name Description: Unique element name within the machine.
@@ -1584,6 +1909,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -1602,6 +1928,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -1611,6 +1938,10 @@
 --     * Slot: manufacturer_id Description: Manufacturer and serial-number data.
 --     * Slot: controls_id Description: Control-system process-variable definitions.
 --     * Slot: reference_id Description: Links to design drawings and files.
+-- # Class: CombinedCorrectorMagnet Description: The pair of steering-corrector fields inside one combined corrector.
+--     * Slot: id
+--     * Slot: horizontal_id Description: Horizontal-plane corrector field, with its own calibration.
+--     * Slot: vertical_id Description: Vertical-plane corrector field, with its own calibration.
 -- # Class: CombinedCorrector Description: Combined horizontal/vertical steering corrector, naming the two single-plane correctors it stands in for.
 --     * Slot: Horizontal_Corrector Description: Name of the horizontal-plane corrector element.
 --     * Slot: Vertical_Corrector Description: Name of the vertical-plane corrector element.
@@ -1622,6 +1953,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -1666,6 +1998,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -1675,7 +2008,7 @@
 --     * Slot: manufacturer_id Description: Manufacturer and serial-number data.
 --     * Slot: controls_id Description: Control-system process-variable definitions.
 --     * Slot: reference_id Description: Links to design drawings and files.
--- # Class: CombinedSolenoidQuadrupole_Magnet Description: Combined solenoid and quadrupole magnetic field.
+-- # Class: CombinedSolenoidQuadrupoleMagnet Description: Combined solenoid and quadrupole magnetic field.
 --     * Slot: id
 --     * Slot: order Description: Principal multipole order (0 = dipole, 1 = quad, ?).
 --     * Slot: skew Description: Whether the magnet is rotated 45? to produce a skew field component.
@@ -1688,7 +2021,10 @@
 --     * Slot: plane Description: Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).
 --     * Slot: width Description: Physical width of the magnet in the bending plane [m].
 --     * Slot: tilt Description: Global tilt about the beam axis [rad].
---     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless).
+--     * Slot: edge_field_integral Description: Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
+--     * Slot: edge_field_integral_entrance Description: Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: edge_field_integral_exit Description: Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.
+--     * Slot: exit_gap Description: Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.
 --     * Slot: fringe_field_coefficient Description: Coefficient controlling the fringe-field roll-off rate.
 --     * Slot: gradient Description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
 --     * Slot: angle Description: Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.
@@ -1707,6 +2043,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -1738,6 +2075,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: laser_id Description: Drive laser, for laser-undulator (inverse-Compton) configurations.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
@@ -1748,7 +2086,7 @@
 --     * Slot: manufacturer_id Description: Manufacturer and serial-number data.
 --     * Slot: controls_id Description: Control-system process-variable definitions.
 --     * Slot: reference_id Description: Links to design drawings and files.
--- # Class: NonLinearLens_Magnet Description: Integrable-optics non-linear lens field.  See the MAD-X manual and Danilov/Nagaitsev, PAC2011 WEP070.
+-- # Class: NonLinearLensMagnet Description: Integrable-optics non-linear lens field.  See the MAD-X manual and Danilov/Nagaitsev, PAC2011 WEP070.
 --     * Slot: id
 --     * Slot: length Description: Magnetic length [m].
 --     * Slot: tilt Description: Global tilt about the beam axis [rad].
@@ -1763,6 +2101,7 @@
 --     * Slot: machine_area Description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
+--     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -1838,6 +2177,9 @@
 -- # Class: PhysicalAcceleratorElement_downstream
 --     * Slot: PhysicalAcceleratorElement_name Description: Autocreated FK slot
 --     * Slot: downstream_name Description: Names of elements this one feeds; the inverse of ``upstream``.
+-- # Class: ControlVariable_shape
+--     * Slot: ControlVariable_id Description: Autocreated FK slot
+--     * Slot: shape Description: Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those.
 -- # Class: ShutterElement_interlocks
 --     * Slot: ShutterElement_id Description: Autocreated FK slot
 --     * Slot: interlocks Description: Names of the interlocks guarding this shutter.
@@ -2147,6 +2489,9 @@
 -- # Class: MachineLayout_sections
 --     * Slot: MachineLayout_name Description: Autocreated FK slot
 --     * Slot: sections Description: Ordered list of section names.
+-- # Class: MachineLayout_passes
+--     * Slot: MachineLayout_name Description: Autocreated FK slot
+--     * Slot: passes_id Description: The beam order, one entry per section traversal. Distinct from sections, which is keyed by name and so cannot express a section entered twice.
 -- # Class: MachineModel_elements
 --     * Slot: MachineModel_id Description: Autocreated FK slot
 --     * Slot: elements_name Description: All elements in the machine, keyed by name.
@@ -2156,6 +2501,12 @@
 -- # Class: MachineModel_layouts
 --     * Slot: MachineModel_id Description: Autocreated FK slot
 --     * Slot: layouts_name Description: All named beamline layouts.
+-- # Class: SampledWaveform_time
+--     * Slot: SampledWaveform_id Description: Autocreated FK slot
+--     * Slot: time Description: Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as ``factor``.
+-- # Class: SampledWaveform_factor
+--     * Slot: SampledWaveform_id Description: Autocreated FK slot
+--     * Slot: factor Description: Strength at each of the times in ``time``, as a fraction of the element's nominal strength; 1.0 is full strength.
 -- # Class: ACDipoleSimulationElement_ramp
 --     * Slot: ACDipoleSimulationElement_id Description: Autocreated FK slot
 --     * Slot: ramp Description: Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp.
@@ -2827,6 +3178,7 @@ CREATE TABLE "AcceleratorElement" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	PRIMARY KEY (name)
 );
 CREATE INDEX "ix_AcceleratorElement_name" ON "AcceleratorElement" (name);
@@ -2887,25 +3239,38 @@ CREATE TABLE "ApertureElement" (
 );
 CREATE INDEX "ix_ApertureElement_id" ON "ApertureElement" (id);
 
-CREATE TABLE "SectionLattice" (
-	name TEXT NOT NULL,
-	master_lattice TEXT,
-	beampipe_aperture_type VARCHAR(11),
-	beampipe_size FLOAT,
-	beampipe_material TEXT,
-	PRIMARY KEY (name)
+CREATE TABLE "SpaceChargeSettings" (
+	id INTEGER NOT NULL,
+	number_of_bins INTEGER,
+	step_size FLOAT,
+	chamber_height FLOAT,
+	shield_images INTEGER,
+	bin_span INTEGER,
+	sigma_cutoff FLOAT,
+	PRIMARY KEY (id)
 );
-CREATE INDEX "ix_SectionLattice_name" ON "SectionLattice" (name);
+CREATE INDEX "ix_SpaceChargeSettings_id" ON "SpaceChargeSettings" (id);
+
+CREATE TABLE "LayoutPass" (
+	id INTEGER NOT NULL,
+	section TEXT NOT NULL,
+	direction INTEGER,
+	number INTEGER,
+	PRIMARY KEY (id)
+);
+CREATE INDEX "ix_LayoutPass_id" ON "LayoutPass" (id);
 
 CREATE TABLE "MachineLayout" (
 	name TEXT NOT NULL,
 	master_lattice TEXT,
+	particle TEXT,
 	PRIMARY KEY (name)
 );
 CREATE INDEX "ix_MachineLayout_name" ON "MachineLayout" (name);
 
 CREATE TABLE "MachineModel" (
 	id INTEGER NOT NULL,
+	particle TEXT,
 	beampipe_aperture_type VARCHAR(11),
 	beampipe_size FLOAT,
 	beampipe_material TEXT,
@@ -2919,8 +3284,31 @@ CREATE TABLE "MatrixValue" (
 );
 CREATE INDEX "ix_MatrixValue_id" ON "MatrixValue" (id);
 
+CREATE TABLE "SampledWaveform" (
+	id INTEGER NOT NULL,
+	interpolation VARCHAR(6),
+	PRIMARY KEY (id)
+);
+CREATE INDEX "ix_SampledWaveform_id" ON "SampledWaveform" (id);
+
 CREATE TABLE "SimulationElement" (
 	id INTEGER NOT NULL,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth FLOAT,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
 	field_definition TEXT,
 	wakefield_definition TEXT,
 	wakefield_enable BOOLEAN,
@@ -2932,23 +3320,35 @@ CREATE INDEX "ix_SimulationElement_id" ON "SimulationElement" (id);
 
 CREATE TABLE "MagnetSimulationElement" (
 	id INTEGER NOT NULL,
-	n_kicks INTEGER,
 	field_amplitude FLOAT,
 	n_slices INTEGER,
-	smooth INTEGER,
 	edge_field_integral FLOAT,
-	edge1_effects BOOLEAN,
-	edge2_effects BOOLEAN,
+	edge1_effects INTEGER,
+	edge2_effects INTEGER,
+	fringe_model TEXT,
 	sr_enable BOOLEAN,
 	isr_enable BOOLEAN,
-	csr_enable BOOLEAN,
 	csr_bins INTEGER,
-	integration_order INTEGER,
 	nonlinear BOOLEAN,
 	smoothing_half_width INTEGER,
 	edge_order INTEGER,
-	"deltaL" FLOAT,
 	smooth_points FLOAT,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth INTEGER,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
 	field_definition TEXT,
 	wakefield_definition TEXT,
 	wakefield_enable BOOLEAN,
@@ -2965,8 +3365,6 @@ CREATE TABLE "RFCavitySimulationElement" (
 	wx_column TEXT,
 	wy_column TEXT,
 	wz_column TEXT,
-	n_kicks INTEGER,
-	lsc_bins INTEGER,
 	change_p0 INTEGER,
 	end1_focus INTEGER,
 	end2_focus INTEGER,
@@ -2974,13 +3372,28 @@ CREATE TABLE "RFCavitySimulationElement" (
 	current_bins INTEGER,
 	interpolate_current_bins INTEGER,
 	smooth_current_bins INTEGER,
-	smooth INTEGER,
 	ez_peak FLOAT,
 	field_file_name TEXT,
 	wakefile TEXT,
 	zwakefile TEXT,
 	trwakefile TEXT,
 	field_amplitude FLOAT NOT NULL,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth INTEGER,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
 	field_definition TEXT,
 	wakefield_definition TEXT,
 	wakefield_enable BOOLEAN,
@@ -3011,8 +3424,23 @@ CREATE TABLE "WakefieldSimulationElement" (
 	scale_field_hz FLOAT,
 	equal_grid FLOAT,
 	interpolation_method INTEGER,
-	smooth FLOAT,
 	subbins INTEGER,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth FLOAT,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
 	field_definition TEXT,
 	wakefield_definition TEXT,
 	wakefield_enable BOOLEAN,
@@ -3024,16 +3452,28 @@ CREATE INDEX "ix_WakefieldSimulationElement_id" ON "WakefieldSimulationElement" 
 
 CREATE TABLE "DriftSimulationElement" (
 	id INTEGER NOT NULL,
-	lsc_bins INTEGER,
 	lsc_interpolate INTEGER,
-	csr_enable BOOLEAN,
-	lsc_enable BOOLEAN,
 	use_stupakov INTEGER,
-	csrdz FLOAT,
 	lsc_high_frequency_cutoff_start FLOAT,
 	lsc_high_frequency_cutoff_end FLOAT,
 	lsc_low_frequency_cutoff_start FLOAT,
 	lsc_low_frequency_cutoff_end FLOAT,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth FLOAT,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
 	field_definition TEXT,
 	wakefield_definition TEXT,
 	wakefield_enable BOOLEAN,
@@ -3046,6 +3486,22 @@ CREATE INDEX "ix_DriftSimulationElement_id" ON "DriftSimulationElement" (id);
 CREATE TABLE "DiagnosticSimulationElement" (
 	id INTEGER NOT NULL,
 	output_filename TEXT,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth FLOAT,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
 	field_definition TEXT,
 	wakefield_definition TEXT,
 	wakefield_enable BOOLEAN,
@@ -3070,6 +3526,22 @@ CREATE TABLE "PlasmaSimulationElement" (
 	r_max_plasma FLOAT,
 	dz_fields FLOAT,
 	plasma_pusher TEXT,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth FLOAT,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
 	field_definition TEXT,
 	wakefield_definition TEXT,
 	wakefield_enable BOOLEAN,
@@ -3090,6 +3562,22 @@ CREATE TABLE "TwissMatchSimulationElement" (
 	eta_xp FLOAT,
 	eta_yp FLOAT,
 	from_beam BOOLEAN,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth FLOAT,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
 	field_definition TEXT,
 	wakefield_definition TEXT,
 	wakefield_enable BOOLEAN,
@@ -3104,6 +3592,22 @@ CREATE TABLE "ElectrostaticSeparatorSimulationElement" (
 	horizontal_field FLOAT,
 	vertical_field FLOAT,
 	tilt FLOAT,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth FLOAT,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
 	field_definition TEXT,
 	wakefield_definition TEXT,
 	wakefield_enable BOOLEAN,
@@ -3113,24 +3617,24 @@ CREATE TABLE "ElectrostaticSeparatorSimulationElement" (
 );
 CREATE INDEX "ix_ElectrostaticSeparatorSimulationElement_id" ON "ElectrostaticSeparatorSimulationElement" (id);
 
-CREATE TABLE "ACDipoleSimulationElement" (
-	id INTEGER NOT NULL,
-	field_amplitude FLOAT,
-	frequency FLOAT,
-	phase FLOAT,
-	field_definition TEXT,
-	wakefield_definition TEXT,
-	wakefield_enable BOOLEAN,
-	field_reference_position TEXT,
-	scale_field FLOAT,
-	PRIMARY KEY (id)
-);
-CREATE INDEX "ix_ACDipoleSimulationElement_id" ON "ACDipoleSimulationElement" (id);
-
 CREATE TABLE "WireSimulationElement" (
 	id INTEGER NOT NULL,
 	current FLOAT,
 	interaction_length FLOAT,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth FLOAT,
 	horizontal_offset FLOAT,
 	vertical_offset FLOAT,
 	field_definition TEXT,
@@ -3146,11 +3650,25 @@ CREATE TABLE "BeamBeamSimulationElement" (
 	id INTEGER NOT NULL,
 	charge FLOAT,
 	n_particles FLOAT,
-	horizontal_offset FLOAT,
-	vertical_offset FLOAT,
 	horizontal_sigma FLOAT,
 	vertical_sigma FLOAT,
 	width FLOAT,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth FLOAT,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
 	field_definition TEXT,
 	wakefield_definition TEXT,
 	wakefield_enable BOOLEAN,
@@ -3165,6 +3683,22 @@ CREATE TABLE "RFMultipoleSimulationElement" (
 	frequency FLOAT,
 	phase FLOAT,
 	field_amplitude FLOAT,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth FLOAT,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
 	field_definition TEXT,
 	wakefield_definition TEXT,
 	wakefield_enable BOOLEAN,
@@ -3478,17 +4012,6 @@ CREATE TABLE "PlasmaElement" (
 );
 CREATE INDEX "ix_PlasmaElement_id" ON "PlasmaElement" (id);
 
-CREATE TABLE "Corrector_Magnet" (
-	id INTEGER NOT NULL,
-	length FLOAT,
-	"order" INTEGER,
-	tilt FLOAT,
-	horizontal_kick FLOAT,
-	vertical_kick FLOAT,
-	PRIMARY KEY (id)
-);
-CREATE INDEX "ix_Corrector_Magnet_id" ON "Corrector_Magnet" (id);
-
 CREATE TABLE "SolenoidFields" (
 	id INTEGER NOT NULL,
 	"S0L" FLOAT,
@@ -3525,7 +4048,7 @@ CREATE TABLE "Wiggler_Magnet" (
 );
 CREATE INDEX "ix_Wiggler_Magnet_id" ON "Wiggler_Magnet" (id);
 
-CREATE TABLE "NonLinearLens_Magnet" (
+CREATE TABLE "NonLinearLensMagnet" (
 	id INTEGER NOT NULL,
 	length FLOAT,
 	tilt FLOAT,
@@ -3533,7 +4056,7 @@ CREATE TABLE "NonLinearLens_Magnet" (
 	dimensional_parameter FLOAT,
 	PRIMARY KEY (id)
 );
-CREATE INDEX "ix_NonLinearLens_Magnet_id" ON "NonLinearLens_Magnet" (id);
+CREATE INDEX "ix_NonLinearLensMagnet_id" ON "NonLinearLensMagnet" (id);
 
 CREATE TABLE "StandardElement" (
 	name TEXT NOT NULL,
@@ -3543,6 +4066,7 @@ CREATE TABLE "StandardElement" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
 	manufacturer_id INTEGER,
@@ -3565,6 +4089,7 @@ CREATE TABLE "Element" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
 	manufacturer_id INTEGER,
@@ -3624,6 +4149,7 @@ CREATE TABLE "ControlVariable" (
 	control_type VARCHAR(11),
 	target TEXT,
 	expression TEXT,
+	element_dtype VARCHAR(7),
 	states TEXT,
 	readback TEXT,
 	setpoint TEXT,
@@ -3643,6 +4169,7 @@ CREATE TABLE "Lighting" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	lights_id INTEGER,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
@@ -3667,6 +4194,7 @@ CREATE TABLE "PowerSupply" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
 	manufacturer_id INTEGER,
@@ -3681,9 +4209,39 @@ CREATE TABLE "PowerSupply" (
 );
 CREATE INDEX "ix_PowerSupply_name" ON "PowerSupply" (name);
 
+CREATE TABLE "SectionLattice" (
+	name TEXT NOT NULL,
+	master_lattice TEXT,
+	geometry VARCHAR(6),
+	reference_energy FLOAT,
+	beampipe_aperture_type VARCHAR(11),
+	beampipe_size FLOAT,
+	beampipe_material TEXT,
+	space_charge_id INTEGER,
+	PRIMARY KEY (name),
+	FOREIGN KEY(space_charge_id) REFERENCES "SpaceChargeSettings" (id)
+);
+CREATE INDEX "ix_SectionLattice_name" ON "SectionLattice" (name);
+
 CREATE TABLE "MatrixTransformSimulationElement" (
 	id INTEGER NOT NULL,
 	apply BOOLEAN,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth FLOAT,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
 	field_definition TEXT,
 	wakefield_definition TEXT,
 	wakefield_enable BOOLEAN,
@@ -3702,6 +4260,38 @@ CREATE TABLE "MatrixTransformSimulationElement" (
 	FOREIGN KEY(spin_taylor_id) REFERENCES "MatrixValue" (id)
 );
 CREATE INDEX "ix_MatrixTransformSimulationElement_id" ON "MatrixTransformSimulationElement" (id);
+
+CREATE TABLE "ACDipoleSimulationElement" (
+	id INTEGER NOT NULL,
+	field_amplitude FLOAT,
+	frequency FLOAT,
+	phase FLOAT,
+	n_kicks INTEGER,
+	lsc_bins INTEGER,
+	csr_enable BOOLEAN,
+	lsc_enable BOOLEAN,
+	tracking_method TEXT,
+	mat6_calc_method TEXT,
+	spin_tracking_method TEXT,
+	integration_order INTEGER,
+	num_steps INTEGER,
+	"deltaL" FLOAT,
+	csr_method TEXT,
+	space_charge_method TEXT,
+	csrdz FLOAT,
+	smooth FLOAT,
+	horizontal_offset FLOAT,
+	vertical_offset FLOAT,
+	field_definition TEXT,
+	wakefield_definition TEXT,
+	wakefield_enable BOOLEAN,
+	field_reference_position TEXT,
+	scale_field FLOAT,
+	waveform_id INTEGER,
+	PRIMARY KEY (id),
+	FOREIGN KEY(waveform_id) REFERENCES "SampledWaveform" (id)
+);
+CREATE INDEX "ix_ACDipoleSimulationElement_id" ON "ACDipoleSimulationElement" (id);
 
 CREATE TABLE "Multipoles" (
 	id INTEGER NOT NULL,
@@ -3727,6 +4317,7 @@ CREATE TABLE "RFModulator" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	modulator_id INTEGER,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
@@ -3751,6 +4342,7 @@ CREATE TABLE "RFProtection" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	protection_id INTEGER,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
@@ -3775,6 +4367,7 @@ CREATE TABLE "RFHeartbeat" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	heartbeat_id INTEGER,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
@@ -3854,6 +4447,7 @@ CREATE TABLE "LaserEnergyMeter" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	laser_id INTEGER,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
@@ -3878,6 +4472,7 @@ CREATE TABLE "LaserHalfWavePlate" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	laser_id INTEGER,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
@@ -3915,6 +4510,7 @@ CREATE TABLE "LaserAttenuator" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
 	manufacturer_id INTEGER,
@@ -3982,8 +4578,8 @@ CREATE TABLE "AcceleratorElement_inputs" (
 	PRIMARY KEY ("AcceleratorElement_name", inputs),
 	FOREIGN KEY("AcceleratorElement_name") REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_AcceleratorElement_inputs_AcceleratorElement_name" ON "AcceleratorElement_inputs" ("AcceleratorElement_name");
 CREATE INDEX "ix_AcceleratorElement_inputs_inputs" ON "AcceleratorElement_inputs" (inputs);
+CREATE INDEX "ix_AcceleratorElement_inputs_AcceleratorElement_name" ON "AcceleratorElement_inputs" ("AcceleratorElement_name");
 
 CREATE TABLE "AcceleratorElement_outputs" (
 	"AcceleratorElement_name" TEXT,
@@ -3991,8 +4587,8 @@ CREATE TABLE "AcceleratorElement_outputs" (
 	PRIMARY KEY ("AcceleratorElement_name", outputs),
 	FOREIGN KEY("AcceleratorElement_name") REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_AcceleratorElement_outputs_outputs" ON "AcceleratorElement_outputs" (outputs);
 CREATE INDEX "ix_AcceleratorElement_outputs_AcceleratorElement_name" ON "AcceleratorElement_outputs" ("AcceleratorElement_name");
+CREATE INDEX "ix_AcceleratorElement_outputs_outputs" ON "AcceleratorElement_outputs" (outputs);
 
 CREATE TABLE "AcceleratorElement_upstream" (
 	"AcceleratorElement_name" TEXT,
@@ -4001,8 +4597,8 @@ CREATE TABLE "AcceleratorElement_upstream" (
 	FOREIGN KEY("AcceleratorElement_name") REFERENCES "AcceleratorElement" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_AcceleratorElement_upstream_upstream_name" ON "AcceleratorElement_upstream" (upstream_name);
 CREATE INDEX "ix_AcceleratorElement_upstream_AcceleratorElement_name" ON "AcceleratorElement_upstream" ("AcceleratorElement_name");
+CREATE INDEX "ix_AcceleratorElement_upstream_upstream_name" ON "AcceleratorElement_upstream" (upstream_name);
 
 CREATE TABLE "AcceleratorElement_downstream" (
 	"AcceleratorElement_name" TEXT,
@@ -4020,17 +4616,8 @@ CREATE TABLE "ShutterElement_interlocks" (
 	PRIMARY KEY ("ShutterElement_id", interlocks),
 	FOREIGN KEY("ShutterElement_id") REFERENCES "ShutterElement" (id)
 );
-CREATE INDEX "ix_ShutterElement_interlocks_interlocks" ON "ShutterElement_interlocks" (interlocks);
 CREATE INDEX "ix_ShutterElement_interlocks_ShutterElement_id" ON "ShutterElement_interlocks" ("ShutterElement_id");
-
-CREATE TABLE "SectionLattice_elements" (
-	"SectionLattice_name" TEXT,
-	elements TEXT,
-	PRIMARY KEY ("SectionLattice_name", elements),
-	FOREIGN KEY("SectionLattice_name") REFERENCES "SectionLattice" (name)
-);
-CREATE INDEX "ix_SectionLattice_elements_elements" ON "SectionLattice_elements" (elements);
-CREATE INDEX "ix_SectionLattice_elements_SectionLattice_name" ON "SectionLattice_elements" ("SectionLattice_name");
+CREATE INDEX "ix_ShutterElement_interlocks_interlocks" ON "ShutterElement_interlocks" (interlocks);
 
 CREATE TABLE "MachineLayout_sections" (
 	"MachineLayout_name" TEXT,
@@ -4038,8 +4625,18 @@ CREATE TABLE "MachineLayout_sections" (
 	PRIMARY KEY ("MachineLayout_name", sections),
 	FOREIGN KEY("MachineLayout_name") REFERENCES "MachineLayout" (name)
 );
-CREATE INDEX "ix_MachineLayout_sections_sections" ON "MachineLayout_sections" (sections);
 CREATE INDEX "ix_MachineLayout_sections_MachineLayout_name" ON "MachineLayout_sections" ("MachineLayout_name");
+CREATE INDEX "ix_MachineLayout_sections_sections" ON "MachineLayout_sections" (sections);
+
+CREATE TABLE "MachineLayout_passes" (
+	"MachineLayout_name" TEXT,
+	passes_id INTEGER,
+	PRIMARY KEY ("MachineLayout_name", passes_id),
+	FOREIGN KEY("MachineLayout_name") REFERENCES "MachineLayout" (name),
+	FOREIGN KEY(passes_id) REFERENCES "LayoutPass" (id)
+);
+CREATE INDEX "ix_MachineLayout_passes_passes_id" ON "MachineLayout_passes" (passes_id);
+CREATE INDEX "ix_MachineLayout_passes_MachineLayout_name" ON "MachineLayout_passes" ("MachineLayout_name");
 
 CREATE TABLE "MachineModel_elements" (
 	"MachineModel_id" INTEGER,
@@ -4048,18 +4645,8 @@ CREATE TABLE "MachineModel_elements" (
 	FOREIGN KEY("MachineModel_id") REFERENCES "MachineModel" (id),
 	FOREIGN KEY(elements_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_MachineModel_elements_MachineModel_id" ON "MachineModel_elements" ("MachineModel_id");
 CREATE INDEX "ix_MachineModel_elements_elements_name" ON "MachineModel_elements" (elements_name);
-
-CREATE TABLE "MachineModel_sections" (
-	"MachineModel_id" INTEGER,
-	sections_name TEXT,
-	PRIMARY KEY ("MachineModel_id", sections_name),
-	FOREIGN KEY("MachineModel_id") REFERENCES "MachineModel" (id),
-	FOREIGN KEY(sections_name) REFERENCES "SectionLattice" (name)
-);
-CREATE INDEX "ix_MachineModel_sections_sections_name" ON "MachineModel_sections" (sections_name);
-CREATE INDEX "ix_MachineModel_sections_MachineModel_id" ON "MachineModel_sections" ("MachineModel_id");
+CREATE INDEX "ix_MachineModel_elements_MachineModel_id" ON "MachineModel_elements" ("MachineModel_id");
 
 CREATE TABLE "MachineModel_layouts" (
 	"MachineModel_id" INTEGER,
@@ -4071,14 +4658,23 @@ CREATE TABLE "MachineModel_layouts" (
 CREATE INDEX "ix_MachineModel_layouts_layouts_name" ON "MachineModel_layouts" (layouts_name);
 CREATE INDEX "ix_MachineModel_layouts_MachineModel_id" ON "MachineModel_layouts" ("MachineModel_id");
 
-CREATE TABLE "ACDipoleSimulationElement_ramp" (
-	"ACDipoleSimulationElement_id" INTEGER,
-	ramp INTEGER,
-	PRIMARY KEY ("ACDipoleSimulationElement_id", ramp),
-	FOREIGN KEY("ACDipoleSimulationElement_id") REFERENCES "ACDipoleSimulationElement" (id)
+CREATE TABLE "SampledWaveform_time" (
+	"SampledWaveform_id" INTEGER,
+	time FLOAT,
+	PRIMARY KEY ("SampledWaveform_id", time),
+	FOREIGN KEY("SampledWaveform_id") REFERENCES "SampledWaveform" (id)
 );
-CREATE INDEX "ix_ACDipoleSimulationElement_ramp_ACDipoleSimulationElement_id" ON "ACDipoleSimulationElement_ramp" ("ACDipoleSimulationElement_id");
-CREATE INDEX "ix_ACDipoleSimulationElement_ramp_ramp" ON "ACDipoleSimulationElement_ramp" (ramp);
+CREATE INDEX "ix_SampledWaveform_time_SampledWaveform_id" ON "SampledWaveform_time" ("SampledWaveform_id");
+CREATE INDEX "ix_SampledWaveform_time_time" ON "SampledWaveform_time" (time);
+
+CREATE TABLE "SampledWaveform_factor" (
+	"SampledWaveform_id" INTEGER,
+	factor FLOAT,
+	PRIMARY KEY ("SampledWaveform_id", factor),
+	FOREIGN KEY("SampledWaveform_id") REFERENCES "SampledWaveform" (id)
+);
+CREATE INDEX "ix_SampledWaveform_factor_SampledWaveform_id" ON "SampledWaveform_factor" ("SampledWaveform_id");
+CREATE INDEX "ix_SampledWaveform_factor_factor" ON "SampledWaveform_factor" (factor);
 
 CREATE TABLE "RFMultipoleSimulationElement_knl" (
 	"RFMultipoleSimulationElement_id" INTEGER,
@@ -4095,8 +4691,8 @@ CREATE TABLE "RFMultipoleSimulationElement_ksl" (
 	PRIMARY KEY ("RFMultipoleSimulationElement_id", ksl),
 	FOREIGN KEY("RFMultipoleSimulationElement_id") REFERENCES "RFMultipoleSimulationElement" (id)
 );
-CREATE INDEX "ix_RFMultipoleSimulationElement_ksl_ksl" ON "RFMultipoleSimulationElement_ksl" (ksl);
 CREATE INDEX "ix_RFMultipoleSimulationElement_ksl_RFMultipoleSimulationElement_id" ON "RFMultipoleSimulationElement_ksl" ("RFMultipoleSimulationElement_id");
+CREATE INDEX "ix_RFMultipoleSimulationElement_ksl_ksl" ON "RFMultipoleSimulationElement_ksl" (ksl);
 
 CREATE TABLE "RFMultipoleSimulationElement_pnl" (
 	"RFMultipoleSimulationElement_id" INTEGER,
@@ -4122,8 +4718,8 @@ CREATE TABLE "FieldIntegral_coefficients" (
 	PRIMARY KEY ("FieldIntegral_id", coefficients),
 	FOREIGN KEY("FieldIntegral_id") REFERENCES "FieldIntegral" (id)
 );
-CREATE INDEX "ix_FieldIntegral_coefficients_coefficients" ON "FieldIntegral_coefficients" (coefficients);
 CREATE INDEX "ix_FieldIntegral_coefficients_FieldIntegral_id" ON "FieldIntegral_coefficients" ("FieldIntegral_id");
+CREATE INDEX "ix_FieldIntegral_coefficients_coefficients" ON "FieldIntegral_coefficients" (coefficients);
 
 CREATE TABLE "DegaussableElement_values" (
 	"DegaussableElement_id" INTEGER,
@@ -4194,8 +4790,8 @@ CREATE TABLE "CameraSensor_middle" (
 	PRIMARY KEY ("CameraSensor_id", middle),
 	FOREIGN KEY("CameraSensor_id") REFERENCES "CameraSensor" (id)
 );
-CREATE INDEX "ix_CameraSensor_middle_middle" ON "CameraSensor_middle" (middle);
 CREATE INDEX "ix_CameraSensor_middle_CameraSensor_id" ON "CameraSensor_middle" ("CameraSensor_id");
+CREATE INDEX "ix_CameraSensor_middle_middle" ON "CameraSensor_middle" (middle);
 
 CREATE TABLE "CameraSensor_minimum" (
 	"CameraSensor_id" INTEGER,
@@ -4221,8 +4817,8 @@ CREATE TABLE "CameraSensor_operating_middle" (
 	PRIMARY KEY ("CameraSensor_id", operating_middle),
 	FOREIGN KEY("CameraSensor_id") REFERENCES "CameraSensor" (id)
 );
-CREATE INDEX "ix_CameraSensor_operating_middle_operating_middle" ON "CameraSensor_operating_middle" (operating_middle);
 CREATE INDEX "ix_CameraSensor_operating_middle_CameraSensor_id" ON "CameraSensor_operating_middle" ("CameraSensor_id");
+CREATE INDEX "ix_CameraSensor_operating_middle_operating_middle" ON "CameraSensor_operating_middle" (operating_middle);
 
 CREATE TABLE "CameraSensor_mechanical_middle" (
 	"CameraSensor_id" INTEGER,
@@ -4230,8 +4826,8 @@ CREATE TABLE "CameraSensor_mechanical_middle" (
 	PRIMARY KEY ("CameraSensor_id", mechanical_middle),
 	FOREIGN KEY("CameraSensor_id") REFERENCES "CameraSensor" (id)
 );
-CREATE INDEX "ix_CameraSensor_mechanical_middle_CameraSensor_id" ON "CameraSensor_mechanical_middle" ("CameraSensor_id");
 CREATE INDEX "ix_CameraSensor_mechanical_middle_mechanical_middle" ON "CameraSensor_mechanical_middle" (mechanical_middle);
+CREATE INDEX "ix_CameraSensor_mechanical_middle_CameraSensor_id" ON "CameraSensor_mechanical_middle" ("CameraSensor_id");
 
 CREATE TABLE "PhysicalElement" (
 	id INTEGER NOT NULL,
@@ -4271,6 +4867,9 @@ CREATE TABLE "MagneticElement" (
 	width FLOAT,
 	tilt FLOAT,
 	edge_field_integral FLOAT,
+	edge_field_integral_entrance FLOAT,
+	edge_field_integral_exit FLOAT,
+	exit_gap FLOAT,
 	fringe_field_coefficient FLOAT,
 	gradient FLOAT,
 	angle FLOAT,
@@ -4296,6 +4895,7 @@ CREATE TABLE "PID" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	pid_id INTEGER,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
@@ -4334,6 +4934,7 @@ CREATE TABLE "LaserMirror" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	laser_id INTEGER,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
@@ -4350,7 +4951,7 @@ CREATE TABLE "LaserMirror" (
 );
 CREATE INDEX "ix_LaserMirror_name" ON "LaserMirror" (name);
 
-CREATE TABLE "Dipole_Magnet" (
+CREATE TABLE "DipoleMagnet" (
 	id INTEGER NOT NULL,
 	"order" INTEGER,
 	skew BOOLEAN,
@@ -4364,6 +4965,9 @@ CREATE TABLE "Dipole_Magnet" (
 	width FLOAT,
 	tilt FLOAT,
 	edge_field_integral FLOAT,
+	edge_field_integral_entrance FLOAT,
+	edge_field_integral_exit FLOAT,
+	exit_gap FLOAT,
 	fringe_field_coefficient FLOAT,
 	gradient FLOAT,
 	angle FLOAT,
@@ -4379,9 +4983,9 @@ CREATE TABLE "Dipole_Magnet" (
 	FOREIGN KEY(field_integral_coefficients_id) REFERENCES "FieldIntegral" (id),
 	FOREIGN KEY(linear_saturation_coefficients_id) REFERENCES "LinearSaturationFit" (id)
 );
-CREATE INDEX "ix_Dipole_Magnet_id" ON "Dipole_Magnet" (id);
+CREATE INDEX "ix_DipoleMagnet_id" ON "DipoleMagnet" (id);
 
-CREATE TABLE "Quadrupole_Magnet" (
+CREATE TABLE "QuadrupoleMagnet" (
 	id INTEGER NOT NULL,
 	"order" INTEGER,
 	skew BOOLEAN,
@@ -4395,6 +4999,9 @@ CREATE TABLE "Quadrupole_Magnet" (
 	width FLOAT,
 	tilt FLOAT,
 	edge_field_integral FLOAT,
+	edge_field_integral_entrance FLOAT,
+	edge_field_integral_exit FLOAT,
+	exit_gap FLOAT,
 	fringe_field_coefficient FLOAT,
 	gradient FLOAT,
 	angle FLOAT,
@@ -4410,9 +5017,9 @@ CREATE TABLE "Quadrupole_Magnet" (
 	FOREIGN KEY(field_integral_coefficients_id) REFERENCES "FieldIntegral" (id),
 	FOREIGN KEY(linear_saturation_coefficients_id) REFERENCES "LinearSaturationFit" (id)
 );
-CREATE INDEX "ix_Quadrupole_Magnet_id" ON "Quadrupole_Magnet" (id);
+CREATE INDEX "ix_QuadrupoleMagnet_id" ON "QuadrupoleMagnet" (id);
 
-CREATE TABLE "Sextupole_Magnet" (
+CREATE TABLE "SextupoleMagnet" (
 	id INTEGER NOT NULL,
 	"order" INTEGER,
 	skew BOOLEAN,
@@ -4426,6 +5033,9 @@ CREATE TABLE "Sextupole_Magnet" (
 	width FLOAT,
 	tilt FLOAT,
 	edge_field_integral FLOAT,
+	edge_field_integral_entrance FLOAT,
+	edge_field_integral_exit FLOAT,
+	exit_gap FLOAT,
 	fringe_field_coefficient FLOAT,
 	gradient FLOAT,
 	angle FLOAT,
@@ -4441,9 +5051,9 @@ CREATE TABLE "Sextupole_Magnet" (
 	FOREIGN KEY(field_integral_coefficients_id) REFERENCES "FieldIntegral" (id),
 	FOREIGN KEY(linear_saturation_coefficients_id) REFERENCES "LinearSaturationFit" (id)
 );
-CREATE INDEX "ix_Sextupole_Magnet_id" ON "Sextupole_Magnet" (id);
+CREATE INDEX "ix_SextupoleMagnet_id" ON "SextupoleMagnet" (id);
 
-CREATE TABLE "Octupole_Magnet" (
+CREATE TABLE "OctupoleMagnet" (
 	id INTEGER NOT NULL,
 	"order" INTEGER,
 	skew BOOLEAN,
@@ -4457,6 +5067,9 @@ CREATE TABLE "Octupole_Magnet" (
 	width FLOAT,
 	tilt FLOAT,
 	edge_field_integral FLOAT,
+	edge_field_integral_entrance FLOAT,
+	edge_field_integral_exit FLOAT,
+	exit_gap FLOAT,
 	fringe_field_coefficient FLOAT,
 	gradient FLOAT,
 	angle FLOAT,
@@ -4472,7 +5085,7 @@ CREATE TABLE "Octupole_Magnet" (
 	FOREIGN KEY(field_integral_coefficients_id) REFERENCES "FieldIntegral" (id),
 	FOREIGN KEY(linear_saturation_coefficients_id) REFERENCES "LinearSaturationFit" (id)
 );
-CREATE INDEX "ix_Octupole_Magnet_id" ON "Octupole_Magnet" (id);
+CREATE INDEX "ix_OctupoleMagnet_id" ON "OctupoleMagnet" (id);
 
 CREATE TABLE "Decapole_Magnet" (
 	id INTEGER NOT NULL,
@@ -4488,6 +5101,9 @@ CREATE TABLE "Decapole_Magnet" (
 	width FLOAT,
 	tilt FLOAT,
 	edge_field_integral FLOAT,
+	edge_field_integral_entrance FLOAT,
+	edge_field_integral_exit FLOAT,
+	exit_gap FLOAT,
 	fringe_field_coefficient FLOAT,
 	gradient FLOAT,
 	angle FLOAT,
@@ -4505,7 +5121,43 @@ CREATE TABLE "Decapole_Magnet" (
 );
 CREATE INDEX "ix_Decapole_Magnet_id" ON "Decapole_Magnet" (id);
 
-CREATE TABLE "CombinedSolenoidQuadrupole_Magnet" (
+CREATE TABLE "Corrector_Magnet" (
+	id INTEGER NOT NULL,
+	horizontal_kick FLOAT,
+	vertical_kick FLOAT,
+	"order" INTEGER,
+	skew BOOLEAN,
+	length FLOAT,
+	settle_time FLOAT,
+	entrance_edge_angle TEXT,
+	exit_edge_angle TEXT,
+	gap FLOAT,
+	bore FLOAT,
+	plane VARCHAR(10),
+	width FLOAT,
+	tilt FLOAT,
+	edge_field_integral FLOAT,
+	edge_field_integral_entrance FLOAT,
+	edge_field_integral_exit FLOAT,
+	exit_gap FLOAT,
+	fringe_field_coefficient FLOAT,
+	gradient FLOAT,
+	angle FLOAT,
+	multipoles_id INTEGER,
+	systematic_multipoles_id INTEGER,
+	random_multipoles_id INTEGER,
+	field_integral_coefficients_id INTEGER,
+	linear_saturation_coefficients_id INTEGER,
+	PRIMARY KEY (id),
+	FOREIGN KEY(multipoles_id) REFERENCES "Multipoles" (id),
+	FOREIGN KEY(systematic_multipoles_id) REFERENCES "Multipoles" (id),
+	FOREIGN KEY(random_multipoles_id) REFERENCES "Multipoles" (id),
+	FOREIGN KEY(field_integral_coefficients_id) REFERENCES "FieldIntegral" (id),
+	FOREIGN KEY(linear_saturation_coefficients_id) REFERENCES "LinearSaturationFit" (id)
+);
+CREATE INDEX "ix_Corrector_Magnet_id" ON "Corrector_Magnet" (id);
+
+CREATE TABLE "CombinedSolenoidQuadrupoleMagnet" (
 	id INTEGER NOT NULL,
 	"order" INTEGER,
 	skew BOOLEAN,
@@ -4519,6 +5171,9 @@ CREATE TABLE "CombinedSolenoidQuadrupole_Magnet" (
 	width FLOAT,
 	tilt FLOAT,
 	edge_field_integral FLOAT,
+	edge_field_integral_entrance FLOAT,
+	edge_field_integral_exit FLOAT,
+	exit_gap FLOAT,
 	fringe_field_coefficient FLOAT,
 	gradient FLOAT,
 	angle FLOAT,
@@ -4536,7 +5191,7 @@ CREATE TABLE "CombinedSolenoidQuadrupole_Magnet" (
 	FOREIGN KEY(field_integral_coefficients_id) REFERENCES "FieldIntegral" (id),
 	FOREIGN KEY(linear_saturation_coefficients_id) REFERENCES "LinearSaturationFit" (id)
 );
-CREATE INDEX "ix_CombinedSolenoidQuadrupole_Magnet_id" ON "CombinedSolenoidQuadrupole_Magnet" (id);
+CREATE INDEX "ix_CombinedSolenoidQuadrupoleMagnet_id" ON "CombinedSolenoidQuadrupoleMagnet" (id);
 
 CREATE TABLE "StandardElement_alias" (
 	"StandardElement_name" TEXT,
@@ -4544,8 +5199,8 @@ CREATE TABLE "StandardElement_alias" (
 	PRIMARY KEY ("StandardElement_name", alias),
 	FOREIGN KEY("StandardElement_name") REFERENCES "StandardElement" (name)
 );
-CREATE INDEX "ix_StandardElement_alias_StandardElement_name" ON "StandardElement_alias" ("StandardElement_name");
 CREATE INDEX "ix_StandardElement_alias_alias" ON "StandardElement_alias" (alias);
+CREATE INDEX "ix_StandardElement_alias_StandardElement_name" ON "StandardElement_alias" ("StandardElement_name");
 
 CREATE TABLE "StandardElement_inputs" (
 	"StandardElement_name" TEXT,
@@ -4553,8 +5208,8 @@ CREATE TABLE "StandardElement_inputs" (
 	PRIMARY KEY ("StandardElement_name", inputs),
 	FOREIGN KEY("StandardElement_name") REFERENCES "StandardElement" (name)
 );
-CREATE INDEX "ix_StandardElement_inputs_StandardElement_name" ON "StandardElement_inputs" ("StandardElement_name");
 CREATE INDEX "ix_StandardElement_inputs_inputs" ON "StandardElement_inputs" (inputs);
+CREATE INDEX "ix_StandardElement_inputs_StandardElement_name" ON "StandardElement_inputs" ("StandardElement_name");
 
 CREATE TABLE "StandardElement_outputs" (
 	"StandardElement_name" TEXT,
@@ -4562,8 +5217,8 @@ CREATE TABLE "StandardElement_outputs" (
 	PRIMARY KEY ("StandardElement_name", outputs),
 	FOREIGN KEY("StandardElement_name") REFERENCES "StandardElement" (name)
 );
-CREATE INDEX "ix_StandardElement_outputs_StandardElement_name" ON "StandardElement_outputs" ("StandardElement_name");
 CREATE INDEX "ix_StandardElement_outputs_outputs" ON "StandardElement_outputs" (outputs);
+CREATE INDEX "ix_StandardElement_outputs_StandardElement_name" ON "StandardElement_outputs" ("StandardElement_name");
 
 CREATE TABLE "StandardElement_upstream" (
 	"StandardElement_name" TEXT,
@@ -4582,8 +5237,8 @@ CREATE TABLE "StandardElement_downstream" (
 	FOREIGN KEY("StandardElement_name") REFERENCES "StandardElement" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_StandardElement_downstream_StandardElement_name" ON "StandardElement_downstream" ("StandardElement_name");
 CREATE INDEX "ix_StandardElement_downstream_downstream_name" ON "StandardElement_downstream" (downstream_name);
+CREATE INDEX "ix_StandardElement_downstream_StandardElement_name" ON "StandardElement_downstream" ("StandardElement_name");
 
 CREATE TABLE "Element_alias" (
 	"Element_name" TEXT,
@@ -4591,8 +5246,8 @@ CREATE TABLE "Element_alias" (
 	PRIMARY KEY ("Element_name", alias),
 	FOREIGN KEY("Element_name") REFERENCES "Element" (name)
 );
-CREATE INDEX "ix_Element_alias_Element_name" ON "Element_alias" ("Element_name");
 CREATE INDEX "ix_Element_alias_alias" ON "Element_alias" (alias);
+CREATE INDEX "ix_Element_alias_Element_name" ON "Element_alias" ("Element_name");
 
 CREATE TABLE "Element_inputs" (
 	"Element_name" TEXT,
@@ -4600,8 +5255,8 @@ CREATE TABLE "Element_inputs" (
 	PRIMARY KEY ("Element_name", inputs),
 	FOREIGN KEY("Element_name") REFERENCES "Element" (name)
 );
-CREATE INDEX "ix_Element_inputs_inputs" ON "Element_inputs" (inputs);
 CREATE INDEX "ix_Element_inputs_Element_name" ON "Element_inputs" ("Element_name");
+CREATE INDEX "ix_Element_inputs_inputs" ON "Element_inputs" (inputs);
 
 CREATE TABLE "Element_outputs" (
 	"Element_name" TEXT,
@@ -4619,8 +5274,8 @@ CREATE TABLE "Element_upstream" (
 	FOREIGN KEY("Element_name") REFERENCES "Element" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Element_upstream_Element_name" ON "Element_upstream" ("Element_name");
 CREATE INDEX "ix_Element_upstream_upstream_name" ON "Element_upstream" (upstream_name);
+CREATE INDEX "ix_Element_upstream_Element_name" ON "Element_upstream" ("Element_name");
 
 CREATE TABLE "Element_downstream" (
 	"Element_name" TEXT,
@@ -4632,14 +5287,23 @@ CREATE TABLE "Element_downstream" (
 CREATE INDEX "ix_Element_downstream_Element_name" ON "Element_downstream" ("Element_name");
 CREATE INDEX "ix_Element_downstream_downstream_name" ON "Element_downstream" (downstream_name);
 
+CREATE TABLE "ControlVariable_shape" (
+	"ControlVariable_id" INTEGER,
+	shape TEXT,
+	PRIMARY KEY ("ControlVariable_id", shape),
+	FOREIGN KEY("ControlVariable_id") REFERENCES "ControlVariable" (id)
+);
+CREATE INDEX "ix_ControlVariable_shape_shape" ON "ControlVariable_shape" (shape);
+CREATE INDEX "ix_ControlVariable_shape_ControlVariable_id" ON "ControlVariable_shape" ("ControlVariable_id");
+
 CREATE TABLE "Lighting_alias" (
 	"Lighting_name" TEXT,
 	alias TEXT,
 	PRIMARY KEY ("Lighting_name", alias),
 	FOREIGN KEY("Lighting_name") REFERENCES "Lighting" (name)
 );
-CREATE INDEX "ix_Lighting_alias_alias" ON "Lighting_alias" (alias);
 CREATE INDEX "ix_Lighting_alias_Lighting_name" ON "Lighting_alias" ("Lighting_name");
+CREATE INDEX "ix_Lighting_alias_alias" ON "Lighting_alias" (alias);
 
 CREATE TABLE "Lighting_inputs" (
 	"Lighting_name" TEXT,
@@ -4647,8 +5311,8 @@ CREATE TABLE "Lighting_inputs" (
 	PRIMARY KEY ("Lighting_name", inputs),
 	FOREIGN KEY("Lighting_name") REFERENCES "Lighting" (name)
 );
-CREATE INDEX "ix_Lighting_inputs_inputs" ON "Lighting_inputs" (inputs);
 CREATE INDEX "ix_Lighting_inputs_Lighting_name" ON "Lighting_inputs" ("Lighting_name");
+CREATE INDEX "ix_Lighting_inputs_inputs" ON "Lighting_inputs" (inputs);
 
 CREATE TABLE "Lighting_outputs" (
 	"Lighting_name" TEXT,
@@ -4666,8 +5330,8 @@ CREATE TABLE "Lighting_upstream" (
 	FOREIGN KEY("Lighting_name") REFERENCES "Lighting" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Lighting_upstream_upstream_name" ON "Lighting_upstream" (upstream_name);
 CREATE INDEX "ix_Lighting_upstream_Lighting_name" ON "Lighting_upstream" ("Lighting_name");
+CREATE INDEX "ix_Lighting_upstream_upstream_name" ON "Lighting_upstream" (upstream_name);
 
 CREATE TABLE "Lighting_downstream" (
 	"Lighting_name" TEXT,
@@ -4676,8 +5340,8 @@ CREATE TABLE "Lighting_downstream" (
 	FOREIGN KEY("Lighting_name") REFERENCES "Lighting" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Lighting_downstream_downstream_name" ON "Lighting_downstream" (downstream_name);
 CREATE INDEX "ix_Lighting_downstream_Lighting_name" ON "Lighting_downstream" ("Lighting_name");
+CREATE INDEX "ix_Lighting_downstream_downstream_name" ON "Lighting_downstream" (downstream_name);
 
 CREATE TABLE "PowerSupply_alias" (
 	"PowerSupply_name" TEXT,
@@ -4694,8 +5358,8 @@ CREATE TABLE "PowerSupply_inputs" (
 	PRIMARY KEY ("PowerSupply_name", inputs),
 	FOREIGN KEY("PowerSupply_name") REFERENCES "PowerSupply" (name)
 );
-CREATE INDEX "ix_PowerSupply_inputs_inputs" ON "PowerSupply_inputs" (inputs);
 CREATE INDEX "ix_PowerSupply_inputs_PowerSupply_name" ON "PowerSupply_inputs" ("PowerSupply_name");
+CREATE INDEX "ix_PowerSupply_inputs_inputs" ON "PowerSupply_inputs" (inputs);
 
 CREATE TABLE "PowerSupply_outputs" (
 	"PowerSupply_name" TEXT,
@@ -4713,8 +5377,8 @@ CREATE TABLE "PowerSupply_upstream" (
 	FOREIGN KEY("PowerSupply_name") REFERENCES "PowerSupply" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_PowerSupply_upstream_PowerSupply_name" ON "PowerSupply_upstream" ("PowerSupply_name");
 CREATE INDEX "ix_PowerSupply_upstream_upstream_name" ON "PowerSupply_upstream" (upstream_name);
+CREATE INDEX "ix_PowerSupply_upstream_PowerSupply_name" ON "PowerSupply_upstream" ("PowerSupply_name");
 
 CREATE TABLE "PowerSupply_downstream" (
 	"PowerSupply_name" TEXT,
@@ -4723,8 +5387,36 @@ CREATE TABLE "PowerSupply_downstream" (
 	FOREIGN KEY("PowerSupply_name") REFERENCES "PowerSupply" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_PowerSupply_downstream_downstream_name" ON "PowerSupply_downstream" (downstream_name);
 CREATE INDEX "ix_PowerSupply_downstream_PowerSupply_name" ON "PowerSupply_downstream" ("PowerSupply_name");
+CREATE INDEX "ix_PowerSupply_downstream_downstream_name" ON "PowerSupply_downstream" (downstream_name);
+
+CREATE TABLE "SectionLattice_elements" (
+	"SectionLattice_name" TEXT,
+	elements TEXT,
+	PRIMARY KEY ("SectionLattice_name", elements),
+	FOREIGN KEY("SectionLattice_name") REFERENCES "SectionLattice" (name)
+);
+CREATE INDEX "ix_SectionLattice_elements_elements" ON "SectionLattice_elements" (elements);
+CREATE INDEX "ix_SectionLattice_elements_SectionLattice_name" ON "SectionLattice_elements" ("SectionLattice_name");
+
+CREATE TABLE "MachineModel_sections" (
+	"MachineModel_id" INTEGER,
+	sections_name TEXT,
+	PRIMARY KEY ("MachineModel_id", sections_name),
+	FOREIGN KEY("MachineModel_id") REFERENCES "MachineModel" (id),
+	FOREIGN KEY(sections_name) REFERENCES "SectionLattice" (name)
+);
+CREATE INDEX "ix_MachineModel_sections_sections_name" ON "MachineModel_sections" (sections_name);
+CREATE INDEX "ix_MachineModel_sections_MachineModel_id" ON "MachineModel_sections" ("MachineModel_id");
+
+CREATE TABLE "ACDipoleSimulationElement_ramp" (
+	"ACDipoleSimulationElement_id" INTEGER,
+	ramp INTEGER,
+	PRIMARY KEY ("ACDipoleSimulationElement_id", ramp),
+	FOREIGN KEY("ACDipoleSimulationElement_id") REFERENCES "ACDipoleSimulationElement" (id)
+);
+CREATE INDEX "ix_ACDipoleSimulationElement_ramp_ramp" ON "ACDipoleSimulationElement_ramp" (ramp);
+CREATE INDEX "ix_ACDipoleSimulationElement_ramp_ACDipoleSimulationElement_id" ON "ACDipoleSimulationElement_ramp" ("ACDipoleSimulationElement_id");
 
 CREATE TABLE "RFModulator_alias" (
 	"RFModulator_name" TEXT,
@@ -4732,8 +5424,8 @@ CREATE TABLE "RFModulator_alias" (
 	PRIMARY KEY ("RFModulator_name", alias),
 	FOREIGN KEY("RFModulator_name") REFERENCES "RFModulator" (name)
 );
-CREATE INDEX "ix_RFModulator_alias_alias" ON "RFModulator_alias" (alias);
 CREATE INDEX "ix_RFModulator_alias_RFModulator_name" ON "RFModulator_alias" ("RFModulator_name");
+CREATE INDEX "ix_RFModulator_alias_alias" ON "RFModulator_alias" (alias);
 
 CREATE TABLE "RFModulator_inputs" (
 	"RFModulator_name" TEXT,
@@ -4770,8 +5462,8 @@ CREATE TABLE "RFModulator_downstream" (
 	FOREIGN KEY("RFModulator_name") REFERENCES "RFModulator" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_RFModulator_downstream_RFModulator_name" ON "RFModulator_downstream" ("RFModulator_name");
 CREATE INDEX "ix_RFModulator_downstream_downstream_name" ON "RFModulator_downstream" (downstream_name);
+CREATE INDEX "ix_RFModulator_downstream_RFModulator_name" ON "RFModulator_downstream" ("RFModulator_name");
 
 CREATE TABLE "RFProtection_alias" (
 	"RFProtection_name" TEXT,
@@ -4797,8 +5489,8 @@ CREATE TABLE "RFProtection_outputs" (
 	PRIMARY KEY ("RFProtection_name", outputs),
 	FOREIGN KEY("RFProtection_name") REFERENCES "RFProtection" (name)
 );
-CREATE INDEX "ix_RFProtection_outputs_outputs" ON "RFProtection_outputs" (outputs);
 CREATE INDEX "ix_RFProtection_outputs_RFProtection_name" ON "RFProtection_outputs" ("RFProtection_name");
+CREATE INDEX "ix_RFProtection_outputs_outputs" ON "RFProtection_outputs" (outputs);
 
 CREATE TABLE "RFProtection_upstream" (
 	"RFProtection_name" TEXT,
@@ -4835,8 +5527,8 @@ CREATE TABLE "RFHeartbeat_inputs" (
 	PRIMARY KEY ("RFHeartbeat_name", inputs),
 	FOREIGN KEY("RFHeartbeat_name") REFERENCES "RFHeartbeat" (name)
 );
-CREATE INDEX "ix_RFHeartbeat_inputs_inputs" ON "RFHeartbeat_inputs" (inputs);
 CREATE INDEX "ix_RFHeartbeat_inputs_RFHeartbeat_name" ON "RFHeartbeat_inputs" ("RFHeartbeat_name");
+CREATE INDEX "ix_RFHeartbeat_inputs_inputs" ON "RFHeartbeat_inputs" (inputs);
 
 CREATE TABLE "RFHeartbeat_outputs" (
 	"RFHeartbeat_name" TEXT,
@@ -4844,8 +5536,8 @@ CREATE TABLE "RFHeartbeat_outputs" (
 	PRIMARY KEY ("RFHeartbeat_name", outputs),
 	FOREIGN KEY("RFHeartbeat_name") REFERENCES "RFHeartbeat" (name)
 );
-CREATE INDEX "ix_RFHeartbeat_outputs_RFHeartbeat_name" ON "RFHeartbeat_outputs" ("RFHeartbeat_name");
 CREATE INDEX "ix_RFHeartbeat_outputs_outputs" ON "RFHeartbeat_outputs" (outputs);
+CREATE INDEX "ix_RFHeartbeat_outputs_RFHeartbeat_name" ON "RFHeartbeat_outputs" ("RFHeartbeat_name");
 
 CREATE TABLE "RFHeartbeat_upstream" (
 	"RFHeartbeat_name" TEXT,
@@ -4901,8 +5593,8 @@ CREATE TABLE "LaserEnergyMeter_upstream" (
 	FOREIGN KEY("LaserEnergyMeter_name") REFERENCES "LaserEnergyMeter" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LaserEnergyMeter_upstream_LaserEnergyMeter_name" ON "LaserEnergyMeter_upstream" ("LaserEnergyMeter_name");
 CREATE INDEX "ix_LaserEnergyMeter_upstream_upstream_name" ON "LaserEnergyMeter_upstream" (upstream_name);
+CREATE INDEX "ix_LaserEnergyMeter_upstream_LaserEnergyMeter_name" ON "LaserEnergyMeter_upstream" ("LaserEnergyMeter_name");
 
 CREATE TABLE "LaserEnergyMeter_downstream" (
 	"LaserEnergyMeter_name" TEXT,
@@ -4911,8 +5603,8 @@ CREATE TABLE "LaserEnergyMeter_downstream" (
 	FOREIGN KEY("LaserEnergyMeter_name") REFERENCES "LaserEnergyMeter" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LaserEnergyMeter_downstream_downstream_name" ON "LaserEnergyMeter_downstream" (downstream_name);
 CREATE INDEX "ix_LaserEnergyMeter_downstream_LaserEnergyMeter_name" ON "LaserEnergyMeter_downstream" ("LaserEnergyMeter_name");
+CREATE INDEX "ix_LaserEnergyMeter_downstream_downstream_name" ON "LaserEnergyMeter_downstream" (downstream_name);
 
 CREATE TABLE "LaserHalfWavePlate_alias" (
 	"LaserHalfWavePlate_name" TEXT,
@@ -4929,8 +5621,8 @@ CREATE TABLE "LaserHalfWavePlate_inputs" (
 	PRIMARY KEY ("LaserHalfWavePlate_name", inputs),
 	FOREIGN KEY("LaserHalfWavePlate_name") REFERENCES "LaserHalfWavePlate" (name)
 );
-CREATE INDEX "ix_LaserHalfWavePlate_inputs_LaserHalfWavePlate_name" ON "LaserHalfWavePlate_inputs" ("LaserHalfWavePlate_name");
 CREATE INDEX "ix_LaserHalfWavePlate_inputs_inputs" ON "LaserHalfWavePlate_inputs" (inputs);
+CREATE INDEX "ix_LaserHalfWavePlate_inputs_LaserHalfWavePlate_name" ON "LaserHalfWavePlate_inputs" ("LaserHalfWavePlate_name");
 
 CREATE TABLE "LaserHalfWavePlate_outputs" (
 	"LaserHalfWavePlate_name" TEXT,
@@ -4938,8 +5630,8 @@ CREATE TABLE "LaserHalfWavePlate_outputs" (
 	PRIMARY KEY ("LaserHalfWavePlate_name", outputs),
 	FOREIGN KEY("LaserHalfWavePlate_name") REFERENCES "LaserHalfWavePlate" (name)
 );
-CREATE INDEX "ix_LaserHalfWavePlate_outputs_outputs" ON "LaserHalfWavePlate_outputs" (outputs);
 CREATE INDEX "ix_LaserHalfWavePlate_outputs_LaserHalfWavePlate_name" ON "LaserHalfWavePlate_outputs" ("LaserHalfWavePlate_name");
+CREATE INDEX "ix_LaserHalfWavePlate_outputs_outputs" ON "LaserHalfWavePlate_outputs" (outputs);
 
 CREATE TABLE "LaserHalfWavePlate_upstream" (
 	"LaserHalfWavePlate_name" TEXT,
@@ -4958,8 +5650,8 @@ CREATE TABLE "LaserHalfWavePlate_downstream" (
 	FOREIGN KEY("LaserHalfWavePlate_name") REFERENCES "LaserHalfWavePlate" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LaserHalfWavePlate_downstream_downstream_name" ON "LaserHalfWavePlate_downstream" (downstream_name);
 CREATE INDEX "ix_LaserHalfWavePlate_downstream_LaserHalfWavePlate_name" ON "LaserHalfWavePlate_downstream" ("LaserHalfWavePlate_name");
+CREATE INDEX "ix_LaserHalfWavePlate_downstream_downstream_name" ON "LaserHalfWavePlate_downstream" (downstream_name);
 
 CREATE TABLE "LaserAttenuator_alias" (
 	"LaserAttenuator_name" TEXT,
@@ -4967,8 +5659,8 @@ CREATE TABLE "LaserAttenuator_alias" (
 	PRIMARY KEY ("LaserAttenuator_name", alias),
 	FOREIGN KEY("LaserAttenuator_name") REFERENCES "LaserAttenuator" (name)
 );
-CREATE INDEX "ix_LaserAttenuator_alias_LaserAttenuator_name" ON "LaserAttenuator_alias" ("LaserAttenuator_name");
 CREATE INDEX "ix_LaserAttenuator_alias_alias" ON "LaserAttenuator_alias" (alias);
+CREATE INDEX "ix_LaserAttenuator_alias_LaserAttenuator_name" ON "LaserAttenuator_alias" ("LaserAttenuator_name");
 
 CREATE TABLE "LaserAttenuator_inputs" (
 	"LaserAttenuator_name" TEXT,
@@ -4985,8 +5677,8 @@ CREATE TABLE "LaserAttenuator_outputs" (
 	PRIMARY KEY ("LaserAttenuator_name", outputs),
 	FOREIGN KEY("LaserAttenuator_name") REFERENCES "LaserAttenuator" (name)
 );
-CREATE INDEX "ix_LaserAttenuator_outputs_LaserAttenuator_name" ON "LaserAttenuator_outputs" ("LaserAttenuator_name");
 CREATE INDEX "ix_LaserAttenuator_outputs_outputs" ON "LaserAttenuator_outputs" (outputs);
+CREATE INDEX "ix_LaserAttenuator_outputs_LaserAttenuator_name" ON "LaserAttenuator_outputs" ("LaserAttenuator_name");
 
 CREATE TABLE "LaserAttenuator_upstream" (
 	"LaserAttenuator_name" TEXT,
@@ -4995,8 +5687,8 @@ CREATE TABLE "LaserAttenuator_upstream" (
 	FOREIGN KEY("LaserAttenuator_name") REFERENCES "LaserAttenuator" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LaserAttenuator_upstream_LaserAttenuator_name" ON "LaserAttenuator_upstream" ("LaserAttenuator_name");
 CREATE INDEX "ix_LaserAttenuator_upstream_upstream_name" ON "LaserAttenuator_upstream" (upstream_name);
+CREATE INDEX "ix_LaserAttenuator_upstream_LaserAttenuator_name" ON "LaserAttenuator_upstream" ("LaserAttenuator_name");
 
 CREATE TABLE "LaserAttenuator_downstream" (
 	"LaserAttenuator_name" TEXT,
@@ -5005,8 +5697,8 @@ CREATE TABLE "LaserAttenuator_downstream" (
 	FOREIGN KEY("LaserAttenuator_name") REFERENCES "LaserAttenuator" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LaserAttenuator_downstream_downstream_name" ON "LaserAttenuator_downstream" (downstream_name);
 CREATE INDEX "ix_LaserAttenuator_downstream_LaserAttenuator_name" ON "LaserAttenuator_downstream" ("LaserAttenuator_name");
+CREATE INDEX "ix_LaserAttenuator_downstream_downstream_name" ON "LaserAttenuator_downstream" (downstream_name);
 
 CREATE TABLE "PhysicalAcceleratorElement" (
 	material TEXT,
@@ -5017,6 +5709,7 @@ CREATE TABLE "PhysicalAcceleratorElement" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5044,6 +5737,7 @@ CREATE TABLE "TwissMatch" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5071,6 +5765,7 @@ CREATE TABLE "MatrixTransform" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5098,6 +5793,7 @@ CREATE TABLE "ElectrostaticSeparator" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5125,6 +5821,7 @@ CREATE TABLE "ACDipole" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5152,6 +5849,7 @@ CREATE TABLE "Horizontal_AC_Dipole" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5179,6 +5877,7 @@ CREATE TABLE "Vertical_AC_Dipole" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5206,6 +5905,7 @@ CREATE TABLE "Wire" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5233,6 +5933,7 @@ CREATE TABLE "BeamBeam" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5260,6 +5961,7 @@ CREATE TABLE "RFMultipole" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5287,6 +5989,7 @@ CREATE TABLE "Stage" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5314,6 +6017,7 @@ CREATE TABLE "VacuumGauge" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5341,6 +6045,7 @@ CREATE TABLE "Laser" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	laser_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5370,6 +6075,7 @@ CREATE TABLE "Shutter" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	shutter_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5399,6 +6105,7 @@ CREATE TABLE "Valve" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	valve_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5428,6 +6135,7 @@ CREATE TABLE "Marker" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5455,6 +6163,7 @@ CREATE TABLE "Aperture" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	aperture_id INTEGER,
 	physical_id INTEGER,
 	simulation_id INTEGER,
@@ -5482,6 +6191,7 @@ CREATE TABLE "Collimator" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	aperture_id INTEGER,
 	physical_id INTEGER,
 	simulation_id INTEGER,
@@ -5509,6 +6219,7 @@ CREATE TABLE "Drift" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	physical_id INTEGER,
 	aperture_id INTEGER,
 	simulation_id INTEGER,
@@ -5536,6 +6247,7 @@ CREATE TABLE "Magnet" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	magnetic_id INTEGER,
 	degauss_id INTEGER,
 	physical_id INTEGER,
@@ -5567,6 +6279,7 @@ CREATE TABLE "RFCavity" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	cavity_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5596,6 +6309,7 @@ CREATE TABLE "RFDeflectingCavity" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	cavity_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5625,6 +6339,7 @@ CREATE TABLE "CrabCavity" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	cavity_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5654,6 +6369,7 @@ CREATE TABLE "Wakefield" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	cavity_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5682,6 +6398,7 @@ CREATE TABLE "LowLevelRF" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	llrf_id INTEGER,
 	simulation_id INTEGER,
 	electrical_id INTEGER,
@@ -5707,6 +6424,7 @@ CREATE TABLE "Diagnostic" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	diagnostic_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5736,6 +6454,7 @@ CREATE TABLE "BeamPositionMonitor" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	diagnostic_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5765,6 +6484,7 @@ CREATE TABLE "BeamArrivalMonitor" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	diagnostic_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5794,6 +6514,7 @@ CREATE TABLE "BunchLengthMonitor" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	diagnostic_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5823,6 +6544,7 @@ CREATE TABLE "Camera" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	diagnostic_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5852,6 +6574,7 @@ CREATE TABLE "Screen" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	diagnostic_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5881,6 +6604,7 @@ CREATE TABLE "WireScanner" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	diagnostic_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5910,6 +6634,7 @@ CREATE TABLE "ChargeDiagnostic" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	diagnostic_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5939,6 +6664,7 @@ CREATE TABLE "WallCurrentMonitor" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	diagnostic_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5968,6 +6694,7 @@ CREATE TABLE "FaradayCupMonitor" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	diagnostic_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -5997,6 +6724,7 @@ CREATE TABLE "IntegratedCurrentTransformer" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	diagnostic_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -6026,6 +6754,7 @@ CREATE TABLE "PhotonMonitor" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	diagnostic_id INTEGER,
 	physical_id INTEGER,
 	aperture_id INTEGER,
@@ -6055,6 +6784,7 @@ CREATE TABLE "Plasma" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	plasma_id INTEGER,
 	laser_id INTEGER,
 	physical_id INTEGER,
@@ -6086,6 +6816,7 @@ CREATE TABLE "Dipole" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	magnetic_id INTEGER,
 	degauss_id INTEGER,
 	physical_id INTEGER,
@@ -6096,7 +6827,7 @@ CREATE TABLE "Dipole" (
 	controls_id INTEGER,
 	reference_id INTEGER,
 	PRIMARY KEY (name),
-	FOREIGN KEY(magnetic_id) REFERENCES "Dipole_Magnet" (id),
+	FOREIGN KEY(magnetic_id) REFERENCES "DipoleMagnet" (id),
 	FOREIGN KEY(degauss_id) REFERENCES "DegaussableElement" (id),
 	FOREIGN KEY(physical_id) REFERENCES "PhysicalElement" (id),
 	FOREIGN KEY(aperture_id) REFERENCES "ApertureElement" (id),
@@ -6117,6 +6848,7 @@ CREATE TABLE "Quadrupole" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	magnetic_id INTEGER,
 	degauss_id INTEGER,
 	physical_id INTEGER,
@@ -6127,7 +6859,7 @@ CREATE TABLE "Quadrupole" (
 	controls_id INTEGER,
 	reference_id INTEGER,
 	PRIMARY KEY (name),
-	FOREIGN KEY(magnetic_id) REFERENCES "Quadrupole_Magnet" (id),
+	FOREIGN KEY(magnetic_id) REFERENCES "QuadrupoleMagnet" (id),
 	FOREIGN KEY(degauss_id) REFERENCES "DegaussableElement" (id),
 	FOREIGN KEY(physical_id) REFERENCES "PhysicalElement" (id),
 	FOREIGN KEY(aperture_id) REFERENCES "ApertureElement" (id),
@@ -6148,6 +6880,7 @@ CREATE TABLE "Sextupole" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	magnetic_id INTEGER,
 	degauss_id INTEGER,
 	physical_id INTEGER,
@@ -6158,7 +6891,7 @@ CREATE TABLE "Sextupole" (
 	controls_id INTEGER,
 	reference_id INTEGER,
 	PRIMARY KEY (name),
-	FOREIGN KEY(magnetic_id) REFERENCES "Sextupole_Magnet" (id),
+	FOREIGN KEY(magnetic_id) REFERENCES "SextupoleMagnet" (id),
 	FOREIGN KEY(degauss_id) REFERENCES "DegaussableElement" (id),
 	FOREIGN KEY(physical_id) REFERENCES "PhysicalElement" (id),
 	FOREIGN KEY(aperture_id) REFERENCES "ApertureElement" (id),
@@ -6179,6 +6912,7 @@ CREATE TABLE "Octupole" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	magnetic_id INTEGER,
 	degauss_id INTEGER,
 	physical_id INTEGER,
@@ -6189,7 +6923,7 @@ CREATE TABLE "Octupole" (
 	controls_id INTEGER,
 	reference_id INTEGER,
 	PRIMARY KEY (name),
-	FOREIGN KEY(magnetic_id) REFERENCES "Octupole_Magnet" (id),
+	FOREIGN KEY(magnetic_id) REFERENCES "OctupoleMagnet" (id),
 	FOREIGN KEY(degauss_id) REFERENCES "DegaussableElement" (id),
 	FOREIGN KEY(physical_id) REFERENCES "PhysicalElement" (id),
 	FOREIGN KEY(aperture_id) REFERENCES "ApertureElement" (id),
@@ -6210,6 +6944,7 @@ CREATE TABLE "Decapole" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	magnetic_id INTEGER,
 	degauss_id INTEGER,
 	physical_id INTEGER,
@@ -6241,6 +6976,7 @@ CREATE TABLE "HorizontalCorrector" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	magnetic_id INTEGER,
 	degauss_id INTEGER,
 	physical_id INTEGER,
@@ -6272,6 +7008,7 @@ CREATE TABLE "VerticalCorrector" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	magnetic_id INTEGER,
 	degauss_id INTEGER,
 	physical_id INTEGER,
@@ -6294,38 +7031,15 @@ CREATE TABLE "VerticalCorrector" (
 );
 CREATE INDEX "ix_VerticalCorrector_name" ON "VerticalCorrector" (name);
 
-CREATE TABLE "CombinedCorrector" (
-	"Horizontal_Corrector" TEXT,
-	"Vertical_Corrector" TEXT,
-	material TEXT,
-	name TEXT NOT NULL,
-	hardware_class VARCHAR(22) NOT NULL,
-	hardware_type TEXT,
-	hardware_model TEXT,
-	machine_area TEXT,
-	virtual_name TEXT,
-	subelement TEXT,
-	magnetic_id INTEGER,
-	degauss_id INTEGER,
-	physical_id INTEGER,
-	aperture_id INTEGER,
-	simulation_id INTEGER,
-	electrical_id INTEGER,
-	manufacturer_id INTEGER,
-	controls_id INTEGER,
-	reference_id INTEGER,
-	PRIMARY KEY (name),
-	FOREIGN KEY(magnetic_id) REFERENCES "Corrector_Magnet" (id),
-	FOREIGN KEY(degauss_id) REFERENCES "DegaussableElement" (id),
-	FOREIGN KEY(physical_id) REFERENCES "PhysicalElement" (id),
-	FOREIGN KEY(aperture_id) REFERENCES "ApertureElement" (id),
-	FOREIGN KEY(simulation_id) REFERENCES "MagnetSimulationElement" (id),
-	FOREIGN KEY(electrical_id) REFERENCES "ElectricalElement" (id),
-	FOREIGN KEY(manufacturer_id) REFERENCES "ManufacturerElement" (id),
-	FOREIGN KEY(controls_id) REFERENCES "ControlsInformation" (id),
-	FOREIGN KEY(reference_id) REFERENCES "ReferenceElement" (id)
+CREATE TABLE "CombinedCorrectorMagnet" (
+	id INTEGER NOT NULL,
+	horizontal_id INTEGER,
+	vertical_id INTEGER,
+	PRIMARY KEY (id),
+	FOREIGN KEY(horizontal_id) REFERENCES "Corrector_Magnet" (id),
+	FOREIGN KEY(vertical_id) REFERENCES "Corrector_Magnet" (id)
 );
-CREATE INDEX "ix_CombinedCorrector_name" ON "CombinedCorrector" (name);
+CREATE INDEX "ix_CombinedCorrectorMagnet_id" ON "CombinedCorrectorMagnet" (id);
 
 CREATE TABLE "Solenoid" (
 	material TEXT,
@@ -6336,6 +7050,7 @@ CREATE TABLE "Solenoid" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	magnetic_id INTEGER,
 	degauss_id INTEGER,
 	physical_id INTEGER,
@@ -6367,6 +7082,7 @@ CREATE TABLE "CombinedSolenoidQuadrupole" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	magnetic_id INTEGER,
 	degauss_id INTEGER,
 	physical_id INTEGER,
@@ -6377,7 +7093,7 @@ CREATE TABLE "CombinedSolenoidQuadrupole" (
 	controls_id INTEGER,
 	reference_id INTEGER,
 	PRIMARY KEY (name),
-	FOREIGN KEY(magnetic_id) REFERENCES "CombinedSolenoidQuadrupole_Magnet" (id),
+	FOREIGN KEY(magnetic_id) REFERENCES "CombinedSolenoidQuadrupoleMagnet" (id),
 	FOREIGN KEY(degauss_id) REFERENCES "DegaussableElement" (id),
 	FOREIGN KEY(physical_id) REFERENCES "PhysicalElement" (id),
 	FOREIGN KEY(aperture_id) REFERENCES "ApertureElement" (id),
@@ -6398,6 +7114,7 @@ CREATE TABLE "Wiggler" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	laser_id INTEGER,
 	magnetic_id INTEGER,
 	degauss_id INTEGER,
@@ -6431,6 +7148,7 @@ CREATE TABLE "NonLinearLens" (
 	machine_area TEXT,
 	virtual_name TEXT,
 	subelement TEXT,
+	inherits_from TEXT,
 	magnetic_id INTEGER,
 	degauss_id INTEGER,
 	physical_id INTEGER,
@@ -6441,7 +7159,7 @@ CREATE TABLE "NonLinearLens" (
 	controls_id INTEGER,
 	reference_id INTEGER,
 	PRIMARY KEY (name),
-	FOREIGN KEY(magnetic_id) REFERENCES "NonLinearLens_Magnet" (id),
+	FOREIGN KEY(magnetic_id) REFERENCES "NonLinearLensMagnet" (id),
 	FOREIGN KEY(degauss_id) REFERENCES "DegaussableElement" (id),
 	FOREIGN KEY(physical_id) REFERENCES "PhysicalElement" (id),
 	FOREIGN KEY(aperture_id) REFERENCES "ApertureElement" (id),
@@ -6459,8 +7177,8 @@ CREATE TABLE "PID_alias" (
 	PRIMARY KEY ("PID_name", alias),
 	FOREIGN KEY("PID_name") REFERENCES "PID" (name)
 );
-CREATE INDEX "ix_PID_alias_PID_name" ON "PID_alias" ("PID_name");
 CREATE INDEX "ix_PID_alias_alias" ON "PID_alias" (alias);
+CREATE INDEX "ix_PID_alias_PID_name" ON "PID_alias" ("PID_name");
 
 CREATE TABLE "PID_inputs" (
 	"PID_name" TEXT,
@@ -6468,8 +7186,8 @@ CREATE TABLE "PID_inputs" (
 	PRIMARY KEY ("PID_name", inputs),
 	FOREIGN KEY("PID_name") REFERENCES "PID" (name)
 );
-CREATE INDEX "ix_PID_inputs_inputs" ON "PID_inputs" (inputs);
 CREATE INDEX "ix_PID_inputs_PID_name" ON "PID_inputs" ("PID_name");
+CREATE INDEX "ix_PID_inputs_inputs" ON "PID_inputs" (inputs);
 
 CREATE TABLE "PID_outputs" (
 	"PID_name" TEXT,
@@ -6497,8 +7215,8 @@ CREATE TABLE "PID_downstream" (
 	FOREIGN KEY("PID_name") REFERENCES "PID" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_PID_downstream_PID_name" ON "PID_downstream" ("PID_name");
 CREATE INDEX "ix_PID_downstream_downstream_name" ON "PID_downstream" (downstream_name);
+CREATE INDEX "ix_PID_downstream_PID_name" ON "PID_downstream" ("PID_name");
 
 CREATE TABLE "LaserMirror_alias" (
 	"LaserMirror_name" TEXT,
@@ -6506,8 +7224,8 @@ CREATE TABLE "LaserMirror_alias" (
 	PRIMARY KEY ("LaserMirror_name", alias),
 	FOREIGN KEY("LaserMirror_name") REFERENCES "LaserMirror" (name)
 );
-CREATE INDEX "ix_LaserMirror_alias_alias" ON "LaserMirror_alias" (alias);
 CREATE INDEX "ix_LaserMirror_alias_LaserMirror_name" ON "LaserMirror_alias" ("LaserMirror_name");
+CREATE INDEX "ix_LaserMirror_alias_alias" ON "LaserMirror_alias" (alias);
 
 CREATE TABLE "LaserMirror_inputs" (
 	"LaserMirror_name" TEXT,
@@ -6515,8 +7233,8 @@ CREATE TABLE "LaserMirror_inputs" (
 	PRIMARY KEY ("LaserMirror_name", inputs),
 	FOREIGN KEY("LaserMirror_name") REFERENCES "LaserMirror" (name)
 );
-CREATE INDEX "ix_LaserMirror_inputs_LaserMirror_name" ON "LaserMirror_inputs" ("LaserMirror_name");
 CREATE INDEX "ix_LaserMirror_inputs_inputs" ON "LaserMirror_inputs" (inputs);
+CREATE INDEX "ix_LaserMirror_inputs_LaserMirror_name" ON "LaserMirror_inputs" ("LaserMirror_name");
 
 CREATE TABLE "LaserMirror_outputs" (
 	"LaserMirror_name" TEXT,
@@ -6524,8 +7242,8 @@ CREATE TABLE "LaserMirror_outputs" (
 	PRIMARY KEY ("LaserMirror_name", outputs),
 	FOREIGN KEY("LaserMirror_name") REFERENCES "LaserMirror" (name)
 );
-CREATE INDEX "ix_LaserMirror_outputs_LaserMirror_name" ON "LaserMirror_outputs" ("LaserMirror_name");
 CREATE INDEX "ix_LaserMirror_outputs_outputs" ON "LaserMirror_outputs" (outputs);
+CREATE INDEX "ix_LaserMirror_outputs_LaserMirror_name" ON "LaserMirror_outputs" ("LaserMirror_name");
 
 CREATE TABLE "LaserMirror_upstream" (
 	"LaserMirror_name" TEXT,
@@ -6534,8 +7252,8 @@ CREATE TABLE "LaserMirror_upstream" (
 	FOREIGN KEY("LaserMirror_name") REFERENCES "LaserMirror" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LaserMirror_upstream_LaserMirror_name" ON "LaserMirror_upstream" ("LaserMirror_name");
 CREATE INDEX "ix_LaserMirror_upstream_upstream_name" ON "LaserMirror_upstream" (upstream_name);
+CREATE INDEX "ix_LaserMirror_upstream_LaserMirror_name" ON "LaserMirror_upstream" ("LaserMirror_name");
 
 CREATE TABLE "LaserMirror_downstream" (
 	"LaserMirror_name" TEXT,
@@ -6544,8 +7262,42 @@ CREATE TABLE "LaserMirror_downstream" (
 	FOREIGN KEY("LaserMirror_name") REFERENCES "LaserMirror" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LaserMirror_downstream_downstream_name" ON "LaserMirror_downstream" (downstream_name);
 CREATE INDEX "ix_LaserMirror_downstream_LaserMirror_name" ON "LaserMirror_downstream" ("LaserMirror_name");
+CREATE INDEX "ix_LaserMirror_downstream_downstream_name" ON "LaserMirror_downstream" (downstream_name);
+
+CREATE TABLE "CombinedCorrector" (
+	"Horizontal_Corrector" TEXT,
+	"Vertical_Corrector" TEXT,
+	material TEXT,
+	name TEXT NOT NULL,
+	hardware_class VARCHAR(22) NOT NULL,
+	hardware_type TEXT,
+	hardware_model TEXT,
+	machine_area TEXT,
+	virtual_name TEXT,
+	subelement TEXT,
+	inherits_from TEXT,
+	magnetic_id INTEGER,
+	degauss_id INTEGER,
+	physical_id INTEGER,
+	aperture_id INTEGER,
+	simulation_id INTEGER,
+	electrical_id INTEGER,
+	manufacturer_id INTEGER,
+	controls_id INTEGER,
+	reference_id INTEGER,
+	PRIMARY KEY (name),
+	FOREIGN KEY(magnetic_id) REFERENCES "CombinedCorrectorMagnet" (id),
+	FOREIGN KEY(degauss_id) REFERENCES "DegaussableElement" (id),
+	FOREIGN KEY(physical_id) REFERENCES "PhysicalElement" (id),
+	FOREIGN KEY(aperture_id) REFERENCES "ApertureElement" (id),
+	FOREIGN KEY(simulation_id) REFERENCES "MagnetSimulationElement" (id),
+	FOREIGN KEY(electrical_id) REFERENCES "ElectricalElement" (id),
+	FOREIGN KEY(manufacturer_id) REFERENCES "ManufacturerElement" (id),
+	FOREIGN KEY(controls_id) REFERENCES "ControlsInformation" (id),
+	FOREIGN KEY(reference_id) REFERENCES "ReferenceElement" (id)
+);
+CREATE INDEX "ix_CombinedCorrector_name" ON "CombinedCorrector" (name);
 
 CREATE TABLE "PhysicalAcceleratorElement_alias" (
 	"PhysicalAcceleratorElement_name" TEXT,
@@ -6571,8 +7323,8 @@ CREATE TABLE "PhysicalAcceleratorElement_outputs" (
 	PRIMARY KEY ("PhysicalAcceleratorElement_name", outputs),
 	FOREIGN KEY("PhysicalAcceleratorElement_name") REFERENCES "PhysicalAcceleratorElement" (name)
 );
-CREATE INDEX "ix_PhysicalAcceleratorElement_outputs_PhysicalAcceleratorElement_name" ON "PhysicalAcceleratorElement_outputs" ("PhysicalAcceleratorElement_name");
 CREATE INDEX "ix_PhysicalAcceleratorElement_outputs_outputs" ON "PhysicalAcceleratorElement_outputs" (outputs);
+CREATE INDEX "ix_PhysicalAcceleratorElement_outputs_PhysicalAcceleratorElement_name" ON "PhysicalAcceleratorElement_outputs" ("PhysicalAcceleratorElement_name");
 
 CREATE TABLE "PhysicalAcceleratorElement_upstream" (
 	"PhysicalAcceleratorElement_name" TEXT,
@@ -6591,8 +7343,8 @@ CREATE TABLE "PhysicalAcceleratorElement_downstream" (
 	FOREIGN KEY("PhysicalAcceleratorElement_name") REFERENCES "PhysicalAcceleratorElement" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_PhysicalAcceleratorElement_downstream_PhysicalAcceleratorElement_name" ON "PhysicalAcceleratorElement_downstream" ("PhysicalAcceleratorElement_name");
 CREATE INDEX "ix_PhysicalAcceleratorElement_downstream_downstream_name" ON "PhysicalAcceleratorElement_downstream" (downstream_name);
+CREATE INDEX "ix_PhysicalAcceleratorElement_downstream_PhysicalAcceleratorElement_name" ON "PhysicalAcceleratorElement_downstream" ("PhysicalAcceleratorElement_name");
 
 CREATE TABLE "TwissMatch_alias" (
 	"TwissMatch_name" TEXT,
@@ -6600,8 +7352,8 @@ CREATE TABLE "TwissMatch_alias" (
 	PRIMARY KEY ("TwissMatch_name", alias),
 	FOREIGN KEY("TwissMatch_name") REFERENCES "TwissMatch" (name)
 );
-CREATE INDEX "ix_TwissMatch_alias_TwissMatch_name" ON "TwissMatch_alias" ("TwissMatch_name");
 CREATE INDEX "ix_TwissMatch_alias_alias" ON "TwissMatch_alias" (alias);
+CREATE INDEX "ix_TwissMatch_alias_TwissMatch_name" ON "TwissMatch_alias" ("TwissMatch_name");
 
 CREATE TABLE "TwissMatch_inputs" (
 	"TwissMatch_name" TEXT,
@@ -6609,8 +7361,8 @@ CREATE TABLE "TwissMatch_inputs" (
 	PRIMARY KEY ("TwissMatch_name", inputs),
 	FOREIGN KEY("TwissMatch_name") REFERENCES "TwissMatch" (name)
 );
-CREATE INDEX "ix_TwissMatch_inputs_inputs" ON "TwissMatch_inputs" (inputs);
 CREATE INDEX "ix_TwissMatch_inputs_TwissMatch_name" ON "TwissMatch_inputs" ("TwissMatch_name");
+CREATE INDEX "ix_TwissMatch_inputs_inputs" ON "TwissMatch_inputs" (inputs);
 
 CREATE TABLE "TwissMatch_outputs" (
 	"TwissMatch_name" TEXT,
@@ -6665,8 +7417,8 @@ CREATE TABLE "MatrixTransform_outputs" (
 	PRIMARY KEY ("MatrixTransform_name", outputs),
 	FOREIGN KEY("MatrixTransform_name") REFERENCES "MatrixTransform" (name)
 );
-CREATE INDEX "ix_MatrixTransform_outputs_outputs" ON "MatrixTransform_outputs" (outputs);
 CREATE INDEX "ix_MatrixTransform_outputs_MatrixTransform_name" ON "MatrixTransform_outputs" ("MatrixTransform_name");
+CREATE INDEX "ix_MatrixTransform_outputs_outputs" ON "MatrixTransform_outputs" (outputs);
 
 CREATE TABLE "MatrixTransform_upstream" (
 	"MatrixTransform_name" TEXT,
@@ -6675,8 +7427,8 @@ CREATE TABLE "MatrixTransform_upstream" (
 	FOREIGN KEY("MatrixTransform_name") REFERENCES "MatrixTransform" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_MatrixTransform_upstream_MatrixTransform_name" ON "MatrixTransform_upstream" ("MatrixTransform_name");
 CREATE INDEX "ix_MatrixTransform_upstream_upstream_name" ON "MatrixTransform_upstream" (upstream_name);
+CREATE INDEX "ix_MatrixTransform_upstream_MatrixTransform_name" ON "MatrixTransform_upstream" ("MatrixTransform_name");
 
 CREATE TABLE "MatrixTransform_downstream" (
 	"MatrixTransform_name" TEXT,
@@ -6685,8 +7437,8 @@ CREATE TABLE "MatrixTransform_downstream" (
 	FOREIGN KEY("MatrixTransform_name") REFERENCES "MatrixTransform" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_MatrixTransform_downstream_downstream_name" ON "MatrixTransform_downstream" (downstream_name);
 CREATE INDEX "ix_MatrixTransform_downstream_MatrixTransform_name" ON "MatrixTransform_downstream" ("MatrixTransform_name");
+CREATE INDEX "ix_MatrixTransform_downstream_downstream_name" ON "MatrixTransform_downstream" (downstream_name);
 
 CREATE TABLE "ElectrostaticSeparator_alias" (
 	"ElectrostaticSeparator_name" TEXT,
@@ -6694,8 +7446,8 @@ CREATE TABLE "ElectrostaticSeparator_alias" (
 	PRIMARY KEY ("ElectrostaticSeparator_name", alias),
 	FOREIGN KEY("ElectrostaticSeparator_name") REFERENCES "ElectrostaticSeparator" (name)
 );
-CREATE INDEX "ix_ElectrostaticSeparator_alias_alias" ON "ElectrostaticSeparator_alias" (alias);
 CREATE INDEX "ix_ElectrostaticSeparator_alias_ElectrostaticSeparator_name" ON "ElectrostaticSeparator_alias" ("ElectrostaticSeparator_name");
+CREATE INDEX "ix_ElectrostaticSeparator_alias_alias" ON "ElectrostaticSeparator_alias" (alias);
 
 CREATE TABLE "ElectrostaticSeparator_inputs" (
 	"ElectrostaticSeparator_name" TEXT,
@@ -6703,8 +7455,8 @@ CREATE TABLE "ElectrostaticSeparator_inputs" (
 	PRIMARY KEY ("ElectrostaticSeparator_name", inputs),
 	FOREIGN KEY("ElectrostaticSeparator_name") REFERENCES "ElectrostaticSeparator" (name)
 );
-CREATE INDEX "ix_ElectrostaticSeparator_inputs_ElectrostaticSeparator_name" ON "ElectrostaticSeparator_inputs" ("ElectrostaticSeparator_name");
 CREATE INDEX "ix_ElectrostaticSeparator_inputs_inputs" ON "ElectrostaticSeparator_inputs" (inputs);
+CREATE INDEX "ix_ElectrostaticSeparator_inputs_ElectrostaticSeparator_name" ON "ElectrostaticSeparator_inputs" ("ElectrostaticSeparator_name");
 
 CREATE TABLE "ElectrostaticSeparator_outputs" (
 	"ElectrostaticSeparator_name" TEXT,
@@ -6712,8 +7464,8 @@ CREATE TABLE "ElectrostaticSeparator_outputs" (
 	PRIMARY KEY ("ElectrostaticSeparator_name", outputs),
 	FOREIGN KEY("ElectrostaticSeparator_name") REFERENCES "ElectrostaticSeparator" (name)
 );
-CREATE INDEX "ix_ElectrostaticSeparator_outputs_outputs" ON "ElectrostaticSeparator_outputs" (outputs);
 CREATE INDEX "ix_ElectrostaticSeparator_outputs_ElectrostaticSeparator_name" ON "ElectrostaticSeparator_outputs" ("ElectrostaticSeparator_name");
+CREATE INDEX "ix_ElectrostaticSeparator_outputs_outputs" ON "ElectrostaticSeparator_outputs" (outputs);
 
 CREATE TABLE "ElectrostaticSeparator_upstream" (
 	"ElectrostaticSeparator_name" TEXT,
@@ -6788,8 +7540,8 @@ CREATE TABLE "Horizontal_AC_Dipole_alias" (
 	PRIMARY KEY ("Horizontal_AC_Dipole_name", alias),
 	FOREIGN KEY("Horizontal_AC_Dipole_name") REFERENCES "Horizontal_AC_Dipole" (name)
 );
-CREATE INDEX "ix_Horizontal_AC_Dipole_alias_alias" ON "Horizontal_AC_Dipole_alias" (alias);
 CREATE INDEX "ix_Horizontal_AC_Dipole_alias_Horizontal_AC_Dipole_name" ON "Horizontal_AC_Dipole_alias" ("Horizontal_AC_Dipole_name");
+CREATE INDEX "ix_Horizontal_AC_Dipole_alias_alias" ON "Horizontal_AC_Dipole_alias" (alias);
 
 CREATE TABLE "Horizontal_AC_Dipole_inputs" (
 	"Horizontal_AC_Dipole_name" TEXT,
@@ -6797,8 +7549,8 @@ CREATE TABLE "Horizontal_AC_Dipole_inputs" (
 	PRIMARY KEY ("Horizontal_AC_Dipole_name", inputs),
 	FOREIGN KEY("Horizontal_AC_Dipole_name") REFERENCES "Horizontal_AC_Dipole" (name)
 );
-CREATE INDEX "ix_Horizontal_AC_Dipole_inputs_Horizontal_AC_Dipole_name" ON "Horizontal_AC_Dipole_inputs" ("Horizontal_AC_Dipole_name");
 CREATE INDEX "ix_Horizontal_AC_Dipole_inputs_inputs" ON "Horizontal_AC_Dipole_inputs" (inputs);
+CREATE INDEX "ix_Horizontal_AC_Dipole_inputs_Horizontal_AC_Dipole_name" ON "Horizontal_AC_Dipole_inputs" ("Horizontal_AC_Dipole_name");
 
 CREATE TABLE "Horizontal_AC_Dipole_outputs" (
 	"Horizontal_AC_Dipole_name" TEXT,
@@ -6806,8 +7558,8 @@ CREATE TABLE "Horizontal_AC_Dipole_outputs" (
 	PRIMARY KEY ("Horizontal_AC_Dipole_name", outputs),
 	FOREIGN KEY("Horizontal_AC_Dipole_name") REFERENCES "Horizontal_AC_Dipole" (name)
 );
-CREATE INDEX "ix_Horizontal_AC_Dipole_outputs_outputs" ON "Horizontal_AC_Dipole_outputs" (outputs);
 CREATE INDEX "ix_Horizontal_AC_Dipole_outputs_Horizontal_AC_Dipole_name" ON "Horizontal_AC_Dipole_outputs" ("Horizontal_AC_Dipole_name");
+CREATE INDEX "ix_Horizontal_AC_Dipole_outputs_outputs" ON "Horizontal_AC_Dipole_outputs" (outputs);
 
 CREATE TABLE "Horizontal_AC_Dipole_upstream" (
 	"Horizontal_AC_Dipole_name" TEXT,
@@ -6835,8 +7587,8 @@ CREATE TABLE "Vertical_AC_Dipole_alias" (
 	PRIMARY KEY ("Vertical_AC_Dipole_name", alias),
 	FOREIGN KEY("Vertical_AC_Dipole_name") REFERENCES "Vertical_AC_Dipole" (name)
 );
-CREATE INDEX "ix_Vertical_AC_Dipole_alias_Vertical_AC_Dipole_name" ON "Vertical_AC_Dipole_alias" ("Vertical_AC_Dipole_name");
 CREATE INDEX "ix_Vertical_AC_Dipole_alias_alias" ON "Vertical_AC_Dipole_alias" (alias);
+CREATE INDEX "ix_Vertical_AC_Dipole_alias_Vertical_AC_Dipole_name" ON "Vertical_AC_Dipole_alias" ("Vertical_AC_Dipole_name");
 
 CREATE TABLE "Vertical_AC_Dipole_inputs" (
 	"Vertical_AC_Dipole_name" TEXT,
@@ -6844,8 +7596,8 @@ CREATE TABLE "Vertical_AC_Dipole_inputs" (
 	PRIMARY KEY ("Vertical_AC_Dipole_name", inputs),
 	FOREIGN KEY("Vertical_AC_Dipole_name") REFERENCES "Vertical_AC_Dipole" (name)
 );
-CREATE INDEX "ix_Vertical_AC_Dipole_inputs_inputs" ON "Vertical_AC_Dipole_inputs" (inputs);
 CREATE INDEX "ix_Vertical_AC_Dipole_inputs_Vertical_AC_Dipole_name" ON "Vertical_AC_Dipole_inputs" ("Vertical_AC_Dipole_name");
+CREATE INDEX "ix_Vertical_AC_Dipole_inputs_inputs" ON "Vertical_AC_Dipole_inputs" (inputs);
 
 CREATE TABLE "Vertical_AC_Dipole_outputs" (
 	"Vertical_AC_Dipole_name" TEXT,
@@ -6891,8 +7643,8 @@ CREATE TABLE "Wire_inputs" (
 	PRIMARY KEY ("Wire_name", inputs),
 	FOREIGN KEY("Wire_name") REFERENCES "Wire" (name)
 );
-CREATE INDEX "ix_Wire_inputs_inputs" ON "Wire_inputs" (inputs);
 CREATE INDEX "ix_Wire_inputs_Wire_name" ON "Wire_inputs" ("Wire_name");
+CREATE INDEX "ix_Wire_inputs_inputs" ON "Wire_inputs" (inputs);
 
 CREATE TABLE "Wire_outputs" (
 	"Wire_name" TEXT,
@@ -6929,8 +7681,8 @@ CREATE TABLE "BeamBeam_alias" (
 	PRIMARY KEY ("BeamBeam_name", alias),
 	FOREIGN KEY("BeamBeam_name") REFERENCES "BeamBeam" (name)
 );
-CREATE INDEX "ix_BeamBeam_alias_BeamBeam_name" ON "BeamBeam_alias" ("BeamBeam_name");
 CREATE INDEX "ix_BeamBeam_alias_alias" ON "BeamBeam_alias" (alias);
+CREATE INDEX "ix_BeamBeam_alias_BeamBeam_name" ON "BeamBeam_alias" ("BeamBeam_name");
 
 CREATE TABLE "BeamBeam_inputs" (
 	"BeamBeam_name" TEXT,
@@ -6938,8 +7690,8 @@ CREATE TABLE "BeamBeam_inputs" (
 	PRIMARY KEY ("BeamBeam_name", inputs),
 	FOREIGN KEY("BeamBeam_name") REFERENCES "BeamBeam" (name)
 );
-CREATE INDEX "ix_BeamBeam_inputs_BeamBeam_name" ON "BeamBeam_inputs" ("BeamBeam_name");
 CREATE INDEX "ix_BeamBeam_inputs_inputs" ON "BeamBeam_inputs" (inputs);
+CREATE INDEX "ix_BeamBeam_inputs_BeamBeam_name" ON "BeamBeam_inputs" ("BeamBeam_name");
 
 CREATE TABLE "BeamBeam_outputs" (
 	"BeamBeam_name" TEXT,
@@ -6957,8 +7709,8 @@ CREATE TABLE "BeamBeam_upstream" (
 	FOREIGN KEY("BeamBeam_name") REFERENCES "BeamBeam" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_BeamBeam_upstream_upstream_name" ON "BeamBeam_upstream" (upstream_name);
 CREATE INDEX "ix_BeamBeam_upstream_BeamBeam_name" ON "BeamBeam_upstream" ("BeamBeam_name");
+CREATE INDEX "ix_BeamBeam_upstream_upstream_name" ON "BeamBeam_upstream" (upstream_name);
 
 CREATE TABLE "BeamBeam_downstream" (
 	"BeamBeam_name" TEXT,
@@ -7051,8 +7803,8 @@ CREATE TABLE "Stage_upstream" (
 	FOREIGN KEY("Stage_name") REFERENCES "Stage" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Stage_upstream_Stage_name" ON "Stage_upstream" ("Stage_name");
 CREATE INDEX "ix_Stage_upstream_upstream_name" ON "Stage_upstream" (upstream_name);
+CREATE INDEX "ix_Stage_upstream_Stage_name" ON "Stage_upstream" ("Stage_name");
 
 CREATE TABLE "Stage_downstream" (
 	"Stage_name" TEXT,
@@ -7061,8 +7813,8 @@ CREATE TABLE "Stage_downstream" (
 	FOREIGN KEY("Stage_name") REFERENCES "Stage" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Stage_downstream_downstream_name" ON "Stage_downstream" (downstream_name);
 CREATE INDEX "ix_Stage_downstream_Stage_name" ON "Stage_downstream" ("Stage_name");
+CREATE INDEX "ix_Stage_downstream_downstream_name" ON "Stage_downstream" (downstream_name);
 
 CREATE TABLE "VacuumGauge_alias" (
 	"VacuumGauge_name" TEXT,
@@ -7079,8 +7831,8 @@ CREATE TABLE "VacuumGauge_inputs" (
 	PRIMARY KEY ("VacuumGauge_name", inputs),
 	FOREIGN KEY("VacuumGauge_name") REFERENCES "VacuumGauge" (name)
 );
-CREATE INDEX "ix_VacuumGauge_inputs_inputs" ON "VacuumGauge_inputs" (inputs);
 CREATE INDEX "ix_VacuumGauge_inputs_VacuumGauge_name" ON "VacuumGauge_inputs" ("VacuumGauge_name");
+CREATE INDEX "ix_VacuumGauge_inputs_inputs" ON "VacuumGauge_inputs" (inputs);
 
 CREATE TABLE "VacuumGauge_outputs" (
 	"VacuumGauge_name" TEXT,
@@ -7088,8 +7840,8 @@ CREATE TABLE "VacuumGauge_outputs" (
 	PRIMARY KEY ("VacuumGauge_name", outputs),
 	FOREIGN KEY("VacuumGauge_name") REFERENCES "VacuumGauge" (name)
 );
-CREATE INDEX "ix_VacuumGauge_outputs_VacuumGauge_name" ON "VacuumGauge_outputs" ("VacuumGauge_name");
 CREATE INDEX "ix_VacuumGauge_outputs_outputs" ON "VacuumGauge_outputs" (outputs);
+CREATE INDEX "ix_VacuumGauge_outputs_VacuumGauge_name" ON "VacuumGauge_outputs" ("VacuumGauge_name");
 
 CREATE TABLE "VacuumGauge_upstream" (
 	"VacuumGauge_name" TEXT,
@@ -7135,8 +7887,8 @@ CREATE TABLE "Laser_outputs" (
 	PRIMARY KEY ("Laser_name", outputs),
 	FOREIGN KEY("Laser_name") REFERENCES "Laser" (name)
 );
-CREATE INDEX "ix_Laser_outputs_outputs" ON "Laser_outputs" (outputs);
 CREATE INDEX "ix_Laser_outputs_Laser_name" ON "Laser_outputs" ("Laser_name");
+CREATE INDEX "ix_Laser_outputs_outputs" ON "Laser_outputs" (outputs);
 
 CREATE TABLE "Laser_upstream" (
 	"Laser_name" TEXT,
@@ -7164,8 +7916,8 @@ CREATE TABLE "Shutter_alias" (
 	PRIMARY KEY ("Shutter_name", alias),
 	FOREIGN KEY("Shutter_name") REFERENCES "Shutter" (name)
 );
-CREATE INDEX "ix_Shutter_alias_alias" ON "Shutter_alias" (alias);
 CREATE INDEX "ix_Shutter_alias_Shutter_name" ON "Shutter_alias" ("Shutter_name");
+CREATE INDEX "ix_Shutter_alias_alias" ON "Shutter_alias" (alias);
 
 CREATE TABLE "Shutter_inputs" (
 	"Shutter_name" TEXT,
@@ -7173,8 +7925,8 @@ CREATE TABLE "Shutter_inputs" (
 	PRIMARY KEY ("Shutter_name", inputs),
 	FOREIGN KEY("Shutter_name") REFERENCES "Shutter" (name)
 );
-CREATE INDEX "ix_Shutter_inputs_inputs" ON "Shutter_inputs" (inputs);
 CREATE INDEX "ix_Shutter_inputs_Shutter_name" ON "Shutter_inputs" ("Shutter_name");
+CREATE INDEX "ix_Shutter_inputs_inputs" ON "Shutter_inputs" (inputs);
 
 CREATE TABLE "Shutter_outputs" (
 	"Shutter_name" TEXT,
@@ -7182,8 +7934,8 @@ CREATE TABLE "Shutter_outputs" (
 	PRIMARY KEY ("Shutter_name", outputs),
 	FOREIGN KEY("Shutter_name") REFERENCES "Shutter" (name)
 );
-CREATE INDEX "ix_Shutter_outputs_Shutter_name" ON "Shutter_outputs" ("Shutter_name");
 CREATE INDEX "ix_Shutter_outputs_outputs" ON "Shutter_outputs" (outputs);
+CREATE INDEX "ix_Shutter_outputs_Shutter_name" ON "Shutter_outputs" ("Shutter_name");
 
 CREATE TABLE "Shutter_upstream" (
 	"Shutter_name" TEXT,
@@ -7192,8 +7944,8 @@ CREATE TABLE "Shutter_upstream" (
 	FOREIGN KEY("Shutter_name") REFERENCES "Shutter" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Shutter_upstream_upstream_name" ON "Shutter_upstream" (upstream_name);
 CREATE INDEX "ix_Shutter_upstream_Shutter_name" ON "Shutter_upstream" ("Shutter_name");
+CREATE INDEX "ix_Shutter_upstream_upstream_name" ON "Shutter_upstream" (upstream_name);
 
 CREATE TABLE "Shutter_downstream" (
 	"Shutter_name" TEXT,
@@ -7202,8 +7954,8 @@ CREATE TABLE "Shutter_downstream" (
 	FOREIGN KEY("Shutter_name") REFERENCES "Shutter" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Shutter_downstream_downstream_name" ON "Shutter_downstream" (downstream_name);
 CREATE INDEX "ix_Shutter_downstream_Shutter_name" ON "Shutter_downstream" ("Shutter_name");
+CREATE INDEX "ix_Shutter_downstream_downstream_name" ON "Shutter_downstream" (downstream_name);
 
 CREATE TABLE "Valve_alias" (
 	"Valve_name" TEXT,
@@ -7211,8 +7963,8 @@ CREATE TABLE "Valve_alias" (
 	PRIMARY KEY ("Valve_name", alias),
 	FOREIGN KEY("Valve_name") REFERENCES "Valve" (name)
 );
-CREATE INDEX "ix_Valve_alias_alias" ON "Valve_alias" (alias);
 CREATE INDEX "ix_Valve_alias_Valve_name" ON "Valve_alias" ("Valve_name");
+CREATE INDEX "ix_Valve_alias_alias" ON "Valve_alias" (alias);
 
 CREATE TABLE "Valve_inputs" (
 	"Valve_name" TEXT,
@@ -7276,8 +8028,8 @@ CREATE TABLE "Marker_outputs" (
 	PRIMARY KEY ("Marker_name", outputs),
 	FOREIGN KEY("Marker_name") REFERENCES "Marker" (name)
 );
-CREATE INDEX "ix_Marker_outputs_Marker_name" ON "Marker_outputs" ("Marker_name");
 CREATE INDEX "ix_Marker_outputs_outputs" ON "Marker_outputs" (outputs);
+CREATE INDEX "ix_Marker_outputs_Marker_name" ON "Marker_outputs" ("Marker_name");
 
 CREATE TABLE "Marker_upstream" (
 	"Marker_name" TEXT,
@@ -7286,8 +8038,8 @@ CREATE TABLE "Marker_upstream" (
 	FOREIGN KEY("Marker_name") REFERENCES "Marker" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Marker_upstream_upstream_name" ON "Marker_upstream" (upstream_name);
 CREATE INDEX "ix_Marker_upstream_Marker_name" ON "Marker_upstream" ("Marker_name");
+CREATE INDEX "ix_Marker_upstream_upstream_name" ON "Marker_upstream" (upstream_name);
 
 CREATE TABLE "Marker_downstream" (
 	"Marker_name" TEXT,
@@ -7296,8 +8048,8 @@ CREATE TABLE "Marker_downstream" (
 	FOREIGN KEY("Marker_name") REFERENCES "Marker" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Marker_downstream_Marker_name" ON "Marker_downstream" ("Marker_name");
 CREATE INDEX "ix_Marker_downstream_downstream_name" ON "Marker_downstream" (downstream_name);
+CREATE INDEX "ix_Marker_downstream_Marker_name" ON "Marker_downstream" ("Marker_name");
 
 CREATE TABLE "Aperture_alias" (
 	"Aperture_name" TEXT,
@@ -7305,8 +8057,8 @@ CREATE TABLE "Aperture_alias" (
 	PRIMARY KEY ("Aperture_name", alias),
 	FOREIGN KEY("Aperture_name") REFERENCES "Aperture" (name)
 );
-CREATE INDEX "ix_Aperture_alias_Aperture_name" ON "Aperture_alias" ("Aperture_name");
 CREATE INDEX "ix_Aperture_alias_alias" ON "Aperture_alias" (alias);
+CREATE INDEX "ix_Aperture_alias_Aperture_name" ON "Aperture_alias" ("Aperture_name");
 
 CREATE TABLE "Aperture_inputs" (
 	"Aperture_name" TEXT,
@@ -7314,8 +8066,8 @@ CREATE TABLE "Aperture_inputs" (
 	PRIMARY KEY ("Aperture_name", inputs),
 	FOREIGN KEY("Aperture_name") REFERENCES "Aperture" (name)
 );
-CREATE INDEX "ix_Aperture_inputs_Aperture_name" ON "Aperture_inputs" ("Aperture_name");
 CREATE INDEX "ix_Aperture_inputs_inputs" ON "Aperture_inputs" (inputs);
+CREATE INDEX "ix_Aperture_inputs_Aperture_name" ON "Aperture_inputs" ("Aperture_name");
 
 CREATE TABLE "Aperture_outputs" (
 	"Aperture_name" TEXT,
@@ -7408,8 +8160,8 @@ CREATE TABLE "Drift_inputs" (
 	PRIMARY KEY ("Drift_name", inputs),
 	FOREIGN KEY("Drift_name") REFERENCES "Drift" (name)
 );
-CREATE INDEX "ix_Drift_inputs_inputs" ON "Drift_inputs" (inputs);
 CREATE INDEX "ix_Drift_inputs_Drift_name" ON "Drift_inputs" ("Drift_name");
+CREATE INDEX "ix_Drift_inputs_inputs" ON "Drift_inputs" (inputs);
 
 CREATE TABLE "Drift_outputs" (
 	"Drift_name" TEXT,
@@ -7417,8 +8169,8 @@ CREATE TABLE "Drift_outputs" (
 	PRIMARY KEY ("Drift_name", outputs),
 	FOREIGN KEY("Drift_name") REFERENCES "Drift" (name)
 );
-CREATE INDEX "ix_Drift_outputs_Drift_name" ON "Drift_outputs" ("Drift_name");
 CREATE INDEX "ix_Drift_outputs_outputs" ON "Drift_outputs" (outputs);
+CREATE INDEX "ix_Drift_outputs_Drift_name" ON "Drift_outputs" ("Drift_name");
 
 CREATE TABLE "Drift_upstream" (
 	"Drift_name" TEXT,
@@ -7437,8 +8189,8 @@ CREATE TABLE "Drift_downstream" (
 	FOREIGN KEY("Drift_name") REFERENCES "Drift" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Drift_downstream_Drift_name" ON "Drift_downstream" ("Drift_name");
 CREATE INDEX "ix_Drift_downstream_downstream_name" ON "Drift_downstream" (downstream_name);
+CREATE INDEX "ix_Drift_downstream_Drift_name" ON "Drift_downstream" ("Drift_name");
 
 CREATE TABLE "Magnet_alias" (
 	"Magnet_name" TEXT,
@@ -7446,8 +8198,8 @@ CREATE TABLE "Magnet_alias" (
 	PRIMARY KEY ("Magnet_name", alias),
 	FOREIGN KEY("Magnet_name") REFERENCES "Magnet" (name)
 );
-CREATE INDEX "ix_Magnet_alias_alias" ON "Magnet_alias" (alias);
 CREATE INDEX "ix_Magnet_alias_Magnet_name" ON "Magnet_alias" ("Magnet_name");
+CREATE INDEX "ix_Magnet_alias_alias" ON "Magnet_alias" (alias);
 
 CREATE TABLE "Magnet_inputs" (
 	"Magnet_name" TEXT,
@@ -7484,8 +8236,8 @@ CREATE TABLE "Magnet_downstream" (
 	FOREIGN KEY("Magnet_name") REFERENCES "Magnet" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Magnet_downstream_downstream_name" ON "Magnet_downstream" (downstream_name);
 CREATE INDEX "ix_Magnet_downstream_Magnet_name" ON "Magnet_downstream" ("Magnet_name");
+CREATE INDEX "ix_Magnet_downstream_downstream_name" ON "Magnet_downstream" (downstream_name);
 
 CREATE TABLE "RFCavity_alias" (
 	"RFCavity_name" TEXT,
@@ -7511,8 +8263,8 @@ CREATE TABLE "RFCavity_outputs" (
 	PRIMARY KEY ("RFCavity_name", outputs),
 	FOREIGN KEY("RFCavity_name") REFERENCES "RFCavity" (name)
 );
-CREATE INDEX "ix_RFCavity_outputs_outputs" ON "RFCavity_outputs" (outputs);
 CREATE INDEX "ix_RFCavity_outputs_RFCavity_name" ON "RFCavity_outputs" ("RFCavity_name");
+CREATE INDEX "ix_RFCavity_outputs_outputs" ON "RFCavity_outputs" (outputs);
 
 CREATE TABLE "RFCavity_upstream" (
 	"RFCavity_name" TEXT,
@@ -7531,8 +8283,8 @@ CREATE TABLE "RFCavity_downstream" (
 	FOREIGN KEY("RFCavity_name") REFERENCES "RFCavity" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_RFCavity_downstream_RFCavity_name" ON "RFCavity_downstream" ("RFCavity_name");
 CREATE INDEX "ix_RFCavity_downstream_downstream_name" ON "RFCavity_downstream" (downstream_name);
+CREATE INDEX "ix_RFCavity_downstream_RFCavity_name" ON "RFCavity_downstream" ("RFCavity_name");
 
 CREATE TABLE "RFDeflectingCavity_alias" (
 	"RFDeflectingCavity_name" TEXT,
@@ -7540,8 +8292,8 @@ CREATE TABLE "RFDeflectingCavity_alias" (
 	PRIMARY KEY ("RFDeflectingCavity_name", alias),
 	FOREIGN KEY("RFDeflectingCavity_name") REFERENCES "RFDeflectingCavity" (name)
 );
-CREATE INDEX "ix_RFDeflectingCavity_alias_alias" ON "RFDeflectingCavity_alias" (alias);
 CREATE INDEX "ix_RFDeflectingCavity_alias_RFDeflectingCavity_name" ON "RFDeflectingCavity_alias" ("RFDeflectingCavity_name");
+CREATE INDEX "ix_RFDeflectingCavity_alias_alias" ON "RFDeflectingCavity_alias" (alias);
 
 CREATE TABLE "RFDeflectingCavity_inputs" (
 	"RFDeflectingCavity_name" TEXT,
@@ -7578,8 +8330,8 @@ CREATE TABLE "RFDeflectingCavity_downstream" (
 	FOREIGN KEY("RFDeflectingCavity_name") REFERENCES "RFDeflectingCavity" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_RFDeflectingCavity_downstream_RFDeflectingCavity_name" ON "RFDeflectingCavity_downstream" ("RFDeflectingCavity_name");
 CREATE INDEX "ix_RFDeflectingCavity_downstream_downstream_name" ON "RFDeflectingCavity_downstream" (downstream_name);
+CREATE INDEX "ix_RFDeflectingCavity_downstream_RFDeflectingCavity_name" ON "RFDeflectingCavity_downstream" ("RFDeflectingCavity_name");
 
 CREATE TABLE "CrabCavity_alias" (
 	"CrabCavity_name" TEXT,
@@ -7615,8 +8367,8 @@ CREATE TABLE "CrabCavity_upstream" (
 	FOREIGN KEY("CrabCavity_name") REFERENCES "CrabCavity" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_CrabCavity_upstream_CrabCavity_name" ON "CrabCavity_upstream" ("CrabCavity_name");
 CREATE INDEX "ix_CrabCavity_upstream_upstream_name" ON "CrabCavity_upstream" (upstream_name);
+CREATE INDEX "ix_CrabCavity_upstream_CrabCavity_name" ON "CrabCavity_upstream" ("CrabCavity_name");
 
 CREATE TABLE "CrabCavity_downstream" (
 	"CrabCavity_name" TEXT,
@@ -7634,8 +8386,8 @@ CREATE TABLE "Wakefield_alias" (
 	PRIMARY KEY ("Wakefield_name", alias),
 	FOREIGN KEY("Wakefield_name") REFERENCES "Wakefield" (name)
 );
-CREATE INDEX "ix_Wakefield_alias_alias" ON "Wakefield_alias" (alias);
 CREATE INDEX "ix_Wakefield_alias_Wakefield_name" ON "Wakefield_alias" ("Wakefield_name");
+CREATE INDEX "ix_Wakefield_alias_alias" ON "Wakefield_alias" (alias);
 
 CREATE TABLE "Wakefield_inputs" (
 	"Wakefield_name" TEXT,
@@ -7662,8 +8414,8 @@ CREATE TABLE "Wakefield_upstream" (
 	FOREIGN KEY("Wakefield_name") REFERENCES "Wakefield" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Wakefield_upstream_Wakefield_name" ON "Wakefield_upstream" ("Wakefield_name");
 CREATE INDEX "ix_Wakefield_upstream_upstream_name" ON "Wakefield_upstream" (upstream_name);
+CREATE INDEX "ix_Wakefield_upstream_Wakefield_name" ON "Wakefield_upstream" ("Wakefield_name");
 
 CREATE TABLE "Wakefield_downstream" (
 	"Wakefield_name" TEXT,
@@ -7681,8 +8433,8 @@ CREATE TABLE "LowLevelRF_alias" (
 	PRIMARY KEY ("LowLevelRF_name", alias),
 	FOREIGN KEY("LowLevelRF_name") REFERENCES "LowLevelRF" (name)
 );
-CREATE INDEX "ix_LowLevelRF_alias_alias" ON "LowLevelRF_alias" (alias);
 CREATE INDEX "ix_LowLevelRF_alias_LowLevelRF_name" ON "LowLevelRF_alias" ("LowLevelRF_name");
+CREATE INDEX "ix_LowLevelRF_alias_alias" ON "LowLevelRF_alias" (alias);
 
 CREATE TABLE "LowLevelRF_inputs" (
 	"LowLevelRF_name" TEXT,
@@ -7699,8 +8451,8 @@ CREATE TABLE "LowLevelRF_outputs" (
 	PRIMARY KEY ("LowLevelRF_name", outputs),
 	FOREIGN KEY("LowLevelRF_name") REFERENCES "LowLevelRF" (name)
 );
-CREATE INDEX "ix_LowLevelRF_outputs_LowLevelRF_name" ON "LowLevelRF_outputs" ("LowLevelRF_name");
 CREATE INDEX "ix_LowLevelRF_outputs_outputs" ON "LowLevelRF_outputs" (outputs);
+CREATE INDEX "ix_LowLevelRF_outputs_LowLevelRF_name" ON "LowLevelRF_outputs" ("LowLevelRF_name");
 
 CREATE TABLE "LowLevelRF_upstream" (
 	"LowLevelRF_name" TEXT,
@@ -7719,8 +8471,8 @@ CREATE TABLE "LowLevelRF_downstream" (
 	FOREIGN KEY("LowLevelRF_name") REFERENCES "LowLevelRF" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LowLevelRF_downstream_LowLevelRF_name" ON "LowLevelRF_downstream" ("LowLevelRF_name");
 CREATE INDEX "ix_LowLevelRF_downstream_downstream_name" ON "LowLevelRF_downstream" (downstream_name);
+CREATE INDEX "ix_LowLevelRF_downstream_LowLevelRF_name" ON "LowLevelRF_downstream" ("LowLevelRF_name");
 
 CREATE TABLE "Diagnostic_alias" (
 	"Diagnostic_name" TEXT,
@@ -7728,8 +8480,8 @@ CREATE TABLE "Diagnostic_alias" (
 	PRIMARY KEY ("Diagnostic_name", alias),
 	FOREIGN KEY("Diagnostic_name") REFERENCES "Diagnostic" (name)
 );
-CREATE INDEX "ix_Diagnostic_alias_alias" ON "Diagnostic_alias" (alias);
 CREATE INDEX "ix_Diagnostic_alias_Diagnostic_name" ON "Diagnostic_alias" ("Diagnostic_name");
+CREATE INDEX "ix_Diagnostic_alias_alias" ON "Diagnostic_alias" (alias);
 
 CREATE TABLE "Diagnostic_inputs" (
 	"Diagnostic_name" TEXT,
@@ -7737,8 +8489,8 @@ CREATE TABLE "Diagnostic_inputs" (
 	PRIMARY KEY ("Diagnostic_name", inputs),
 	FOREIGN KEY("Diagnostic_name") REFERENCES "Diagnostic" (name)
 );
-CREATE INDEX "ix_Diagnostic_inputs_inputs" ON "Diagnostic_inputs" (inputs);
 CREATE INDEX "ix_Diagnostic_inputs_Diagnostic_name" ON "Diagnostic_inputs" ("Diagnostic_name");
+CREATE INDEX "ix_Diagnostic_inputs_inputs" ON "Diagnostic_inputs" (inputs);
 
 CREATE TABLE "Diagnostic_outputs" (
 	"Diagnostic_name" TEXT,
@@ -7775,8 +8527,8 @@ CREATE TABLE "BeamPositionMonitor_alias" (
 	PRIMARY KEY ("BeamPositionMonitor_name", alias),
 	FOREIGN KEY("BeamPositionMonitor_name") REFERENCES "BeamPositionMonitor" (name)
 );
-CREATE INDEX "ix_BeamPositionMonitor_alias_BeamPositionMonitor_name" ON "BeamPositionMonitor_alias" ("BeamPositionMonitor_name");
 CREATE INDEX "ix_BeamPositionMonitor_alias_alias" ON "BeamPositionMonitor_alias" (alias);
+CREATE INDEX "ix_BeamPositionMonitor_alias_BeamPositionMonitor_name" ON "BeamPositionMonitor_alias" ("BeamPositionMonitor_name");
 
 CREATE TABLE "BeamPositionMonitor_inputs" (
 	"BeamPositionMonitor_name" TEXT,
@@ -7784,8 +8536,8 @@ CREATE TABLE "BeamPositionMonitor_inputs" (
 	PRIMARY KEY ("BeamPositionMonitor_name", inputs),
 	FOREIGN KEY("BeamPositionMonitor_name") REFERENCES "BeamPositionMonitor" (name)
 );
-CREATE INDEX "ix_BeamPositionMonitor_inputs_inputs" ON "BeamPositionMonitor_inputs" (inputs);
 CREATE INDEX "ix_BeamPositionMonitor_inputs_BeamPositionMonitor_name" ON "BeamPositionMonitor_inputs" ("BeamPositionMonitor_name");
+CREATE INDEX "ix_BeamPositionMonitor_inputs_inputs" ON "BeamPositionMonitor_inputs" (inputs);
 
 CREATE TABLE "BeamPositionMonitor_outputs" (
 	"BeamPositionMonitor_name" TEXT,
@@ -7793,8 +8545,8 @@ CREATE TABLE "BeamPositionMonitor_outputs" (
 	PRIMARY KEY ("BeamPositionMonitor_name", outputs),
 	FOREIGN KEY("BeamPositionMonitor_name") REFERENCES "BeamPositionMonitor" (name)
 );
-CREATE INDEX "ix_BeamPositionMonitor_outputs_BeamPositionMonitor_name" ON "BeamPositionMonitor_outputs" ("BeamPositionMonitor_name");
 CREATE INDEX "ix_BeamPositionMonitor_outputs_outputs" ON "BeamPositionMonitor_outputs" (outputs);
+CREATE INDEX "ix_BeamPositionMonitor_outputs_BeamPositionMonitor_name" ON "BeamPositionMonitor_outputs" ("BeamPositionMonitor_name");
 
 CREATE TABLE "BeamPositionMonitor_upstream" (
 	"BeamPositionMonitor_name" TEXT,
@@ -7813,8 +8565,8 @@ CREATE TABLE "BeamPositionMonitor_downstream" (
 	FOREIGN KEY("BeamPositionMonitor_name") REFERENCES "BeamPositionMonitor" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_BeamPositionMonitor_downstream_BeamPositionMonitor_name" ON "BeamPositionMonitor_downstream" ("BeamPositionMonitor_name");
 CREATE INDEX "ix_BeamPositionMonitor_downstream_downstream_name" ON "BeamPositionMonitor_downstream" (downstream_name);
+CREATE INDEX "ix_BeamPositionMonitor_downstream_BeamPositionMonitor_name" ON "BeamPositionMonitor_downstream" ("BeamPositionMonitor_name");
 
 CREATE TABLE "BeamArrivalMonitor_alias" (
 	"BeamArrivalMonitor_name" TEXT,
@@ -7850,8 +8602,8 @@ CREATE TABLE "BeamArrivalMonitor_upstream" (
 	FOREIGN KEY("BeamArrivalMonitor_name") REFERENCES "BeamArrivalMonitor" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_BeamArrivalMonitor_upstream_BeamArrivalMonitor_name" ON "BeamArrivalMonitor_upstream" ("BeamArrivalMonitor_name");
 CREATE INDEX "ix_BeamArrivalMonitor_upstream_upstream_name" ON "BeamArrivalMonitor_upstream" (upstream_name);
+CREATE INDEX "ix_BeamArrivalMonitor_upstream_BeamArrivalMonitor_name" ON "BeamArrivalMonitor_upstream" ("BeamArrivalMonitor_name");
 
 CREATE TABLE "BeamArrivalMonitor_downstream" (
 	"BeamArrivalMonitor_name" TEXT,
@@ -7860,8 +8612,8 @@ CREATE TABLE "BeamArrivalMonitor_downstream" (
 	FOREIGN KEY("BeamArrivalMonitor_name") REFERENCES "BeamArrivalMonitor" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_BeamArrivalMonitor_downstream_downstream_name" ON "BeamArrivalMonitor_downstream" (downstream_name);
 CREATE INDEX "ix_BeamArrivalMonitor_downstream_BeamArrivalMonitor_name" ON "BeamArrivalMonitor_downstream" ("BeamArrivalMonitor_name");
+CREATE INDEX "ix_BeamArrivalMonitor_downstream_downstream_name" ON "BeamArrivalMonitor_downstream" (downstream_name);
 
 CREATE TABLE "BunchLengthMonitor_alias" (
 	"BunchLengthMonitor_name" TEXT,
@@ -7887,8 +8639,8 @@ CREATE TABLE "BunchLengthMonitor_outputs" (
 	PRIMARY KEY ("BunchLengthMonitor_name", outputs),
 	FOREIGN KEY("BunchLengthMonitor_name") REFERENCES "BunchLengthMonitor" (name)
 );
-CREATE INDEX "ix_BunchLengthMonitor_outputs_BunchLengthMonitor_name" ON "BunchLengthMonitor_outputs" ("BunchLengthMonitor_name");
 CREATE INDEX "ix_BunchLengthMonitor_outputs_outputs" ON "BunchLengthMonitor_outputs" (outputs);
+CREATE INDEX "ix_BunchLengthMonitor_outputs_BunchLengthMonitor_name" ON "BunchLengthMonitor_outputs" ("BunchLengthMonitor_name");
 
 CREATE TABLE "BunchLengthMonitor_upstream" (
 	"BunchLengthMonitor_name" TEXT,
@@ -7897,8 +8649,8 @@ CREATE TABLE "BunchLengthMonitor_upstream" (
 	FOREIGN KEY("BunchLengthMonitor_name") REFERENCES "BunchLengthMonitor" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_BunchLengthMonitor_upstream_upstream_name" ON "BunchLengthMonitor_upstream" (upstream_name);
 CREATE INDEX "ix_BunchLengthMonitor_upstream_BunchLengthMonitor_name" ON "BunchLengthMonitor_upstream" ("BunchLengthMonitor_name");
+CREATE INDEX "ix_BunchLengthMonitor_upstream_upstream_name" ON "BunchLengthMonitor_upstream" (upstream_name);
 
 CREATE TABLE "BunchLengthMonitor_downstream" (
 	"BunchLengthMonitor_name" TEXT,
@@ -7925,8 +8677,8 @@ CREATE TABLE "Camera_inputs" (
 	PRIMARY KEY ("Camera_name", inputs),
 	FOREIGN KEY("Camera_name") REFERENCES "Camera" (name)
 );
-CREATE INDEX "ix_Camera_inputs_Camera_name" ON "Camera_inputs" ("Camera_name");
 CREATE INDEX "ix_Camera_inputs_inputs" ON "Camera_inputs" (inputs);
+CREATE INDEX "ix_Camera_inputs_Camera_name" ON "Camera_inputs" ("Camera_name");
 
 CREATE TABLE "Camera_outputs" (
 	"Camera_name" TEXT,
@@ -7954,8 +8706,8 @@ CREATE TABLE "Camera_downstream" (
 	FOREIGN KEY("Camera_name") REFERENCES "Camera" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Camera_downstream_Camera_name" ON "Camera_downstream" ("Camera_name");
 CREATE INDEX "ix_Camera_downstream_downstream_name" ON "Camera_downstream" (downstream_name);
+CREATE INDEX "ix_Camera_downstream_Camera_name" ON "Camera_downstream" ("Camera_name");
 
 CREATE TABLE "Screen_alias" (
 	"Screen_name" TEXT,
@@ -7972,8 +8724,8 @@ CREATE TABLE "Screen_inputs" (
 	PRIMARY KEY ("Screen_name", inputs),
 	FOREIGN KEY("Screen_name") REFERENCES "Screen" (name)
 );
-CREATE INDEX "ix_Screen_inputs_inputs" ON "Screen_inputs" (inputs);
 CREATE INDEX "ix_Screen_inputs_Screen_name" ON "Screen_inputs" ("Screen_name");
+CREATE INDEX "ix_Screen_inputs_inputs" ON "Screen_inputs" (inputs);
 
 CREATE TABLE "Screen_outputs" (
 	"Screen_name" TEXT,
@@ -7991,8 +8743,8 @@ CREATE TABLE "Screen_upstream" (
 	FOREIGN KEY("Screen_name") REFERENCES "Screen" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Screen_upstream_Screen_name" ON "Screen_upstream" ("Screen_name");
 CREATE INDEX "ix_Screen_upstream_upstream_name" ON "Screen_upstream" (upstream_name);
+CREATE INDEX "ix_Screen_upstream_Screen_name" ON "Screen_upstream" ("Screen_name");
 
 CREATE TABLE "Screen_downstream" (
 	"Screen_name" TEXT,
@@ -8001,8 +8753,8 @@ CREATE TABLE "Screen_downstream" (
 	FOREIGN KEY("Screen_name") REFERENCES "Screen" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Screen_downstream_Screen_name" ON "Screen_downstream" ("Screen_name");
 CREATE INDEX "ix_Screen_downstream_downstream_name" ON "Screen_downstream" (downstream_name);
+CREATE INDEX "ix_Screen_downstream_Screen_name" ON "Screen_downstream" ("Screen_name");
 
 CREATE TABLE "WireScanner_alias" (
 	"WireScanner_name" TEXT,
@@ -8010,8 +8762,8 @@ CREATE TABLE "WireScanner_alias" (
 	PRIMARY KEY ("WireScanner_name", alias),
 	FOREIGN KEY("WireScanner_name") REFERENCES "WireScanner" (name)
 );
-CREATE INDEX "ix_WireScanner_alias_alias" ON "WireScanner_alias" (alias);
 CREATE INDEX "ix_WireScanner_alias_WireScanner_name" ON "WireScanner_alias" ("WireScanner_name");
+CREATE INDEX "ix_WireScanner_alias_alias" ON "WireScanner_alias" (alias);
 
 CREATE TABLE "WireScanner_inputs" (
 	"WireScanner_name" TEXT,
@@ -8048,8 +8800,8 @@ CREATE TABLE "WireScanner_downstream" (
 	FOREIGN KEY("WireScanner_name") REFERENCES "WireScanner" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_WireScanner_downstream_WireScanner_name" ON "WireScanner_downstream" ("WireScanner_name");
 CREATE INDEX "ix_WireScanner_downstream_downstream_name" ON "WireScanner_downstream" (downstream_name);
+CREATE INDEX "ix_WireScanner_downstream_WireScanner_name" ON "WireScanner_downstream" ("WireScanner_name");
 
 CREATE TABLE "ChargeDiagnostic_alias" (
 	"ChargeDiagnostic_name" TEXT,
@@ -8085,8 +8837,8 @@ CREATE TABLE "ChargeDiagnostic_upstream" (
 	FOREIGN KEY("ChargeDiagnostic_name") REFERENCES "ChargeDiagnostic" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_ChargeDiagnostic_upstream_ChargeDiagnostic_name" ON "ChargeDiagnostic_upstream" ("ChargeDiagnostic_name");
 CREATE INDEX "ix_ChargeDiagnostic_upstream_upstream_name" ON "ChargeDiagnostic_upstream" (upstream_name);
+CREATE INDEX "ix_ChargeDiagnostic_upstream_ChargeDiagnostic_name" ON "ChargeDiagnostic_upstream" ("ChargeDiagnostic_name");
 
 CREATE TABLE "ChargeDiagnostic_downstream" (
 	"ChargeDiagnostic_name" TEXT,
@@ -8095,8 +8847,8 @@ CREATE TABLE "ChargeDiagnostic_downstream" (
 	FOREIGN KEY("ChargeDiagnostic_name") REFERENCES "ChargeDiagnostic" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_ChargeDiagnostic_downstream_downstream_name" ON "ChargeDiagnostic_downstream" (downstream_name);
 CREATE INDEX "ix_ChargeDiagnostic_downstream_ChargeDiagnostic_name" ON "ChargeDiagnostic_downstream" ("ChargeDiagnostic_name");
+CREATE INDEX "ix_ChargeDiagnostic_downstream_downstream_name" ON "ChargeDiagnostic_downstream" (downstream_name);
 
 CREATE TABLE "WallCurrentMonitor_alias" (
 	"WallCurrentMonitor_name" TEXT,
@@ -8113,8 +8865,8 @@ CREATE TABLE "WallCurrentMonitor_inputs" (
 	PRIMARY KEY ("WallCurrentMonitor_name", inputs),
 	FOREIGN KEY("WallCurrentMonitor_name") REFERENCES "WallCurrentMonitor" (name)
 );
-CREATE INDEX "ix_WallCurrentMonitor_inputs_WallCurrentMonitor_name" ON "WallCurrentMonitor_inputs" ("WallCurrentMonitor_name");
 CREATE INDEX "ix_WallCurrentMonitor_inputs_inputs" ON "WallCurrentMonitor_inputs" (inputs);
+CREATE INDEX "ix_WallCurrentMonitor_inputs_WallCurrentMonitor_name" ON "WallCurrentMonitor_inputs" ("WallCurrentMonitor_name");
 
 CREATE TABLE "WallCurrentMonitor_outputs" (
 	"WallCurrentMonitor_name" TEXT,
@@ -8122,8 +8874,8 @@ CREATE TABLE "WallCurrentMonitor_outputs" (
 	PRIMARY KEY ("WallCurrentMonitor_name", outputs),
 	FOREIGN KEY("WallCurrentMonitor_name") REFERENCES "WallCurrentMonitor" (name)
 );
-CREATE INDEX "ix_WallCurrentMonitor_outputs_outputs" ON "WallCurrentMonitor_outputs" (outputs);
 CREATE INDEX "ix_WallCurrentMonitor_outputs_WallCurrentMonitor_name" ON "WallCurrentMonitor_outputs" ("WallCurrentMonitor_name");
+CREATE INDEX "ix_WallCurrentMonitor_outputs_outputs" ON "WallCurrentMonitor_outputs" (outputs);
 
 CREATE TABLE "WallCurrentMonitor_upstream" (
 	"WallCurrentMonitor_name" TEXT,
@@ -8160,8 +8912,8 @@ CREATE TABLE "FaradayCupMonitor_inputs" (
 	PRIMARY KEY ("FaradayCupMonitor_name", inputs),
 	FOREIGN KEY("FaradayCupMonitor_name") REFERENCES "FaradayCupMonitor" (name)
 );
-CREATE INDEX "ix_FaradayCupMonitor_inputs_inputs" ON "FaradayCupMonitor_inputs" (inputs);
 CREATE INDEX "ix_FaradayCupMonitor_inputs_FaradayCupMonitor_name" ON "FaradayCupMonitor_inputs" ("FaradayCupMonitor_name");
+CREATE INDEX "ix_FaradayCupMonitor_inputs_inputs" ON "FaradayCupMonitor_inputs" (inputs);
 
 CREATE TABLE "FaradayCupMonitor_outputs" (
 	"FaradayCupMonitor_name" TEXT,
@@ -8169,8 +8921,8 @@ CREATE TABLE "FaradayCupMonitor_outputs" (
 	PRIMARY KEY ("FaradayCupMonitor_name", outputs),
 	FOREIGN KEY("FaradayCupMonitor_name") REFERENCES "FaradayCupMonitor" (name)
 );
-CREATE INDEX "ix_FaradayCupMonitor_outputs_FaradayCupMonitor_name" ON "FaradayCupMonitor_outputs" ("FaradayCupMonitor_name");
 CREATE INDEX "ix_FaradayCupMonitor_outputs_outputs" ON "FaradayCupMonitor_outputs" (outputs);
+CREATE INDEX "ix_FaradayCupMonitor_outputs_FaradayCupMonitor_name" ON "FaradayCupMonitor_outputs" ("FaradayCupMonitor_name");
 
 CREATE TABLE "FaradayCupMonitor_upstream" (
 	"FaradayCupMonitor_name" TEXT,
@@ -8189,8 +8941,8 @@ CREATE TABLE "FaradayCupMonitor_downstream" (
 	FOREIGN KEY("FaradayCupMonitor_name") REFERENCES "FaradayCupMonitor" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_FaradayCupMonitor_downstream_FaradayCupMonitor_name" ON "FaradayCupMonitor_downstream" ("FaradayCupMonitor_name");
 CREATE INDEX "ix_FaradayCupMonitor_downstream_downstream_name" ON "FaradayCupMonitor_downstream" (downstream_name);
+CREATE INDEX "ix_FaradayCupMonitor_downstream_FaradayCupMonitor_name" ON "FaradayCupMonitor_downstream" ("FaradayCupMonitor_name");
 
 CREATE TABLE "IntegratedCurrentTransformer_alias" (
 	"IntegratedCurrentTransformer_name" TEXT,
@@ -8198,8 +8950,8 @@ CREATE TABLE "IntegratedCurrentTransformer_alias" (
 	PRIMARY KEY ("IntegratedCurrentTransformer_name", alias),
 	FOREIGN KEY("IntegratedCurrentTransformer_name") REFERENCES "IntegratedCurrentTransformer" (name)
 );
-CREATE INDEX "ix_IntegratedCurrentTransformer_alias_IntegratedCurrentTransformer_name" ON "IntegratedCurrentTransformer_alias" ("IntegratedCurrentTransformer_name");
 CREATE INDEX "ix_IntegratedCurrentTransformer_alias_alias" ON "IntegratedCurrentTransformer_alias" (alias);
+CREATE INDEX "ix_IntegratedCurrentTransformer_alias_IntegratedCurrentTransformer_name" ON "IntegratedCurrentTransformer_alias" ("IntegratedCurrentTransformer_name");
 
 CREATE TABLE "IntegratedCurrentTransformer_inputs" (
 	"IntegratedCurrentTransformer_name" TEXT,
@@ -8207,8 +8959,8 @@ CREATE TABLE "IntegratedCurrentTransformer_inputs" (
 	PRIMARY KEY ("IntegratedCurrentTransformer_name", inputs),
 	FOREIGN KEY("IntegratedCurrentTransformer_name") REFERENCES "IntegratedCurrentTransformer" (name)
 );
-CREATE INDEX "ix_IntegratedCurrentTransformer_inputs_IntegratedCurrentTransformer_name" ON "IntegratedCurrentTransformer_inputs" ("IntegratedCurrentTransformer_name");
 CREATE INDEX "ix_IntegratedCurrentTransformer_inputs_inputs" ON "IntegratedCurrentTransformer_inputs" (inputs);
+CREATE INDEX "ix_IntegratedCurrentTransformer_inputs_IntegratedCurrentTransformer_name" ON "IntegratedCurrentTransformer_inputs" ("IntegratedCurrentTransformer_name");
 
 CREATE TABLE "IntegratedCurrentTransformer_outputs" (
 	"IntegratedCurrentTransformer_name" TEXT,
@@ -8226,8 +8978,8 @@ CREATE TABLE "IntegratedCurrentTransformer_upstream" (
 	FOREIGN KEY("IntegratedCurrentTransformer_name") REFERENCES "IntegratedCurrentTransformer" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_IntegratedCurrentTransformer_upstream_upstream_name" ON "IntegratedCurrentTransformer_upstream" (upstream_name);
 CREATE INDEX "ix_IntegratedCurrentTransformer_upstream_IntegratedCurrentTransformer_name" ON "IntegratedCurrentTransformer_upstream" ("IntegratedCurrentTransformer_name");
+CREATE INDEX "ix_IntegratedCurrentTransformer_upstream_upstream_name" ON "IntegratedCurrentTransformer_upstream" (upstream_name);
 
 CREATE TABLE "IntegratedCurrentTransformer_downstream" (
 	"IntegratedCurrentTransformer_name" TEXT,
@@ -8245,8 +8997,8 @@ CREATE TABLE "PhotonMonitor_alias" (
 	PRIMARY KEY ("PhotonMonitor_name", alias),
 	FOREIGN KEY("PhotonMonitor_name") REFERENCES "PhotonMonitor" (name)
 );
-CREATE INDEX "ix_PhotonMonitor_alias_PhotonMonitor_name" ON "PhotonMonitor_alias" ("PhotonMonitor_name");
 CREATE INDEX "ix_PhotonMonitor_alias_alias" ON "PhotonMonitor_alias" (alias);
+CREATE INDEX "ix_PhotonMonitor_alias_PhotonMonitor_name" ON "PhotonMonitor_alias" ("PhotonMonitor_name");
 
 CREATE TABLE "PhotonMonitor_inputs" (
 	"PhotonMonitor_name" TEXT,
@@ -8283,8 +9035,8 @@ CREATE TABLE "PhotonMonitor_downstream" (
 	FOREIGN KEY("PhotonMonitor_name") REFERENCES "PhotonMonitor" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_PhotonMonitor_downstream_downstream_name" ON "PhotonMonitor_downstream" (downstream_name);
 CREATE INDEX "ix_PhotonMonitor_downstream_PhotonMonitor_name" ON "PhotonMonitor_downstream" ("PhotonMonitor_name");
+CREATE INDEX "ix_PhotonMonitor_downstream_downstream_name" ON "PhotonMonitor_downstream" (downstream_name);
 
 CREATE TABLE "Plasma_alias" (
 	"Plasma_name" TEXT,
@@ -8292,8 +9044,8 @@ CREATE TABLE "Plasma_alias" (
 	PRIMARY KEY ("Plasma_name", alias),
 	FOREIGN KEY("Plasma_name") REFERENCES "Plasma" (name)
 );
-CREATE INDEX "ix_Plasma_alias_Plasma_name" ON "Plasma_alias" ("Plasma_name");
 CREATE INDEX "ix_Plasma_alias_alias" ON "Plasma_alias" (alias);
+CREATE INDEX "ix_Plasma_alias_Plasma_name" ON "Plasma_alias" ("Plasma_name");
 
 CREATE TABLE "Plasma_inputs" (
 	"Plasma_name" TEXT,
@@ -8301,8 +9053,8 @@ CREATE TABLE "Plasma_inputs" (
 	PRIMARY KEY ("Plasma_name", inputs),
 	FOREIGN KEY("Plasma_name") REFERENCES "Plasma" (name)
 );
-CREATE INDEX "ix_Plasma_inputs_Plasma_name" ON "Plasma_inputs" ("Plasma_name");
 CREATE INDEX "ix_Plasma_inputs_inputs" ON "Plasma_inputs" (inputs);
+CREATE INDEX "ix_Plasma_inputs_Plasma_name" ON "Plasma_inputs" ("Plasma_name");
 
 CREATE TABLE "Plasma_outputs" (
 	"Plasma_name" TEXT,
@@ -8310,8 +9062,8 @@ CREATE TABLE "Plasma_outputs" (
 	PRIMARY KEY ("Plasma_name", outputs),
 	FOREIGN KEY("Plasma_name") REFERENCES "Plasma" (name)
 );
-CREATE INDEX "ix_Plasma_outputs_outputs" ON "Plasma_outputs" (outputs);
 CREATE INDEX "ix_Plasma_outputs_Plasma_name" ON "Plasma_outputs" ("Plasma_name");
+CREATE INDEX "ix_Plasma_outputs_outputs" ON "Plasma_outputs" (outputs);
 
 CREATE TABLE "Plasma_upstream" (
 	"Plasma_name" TEXT,
@@ -8339,8 +9091,8 @@ CREATE TABLE "Dipole_alias" (
 	PRIMARY KEY ("Dipole_name", alias),
 	FOREIGN KEY("Dipole_name") REFERENCES "Dipole" (name)
 );
-CREATE INDEX "ix_Dipole_alias_alias" ON "Dipole_alias" (alias);
 CREATE INDEX "ix_Dipole_alias_Dipole_name" ON "Dipole_alias" ("Dipole_name");
+CREATE INDEX "ix_Dipole_alias_alias" ON "Dipole_alias" (alias);
 
 CREATE TABLE "Dipole_inputs" (
 	"Dipole_name" TEXT,
@@ -8348,8 +9100,8 @@ CREATE TABLE "Dipole_inputs" (
 	PRIMARY KEY ("Dipole_name", inputs),
 	FOREIGN KEY("Dipole_name") REFERENCES "Dipole" (name)
 );
-CREATE INDEX "ix_Dipole_inputs_Dipole_name" ON "Dipole_inputs" ("Dipole_name");
 CREATE INDEX "ix_Dipole_inputs_inputs" ON "Dipole_inputs" (inputs);
+CREATE INDEX "ix_Dipole_inputs_Dipole_name" ON "Dipole_inputs" ("Dipole_name");
 
 CREATE TABLE "Dipole_outputs" (
 	"Dipole_name" TEXT,
@@ -8367,8 +9119,8 @@ CREATE TABLE "Dipole_upstream" (
 	FOREIGN KEY("Dipole_name") REFERENCES "Dipole" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Dipole_upstream_Dipole_name" ON "Dipole_upstream" ("Dipole_name");
 CREATE INDEX "ix_Dipole_upstream_upstream_name" ON "Dipole_upstream" (upstream_name);
+CREATE INDEX "ix_Dipole_upstream_Dipole_name" ON "Dipole_upstream" ("Dipole_name");
 
 CREATE TABLE "Dipole_downstream" (
 	"Dipole_name" TEXT,
@@ -8414,8 +9166,8 @@ CREATE TABLE "Quadrupole_upstream" (
 	FOREIGN KEY("Quadrupole_name") REFERENCES "Quadrupole" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Quadrupole_upstream_Quadrupole_name" ON "Quadrupole_upstream" ("Quadrupole_name");
 CREATE INDEX "ix_Quadrupole_upstream_upstream_name" ON "Quadrupole_upstream" (upstream_name);
+CREATE INDEX "ix_Quadrupole_upstream_Quadrupole_name" ON "Quadrupole_upstream" ("Quadrupole_name");
 
 CREATE TABLE "Quadrupole_downstream" (
 	"Quadrupole_name" TEXT,
@@ -8424,8 +9176,8 @@ CREATE TABLE "Quadrupole_downstream" (
 	FOREIGN KEY("Quadrupole_name") REFERENCES "Quadrupole" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Quadrupole_downstream_Quadrupole_name" ON "Quadrupole_downstream" ("Quadrupole_name");
 CREATE INDEX "ix_Quadrupole_downstream_downstream_name" ON "Quadrupole_downstream" (downstream_name);
+CREATE INDEX "ix_Quadrupole_downstream_Quadrupole_name" ON "Quadrupole_downstream" ("Quadrupole_name");
 
 CREATE TABLE "Sextupole_alias" (
 	"Sextupole_name" TEXT,
@@ -8451,8 +9203,8 @@ CREATE TABLE "Sextupole_outputs" (
 	PRIMARY KEY ("Sextupole_name", outputs),
 	FOREIGN KEY("Sextupole_name") REFERENCES "Sextupole" (name)
 );
-CREATE INDEX "ix_Sextupole_outputs_Sextupole_name" ON "Sextupole_outputs" ("Sextupole_name");
 CREATE INDEX "ix_Sextupole_outputs_outputs" ON "Sextupole_outputs" (outputs);
+CREATE INDEX "ix_Sextupole_outputs_Sextupole_name" ON "Sextupole_outputs" ("Sextupole_name");
 
 CREATE TABLE "Sextupole_upstream" (
 	"Sextupole_name" TEXT,
@@ -8461,8 +9213,8 @@ CREATE TABLE "Sextupole_upstream" (
 	FOREIGN KEY("Sextupole_name") REFERENCES "Sextupole" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Sextupole_upstream_upstream_name" ON "Sextupole_upstream" (upstream_name);
 CREATE INDEX "ix_Sextupole_upstream_Sextupole_name" ON "Sextupole_upstream" ("Sextupole_name");
+CREATE INDEX "ix_Sextupole_upstream_upstream_name" ON "Sextupole_upstream" (upstream_name);
 
 CREATE TABLE "Sextupole_downstream" (
 	"Sextupole_name" TEXT,
@@ -8471,8 +9223,8 @@ CREATE TABLE "Sextupole_downstream" (
 	FOREIGN KEY("Sextupole_name") REFERENCES "Sextupole" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Sextupole_downstream_downstream_name" ON "Sextupole_downstream" (downstream_name);
 CREATE INDEX "ix_Sextupole_downstream_Sextupole_name" ON "Sextupole_downstream" ("Sextupole_name");
+CREATE INDEX "ix_Sextupole_downstream_downstream_name" ON "Sextupole_downstream" (downstream_name);
 
 CREATE TABLE "Octupole_alias" (
 	"Octupole_name" TEXT,
@@ -8480,8 +9232,8 @@ CREATE TABLE "Octupole_alias" (
 	PRIMARY KEY ("Octupole_name", alias),
 	FOREIGN KEY("Octupole_name") REFERENCES "Octupole" (name)
 );
-CREATE INDEX "ix_Octupole_alias_Octupole_name" ON "Octupole_alias" ("Octupole_name");
 CREATE INDEX "ix_Octupole_alias_alias" ON "Octupole_alias" (alias);
+CREATE INDEX "ix_Octupole_alias_Octupole_name" ON "Octupole_alias" ("Octupole_name");
 
 CREATE TABLE "Octupole_inputs" (
 	"Octupole_name" TEXT,
@@ -8489,8 +9241,8 @@ CREATE TABLE "Octupole_inputs" (
 	PRIMARY KEY ("Octupole_name", inputs),
 	FOREIGN KEY("Octupole_name") REFERENCES "Octupole" (name)
 );
-CREATE INDEX "ix_Octupole_inputs_Octupole_name" ON "Octupole_inputs" ("Octupole_name");
 CREATE INDEX "ix_Octupole_inputs_inputs" ON "Octupole_inputs" (inputs);
+CREATE INDEX "ix_Octupole_inputs_Octupole_name" ON "Octupole_inputs" ("Octupole_name");
 
 CREATE TABLE "Octupole_outputs" (
 	"Octupole_name" TEXT,
@@ -8498,8 +9250,8 @@ CREATE TABLE "Octupole_outputs" (
 	PRIMARY KEY ("Octupole_name", outputs),
 	FOREIGN KEY("Octupole_name") REFERENCES "Octupole" (name)
 );
-CREATE INDEX "ix_Octupole_outputs_outputs" ON "Octupole_outputs" (outputs);
 CREATE INDEX "ix_Octupole_outputs_Octupole_name" ON "Octupole_outputs" ("Octupole_name");
+CREATE INDEX "ix_Octupole_outputs_outputs" ON "Octupole_outputs" (outputs);
 
 CREATE TABLE "Octupole_upstream" (
 	"Octupole_name" TEXT,
@@ -8508,8 +9260,8 @@ CREATE TABLE "Octupole_upstream" (
 	FOREIGN KEY("Octupole_name") REFERENCES "Octupole" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Octupole_upstream_upstream_name" ON "Octupole_upstream" (upstream_name);
 CREATE INDEX "ix_Octupole_upstream_Octupole_name" ON "Octupole_upstream" ("Octupole_name");
+CREATE INDEX "ix_Octupole_upstream_upstream_name" ON "Octupole_upstream" (upstream_name);
 
 CREATE TABLE "Octupole_downstream" (
 	"Octupole_name" TEXT,
@@ -8527,8 +9279,8 @@ CREATE TABLE "Decapole_alias" (
 	PRIMARY KEY ("Decapole_name", alias),
 	FOREIGN KEY("Decapole_name") REFERENCES "Decapole" (name)
 );
-CREATE INDEX "ix_Decapole_alias_alias" ON "Decapole_alias" (alias);
 CREATE INDEX "ix_Decapole_alias_Decapole_name" ON "Decapole_alias" ("Decapole_name");
+CREATE INDEX "ix_Decapole_alias_alias" ON "Decapole_alias" (alias);
 
 CREATE TABLE "Decapole_inputs" (
 	"Decapole_name" TEXT,
@@ -8545,8 +9297,8 @@ CREATE TABLE "Decapole_outputs" (
 	PRIMARY KEY ("Decapole_name", outputs),
 	FOREIGN KEY("Decapole_name") REFERENCES "Decapole" (name)
 );
-CREATE INDEX "ix_Decapole_outputs_Decapole_name" ON "Decapole_outputs" ("Decapole_name");
 CREATE INDEX "ix_Decapole_outputs_outputs" ON "Decapole_outputs" (outputs);
+CREATE INDEX "ix_Decapole_outputs_Decapole_name" ON "Decapole_outputs" ("Decapole_name");
 
 CREATE TABLE "Decapole_upstream" (
 	"Decapole_name" TEXT,
@@ -8583,8 +9335,8 @@ CREATE TABLE "HorizontalCorrector_inputs" (
 	PRIMARY KEY ("HorizontalCorrector_name", inputs),
 	FOREIGN KEY("HorizontalCorrector_name") REFERENCES "HorizontalCorrector" (name)
 );
-CREATE INDEX "ix_HorizontalCorrector_inputs_HorizontalCorrector_name" ON "HorizontalCorrector_inputs" ("HorizontalCorrector_name");
 CREATE INDEX "ix_HorizontalCorrector_inputs_inputs" ON "HorizontalCorrector_inputs" (inputs);
+CREATE INDEX "ix_HorizontalCorrector_inputs_HorizontalCorrector_name" ON "HorizontalCorrector_inputs" ("HorizontalCorrector_name");
 
 CREATE TABLE "HorizontalCorrector_outputs" (
 	"HorizontalCorrector_name" TEXT,
@@ -8592,8 +9344,8 @@ CREATE TABLE "HorizontalCorrector_outputs" (
 	PRIMARY KEY ("HorizontalCorrector_name", outputs),
 	FOREIGN KEY("HorizontalCorrector_name") REFERENCES "HorizontalCorrector" (name)
 );
-CREATE INDEX "ix_HorizontalCorrector_outputs_outputs" ON "HorizontalCorrector_outputs" (outputs);
 CREATE INDEX "ix_HorizontalCorrector_outputs_HorizontalCorrector_name" ON "HorizontalCorrector_outputs" ("HorizontalCorrector_name");
+CREATE INDEX "ix_HorizontalCorrector_outputs_outputs" ON "HorizontalCorrector_outputs" (outputs);
 
 CREATE TABLE "HorizontalCorrector_upstream" (
 	"HorizontalCorrector_name" TEXT,
@@ -8612,8 +9364,8 @@ CREATE TABLE "HorizontalCorrector_downstream" (
 	FOREIGN KEY("HorizontalCorrector_name") REFERENCES "HorizontalCorrector" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_HorizontalCorrector_downstream_downstream_name" ON "HorizontalCorrector_downstream" (downstream_name);
 CREATE INDEX "ix_HorizontalCorrector_downstream_HorizontalCorrector_name" ON "HorizontalCorrector_downstream" ("HorizontalCorrector_name");
+CREATE INDEX "ix_HorizontalCorrector_downstream_downstream_name" ON "HorizontalCorrector_downstream" (downstream_name);
 
 CREATE TABLE "VerticalCorrector_alias" (
 	"VerticalCorrector_name" TEXT,
@@ -8639,8 +9391,8 @@ CREATE TABLE "VerticalCorrector_outputs" (
 	PRIMARY KEY ("VerticalCorrector_name", outputs),
 	FOREIGN KEY("VerticalCorrector_name") REFERENCES "VerticalCorrector" (name)
 );
-CREATE INDEX "ix_VerticalCorrector_outputs_outputs" ON "VerticalCorrector_outputs" (outputs);
 CREATE INDEX "ix_VerticalCorrector_outputs_VerticalCorrector_name" ON "VerticalCorrector_outputs" ("VerticalCorrector_name");
+CREATE INDEX "ix_VerticalCorrector_outputs_outputs" ON "VerticalCorrector_outputs" (outputs);
 
 CREATE TABLE "VerticalCorrector_upstream" (
 	"VerticalCorrector_name" TEXT,
@@ -8659,55 +9411,8 @@ CREATE TABLE "VerticalCorrector_downstream" (
 	FOREIGN KEY("VerticalCorrector_name") REFERENCES "VerticalCorrector" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_VerticalCorrector_downstream_VerticalCorrector_name" ON "VerticalCorrector_downstream" ("VerticalCorrector_name");
 CREATE INDEX "ix_VerticalCorrector_downstream_downstream_name" ON "VerticalCorrector_downstream" (downstream_name);
-
-CREATE TABLE "CombinedCorrector_alias" (
-	"CombinedCorrector_name" TEXT,
-	alias TEXT,
-	PRIMARY KEY ("CombinedCorrector_name", alias),
-	FOREIGN KEY("CombinedCorrector_name") REFERENCES "CombinedCorrector" (name)
-);
-CREATE INDEX "ix_CombinedCorrector_alias_alias" ON "CombinedCorrector_alias" (alias);
-CREATE INDEX "ix_CombinedCorrector_alias_CombinedCorrector_name" ON "CombinedCorrector_alias" ("CombinedCorrector_name");
-
-CREATE TABLE "CombinedCorrector_inputs" (
-	"CombinedCorrector_name" TEXT,
-	inputs VARCHAR(17),
-	PRIMARY KEY ("CombinedCorrector_name", inputs),
-	FOREIGN KEY("CombinedCorrector_name") REFERENCES "CombinedCorrector" (name)
-);
-CREATE INDEX "ix_CombinedCorrector_inputs_inputs" ON "CombinedCorrector_inputs" (inputs);
-CREATE INDEX "ix_CombinedCorrector_inputs_CombinedCorrector_name" ON "CombinedCorrector_inputs" ("CombinedCorrector_name");
-
-CREATE TABLE "CombinedCorrector_outputs" (
-	"CombinedCorrector_name" TEXT,
-	outputs VARCHAR(17),
-	PRIMARY KEY ("CombinedCorrector_name", outputs),
-	FOREIGN KEY("CombinedCorrector_name") REFERENCES "CombinedCorrector" (name)
-);
-CREATE INDEX "ix_CombinedCorrector_outputs_CombinedCorrector_name" ON "CombinedCorrector_outputs" ("CombinedCorrector_name");
-CREATE INDEX "ix_CombinedCorrector_outputs_outputs" ON "CombinedCorrector_outputs" (outputs);
-
-CREATE TABLE "CombinedCorrector_upstream" (
-	"CombinedCorrector_name" TEXT,
-	upstream_name TEXT,
-	PRIMARY KEY ("CombinedCorrector_name", upstream_name),
-	FOREIGN KEY("CombinedCorrector_name") REFERENCES "CombinedCorrector" (name),
-	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
-);
-CREATE INDEX "ix_CombinedCorrector_upstream_upstream_name" ON "CombinedCorrector_upstream" (upstream_name);
-CREATE INDEX "ix_CombinedCorrector_upstream_CombinedCorrector_name" ON "CombinedCorrector_upstream" ("CombinedCorrector_name");
-
-CREATE TABLE "CombinedCorrector_downstream" (
-	"CombinedCorrector_name" TEXT,
-	downstream_name TEXT,
-	PRIMARY KEY ("CombinedCorrector_name", downstream_name),
-	FOREIGN KEY("CombinedCorrector_name") REFERENCES "CombinedCorrector" (name),
-	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
-);
-CREATE INDEX "ix_CombinedCorrector_downstream_CombinedCorrector_name" ON "CombinedCorrector_downstream" ("CombinedCorrector_name");
-CREATE INDEX "ix_CombinedCorrector_downstream_downstream_name" ON "CombinedCorrector_downstream" (downstream_name);
+CREATE INDEX "ix_VerticalCorrector_downstream_VerticalCorrector_name" ON "VerticalCorrector_downstream" ("VerticalCorrector_name");
 
 CREATE TABLE "Solenoid_alias" (
 	"Solenoid_name" TEXT,
@@ -8715,8 +9420,8 @@ CREATE TABLE "Solenoid_alias" (
 	PRIMARY KEY ("Solenoid_name", alias),
 	FOREIGN KEY("Solenoid_name") REFERENCES "Solenoid" (name)
 );
-CREATE INDEX "ix_Solenoid_alias_Solenoid_name" ON "Solenoid_alias" ("Solenoid_name");
 CREATE INDEX "ix_Solenoid_alias_alias" ON "Solenoid_alias" (alias);
+CREATE INDEX "ix_Solenoid_alias_Solenoid_name" ON "Solenoid_alias" ("Solenoid_name");
 
 CREATE TABLE "Solenoid_inputs" (
 	"Solenoid_name" TEXT,
@@ -8724,8 +9429,8 @@ CREATE TABLE "Solenoid_inputs" (
 	PRIMARY KEY ("Solenoid_name", inputs),
 	FOREIGN KEY("Solenoid_name") REFERENCES "Solenoid" (name)
 );
-CREATE INDEX "ix_Solenoid_inputs_Solenoid_name" ON "Solenoid_inputs" ("Solenoid_name");
 CREATE INDEX "ix_Solenoid_inputs_inputs" ON "Solenoid_inputs" (inputs);
+CREATE INDEX "ix_Solenoid_inputs_Solenoid_name" ON "Solenoid_inputs" ("Solenoid_name");
 
 CREATE TABLE "Solenoid_outputs" (
 	"Solenoid_name" TEXT,
@@ -8753,8 +9458,8 @@ CREATE TABLE "Solenoid_downstream" (
 	FOREIGN KEY("Solenoid_name") REFERENCES "Solenoid" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Solenoid_downstream_downstream_name" ON "Solenoid_downstream" (downstream_name);
 CREATE INDEX "ix_Solenoid_downstream_Solenoid_name" ON "Solenoid_downstream" ("Solenoid_name");
+CREATE INDEX "ix_Solenoid_downstream_downstream_name" ON "Solenoid_downstream" (downstream_name);
 
 CREATE TABLE "CombinedSolenoidQuadrupole_alias" (
 	"CombinedSolenoidQuadrupole_name" TEXT,
@@ -8780,8 +9485,8 @@ CREATE TABLE "CombinedSolenoidQuadrupole_outputs" (
 	PRIMARY KEY ("CombinedSolenoidQuadrupole_name", outputs),
 	FOREIGN KEY("CombinedSolenoidQuadrupole_name") REFERENCES "CombinedSolenoidQuadrupole" (name)
 );
-CREATE INDEX "ix_CombinedSolenoidQuadrupole_outputs_outputs" ON "CombinedSolenoidQuadrupole_outputs" (outputs);
 CREATE INDEX "ix_CombinedSolenoidQuadrupole_outputs_CombinedSolenoidQuadrupole_name" ON "CombinedSolenoidQuadrupole_outputs" ("CombinedSolenoidQuadrupole_name");
+CREATE INDEX "ix_CombinedSolenoidQuadrupole_outputs_outputs" ON "CombinedSolenoidQuadrupole_outputs" (outputs);
 
 CREATE TABLE "CombinedSolenoidQuadrupole_upstream" (
 	"CombinedSolenoidQuadrupole_name" TEXT,
@@ -8790,8 +9495,8 @@ CREATE TABLE "CombinedSolenoidQuadrupole_upstream" (
 	FOREIGN KEY("CombinedSolenoidQuadrupole_name") REFERENCES "CombinedSolenoidQuadrupole" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_CombinedSolenoidQuadrupole_upstream_upstream_name" ON "CombinedSolenoidQuadrupole_upstream" (upstream_name);
 CREATE INDEX "ix_CombinedSolenoidQuadrupole_upstream_CombinedSolenoidQuadrupole_name" ON "CombinedSolenoidQuadrupole_upstream" ("CombinedSolenoidQuadrupole_name");
+CREATE INDEX "ix_CombinedSolenoidQuadrupole_upstream_upstream_name" ON "CombinedSolenoidQuadrupole_upstream" (upstream_name);
 
 CREATE TABLE "CombinedSolenoidQuadrupole_downstream" (
 	"CombinedSolenoidQuadrupole_name" TEXT,
@@ -8818,8 +9523,8 @@ CREATE TABLE "Wiggler_inputs" (
 	PRIMARY KEY ("Wiggler_name", inputs),
 	FOREIGN KEY("Wiggler_name") REFERENCES "Wiggler" (name)
 );
-CREATE INDEX "ix_Wiggler_inputs_Wiggler_name" ON "Wiggler_inputs" ("Wiggler_name");
 CREATE INDEX "ix_Wiggler_inputs_inputs" ON "Wiggler_inputs" (inputs);
+CREATE INDEX "ix_Wiggler_inputs_Wiggler_name" ON "Wiggler_inputs" ("Wiggler_name");
 
 CREATE TABLE "Wiggler_outputs" (
 	"Wiggler_name" TEXT,
@@ -8827,8 +9532,8 @@ CREATE TABLE "Wiggler_outputs" (
 	PRIMARY KEY ("Wiggler_name", outputs),
 	FOREIGN KEY("Wiggler_name") REFERENCES "Wiggler" (name)
 );
-CREATE INDEX "ix_Wiggler_outputs_outputs" ON "Wiggler_outputs" (outputs);
 CREATE INDEX "ix_Wiggler_outputs_Wiggler_name" ON "Wiggler_outputs" ("Wiggler_name");
+CREATE INDEX "ix_Wiggler_outputs_outputs" ON "Wiggler_outputs" (outputs);
 
 CREATE TABLE "Wiggler_upstream" (
 	"Wiggler_name" TEXT,
@@ -8837,8 +9542,8 @@ CREATE TABLE "Wiggler_upstream" (
 	FOREIGN KEY("Wiggler_name") REFERENCES "Wiggler" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Wiggler_upstream_upstream_name" ON "Wiggler_upstream" (upstream_name);
 CREATE INDEX "ix_Wiggler_upstream_Wiggler_name" ON "Wiggler_upstream" ("Wiggler_name");
+CREATE INDEX "ix_Wiggler_upstream_upstream_name" ON "Wiggler_upstream" (upstream_name);
 
 CREATE TABLE "Wiggler_downstream" (
 	"Wiggler_name" TEXT,
@@ -8847,8 +9552,8 @@ CREATE TABLE "Wiggler_downstream" (
 	FOREIGN KEY("Wiggler_name") REFERENCES "Wiggler" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Wiggler_downstream_Wiggler_name" ON "Wiggler_downstream" ("Wiggler_name");
 CREATE INDEX "ix_Wiggler_downstream_downstream_name" ON "Wiggler_downstream" (downstream_name);
+CREATE INDEX "ix_Wiggler_downstream_Wiggler_name" ON "Wiggler_downstream" ("Wiggler_name");
 
 CREATE TABLE "NonLinearLens_alias" (
 	"NonLinearLens_name" TEXT,
@@ -8856,8 +9561,8 @@ CREATE TABLE "NonLinearLens_alias" (
 	PRIMARY KEY ("NonLinearLens_name", alias),
 	FOREIGN KEY("NonLinearLens_name") REFERENCES "NonLinearLens" (name)
 );
-CREATE INDEX "ix_NonLinearLens_alias_alias" ON "NonLinearLens_alias" (alias);
 CREATE INDEX "ix_NonLinearLens_alias_NonLinearLens_name" ON "NonLinearLens_alias" ("NonLinearLens_name");
+CREATE INDEX "ix_NonLinearLens_alias_alias" ON "NonLinearLens_alias" (alias);
 
 CREATE TABLE "NonLinearLens_inputs" (
 	"NonLinearLens_name" TEXT,
@@ -8874,8 +9579,8 @@ CREATE TABLE "NonLinearLens_outputs" (
 	PRIMARY KEY ("NonLinearLens_name", outputs),
 	FOREIGN KEY("NonLinearLens_name") REFERENCES "NonLinearLens" (name)
 );
-CREATE INDEX "ix_NonLinearLens_outputs_NonLinearLens_name" ON "NonLinearLens_outputs" ("NonLinearLens_name");
 CREATE INDEX "ix_NonLinearLens_outputs_outputs" ON "NonLinearLens_outputs" (outputs);
+CREATE INDEX "ix_NonLinearLens_outputs_NonLinearLens_name" ON "NonLinearLens_outputs" ("NonLinearLens_name");
 
 CREATE TABLE "NonLinearLens_upstream" (
 	"NonLinearLens_name" TEXT,
@@ -8884,8 +9589,8 @@ CREATE TABLE "NonLinearLens_upstream" (
 	FOREIGN KEY("NonLinearLens_name") REFERENCES "NonLinearLens" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_NonLinearLens_upstream_upstream_name" ON "NonLinearLens_upstream" (upstream_name);
 CREATE INDEX "ix_NonLinearLens_upstream_NonLinearLens_name" ON "NonLinearLens_upstream" ("NonLinearLens_name");
+CREATE INDEX "ix_NonLinearLens_upstream_upstream_name" ON "NonLinearLens_upstream" (upstream_name);
 
 CREATE TABLE "NonLinearLens_downstream" (
 	"NonLinearLens_name" TEXT,
@@ -8896,4 +9601,51 @@ CREATE TABLE "NonLinearLens_downstream" (
 );
 CREATE INDEX "ix_NonLinearLens_downstream_downstream_name" ON "NonLinearLens_downstream" (downstream_name);
 CREATE INDEX "ix_NonLinearLens_downstream_NonLinearLens_name" ON "NonLinearLens_downstream" ("NonLinearLens_name");
+
+CREATE TABLE "CombinedCorrector_alias" (
+	"CombinedCorrector_name" TEXT,
+	alias TEXT,
+	PRIMARY KEY ("CombinedCorrector_name", alias),
+	FOREIGN KEY("CombinedCorrector_name") REFERENCES "CombinedCorrector" (name)
+);
+CREATE INDEX "ix_CombinedCorrector_alias_CombinedCorrector_name" ON "CombinedCorrector_alias" ("CombinedCorrector_name");
+CREATE INDEX "ix_CombinedCorrector_alias_alias" ON "CombinedCorrector_alias" (alias);
+
+CREATE TABLE "CombinedCorrector_inputs" (
+	"CombinedCorrector_name" TEXT,
+	inputs VARCHAR(17),
+	PRIMARY KEY ("CombinedCorrector_name", inputs),
+	FOREIGN KEY("CombinedCorrector_name") REFERENCES "CombinedCorrector" (name)
+);
+CREATE INDEX "ix_CombinedCorrector_inputs_inputs" ON "CombinedCorrector_inputs" (inputs);
+CREATE INDEX "ix_CombinedCorrector_inputs_CombinedCorrector_name" ON "CombinedCorrector_inputs" ("CombinedCorrector_name");
+
+CREATE TABLE "CombinedCorrector_outputs" (
+	"CombinedCorrector_name" TEXT,
+	outputs VARCHAR(17),
+	PRIMARY KEY ("CombinedCorrector_name", outputs),
+	FOREIGN KEY("CombinedCorrector_name") REFERENCES "CombinedCorrector" (name)
+);
+CREATE INDEX "ix_CombinedCorrector_outputs_outputs" ON "CombinedCorrector_outputs" (outputs);
+CREATE INDEX "ix_CombinedCorrector_outputs_CombinedCorrector_name" ON "CombinedCorrector_outputs" ("CombinedCorrector_name");
+
+CREATE TABLE "CombinedCorrector_upstream" (
+	"CombinedCorrector_name" TEXT,
+	upstream_name TEXT,
+	PRIMARY KEY ("CombinedCorrector_name", upstream_name),
+	FOREIGN KEY("CombinedCorrector_name") REFERENCES "CombinedCorrector" (name),
+	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
+);
+CREATE INDEX "ix_CombinedCorrector_upstream_CombinedCorrector_name" ON "CombinedCorrector_upstream" ("CombinedCorrector_name");
+CREATE INDEX "ix_CombinedCorrector_upstream_upstream_name" ON "CombinedCorrector_upstream" (upstream_name);
+
+CREATE TABLE "CombinedCorrector_downstream" (
+	"CombinedCorrector_name" TEXT,
+	downstream_name TEXT,
+	PRIMARY KEY ("CombinedCorrector_name", downstream_name),
+	FOREIGN KEY("CombinedCorrector_name") REFERENCES "CombinedCorrector" (name),
+	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
+);
+CREATE INDEX "ix_CombinedCorrector_downstream_downstream_name" ON "CombinedCorrector_downstream" (downstream_name);
+CREATE INDEX "ix_CombinedCorrector_downstream_CombinedCorrector_name" ON "CombinedCorrector_downstream" ("CombinedCorrector_name");
 

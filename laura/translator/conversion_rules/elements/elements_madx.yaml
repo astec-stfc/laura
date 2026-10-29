@@ -1,86 +1,243 @@
-beambeam:
-  bbdir: long
-  bbshape: long
-  charge: double
-  npart: long
-  sigx: double
-  sigy: double
-  width: double
-  xma: double
-  yma: double
-changeref:
-  patch_ang: double_array
-  patch_trans: double_array
-collimator:
-  aper_offset: double_array
-  aper_tol: double_array
-  aperture: double_array
-  apertype: string
+marker: {}
+
+drift:
   l: double
-crabcavity:
+
+sbend:
+  l: double
+  angle: double
+  tilt: double
+  k0: double
+  k1: double
+  k2: double
+  k1s: double
+  e1: double
+  e2: double
+  fint: double
+  fintx: double
+  hgap: double
+  h1: double
+  h2: double
+  ktap: double
+  thick: int
+  kill_ent_fringe: int
+  kill_exi_fringe: int
+
+rbend:
+  l: double
+  angle: double
+  tilt: double
+  k0: double
+  k1: double
+  k2: double
+  k1s: double
+  e1: double
+  e2: double
+  fint: double
+  fintx: double
+  hgap: double
+  h1: double
+  h2: double
+  ktap: double
+  thick: int
+  add_angle: double_array
+  kill_ent_fringe: int
+  kill_exi_fringe: int
+
+dipedge:
+  h: double
+  e1: double
+  fint: double
+  hgap: double
+  tilt: double
+
+quadrupole:
+  l: double
+  k1: double
+  k1s: double
+  tilt: double
+  ktap: double
+  thick: int
+
+sextupole:
+  l: double
+  k2: double
+  k2s: double
+  tilt: double
+  ktap: double
+
+octupole:
+  l: double
+  k3: double
+  k3s: double
+  tilt: double
+
+multipole:
+  lrad: double
+  tilt: double
+  knl: double_array
+  ksl: double_array
+
+solenoid:
+  l: double
+  ks: double
+  ksi: double
+
+nllens:
+  l: double
+  knll: double
+  cnll: double
+  tilt: double
+
+hkicker:
+  l: double
+  kick: double
+  tilt: double
+
+vkicker:
+  l: double
+  kick: double
+  tilt: double
+
+kicker:
+  l: double
+  hkick: double
+  vkick: double
+  tilt: double
+
+rfcavity:
+  l: double
+  volt: double
+  lag: double
   freq: double
   harmon: long
+  energy: double
+  no_cavity_totalpath: int
+
+twcavity:
   l: double
+  volt: double
+  freq: double
   lag: double
-  lagf: double
-  rph1: long
-  rph2: long
+  psi: double
+  delta_lag: double
+
+rfmultipole:
+  l: double
+  volt: double
+  lag: double
+  freq: double
+  harmon: long
+  lrad: double
+  tilt: double
+  knl: double_array
+  ksl: double_array
+  pnl: double_array
+  psl: double_array
+
+crabcavity:
+  l: double
+  tilt: double
+  volt: double
+  lag: double
+  freq: double
+  harmon: long
   rv1: long
   rv2: long
   rv3: long
   rv4: long
-  tilt: double
-  volt: double
-dipedge:
-  e1: double
-  fint: double
-  h: double
-  hgap: double
-  tilt: double
-drift:
-  l: double
-ecollimator:
-  l: double
-  xsize: double
-  ysize: double
-elseparator:
-  ex: double
-  ex_l: double
-  ey: double
-  ey_l: double
-  l: double
-  tilt: double
+  rph1: long
+  rph2: long
+  lagf: double
+
 hacdipole:
-  freq: double
   l: double
+  volt: double
+  freq: double
   lag: double
   ramp1: long
   ramp2: long
   ramp3: long
   ramp4: long
-  volt: double
-hkicker:
-  kick: double
+
+vacdipole:
   l: double
-  tilt: float
+  volt: double
+  freq: double
+  lag: double
+  ramp1: long
+  ramp2: long
+  ramp3: long
+  ramp4: long
+
+elseparator:
+  l: double
+  ex: double
+  ey: double
+  tilt: double
+  ex_l: double
+  ey_l: double
+
 hmonitor:
   l: double
+
+vmonitor:
+  l: double
+
+monitor:
+  l: double
+
 instrument:
   l: double
-kicker:
-  hkick: double
+
+placeholder:
   l: double
-  tilt: float
-  vkick: double
-marker: {}
+
+collimator:
+  l: double
+  apertype: string
+  aperture: double_array
+  aper_offset: double_array
+  aper_tol: double_array
+
+ecollimator:
+  l: double
+  xsize: double
+  ysize: double
+
+rcollimator:
+  l: double
+  xsize: double
+  ysize: double
+
+beambeam:
+  charge: double
+  xma: double
+  yma: double
+  npart: long
+  sigx: double
+  sigy: double
+  width: double
+  bbshape: long
+  bbdir: long
+
+wire:
+  current: double_array
+  l: double
+  l_int: double_array
+  l_phy: double_array
+  xma: double_array
+  yma: double_array
+
 matrix:
+  type: string
+  l: double
   kick1: double
   kick2: double
   kick3: double
   kick4: double
   kick5: double
   kick6: double
-  l: double
   rm11: double
   rm12: double
   rm13: double
@@ -333,147 +490,27 @@ matrix:
   tm664: double
   tm665: double
   tm666: double
-  type: string
-monitor:
-  l: double
-multipole:
-  knl: double_array
-  ksl: double_array
-  lrad: double
-  tilt: double
-nllens:
-  cnll: double
-  knll: double
-  l: double
-  tilt: float
-octupole:
-  k3: double
-  k3s: double
-  l: double
-  tilt: double
-placeholder:
-  l: double
-quadrupole:
-  k1: double
-  k1s: double
-  ktap: double
-  l: double
-  thick: int
-  tilt: double
-rbend:
-  add_angle: double_array
-  angle: double
-  e1: double
-  e2: double
-  fint: double
-  fintx: double
-  h1: double
-  h2: double
-  hgap: double
-  k0: double
-  k1: double
-  k1s: double
-  k2: double
-  kill_ent_fringe: int
-  kill_exi_fringe: int
-  ktap: double
-  l: double
-  thick: int
-  tilt: double
-rcollimator:
-  l: double
-  xsize: double
-  ysize: double
-rfcavity:
-  energy: double
-  freq: double
-  harmon: long
-  l: double
-  lag: double
-  no_cavity_totalpath: int
-  volt: double
-rfmultipole:
-  freq: double
-  harmon: long
-  knl: double_array
-  ksl: double_array
-  l: double
-  lag: double
-  lrad: double
-  pnl: double_array
-  psl: double_array
-  tilt: double
-  volt: double
-sbend:
-  angle: double
-  e1: double
-  e2: double
-  fint: double
-  fintx: double
-  h1: double
-  h2: double
-  hgap: double
-  k0: double
-  k1: double
-  k1s: double
-  k2: double
-  kill_ent_fringe: int
-  kill_exi_fringe: int
-  ktap: double
-  l: double
-  thick: int
-  tilt: double
-sextupole:
-  k2: double
-  k2s: double
-  ktap: double
-  l: double
-  tilt: double
-sixmarker:
-  attr: double_array
-  eltype: double
-  f3string: string
-  f3vector: double_array
-solenoid:
-  ks: double
-  ksi: double
-  l: double
-srotation:
-  angle: double
-translation:
-  ds: double
-  dx: double
-  dy: double
-twcavity:
-  delta_lag: double
-  freq: double
-  l: double
-  lag: double
-  psi: double
-  volt: double
-vacdipole:
-  freq: double
-  l: double
-  lag: double
-  ramp1: long
-  ramp2: long
-  ramp3: long
-  ramp4: long
-  volt: double
-vkicker:
-  kick: double
-  l: double
-  tilt: float
-vmonitor:
-  l: double
-wire:
-  current: double_array
-  l: double
-  l_int: double_array
-  l_phy: double_array
-  xma: double_array
-  yma: double_array
-xrotation:
-  angle: double
+
 yrotation:
   angle: double
+
+xrotation:
+  angle: double
+
+srotation:
+  angle: double
+
+translation:
+  dx: double
+  dy: double
+  ds: double
+
+changeref:
+  patch_ang: double_array
+  patch_trans: double_array
+
+sixmarker:
+  eltype: double
+  attr: double_array
+  f3string: string
+  f3vector: double_array

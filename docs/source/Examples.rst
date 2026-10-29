@@ -19,10 +19,10 @@ The simplest LAURA element requires only basic identification properties:
 
 .. code-block:: python
 
-    from laura.models.element import baseElement
+    from laura.models.element import BaseElement
 
     # Create a basic element
-    element = baseElement(
+    element = BaseElement(
         name="QUAD-01",
         hardware_class="Magnet",
         hardware_type="Quadrupole",
@@ -181,11 +181,11 @@ This can then be loaded in as a :mod:`LAURA` object:
 
 .. code-block:: python
 
-  from laura.Importers.YAML_Loader import interpret_YAML_Element, read_YAML_Element_File
+  from laura.importers.yaml_loader import interpret_yaml_element, read_yaml_element_file
 
   filename = "INJ-MAG-DIP-01.yaml"
 
-  inj_dip_01 = read_YAML_Element_File(filename)
+  inj_dip_01 = read_yaml_element_file(filename)
 
   print(inj_dip_01.middle)
 
@@ -196,7 +196,7 @@ Pydantic parsing, turning silent ``None`` returns into explicit errors:
 
 .. code-block:: python
 
-  inj_dip_01 = read_YAML_Element_File(filename, validate=True)
+  inj_dip_01 = read_yaml_element_file(filename, validate=True)
 
 
 .. _creating-sections:
@@ -208,7 +208,7 @@ Sections group elements into ordered sequences:
 
 .. code-block:: python
 
-    from laura.models.elementList import SectionLattice, ElementList
+    from laura.models.element_list import SectionLattice, ElementList
     from laura.models.element import PhysicalBaseElement
     from copy import deepcopy
 
@@ -305,7 +305,7 @@ Layouts combine multiple sections into beam paths:
 
 .. code-block:: python
 
-    from laura.models.elementList import MachineLayout
+    from laura.models.element_list import MachineLayout
 
     # Create another section
     linac_section = SectionLattice(
@@ -366,7 +366,7 @@ The complete machine model manages all elements, sections, and layouts:
 
 .. code-block:: python
 
-    from laura.models.elementList import MachineModel
+    from laura.models.element_list import MachineModel
     from laura.models.element import PhysicalBaseElement
 
     def element(name, hardware_class, hardware_type, machine_area, z, length):
@@ -387,7 +387,7 @@ The complete machine model manages all elements, sections, and layouts:
 
 .. important::
 
-   Any element that takes part in a :py:class:`MachineLayout <laura.models.elementList.MachineLayout>`
+   Any element that takes part in a :py:class:`MachineLayout <laura.models.element_list.MachineLayout>`
    must carry physical data, because building a layout chains sections together by their
    elements' start/end positions. Use
    :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>` (or one of its
@@ -396,7 +396,7 @@ The complete machine model manages all elements, sections, and layouts:
    ``AttributeError: ... has no attribute 'physical'`` when a layout is assembled.
 
 Building from Elements Only
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 LAURA can automatically create sections from machine areas:
 
@@ -429,7 +429,7 @@ Specify the order of elements within sections:
     print(model.sections["AREA-01"].order)  # ["BPM-01", "MAG-01"]
 
 Complete Model with Layouts
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Define beam paths through the machine:
 

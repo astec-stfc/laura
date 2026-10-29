@@ -16,11 +16,12 @@ try:
         Drift,
         Matrix,
     )
+
     _OCELOT_AVAILABLE = True
 except ImportError as _err:
     raise ImportError(
         "ocelot-desy is not installed. "
-        "Install with: pip install \"laura-accelerator[ocelot]\""
+        'Install with: pip install "laura-accelerator[ocelot]"'
     ) from _err
 
 ocelot_conversion_rules = {
@@ -30,10 +31,11 @@ ocelot_conversion_rules = {
     "Sextupole": Sextupole,
     "Octupole": Octupole,
     "Decapole": Drift,
-    "Beam_Position_Monitor": Marker,
+    "Beam_Position_Monitor": Monitor,
     "Beam_Arrival_Monitor": Drift,
     "Bunch_Length_Monitor": Drift,
     "Screen": Marker,
+    "WireScanner": Marker,
     "Rcollimator": Aperture,
     "Collimator": Aperture,
     "Monitor": Monitor,
@@ -61,6 +63,7 @@ ocelot_conversion_rules = {
     "Charge": Marker,
     "Wakefield": Marker,
     "Watch_Point": Monitor,
+    "Photon_Monitor": Marker,
     "Horizontal_Corrector": Hcor,
     "Vertical_Corrector": Vcor,
     "Combined_Corrector": Hcor,
@@ -68,7 +71,6 @@ ocelot_conversion_rules = {
     "Laser": Drift,
     "Plasma": Drift,
     "Diagnostic": Marker,
-    "TwissMatch": Monitor,
+    "TwissMatch": Marker,
     "MatrixTransform": Matrix,
-    "Target": Monitor,
 }

@@ -1,5 +1,7 @@
+from math import atan2, hypot
 from .base import BaseElementTranslator
 from laura.models.simulation import ElectrostaticSeparatorSimulationElement
+
 from ..utils.functions import sanitize_string
 
 
@@ -9,18 +11,34 @@ class ElectrostaticSeparatorTranslator(BaseElementTranslator):
     element instance into a string or object that can be understood by various
     simulation codes.
 
-    No equivalent element exists in ELEGANT or Xsuite, so only :meth:`to_madx`
-    is implemented here (MAD-X ``ELSEPARATOR``).
+    No equivalent element exists in ELEGANT or Xsuite.
     """
 
     simulation: ElectrostaticSeparatorSimulationElement
     """Electrostatic separator simulation element."""
 
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad electrostatic separator.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        horizontal = self.resolve(self.simulation.horizontal_field)
+        vertical = self.resolve(self.simulation.vertical_field)
+        parameters = {"l": self.length, "e_field": hypot(horizontal, vertical)}
+        if horizontal or vertical:
+            parameters["tilt"] = atan2(horizontal, vertical)
+        elif self.simulation.tilt:
+            parameters["tilt"] = self.simulation.tilt
+        return self._format_bmad("elseparator", parameters)
+
     def to_madx(self, at: float = None) -> str:
         """
         Generates a string representation of the object's properties in the
-        MAD-X format, as a MAD-X ``ELSEPARATOR`` element. MAD-X ``EX``/``EY``
-        are in MV/m (LAURA stores V/m).
+        MAD-X format.
 
         Parameters
         ----------
@@ -34,8 +52,8 @@ class ElectrostaticSeparatorTranslator(BaseElementTranslator):
             String representation of the element for MAD-X
         """
         self.start_write()
-        etype = self._convertType_Madx(self.hardware_type)
-        string = sanitize_string(self.name) + ": " + etype + f", l = {self.length}"
+        etype = self._convert_type_madx(self.hardware_type)
+        string = f"{sanitize_string(self.name)}: {etype}, l = {self.length}"
 
         def _term(name: str, value) -> str:
             functional = not self._resolve_functional and self.is_functional(value)
@@ -50,4 +68,4 @@ class ElectrostaticSeparatorTranslator(BaseElementTranslator):
             string += f", tilt = {self.simulation.tilt}"
         if at is not None:
             string += f", at = {at}"
-        return string + ";\n"
+        return f"{string};\n"

@@ -1,7 +1,8 @@
 general:
   dx: offsetX
   dy: offsetY
-  edge_field_integral: fint
+  edge_field_integral_entrance: fint
+  edge_field_integral_exit: fintx
   half_gap: hgap
   horizontal_size: xsize
   vertical_size: ysize

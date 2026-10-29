@@ -10,14 +10,15 @@ magnetic_orders = {
 
 from .astra import astra_unsupported
 from .bdsim import bdsim_unsupported
+from .bmad import bmad_unsupported, BmadLatticeImporter
 from .cheetah import cheetah_unsupported
 from .csrtrack import csrtrack_unsupported
-from .elegant import elegant_unsupported
+from .elegant import elegant_unsupported, ElegantLatticeImporter
 from .genesis import genesis_unsupported
 from .gpt import gpt_unsupported
-from .madx import madx_unsupported
-from .ocelot import ocelot_unsupported
+from .madx import madx_unsupported, MadxLatticeImporter
+from .ocelot import ocelot_unsupported, OcelotLatticeImporter
 from .opal import opal_unsupported
 from .rftrack import rftrack_unsupported
 from .wake_t import wake_t_unsupported
-from .xsuite import xsuite_unsupported
+from .xsuite import xsuite_unsupported, XsuiteLatticeImporter

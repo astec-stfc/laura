@@ -1,59 +1,61 @@
-from typing import List, Dict
+from typing import Dict, List
 
 from laura.models.element import (
-    Element,
-    Magnet,
-    Solenoid,
-    Dipole,
+    ACDipole,
+    Aperture,
+    BeamBeam,
+    CombinedCorrector,
+    CrabCavity,
     Decapole,
+    Diagnostic,
+    Dipole,
+    Drift,
+    ElectrostaticSeparator,
+    Element,
+    HorizontalCorrector,
+    Laser,
+    Magnet,
+    Marker,
+    MatrixTransform,
+    NonLinearLens,
+    Plasma,
     RFCavity,
     RFDeflectingCavity,
-    CrabCavity,
-    Drift,
-    Aperture,
-    Diagnostic,
-    Marker,
-    Plasma,
-    Laser,
-    Wiggler,
-    Combined_Corrector,
-    Horizontal_Corrector,
-    Vertical_Corrector,
-    NonLinearLens,
-    TwissMatch,
-    Screen,
-    WireScanner,
-    MatrixTransform,
-    ElectrostaticSeparator,
-    ACDipole,
-    Wire,
-    BeamBeam,
     RFMultipole,
+    Screen,
+    Solenoid,
+    TwissMatch,
+    VerticalCorrector,
+    Wakefield,
+    Wiggler,
+    Wire,
+    WireScanner,
 )
 
-from .base import BaseElementTranslator
-from .magnet import (
-    MagnetTranslator,
-    DecapoleTranslator,
-    SolenoidTranslator,
-    DipoleTranslator,
-    WigglerTranslator,
-    NonLinearLensTranslator,
-    CorrectorTranslator,
-)
-from .cavity import RFCavityTranslator
-from .drift import DriftTranslator
-from .diagnostic import DiagnosticTranslator, WireScannerTranslator
-from .aperture import ApertureTranslator
-from .plasma import PlasmaTranslator
-from .laser import LaserTranslator
-from .twiss import TwissMatchTranslator
-from .matrix import MatrixTransformTranslator
-from .electrostatic_separator import ElectrostaticSeparatorTranslator
 from .ac_dipole import ACDipoleTranslator
-from .wire import WireTranslator
+from .aperture import ApertureTranslator
+from .base import BaseElementTranslator
 from .beam_beam import BeamBeamTranslator
+from .cavity import RFCavityTranslator
+from .diagnostic import DiagnosticTranslator, WireScannerTranslator
+from .drift import DriftTranslator
+from .electrostatic_separator import ElectrostaticSeparatorTranslator
+from .laser import LaserTranslator
+from .magnet import (
+    CorrectorTranslator,
+    DecapoleTranslator,
+    DipoleTranslator,
+    MagnetTranslator,
+    NonLinearLensTranslator,
+    SolenoidTranslator,
+    WigglerTranslator,
+)
+from .matrix import MatrixTransformTranslator
+from .plasma import PlasmaTranslator
 from .rf_multipole import RFMultipoleTranslator
+from .twiss import TwissMatchTranslator
+from .wake import WakefieldTranslator
+from .wire import WireTranslator
 
 
 def translate_elements(
@@ -88,9 +90,9 @@ def translate_elements(
             if isinstance(elem, Solenoid):
                 translator = SolenoidTranslator
             elif type(elem) in [
-                Combined_Corrector,
-                Horizontal_Corrector,
-                Vertical_Corrector,
+                CombinedCorrector,
+                HorizontalCorrector,
+                VerticalCorrector,
             ]:
                 translator = CorrectorTranslator
             elif isinstance(elem, Decapole):
@@ -135,14 +137,22 @@ def translate_elements(
             translator = BeamBeamTranslator
         elif isinstance(elem, RFMultipole):
             translator = RFMultipoleTranslator
+        elif isinstance(elem, Wakefield):
+            translator = WakefieldTranslator
         else:
             translator = BaseElementTranslator
         try:
-            trans = translator.model_validate(elem.model_dump(by_alias=False))
+            payload = elem.model_dump(by_alias=False)
+            simulation = getattr(elem, "simulation", None)
+            if simulation is not None:
+                payload["simulation"] = simulation.model_dump(by_alias=False, exclude_unset=True)
+            trans = translator.model_validate(payload)
             trans.verbose = verbose
             elem_dict.update({elem.name: trans})
-        except Exception as exc:
-            raise Exception(f"Element {elem.name} failed validation: {elem.model_dump().keys()}")
+        except Exception:
+            raise Exception(
+                f"Element {elem.name} failed validation: {elem.model_dump().keys()}"
+            )
         elem_dict[elem.name].master_lattice = master_lattice
         elem_dict[elem.name].directory = directory
     return elem_dict

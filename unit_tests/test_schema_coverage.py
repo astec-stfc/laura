@@ -1,17 +1,4 @@
-"""Tests that the LinkML schema covers every element LAURA can actually load.
-
-This is the answer to "how do I check that everything is defined?" — the schema
-YAML in ``laura/schema/YAML/`` and the Python classes in ``laura/models/`` are
-two hand-maintained halves of the same model, and they drift silently: a new
-element class loads and exports fine with no schema class behind it, so nothing
-fails until someone turns on ``validate=True`` or reads the generated docs.
-
-These tests only need PyYAML, so they run without the ``[schema]`` extra
-installed. They compare names, not field-by-field structure — a schema class
-whose slots have gone stale still passes. Regenerating is what catches that:
-
-    python laura/schema/generate_pydantic.py
-"""
+"""Checks the hand-maintained LinkML schema against ``laura/models``, by name only."""
 
 import pathlib
 
@@ -24,7 +11,7 @@ SCHEMA_DIR = pathlib.Path(__file__).resolve().parent.parent / "laura" / "schema"
 
 
 def _schema_class_names() -> dict[str, str]:
-    """Map every class defined across the schema chunk files to its filename."""
+    """Map schema classes that gen-pydantic materializes to their filename."""
     found: dict[str, str] = {}
     for path in sorted(SCHEMA_DIR.glob("*.yaml")):
         doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -36,12 +23,7 @@ def _schema_class_names() -> dict[str, str]:
 
 
 def _normalise(name: str) -> str:
-    """Collapse the two naming conventions onto one key.
-
-    Schema classes are CamelCase (``BeamPositionMonitor``); the Python classes
-    and the ``hardware_type`` values they dispatch on are Snake_Case
-    (``Beam_Position_Monitor``).
-    """
+    """Schema classes are CamelCase, Python classes Snake_Case; map both to one key."""
     return name.replace("_", "").lower()
 
 
@@ -58,11 +40,6 @@ def test_every_schema_file_parses():
 
 @pytest.mark.parametrize("hardware_type", sorted(ELEMENT_REGISTRY))
 def test_every_element_has_a_schema_class(hardware_type):
-    """Every loadable ``hardware_type`` needs a schema class behind it.
-
-    Regressions here mean YAML for that element cannot be schema-validated and
-    the generated docs/ontology will not mention it.
-    """
     by_norm = {_normalise(c): c for c in _schema_class_names()}
     assert _normalise(hardware_type) in by_norm, (
         f"'{hardware_type}' is in ELEMENT_REGISTRY but has no class in "
@@ -73,11 +50,7 @@ def test_every_element_has_a_schema_class(hardware_type):
 
 
 def test_hardware_type_constraints_match_the_registry():
-    """A concrete element's ``equals_string`` must be a real registry key.
-
-    Catches the reverse drift: a schema class pinning a ``hardware_type`` that
-    no Python class answers to, so schema-valid YAML fails to load.
-    """
+    """Catches a schema class pinning a ``hardware_type`` no Python class answers to."""
     unknown: list[tuple[str, str, str]] = []
     for path in sorted(SCHEMA_DIR.glob("*.yaml")):
         doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -93,11 +66,7 @@ def test_hardware_type_constraints_match_the_registry():
 
 
 def test_generated_module_covers_the_schema():
-    """Every schema class should appear in the committed ``_generated.py``.
-
-    Guards against editing the schema and forgetting to regenerate — the failure
-    mode that leaves the two halves out of step for a whole release.
-    """
+    """Catches a schema edit without regenerating."""
     generated = (
         pathlib.Path(__file__).resolve().parent.parent
         / "laura"
@@ -107,9 +76,8 @@ def test_generated_module_covers_the_schema():
     missing = [
         name
         for name in _schema_class_names()
-        # Enums keep their own name; models get the _XxxBase treatment. Either
-        # way gen-pydantic drops underscores, so Solenoid_Magnet arrives as
-        # _SolenoidMagnetBase.
+        # gen-pydantic drops underscores (Solenoid_Magnet -> _SolenoidMagnetBase); enums
+        # keep their name.
         if f"class {name}(" not in generated
         and f"class _{name.replace('_', '')}Base(" not in generated
     ]
@@ -247,15 +215,21 @@ def test_every_code_has_an_unsupported_list_and_checks_it():
     for node in ast.walk(ast.parse(source)):
         if not (isinstance(node, ast.ClassDef) and node.name == "SectionLatticeTranslator"):
             continue
-        for method in node.body:
-            if not (isinstance(method, ast.FunctionDef) and method.name.startswith("to_")):
-                continue
-            checked = any(
-                isinstance(call, ast.Call)
-                and getattr(call.func, "attr", "") == "_check_elements_supported"
+        methods = [m for m in node.body if isinstance(m, ast.FunctionDef)]
+
+        def calls(method):
+            return {
+                getattr(call.func, "attr", "")
                 for call in ast.walk(method)
-            )
-            if not checked:
+                if isinstance(call, ast.Call)
+            }
+
+        # a to_<code> may delegate the check to a helper (to_bmad -> _bmad_body)
+        checkers = {"_check_elements_supported"} | {
+            m.name for m in methods if "_check_elements_supported" in calls(m)
+        }
+        for method in methods:
+            if method.name.startswith("to_") and not calls(method) & checkers:
                 unchecked.append(method.name)
     assert not unchecked, f"to_<code> methods that never report unsupported elements: {unchecked}"
     assert set(unsupported_elements) >= {"madx", "rftrack", "bdsim"}
