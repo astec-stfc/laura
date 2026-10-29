@@ -20,11 +20,11 @@ _needs_elegant = pytest.mark.skipif(
 )
 
 
-def _lte(tmp_path, text):
+def _lte(tmp_path, text, **options):
     """An ``ElegantLatticeImporter`` reading ``text`` as a .lte source file."""
     source = tmp_path / "line.lte"
     source.write_text(text)
-    return ElegantLatticeImporter(source_file=str(source))
+    return ElegantLatticeImporter(source_file=str(source), **options)
 
 
 def _layout_elements(importer, name="machine"):
@@ -110,23 +110,62 @@ def test_bend_fringe_integrals_resolve_from_fint_and_fint1_fint2(tmp_path):
     assert bends["B1"].gap == pytest.approx(0.04), "HGAP is a half gap"
 
 
-@_needs_elegant
-def test_edge_order_is_imported_only_when_the_lattice_sets_it(tmp_path):
-    """ELEGANT's parameter dump gives every bend its default EDGE_ORDER = 1;
-    importing that would pin first-order edges no other code shares."""
-    importer = _lte(
-        tmp_path,
-        "b1: csbend, l=0.5, angle=0.1\n"
-        "b2: csbend, l=0.5, angle=0.1, edge_order=1\n"
-        "machine: line=(b1,b2,b1)\n",
-    )
-    orders = {
-        element.name: element.simulation.edge_order
+_DEFAULT_AND_STATED_BENDS = (
+    "b1: csbend, l=0.5, angle=0.1\n"
+    "b2: csbend, l=0.5, angle=0.1, edge_order=1, n_slices=20\n"
+    "machine: line=(b1,b2,b1)\n"
+)
+
+
+def _bend_integration(importer):
+    return {
+        element.name: (element.simulation.edge_order, element.simulation.n_kicks)
         for element in _layout_elements(importer)
         if element.hardware_type == "Dipole"
     }
 
-    assert orders == {"B1.1": None, "B2": 1, "B1.2": None}
+
+@_needs_elegant
+def test_bends_keep_elegants_defaults(tmp_path):
+    """The round trip is faithful: a bend left at EDGE_ORDER = 1 and
+    N_SLICES = 4 exports that way, not with LAURA's uniform treatment."""
+    importer = _lte(tmp_path, _DEFAULT_AND_STATED_BENDS)
+
+    assert _bend_integration(importer) == {
+        "B1.1": (1, 4), "B2": (1, 20), "B1.2": (1, 4)
+    }
+    bend = next(
+        element for element in _layout_elements(importer) if element.name == "B1.1"
+    )
+    assert "n_kicks" in bend.simulation.model_fields_set
+
+
+@_needs_elegant
+def test_an_edge_effects_method_imports(tmp_path):
+    """EDGE1_EFFECTS is a method number, not a switch; 2 failed validation."""
+    importer = _lte(
+        tmp_path,
+        "b1: csbend, l=0.5, angle=0.1, edge1_effects=2, edge2_effects=0\n"
+        "machine: line=(b1,b1,b1)\n",
+    )
+    simulation = next(_layout_elements(importer)).simulation
+
+    assert (simulation.edge1_effects, simulation.edge2_effects) == (2, 0)
+
+
+@_needs_elegant
+def test_uniform_integration_drops_only_elegants_defaults(tmp_path):
+    """Opting in leaves unstated edge orders and kick counts to LAURA's
+    second-order edges and auto-scaled kicks, but keeps what the lattice sets."""
+    importer = _lte(tmp_path, _DEFAULT_AND_STATED_BENDS, uniform_integration=True)
+
+    integration = _bend_integration(importer)
+    assert integration["B2"] == (1, 20)
+    assert integration["B1.1"][0] is None
+    bend = next(
+        element for element in _layout_elements(importer) if element.name == "B1.1"
+    )
+    assert "n_kicks" not in bend.simulation.model_fields_set
 
 
 @_needs_elegant
@@ -404,3 +443,75 @@ def test_bare_per_metre_strength_symbol_is_integrated(tmp_path):
     assert importer.functional_definitions["kx"] == pytest.approx(0.2)
     assert elements["Q4"].magnetic.multipoles.K1L.normal == pytest.approx(0.1)
     assert elements["Q5"].magnetic.multipoles.K1L.normal == pytest.approx(0.05)
+
+
+def test_the_command_file_given_to_elegant_has_no_backslashes(tmp_path, monkeypatch):
+    """elegant processes escapes inside quoted strings, so ``rootname`` of
+    ``C:\...\newBST`` read ``\n`` as a newline and no beamline named ``n...``,
+    ``t...`` or ``r...`` could be imported on Windows."""
+    import subprocess
+
+    from laura.translator.converters.codes import elegant
+
+    seen = []
+
+    def fake_run(command, **kwargs):
+        seen.append(open(command[1]).read())
+        raise subprocess.CalledProcessError(1, command, "", "stop here")
+
+    monkeypatch.setattr(elegant.subprocess, "run", fake_run)
+    importer = _lte(tmp_path, "d1: drift, l=1\nnewBST: line=(d1,d1,d1,d1,d1,d1)\n")
+    with pytest.raises(ValueError, match="could not load beamline 'newBST'"):
+        importer.create_machine_model()
+    assert seen
+    for text in seen:
+        assert "\\" not in text
+        assert 'rootname = "' in text and "newBST" in text
+
+
+def test_an_elegant_failure_leads_with_its_error_line(tmp_path, monkeypatch):
+    """ELEGANT prints its cause on stdout, under a banner and above a
+    trace-back header, so it was lost at the bottom of the message."""
+    import subprocess
+
+    from laura.translator.converters.codes import elegant
+
+    output = (
+        "Running elegant at ...\n\nThis is elegant 2023.4 ...\n"
+        "error: RPN_DEFNS environment variable undefined.\n\nProgram trace-back:\n"
+    )
+
+    def fake_run(command, **kwargs):
+        raise subprocess.CalledProcessError(1, command, output, "")
+
+    monkeypatch.setattr(elegant.subprocess, "run", fake_run)
+    importer = _lte(tmp_path, "d1: drift, l=1\nmachine: line=(d1,d1,d1,d1,d1,d1)\n")
+    with pytest.raises(ValueError) as raised:
+        importer.create_machine_model()
+    assert str(raised.value).splitlines()[0] == (
+        "ELEGANT could not load beamline 'machine': "
+        "error: RPN_DEFNS environment variable undefined."
+    )
+    assert "Program trace-back:" in str(raised.value)
+
+
+@_needs_elegant
+def test_a_kicker_keeps_its_length(tmp_path):
+    """``l`` of a KICKER never reached the combined corrector's magnetic length
+    (its introspected defaults hold only the two planes), so every exporter wrote
+    the kicker with ``l = 0`` and the ring came out shorter by their sum."""
+    importer = _lte(
+        tmp_path,
+        "k1: kicker, l=0.19\nd1: drift, l=1\nmachine: line=(k1,d1,k1)\n",
+    )
+    kickers = [
+        element
+        for element in _layout_elements(importer)
+        if type(element).__name__ == "CombinedCorrector"
+    ]
+    assert kickers
+    for kicker in kickers:
+        assert kicker.physical.length == pytest.approx(0.19)
+        assert kicker.magnetic.length == pytest.approx(0.19)
+        assert kicker.magnetic.horizontal.length == pytest.approx(0.19)
+        assert kicker.magnetic.vertical.length == pytest.approx(0.19)

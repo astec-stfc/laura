@@ -1209,8 +1209,13 @@ def test_a_cavity_a_whole_number_of_cells_long_keeps_every_cell(frequency, lengt
     assert _bmad_cavity_cells(0, None, length - 1e-6, cell) == 8
 
 
-def test_a_travelling_wave_cavity_keeps_its_voltage_round_trip(tmp_path):
-    """``to_bmad`` sets voltage = peak field * L_eff / sqrt(2); import inverts it."""
+# LCLS's S-band structures: K21_1B (81), the 10 ft ones (86), L1X (67)
+@pytest.mark.parametrize("length, n_cells", [(2.8692, 81), (3.0441, 86), (2.3793, 67)])
+def test_a_travelling_wave_cavity_keeps_its_voltage_round_trip(
+    tmp_path, length, n_cells
+):
+    """``to_bmad`` sets voltage = peak field * L_eff / sqrt(2); import inverts it,
+    including the exporter's rounding of the cells to a multiple of 3."""
     import re
 
     from scipy.constants import speed_of_light
@@ -1220,21 +1225,21 @@ def test_a_travelling_wave_cavity_keeps_its_voltage_round_trip(tmp_path):
         "parameter[particle] = electron\n"
         "parameter[p0c] = 135e6\n"
         "parameter[geometry] = open\n"
-        "c: lcavity, l = 2.8692, rf_frequency = 2856e6, voltage = 46.2080928e6, "
+        f"c: lcavity, l = {length}, rf_frequency = 2856e6, voltage = 46.2080928e6, "
         "cavity_type = traveling_wave, phi0 = -0.0597222222\n"
         "lat: line = (c)\n"
         "use, lat\n",
     )
     cavity = _elements(source)["C"]
 
-    # 2pi/3: cell = lambda/3, 82 span 2.8692 m; Bmad calls one coupler, so 81 import.
+    # 2pi/3: cell = lambda/3, n + 1 span the length; Bmad calls one coupler.
     assert cavity.cavity.mode_denominator == 3
-    assert cavity.cavity.cell_length == pytest.approx(
-        speed_of_light / (3 * 2856e6)
-    )
-    assert cavity.cavity.n_cells == 81
+    assert cavity.cavity.cell_length == pytest.approx(speed_of_light / (3 * 2856e6))
+    assert cavity.cavity.n_cells == n_cells
     # A peak field, not the 46.2 MV the deck states.
-    assert cavity.simulation.field_amplitude == pytest.approx(21.9e6, rel=0.05)
+    assert cavity.simulation.field_amplitude == pytest.approx(
+        21.9e6 * 81 / n_cells, rel=0.07
+    )
 
     from laura.translator.converters.cavity import RFCavityTranslator
 

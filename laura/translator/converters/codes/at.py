@@ -245,8 +245,8 @@ class ATLatticeImporter(LatticeImporter):
             }
             if elem.PassMethod != "BndMPoleSymplectic4E2Pass":
                 data["simulation"] = {
-                    "edge1_effects": getattr(elem, "FringeBendEntrance", 1) != 0,
-                    "edge2_effects": getattr(elem, "FringeBendExit", 1) != 0,
+                    "edge1_effects": int(getattr(elem, "FringeBendEntrance", 1) != 0),
+                    "edge2_effects": int(getattr(elem, "FringeBendExit", 1) != 0),
                 }
         elif laura_type is laura_elements.CombinedCorrector:
             if hasattr(elem, "KickAngle"):

@@ -118,8 +118,8 @@ def build_magnet(t) -> "at.Element":
     return cls(t.name, length, PolynomA=poly_a, PolynomB=poly_b, **_steps(t))
 
 
-def _fringe_model(t, effects: bool | None) -> int:
-    return 0 if effects is False else FRINGE_BEND_MODEL[t.fringe_order]
+def _fringe_model(t, effects: int | None) -> int:
+    return 0 if effects == 0 else FRINGE_BEND_MODEL[t.fringe_order]
 
 
 def build_dipole(t) -> "at.Element":
@@ -151,7 +151,7 @@ def build_dipole(t) -> "at.Element":
         FringeBendEntrance=_fringe_model(t, edges[0]),
         FringeBendExit=_fringe_model(t, edges[1]),
         PassMethod=(
-            "BndMPoleSymplectic4Pass" if False in edges else "BndMPoleSymplectic4E2Pass"
+            "BndMPoleSymplectic4Pass" if 0 in edges else "BndMPoleSymplectic4E2Pass"
         ),
         **_steps(t),
     )

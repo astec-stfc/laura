@@ -220,12 +220,12 @@ def test_conventions_match_the_madx_route(tmp_path):
 def test_bend_pass_method_follows_edge_flags():
     bend = _every_type()[1]
     assert _to_at(_section([bend]))[0].PassMethod == "BndMPoleSymplectic4E2Pass"
-    bend.simulation.edge2_effects = False
+    bend.simulation.edge2_effects = 0
     native = _to_at(_section([bend]))[0]
     assert native.PassMethod == "BndMPoleSymplectic4Pass"
     assert native.FringeBendExit == 0
     imported = ATLatticeImporter(lattice=at.Lattice([native], energy=ENERGY)).create_element_dictionary()
-    assert imported["bend"].simulation.edge2_effects is False
+    assert imported["bend"].simulation.edge2_effects == 0
 
 
 def test_steps_scale_with_length():

@@ -1,3 +1,5 @@
+from warnings import warn
+
 import numpy as np
 from pydantic import computed_field, model_validator
 
@@ -35,6 +37,10 @@ class RFCavityTranslator(BaseElementTranslator):
 
     zwakefile: str | None = None
     """Name of longitudinal wakefile associated with the cavity."""
+
+    tw_focusing: bool = True
+    """Use travelling-wave transverse focusing for TravellingWave cavities. Set from
+    :attr:`~laura.translator.converters.section.SectionLatticeTranslator.tw_focusing`."""
 
     bmad_geometry: str | None = None
     """Geometry of the branch this cavity is being written into, when known.
@@ -143,6 +149,23 @@ class RFCavityTranslator(BaseElementTranslator):
         if etype == "lcavity" and self.bmad_geometry == "closed":
             etype = "rfcavity"
         parameters = self._bmad_parameters(etype)
+        frequency, voltage = parameters.get("rf_frequency"), parameters.get("voltage")
+        if etype == "rfcavity" and isinstance(frequency, (int, float)) and frequency == 0:
+            # Tao cannot find a closed orbit through an rfcavity with rf_frequency = 0
+            # (the maps hold NaN), so a cavity that is off is written as the drift it is.
+            if isinstance(voltage, (int, float)) and voltage == 0:
+                warn(
+                    f"RF cavity {self.name!r} has zero voltage and zero frequency; "
+                    "written to Bmad as a drift of the same length."
+                )
+                return self._format_bmad(
+                    "drift", {"l": parameters["l"]} if "l" in parameters else {}
+                )
+            warn(
+                f"RF cavity {self.name!r} has zero frequency but voltage {voltage}; "
+                "Bmad cannot track a closed orbit through an rfcavity with "
+                "rf_frequency = 0."
+            )
         phase = self.cavity.phase
         # Bmad's crab kick is sin(2*pi*phi0 - wt): phase 0 (full kick) is phi0 = 1/4
         sign, offset = (1, 90) if etype == "crab_cavity" else (-1, 0)
@@ -310,6 +333,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 if (
                     key == "body_focus_model"
                     and self.structure_type == "TravellingWave"
+                    and self.tw_focusing
                 ):
                     value = "TW1"
 
@@ -436,7 +460,7 @@ class RFCavityTranslator(BaseElementTranslator):
                         obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
         if hasattr(obj, "cavity_type"):
-            if self.cavity.structure_type == "TravellingWave":
+            if self.cavity.structure_type == "TravellingWave" and self.tw_focusing:
                 obj.cavity_type = "traveling_wave"
             else:
                 obj.cavity_type = "standing_wave"
