@@ -1571,14 +1571,14 @@ class SectionLatticeTranslator(SectionLattice):
 
         for d in elem_dict.values():
             kwargs = {"Brho": Brho} if isinstance(d, SolenoidTranslator) else {}
-            elements.append(
-                d.to_bdsim(
-                    section_aperture=section_aperture,
-                    charge_sign=charge_sign,
-                    integrator_set=integrator_set,
-                    **kwargs,
-                )
+            built = d.to_bdsim(
+                section_aperture=section_aperture,
+                charge_sign=charge_sign,
+                integrator_set=integrator_set,
+                **kwargs,
             )
+            # a thin multipole with skew terms comes back as several elements
+            elements.extend(built if isinstance(built, list) else [built])
 
         machine = Machine()
         sanitized_name = self.name.replace("-", "_")

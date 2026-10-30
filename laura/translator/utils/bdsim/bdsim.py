@@ -51,13 +51,18 @@ BDSIM_CHARGE_SIGNED_KEYWORDS = {
 field for a *positive* particle, so a negative one needs them negated.
 
 Every other strength (bend ``k1``, ``k2``-``k4``, thick ``multipole``, kickers,
-solenoid ``ks``) follows the particle's own charge, as in MAD-X. Measured with
+solenoid ``ks``) follows the particle's own charge. Measured with
 BDSIM 1.7.7 for e-, antiprotons and mu-, in every integrator set.
 """
 
 BDSIM_FIELD_INTEGRATOR_SETS = frozenset({"geant4", "geant4dp"})
 """Integrator sets whose quadrupole is tracked through a field built from the signed
 rigidity, so its ``k1`` follows the particle too."""
+
+BDSIM_REVERSED_KEYWORDS = {("Octupole", "bdsimone"): frozenset({"k3"})}
+"""gmad keywords, by pybdsim builder and integrator set, that BDSIM 1.7.7 applies
+with the wrong sign for every particle: its ``bdsimone`` octupole integrator
+reverses both transverse kicks."""
 
 
 def negate_strength(value):
@@ -93,7 +98,8 @@ def apply_charge_sign(
     """
     Negate the strengths in a gmad keyword dictionary that BDSIM reads as a field
     (see :data:`BDSIM_CHARGE_SIGNED_KEYWORDS`) when the beam particle is negatively
-    charged.
+    charged. Strengths BDSIM gets backwards for every particle
+    (:data:`BDSIM_REVERSED_KEYWORDS`) are negated too.
 
     Parameters
     ----------
@@ -111,6 +117,8 @@ def apply_charge_sign(
     dict
         The same dictionary, for chaining.
     """
+    for key in BDSIM_REVERSED_KEYWORDS.get((builder, integrator_set), frozenset()) & keywords.keys():
+        keywords[key] = negate_strength(keywords[key])
     if charge_sign >= 0:
         return keywords
     if builder == "Quadrupole" and integrator_set in BDSIM_FIELD_INTEGRATOR_SETS:
@@ -166,7 +174,11 @@ def element_aperture_params(aperture) -> dict:
     horizontal = getattr(aperture, "horizontal_size", None)
     vertical = getattr(aperture, "vertical_size", None)
     sizes = [s for s in (horizontal, vertical) if s]
-    size = radius if radius else (sizes if len(sizes) > 1 else (sizes[0] if sizes else None))
+    size = (
+        radius
+        if radius
+        else (sizes if len(sizes) > 1 else (sizes[0] if sizes else None))
+    )
     if shape not in BDSIM_APERTURE_TYPES and size is None:
         return {}
     return aperture_params(

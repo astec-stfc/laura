@@ -1,5 +1,7 @@
 from warnings import warn
 
+import numpy as np
+
 from laura.models.simulation import RFMultipoleSimulationElement
 
 from ..utils.functions import sanitize_string
@@ -114,9 +116,12 @@ class RFMultipoleTranslator(BaseElementTranslator):
         -- is dropped. A warning names what was discarded.
 
         BDSIM's ``knl``/``ksl`` start at the quadrupole, so the dipole term is
-        dropped too. As measured with BDSIM 1.7.7, its thick ``multipole`` takes
-        ``knl`` per metre and flips the normal terms, and its ``thinmultipole``
-        flips the horizontal kick of the skew terms; neither is corrected here.
+        dropped too. Two BDSIM 1.7.7 bugs are worked around: its thick
+        ``multipole`` negates the
+        normal terms (and takes them per metre, as documented), and its
+        ``thinmultipole`` kicks x the wrong way for skew terms. So at zero
+        length each skew order goes out as its own ``thinmultipole``, a normal
+        term tilted by -pi/(2(n+1)), and a list of elements is returned.
 
         Parameters
         ----------
@@ -132,8 +137,8 @@ class RFMultipoleTranslator(BaseElementTranslator):
 
         Returns
         -------
-        object
-            BDSIM object
+        object or list
+            BDSIM object, or a list of them for a thin multipole with skew terms
         """
         from ..conversion_rules.codes import bdsim_conversion
 
@@ -148,12 +153,33 @@ class RFMultipoleTranslator(BaseElementTranslator):
         knl, ksl = tuple(self.simulation.knl or ()), tuple(self.simulation.ksl or ())
         if any(knl[:1]) or any(ksl[:1]):
             warn(f"BDSIM multipoles have no dipole term; dropped from {self.name}.")
-        keywords["knl"] = knl[1:]
-        keywords["ksl"] = ksl[1:]
+        knl, ksl = knl[1:], ksl[1:]
         if self.verbose:
             warn(
                 f"WARNING! BDSIM has no RF multipole; {self.name} exported as a static "
                 f"{'thinmultipole' if thin else 'multipole'} -- frequency, phase, pnl "
                 "and psl are not carried."
             )
-        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+        if not thin:
+            length = self.physical.length
+            keywords["knl"] = tuple(-k / length for k in knl) or (0.0,)  # gmad rejects {}
+            keywords["ksl"] = tuple(k / length for k in ksl) or (0.0,)
+            return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+
+        # (knl, tilt) per thin element: the normal terms, then one per skew order
+        tilt = keywords.get("tilt") or 0.0
+        pieces = [(knl, tilt)] if any(knl) or not any(ksl) else []
+        pieces += [
+            ((0.0,) * (n - 1) + (k,), tilt - np.pi / (2 * (n + 1)))
+            for n, k in enumerate(ksl, start=1)
+            if k
+        ]
+        elements = []
+        for i, (strengths, piece_tilt) in enumerate(pieces):
+            piece = dict(keywords, knl=strengths or (0.0,), ksl=(0.0,), tilt=piece_tilt)
+            if i:
+                piece["name"] = f"{keywords['name']}_{i}"
+            elements.append(
+                obj(**self._bdsim_charge_sign(obj, piece, charge_sign, integrator_set))
+            )
+        return elements[0] if len(elements) == 1 else elements

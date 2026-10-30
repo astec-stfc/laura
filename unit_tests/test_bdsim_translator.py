@@ -15,6 +15,7 @@ silently:
   plus a variable block included ahead of the components.
 """
 
+import math
 import warnings
 
 import pytest
@@ -172,13 +173,27 @@ class TestChargeSign:
             name="M1", machine_area="T", physical=PhysicalElement(length=length)
         )
         element.simulation.knl = [0.0, 0.5]
-        element.simulation.ksl = [0.0, 0.1]
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            built = _translate(element).to_bdsim(charge_sign=-1)
-        sign = -1 if flipped else 1
-        assert built["knl"] == pytest.approx((sign * 0.5,))
-        assert built["ksl"] == pytest.approx((sign * 0.1,))
+            positive = _translate(element).to_bdsim()["knl"][0]
+            negative = _translate(element).to_bdsim(charge_sign=-1)["knl"][0]
+        assert negative == pytest.approx(-positive if flipped else positive)
+
+    def test_bdsimone_octupole_is_reversed_for_every_particle(self):
+        from laura.models.element import Octupole
+
+        octupole = Octupole(
+            name="O1", machine_area="T", physical={"length": 0.1},
+            magnetic={"length": 0.1, "multipoles": {"K3L": {"normal": 2.0}}},
+        )
+        for charge_sign in (1, -1):
+            k3 = {
+                integrator_set: _translate(octupole).to_bdsim(
+                    charge_sign=charge_sign, integrator_set=integrator_set
+                )["k3"]
+                for integrator_set in ("bdsimmatrix", "bdsimone")
+            }
+            assert k3["bdsimone"] == pytest.approx(-k3["bdsimmatrix"])
 
     def test_bend_angle_is_not_flipped(self):
         """`angle` is geometric -- BDSIM derives the field from it using the
@@ -531,18 +546,34 @@ class TestThinAndMultipoleElements:
         element = RFMultipole(
             name="RFM1", machine_area="T", physical=PhysicalElement(length=0.3)
         )
+        element.simulation.knl = [0.0, 0.6]
+        element.simulation.ksl = [0.0, 0.3]
+        built = _translate(element).to_bdsim()
+        # BDSIM's lists start at the quadrupole, LAURA's (MAD-X's) at the dipole;
+        # thick ones are per metre, and BDSIM negates the normal terms
+        assert built["knl"] == pytest.approx((-2.0,))
+        assert built["ksl"] == pytest.approx((1.0,))
+
+    def test_thin_skew_terms_become_tilted_normal_terms(self):
+        """BDSIM's thinmultipole kicks x the wrong way for skew terms."""
+        from laura.models.element import RFMultipole
+
+        element = RFMultipole(
+            name="RFM1", machine_area="T", physical=PhysicalElement(length=0.0)
+        )
         element.simulation.knl = [0.0, 0.5]
-        element.simulation.ksl = [0.0, 0.1]
-        gmad = str(_translate(element).to_bdsim())
-        assert "multipole" in gmad
-        # BDSIM's lists start at the quadrupole, LAURA's (MAD-X's) at the dipole
-        assert "knl={0.5}" in gmad and "ksl={0.1}" in gmad
+        element.simulation.ksl = [0.0, 0.0, 0.2]
+        normal, skew = _translate(element).to_bdsim()
+        assert (normal.name, normal["knl"], normal["tilt"]) == ("RFM1", (0.5,), 0.0)
+        assert skew.name == "RFM1_1"
+        assert skew["knl"] == pytest.approx((0.0, 0.2))
+        assert skew["tilt"] == pytest.approx(-math.pi / 6)
 
     def test_rf_multipole_warns_that_a_dipole_term_is_dropped(self):
         from laura.models.element import RFMultipole
 
         element = RFMultipole(
-            name="RFM1", machine_area="T", physical=PhysicalElement(length=0.3)
+            name="RFM1", machine_area="T", physical=PhysicalElement(length=0.0)
         )
         element.simulation.knl = [1e-3, 0.5]
         with pytest.warns(UserWarning, match="no dipole term"):
