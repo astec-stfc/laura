@@ -907,6 +907,7 @@ class DipoleTranslator(MultipoleStrengthTranslator):
             BDSIM object
         """
         from ..conversion_rules.codes import bdsim_conversion
+        from ..utils.bdsim import magnet_frame_workaround
 
         if np.isclose(self.e1, self.e2) and self.e1 != 0 and self.e2 != 0:
             from pybdsim.Builder import RBend
@@ -915,6 +916,7 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         else:
             obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
         keywords = self._bdsim_keywords(obj, section_aperture)
+        obj, keywords = magnet_frame_workaround(obj, keywords, integrator_set)
         return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
 
 

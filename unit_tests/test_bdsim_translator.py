@@ -371,6 +371,63 @@ class TestTilt:
         """A computed_field would collide with the magnetic_tilt -> tilt mapping."""
         assert "roll" not in self._quad_with(0.1, 0.0).full_dump()
 
+    def test_a_roll_error_reaches_an_element_with_no_tilt_of_its_own(self):
+        from laura.models.element import RFMultipole
+
+        element = RFMultipole(
+            name="M1", machine_area="T", physical=PhysicalElement(length=0.0)
+        )
+        element.simulation.knl = [0.0, 0.5]
+        element.physical.error.rotation.psi = 0.05
+        assert _translate(element).to_bdsim()["tilt"] == pytest.approx(0.05)
+
+    def test_a_bend_roll_error_is_dropped_with_a_warning(self):
+        """A bend's tilt rolls its frame; the error should roll only the field."""
+        dipole = _dipole()
+        dipole.magnetic.tilt = 0.2
+        dipole.physical.error.rotation.psi = 0.05
+        with pytest.warns(UserWarning, match="BDSIM cannot take dz_rot"):
+            assert _translate(dipole).to_bdsim()["tilt"] == pytest.approx(0.2)
+
+    def test_errors_bdsim_has_no_keyword_for_warn(self):
+        quad = _quadrupole()
+        quad.physical.error.position.z = 1e-3
+        quad.physical.error.rotation.theta = 1e-3
+        with pytest.warns(UserWarning, match="BDSIM cannot take dz, dx_rot"):
+            _translate(quad).to_bdsim()
+
+
+class TestReferenceFrameMagnets:
+    """BDSIM's bdsim* integrator sets track quadrupoles and bends in the
+    reference frame, ignoring their offsetX/offsetY/tilt."""
+
+    @pytest.mark.parametrize(
+        "tilt, dx, integrator_set, builder",
+        [
+            (0.0, 0.0, "bdsimmatrix", "quadrupole"),
+            (0.1, 0.0, "bdsimmatrix", "multipole"),
+            (0.0, 1e-3, "bdsimtwo", "multipole"),
+            (0.1, 1e-3, "geant4", "quadrupole"),
+        ],
+    )
+    def test_a_misaligned_quadrupole_becomes_a_multipole(
+        self, tilt, dx, integrator_set, builder
+    ):
+        quad = _quadrupole(k1l=0.6)
+        quad.magnetic.tilt = tilt
+        quad.physical.error.position.x = dx
+        built = _translate(quad).to_bdsim(charge_sign=-1, integrator_set=integrator_set)
+        assert built.category == builder
+        if builder == "multipole":
+            # per metre, negated for BDSIM's thick multipole, relative to the particle
+            assert built["knl"] == pytest.approx((-3.0,))
+
+    def test_an_offset_bend_warns(self):
+        dipole = _dipole()
+        dipole.physical.error.position.x = 1e-3
+        with pytest.warns(UserWarning, match="ignore offsetX/offsetY on bend"):
+            _translate(dipole).to_bdsim()
+
 
 @pytest.mark.parametrize(
     "element_name, has_tilt",

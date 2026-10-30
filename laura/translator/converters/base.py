@@ -996,6 +996,13 @@ class BaseElementTranslator(PhysicalBaseElement):
         if "material" in allowed and self.material is not None:
             keywords["material"] = self.material
         keywords["name"] = sanitize_string(self.name)
+        if "tilt" in allowed and "tilt" not in keywords and self.dz_rot:
+            # a roll error on an element with no tilt of its own
+            keywords["tilt"] = self._bdsim_value("tilt", None)
+        written = {q for q, k in (("dx", "offsetX"), ("dy", "offsetY")) if k in allowed}
+        if "tilt" in allowed and not self._curved:
+            written.add("dz_rot")
+        self._warn_dropped_misalignment("BDSIM", written)
 
         parameters = inspect.signature(obj).parameters.values()
         if not any(p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters):
@@ -1016,7 +1023,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         from ..utils.bdsim import GmadExpression
 
         if key == "tilt":
-            return self.roll
+            # a bend's tilt rolls its frame, so its roll error cannot go in
+            return self.roll - self.dz_rot * self._curved
 
         expression = None
         if not self._resolve_functional:
@@ -1118,8 +1126,11 @@ class BaseElementTranslator(PhysicalBaseElement):
         object
             BDSIM object
         """
+        from ..utils.bdsim import magnet_frame_workaround
+
         obj = self._bdsim_type(section_aperture)
         keywords = self._bdsim_keywords(obj, section_aperture)
+        obj, keywords = magnet_frame_workaround(obj, keywords, integrator_set)
         return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
 
     _KEYWORD_STRIP_PREFIXES = [

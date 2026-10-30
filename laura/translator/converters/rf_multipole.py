@@ -162,11 +162,14 @@ class RFMultipoleTranslator(BaseElementTranslator):
             )
         if not thin:
             length = self.physical.length
-            keywords["knl"] = tuple(-k / length for k in knl) or (0.0,)  # gmad rejects {}
+            keywords["knl"] = tuple(-k / length for k in knl) or (
+                0.0,
+            )  # gmad rejects {}
             keywords["ksl"] = tuple(k / length for k in ksl) or (0.0,)
-            return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+            return obj(
+                **self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set)
+            )
 
-        # (knl, tilt) per thin element: the normal terms, then one per skew order
         tilt = keywords.get("tilt") or 0.0
         pieces = [(knl, tilt)] if any(knl) or not any(ksl) else []
         pieces += [

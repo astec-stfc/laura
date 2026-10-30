@@ -1,3 +1,5 @@
+from warnings import warn
+
 BDSIM_APERTURE_TYPES = frozenset(
     {
         "circular",
@@ -89,6 +91,54 @@ def negate_strength(value):
     return -value
 
 
+def magnet_frame_workaround(obj: type, keywords: dict, integrator_set: str) -> tuple:
+    """
+    Work around BDSIM 1.7.7's bdsim* integrator sets tracking quadrupoles and
+    bends in the reference frame, which ignores ``offsetX``,
+    ``offsetY`` and quadrupole ``tilt``. The geant4 sets are fine.
+
+    A quadrupole that is offset or tilted goes out as a thick ``multipole``.
+    Warning are emitted for bends.
+
+    Parameters
+    ----------
+    obj: type
+        The pybdsim builder class.
+    keywords: dict
+        gmad keywords for the element.
+    integrator_set: str
+        BDSIM ``integratorSet`` option.
+
+    Returns
+    -------
+    tuple
+        The builder class and keywords to use.
+    """
+    name = obj.__name__
+    if (
+        name not in ("Quadrupole", "SBend", "RBend")
+        or integrator_set in BDSIM_FIELD_INTEGRATOR_SETS
+    ):
+        return obj, keywords
+    keys = (
+        ("offsetX", "offsetY", "tilt")
+        if name == "Quadrupole"
+        else ("offsetX", "offsetY")
+    )
+    if not any(float(keywords.get(k) or 0.0) for k in keys):
+        return obj, keywords
+    if name != "Quadrupole":
+        warn(
+            f"BDSIM's {integrator_set} integrators ignore offsetX/offsetY on bend "
+            f"{keywords['name']!r}; track with integrator_set geant4 to misalign it."
+        )
+        return obj, keywords
+    from pybdsim.Builder import Multipole
+
+    k1 = keywords.pop("k1", 0.0)
+    return Multipole, dict(keywords, knl=(negate_strength(k1),), ksl=(0.0,))
+
+
 def apply_charge_sign(
     keywords: dict,
     charge_sign: int | float = 1,
@@ -117,7 +167,10 @@ def apply_charge_sign(
     dict
         The same dictionary, for chaining.
     """
-    for key in BDSIM_REVERSED_KEYWORDS.get((builder, integrator_set), frozenset()) & keywords.keys():
+    for key in (
+        BDSIM_REVERSED_KEYWORDS.get((builder, integrator_set), frozenset())
+        & keywords.keys()
+    ):
         keywords[key] = negate_strength(keywords[key])
     if charge_sign >= 0:
         return keywords
