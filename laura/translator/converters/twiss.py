@@ -151,7 +151,10 @@ class TwissMatchTranslator(BaseElementTranslator):
         return obj
 
     def to_bdsim(
-        self, section_aperture: Dict | None = None, charge_sign: int | float = 1
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
     ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
@@ -163,6 +166,8 @@ class TwissMatchTranslator(BaseElementTranslator):
                 which may be used to set the aperture of the BDSIM element.
         charge_sign: int or float, optional
                 Beam particle charge sign; unused here.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; unused here.
 
         Returns
         -------
@@ -180,5 +185,5 @@ class TwissMatchTranslator(BaseElementTranslator):
             obj = bdsim_conversion.bdsim_conversion_rules["MatrixTransform"]
         keywords = self._bdsim_keywords(obj, section_aperture)
         keywords.update(_bdsim_rmatrix(self.simulation.r_matrix))
-        return obj(**self._bdsim_charge_sign(keywords, charge_sign))
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
 

@@ -43,30 +43,21 @@ class GmadExpression(float):
     __repr__ = __str__
 
 
-BDSIM_CHARGE_SIGNED_KEYWORDS = frozenset(
-    {
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6",
-        "k1s",
-        "k2s",
-        "k3s",
-        "k4s",
-        "k5s",
-        "k6s",
-        "ks",
-        "knl",
-        "ksl",
-        "hkick",
-        "vkick",
-    }
-)
-"""gmad keywords holding a rigidity-normalised strength, which BDSIM interprets
-against the *actual* particle charge; this has an impact on magnet strengths.
+BDSIM_CHARGE_SIGNED_KEYWORDS = {
+    "Quadrupole": frozenset({"k1"}),
+    "ThinMultipole": frozenset({"knl", "ksl"}),
+}
+"""gmad keywords, by pybdsim builder, that BDSIM scales by ``|brho|``: they set the
+field for a *positive* particle, so a negative one needs them negated.
+
+Every other strength (bend ``k1``, ``k2``-``k4``, thick ``multipole``, kickers,
+solenoid ``ks``) follows the particle's own charge, as in MAD-X. Measured with
+BDSIM 1.7.7 for e-, antiprotons and mu-, in every integrator set.
 """
+
+BDSIM_FIELD_INTEGRATOR_SETS = frozenset({"geant4", "geant4dp"})
+"""Integrator sets whose quadrupole is tracked through a field built from the signed
+rigidity, so its ``k1`` follows the particle too."""
 
 
 def negate_strength(value):
@@ -93,10 +84,16 @@ def negate_strength(value):
     return -value
 
 
-def apply_charge_sign(keywords: dict, charge_sign: int | float = 1) -> dict:
+def apply_charge_sign(
+    keywords: dict,
+    charge_sign: int | float = 1,
+    builder: str = "",
+    integrator_set: str = "bdsimmatrix",
+) -> dict:
     """
-    Negate every rigidity-normalised strength in a gmad keyword dictionary when
-    the beam particle is negatively charged.
+    Negate the strengths in a gmad keyword dictionary that BDSIM reads as a field
+    (see :data:`BDSIM_CHARGE_SIGNED_KEYWORDS`) when the beam particle is negatively
+    charged.
 
     Parameters
     ----------
@@ -104,6 +101,10 @@ def apply_charge_sign(keywords: dict, charge_sign: int | float = 1) -> dict:
         gmad keywords for one element. Modified in place.
     charge_sign: int or float
         Sign of the beam particle's charge.
+    builder: str
+        Name of the pybdsim builder class the keywords are for, e.g. ``"Quadrupole"``.
+    integrator_set: str
+        BDSIM ``integratorSet`` option; see :data:`BDSIM_FIELD_INTEGRATOR_SETS`.
 
     Returns
     -------
@@ -112,7 +113,9 @@ def apply_charge_sign(keywords: dict, charge_sign: int | float = 1) -> dict:
     """
     if charge_sign >= 0:
         return keywords
-    for key in BDSIM_CHARGE_SIGNED_KEYWORDS & keywords.keys():
+    if builder == "Quadrupole" and integrator_set in BDSIM_FIELD_INTEGRATOR_SETS:
+        return keywords
+    for key in BDSIM_CHARGE_SIGNED_KEYWORDS.get(builder, frozenset()) & keywords.keys():
         keywords[key] = negate_strength(keywords[key])
     return keywords
 

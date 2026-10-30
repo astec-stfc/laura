@@ -268,7 +268,10 @@ class ApertureTranslator(BaseElementTranslator):
         return elegant_line(self.name + ": " + etype, terms)
 
     def to_bdsim(
-        self, section_aperture: Dict | None = None, charge_sign: int | float = 1
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
     ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
@@ -280,6 +283,8 @@ class ApertureTranslator(BaseElementTranslator):
                 which may be used to set the aperture of the BDSIM element.
         charge_sign: int or float, optional
                 Beam particle charge sign; unused here.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; unused here.
 
         Returns
         -------
@@ -319,4 +324,4 @@ class ApertureTranslator(BaseElementTranslator):
         else:
             obj = get_bdsim_drift(self.name)
         keywords = self._bdsim_keywords(obj, section_aperture)
-        return obj(**self._bdsim_charge_sign(keywords, charge_sign))
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))

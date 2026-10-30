@@ -881,7 +881,10 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         return wholestring
 
     def to_bdsim(
-        self, section_aperture: Dict | None = None, charge_sign: int | float = 1
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
     ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
@@ -893,6 +896,9 @@ class DipoleTranslator(MultipoleStrengthTranslator):
                 which may be used to set the aperture of the BDSIM element.
         charge_sign: int or float, optional
                 Beam particle charge sign; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; see
                 :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
 
         Returns
@@ -909,7 +915,7 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         else:
             obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
         keywords = self._bdsim_keywords(obj, section_aperture)
-        return obj(**self._bdsim_charge_sign(keywords, charge_sign))
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
 
 
 class DecapoleTranslator(MagnetTranslator):
@@ -1262,10 +1268,17 @@ class SolenoidTranslator(BaseElementTranslator):
         return wholestring
 
     def to_bdsim(
-        self, section_aperture: Dict | None = None, charge_sign: int | float = 1
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+        Brho: float = 0.0,
     ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
+
+        BDSIM's ``ks`` is normalised [1/m], so it needs the rigidity. (Its
+        ``B`` [T] alternative is mis-scaled in BDSIM 1.7.7, 1000 times too weak.)
 
         Parameters
         ----------
@@ -1275,6 +1288,10 @@ class SolenoidTranslator(BaseElementTranslator):
         charge_sign: int or float, optional
                 Beam particle charge sign; see
                 :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; unused here.
+        Brho: float, optional
+                Magnetic rigidity [T*m] of the reference particle.
 
         Returns
         -------
@@ -1283,11 +1300,16 @@ class SolenoidTranslator(BaseElementTranslator):
         """
         from ..conversion_rules.codes import bdsim_conversion
 
+        self.Brho = Brho or self.Brho
         obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
         keywords = self._bdsim_keywords(obj, section_aperture)
         if "ks" in keywords:
-            keywords["ks"] = self.magnetic.field_amplitude
-        return obj(**self._bdsim_charge_sign(keywords, charge_sign))
+            self._check_rigidity("BDSIM")
+            if self.Brho:
+                keywords["ks"] = self.magnetic.field_amplitude / self.Brho
+            else:
+                keywords.pop("ks")
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
 
 
 class WigglerTranslator(BaseElementTranslator):

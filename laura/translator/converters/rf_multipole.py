@@ -100,7 +100,10 @@ class RFMultipoleTranslator(BaseElementTranslator):
         return self.name, RFMultipole_xs, properties
 
     def to_bdsim(
-        self, section_aperture: dict | None = None, charge_sign: int | float = 1
+        self,
+        section_aperture: dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
     ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
@@ -110,6 +113,11 @@ class RFMultipoleTranslator(BaseElementTranslator):
         modulation -- frequency, phase and the per-order phases ``pnl``/``psl``
         -- is dropped. A warning names what was discarded.
 
+        BDSIM's ``knl``/``ksl`` start at the quadrupole, so the dipole term is
+        dropped too. As measured with BDSIM 1.7.7, its thick ``multipole`` takes
+        ``knl`` per metre and flips the normal terms, and its ``thinmultipole``
+        flips the horizontal kick of the skew terms; neither is corrected here.
+
         Parameters
         ----------
         section_aperture: dict, optional
@@ -117,6 +125,9 @@ class RFMultipoleTranslator(BaseElementTranslator):
                 which may be used to set the aperture of the BDSIM element.
         charge_sign: int or float, optional
                 Beam particle charge sign; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; see
                 :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
 
         Returns
@@ -134,12 +145,15 @@ class RFMultipoleTranslator(BaseElementTranslator):
         else:
             obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
         keywords = self._bdsim_keywords(obj, section_aperture)
-        keywords["knl"] = tuple(self.simulation.knl or ())
-        keywords["ksl"] = tuple(self.simulation.ksl or ())
+        knl, ksl = tuple(self.simulation.knl or ()), tuple(self.simulation.ksl or ())
+        if any(knl[:1]) or any(ksl[:1]):
+            warn(f"BDSIM multipoles have no dipole term; dropped from {self.name}.")
+        keywords["knl"] = knl[1:]
+        keywords["ksl"] = ksl[1:]
         if self.verbose:
             warn(
                 f"WARNING! BDSIM has no RF multipole; {self.name} exported as a static "
                 f"{'thinmultipole' if thin else 'multipole'} -- frequency, phase, pnl "
                 "and psl are not carried."
             )
-        return obj(**self._bdsim_charge_sign(keywords, charge_sign))
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))

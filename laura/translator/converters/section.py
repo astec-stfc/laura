@@ -1513,7 +1513,14 @@ class SectionLatticeTranslator(SectionLattice):
                     element._warn_dropped_misalignment("Wake-T", set())
         return Beamline(beamline)
 
-    def to_bdsim(self, save=False, beam=None, charge_sign: int | float = 1) -> "Machine":
+    def to_bdsim(
+        self,
+        save=False,
+        beam=None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+        Brho: float = 0.0,
+    ) -> "Machine":
         """
         Create a BDSIM-compatible Machine object based on the lattice information.
 
@@ -1526,6 +1533,11 @@ class SectionLatticeTranslator(SectionLattice):
         charge_sign: int or float
             Beam particle charge sign; see
             :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        integrator_set: str
+            BDSIM ``integratorSet`` option the lattice will be tracked with; see
+            :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        Brho: float
+            Magnetic rigidity [T*m] of the reference particle, for solenoids.
 
         Returns
         -------
@@ -1558,8 +1570,14 @@ class SectionLatticeTranslator(SectionLattice):
             section_aperture = None
 
         for d in elem_dict.values():
+            kwargs = {"Brho": Brho} if isinstance(d, SolenoidTranslator) else {}
             elements.append(
-                d.to_bdsim(section_aperture=section_aperture, charge_sign=charge_sign)
+                d.to_bdsim(
+                    section_aperture=section_aperture,
+                    charge_sign=charge_sign,
+                    integrator_set=integrator_set,
+                    **kwargs,
+                )
             )
 
         machine = Machine()

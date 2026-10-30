@@ -1061,18 +1061,28 @@ class BaseElementTranslator(PhysicalBaseElement):
 
         return Drift_BDSIM
 
-    def _bdsim_charge_sign(self, keywords: Dict[str, Any], charge_sign: int | float) -> Dict[str, Any]:
+    def _bdsim_charge_sign(
+        self,
+        obj: type,
+        keywords: Dict[str, Any],
+        charge_sign: int | float,
+        integrator_set: str = "bdsimmatrix",
+    ) -> Dict[str, Any]:
         """
-        Negate the rigidity-normalised strengths in `keywords` for a negatively
-        charged beam particle. See
+        Negate the strengths in `keywords` that BDSIM reads as a field, for a
+        negatively charged beam particle. See
         :data:`~laura.translator.utils.bdsim.bdsim.BDSIM_CHARGE_SIGNED_KEYWORDS`.
 
         Parameters
         ----------
+        obj: type
+            The pybdsim builder class the keywords are for.
         keywords: dict
             gmad keywords for this element; see :meth:`_bdsim_keywords`.
         charge_sign: int or float
             Sign of the beam particle's charge.
+        integrator_set: str
+            BDSIM ``integratorSet`` option.
 
         Returns
         -------
@@ -1081,10 +1091,13 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         from ..utils.bdsim import apply_charge_sign
 
-        return apply_charge_sign(keywords, charge_sign)
+        return apply_charge_sign(keywords, charge_sign, obj.__name__, integrator_set)
 
     def to_bdsim(
-        self, section_aperture: Dict | None = None, charge_sign: int | float = 1
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
     ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
@@ -1096,6 +1109,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                 which may be used to set the aperture of the BDSIM element.
         charge_sign: int or float, optional
                 Sign of the charge of the beam particle being tracked.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option, which decides whether a
+                quadrupole's ``k1`` follows the particle's charge.
 
         Returns
         -------
@@ -1104,7 +1120,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         obj = self._bdsim_type(section_aperture)
         keywords = self._bdsim_keywords(obj, section_aperture)
-        return obj(**self._bdsim_charge_sign(keywords, charge_sign))
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
 
     _KEYWORD_STRIP_PREFIXES = [
         "",

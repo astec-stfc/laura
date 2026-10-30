@@ -114,14 +114,14 @@ class TestElementTyping:
 
 
 class TestChargeSign:
-    """BDSIM applies normalised strengths against the *real* particle charge.
+    """A few BDSIM strengths set the field for a *positive* particle.
 
-    MAD-X tracks every particle as if it were positive, so a MAD-X-convention
-    lattice focusses in the wrong plane under BDSIM for an electron beam unless
-    its k values are negated -- the BDSIM manual's "Magnet Strength Polarity"
-    note, and the ``flipmagnets`` option of pybdsim's own converters. LAURA does
-    not know the beam, so the sign is passed in; ``+1`` must leave the lattice
-    exactly as it was.
+    MAD-X reads every strength relative to the beam particle, and so does BDSIM,
+    except for the quadrupole of the ``bdsim*`` integrator sets and the thin
+    multipole, which scale by ``|brho|`` -- the BDSIM manual's "Magnet Strength
+    Polarity" note. Those are negated for a negative beam (measured with BDSIM
+    1.7.7 for e-, antiprotons and mu-). LAURA does not know the beam, so the sign
+    is passed in; ``+1`` must leave the lattice exactly as it was.
     """
 
     def test_positive_charge_is_the_unchanged_default(self):
@@ -135,12 +135,20 @@ class TestChargeSign:
             "k1"
         ] == pytest.approx(-3.0)
 
-    def test_negative_charge_flips_a_sextupole(self):
+    @pytest.mark.parametrize("integrator_set", ["geant4", "geant4dp"])
+    def test_field_integrators_take_the_quadrupole_as_it_is(self, integrator_set):
+        """Their quadrupole is a field built from the signed rigidity."""
+        built = _translate(_quadrupole()).to_bdsim(
+            charge_sign=-1, integrator_set=integrator_set
+        )
+        assert built["k1"] == pytest.approx(3.0)
+
+    def test_a_sextupole_follows_the_particle(self):
         assert _translate(_sextupole()).to_bdsim(charge_sign=-1)[
             "k2"
-        ] == pytest.approx(-5.0)
+        ] == pytest.approx(5.0)
 
-    def test_negative_charge_flips_a_corrector_kick(self):
+    def test_a_corrector_kick_follows_the_particle(self):
         corrector = HorizontalCorrector(
             name="C1", machine_area="T", physical=PhysicalElement(length=0.1)
         )
@@ -148,7 +156,29 @@ class TestChargeSign:
         corrector.magnetic.horizontal_kick = 0.002
         assert _translate(corrector).to_bdsim(charge_sign=-1)[
             "hkick"
-        ] == pytest.approx(-0.002)
+        ] == pytest.approx(0.002)
+
+    def test_a_bend_gradient_follows_the_particle(self):
+        """A combined-function bend's ``k1`` is not the quadrupole integrator's."""
+        dipole = _dipole()
+        dipole.magnetic.multipoles.K1L.normal = 0.1
+        assert _translate(dipole).to_bdsim(charge_sign=-1)["k1"] == pytest.approx(0.2)
+
+    @pytest.mark.parametrize("length, flipped", [(0.0, True), (0.3, False)])
+    def test_only_the_thin_multipole_is_flipped(self, length, flipped):
+        from laura.models.element import RFMultipole
+
+        element = RFMultipole(
+            name="M1", machine_area="T", physical=PhysicalElement(length=length)
+        )
+        element.simulation.knl = [0.0, 0.5]
+        element.simulation.ksl = [0.0, 0.1]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            built = _translate(element).to_bdsim(charge_sign=-1)
+        sign = -1 if flipped else 1
+        assert built["knl"] == pytest.approx((sign * 0.5,))
+        assert built["ksl"] == pytest.approx((sign * 0.1,))
 
     def test_bend_angle_is_not_flipped(self):
         """`angle` is geometric -- BDSIM derives the field from it using the
@@ -505,7 +535,18 @@ class TestThinAndMultipoleElements:
         element.simulation.ksl = [0.0, 0.1]
         gmad = str(_translate(element).to_bdsim())
         assert "multipole" in gmad
-        assert "knl={0.0,0.5}" in gmad and "ksl={0.0,0.1}" in gmad
+        # BDSIM's lists start at the quadrupole, LAURA's (MAD-X's) at the dipole
+        assert "knl={0.5}" in gmad and "ksl={0.1}" in gmad
+
+    def test_rf_multipole_warns_that_a_dipole_term_is_dropped(self):
+        from laura.models.element import RFMultipole
+
+        element = RFMultipole(
+            name="RFM1", machine_area="T", physical=PhysicalElement(length=0.3)
+        )
+        element.simulation.knl = [1e-3, 0.5]
+        with pytest.warns(UserWarning, match="no dipole term"):
+            assert _translate(element).to_bdsim()["knl"] == pytest.approx((0.5,))
 
     def test_rf_multipole_warns_that_the_rf_terms_are_dropped(self):
         import pybdsim.Builder  # noqa: F401  -- imported first; it resets warning filters
