@@ -428,6 +428,34 @@ class TestReferenceFrameMagnets:
         with pytest.warns(UserWarning, match="ignore offsetX/offsetY on bend"):
             _translate(dipole).to_bdsim()
 
+    def test_a_rectangular_bend_stays_an_sbend(self):
+        """BDSIM's rbend takes the chord length and edges relative to it."""
+        built = _translate(_dipole()).to_bdsim()
+        assert built.category == "sbend"
+        assert built["e1"] == pytest.approx(0.075)
+        assert built["l"] == pytest.approx(0.5)
+
+    @pytest.mark.parametrize(
+        "integrator_set, scaling", [("bdsimmatrix", None), ("geant4", 1 - 1.2 * 0.25 / 300)]
+    )
+    def test_geant4_takes_the_chord_feed_down_off_a_gradient_bend(
+        self, integrator_set, scaling
+    ):
+        """0.5 m at 0.1 rad is five segments; k1 = 1.2 adds k1 L^2 / (12 n^2) of field."""
+        dipole = _dipole(k0l=0.1, edges=0.0)
+        dipole.magnetic.multipoles.K1L.normal = 0.6
+        built = _translate(dipole).to_bdsim(integrator_set=integrator_set)
+        if scaling is None:
+            assert "scaling" not in built and built["k1"] == pytest.approx(1.2)
+        else:
+            assert built["scaling"] == pytest.approx(scaling)
+            assert built["k1"] * built["scaling"] == pytest.approx(1.2)
+
+    def test_the_section_turns_off_pole_face_geometry(self):
+        translator = SectionLatticeTranslator.from_section(_section_with_definitions())
+        options = translator.to_bdsim(integrator_set="geant4").options
+        assert options == {"integratorSet": '"geant4"', "buildPoleFaceGeometry": 0}
+
 
 @pytest.mark.parametrize(
     "element_name, has_tilt",

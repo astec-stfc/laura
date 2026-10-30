@@ -1,3 +1,4 @@
+import math
 from warnings import warn
 
 BDSIM_APERTURE_TYPES = frozenset(
@@ -93,12 +94,18 @@ def negate_strength(value):
 
 def magnet_frame_workaround(obj: type, keywords: dict, integrator_set: str) -> tuple:
     """
-    Work around BDSIM 1.7.7's bdsim* integrator sets tracking quadrupoles and
-    bends in the reference frame, which ignores ``offsetX``,
-    ``offsetY`` and quadrupole ``tilt``. The geant4 sets are fine.
+    Work around BDSIM 1.7.7 placing quadrupole and bend fields in the wrong frame.
 
-    A quadrupole that is offset or tilted goes out as a thick ``multipole``.
-    Warning are emitted for bends.
+    The bdsim* integrator sets track quadrupoles and bends in the reference
+    frame, which ignores offsets and quadrupole ``tilt``: a
+    quadrupole with offset or tilt goes out as a thick ``multipole``, and
+    an offset bend warns.
+
+    The geant4 sets centre a bend's ``k1`` on the chord of each of its straight
+    segments rather than on the arc, which adds a dipole term
+    ``k1 * L * angle / (12 n^2)`` for ``n`` segments. The bend's ``scaling``
+    takes it back off, with ``k1`` divided by the same factor. This assumes
+    ``option, buildPoleFaceGeometry=0``.
 
     Parameters
     ----------
@@ -115,11 +122,21 @@ def magnet_frame_workaround(obj: type, keywords: dict, integrator_set: str) -> t
         The builder class and keywords to use.
     """
     name = obj.__name__
-    if (
-        name not in ("Quadrupole", "SBend", "RBend")
-        or integrator_set in BDSIM_FIELD_INTEGRATOR_SETS
-    ):
+    if name not in ("Quadrupole", "SBend"):
         return obj, keywords
+    if integrator_set in BDSIM_FIELD_INTEGRATOR_SETS:
+        angle, k1 = float(keywords.get("angle") or 0.0), keywords.get("k1") or 0.0
+        if name == "Quadrupole" or not angle or not k1:
+            return obj, keywords
+        length = float(keywords["l"])
+        n = math.ceil(math.sqrt(length * 1e3 * abs(angle) / 2))
+        n += n % 2 == 0
+        scale = 1 - float(k1) * length**2 / (12 * n**2)
+        if isinstance(k1, GmadExpression):
+            k1 = GmadExpression(float(k1) / scale, f"({k1.expression}) / {scale!r}")
+        else:
+            k1 = k1 / scale
+        return obj, dict(keywords, k1=k1, scaling=scale)
     keys = (
         ("offsetX", "offsetY", "tilt")
         if name == "Quadrupole"

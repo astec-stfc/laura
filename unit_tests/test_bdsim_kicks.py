@@ -9,7 +9,7 @@ from shutil import which
 import numpy as np
 import pytest
 
-from laura.models.element import Octupole, Quadrupole, RFMultipole
+from laura.models.element import Dipole, Drift, Octupole, Quadrupole, RFMultipole
 from laura.models.physical import PhysicalElement
 from unit_tests.test_misalignment_export import section
 
@@ -28,20 +28,21 @@ def madx_kick(knl, ksl, dx=0.0, dy=0.0, roll=0.0):
     return kick.real, kick.imag
 
 
-def track(element, tmp_path, integrator_set="bdsimmatrix"):
-    """(dpx, dpy) of one electron through `element`, starting on axis-parallel at (X0, Y0)."""
+def track(element, tmp_path, integrator_set="bdsimmatrix", trailing=()):
+    """(dpx, dpy) of one electron through `element` and any `trailing` elements,
+    starting on axis-parallel at (X0, Y0)."""
     pybdsim = pytest.importorskip("pybdsim")
     pytest.importorskip("ROOT")
     from pybdsim.Beam import Beam
-    from pybdsim.Options import Options
 
     beam = Beam("e-", np.hypot(P0C, 0.51099895e6) / 1e9, "reference")
     beam.SetX0(X0, unitsstring="m")
     beam.SetY0(Y0, unitsstring="m")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        machine = section(element).to_bdsim(beam=beam, charge_sign=-1, integrator_set=integrator_set)
-    machine.AddOptions(Options(integratorSet=f'"{integrator_set}"'))
+        machine = section(element, *trailing).to_bdsim(
+            beam=beam, charge_sign=-1, integrator_set=integrator_set
+        )
     machine.AddSampler("all")
     machine.Write(str(tmp_path / "lat.gmad"))
     subprocess.run(
@@ -107,6 +108,28 @@ def test_misaligned_quadrupole(tmp_path, integrator_set, tilt, error):
     twiss = madx.twiss(betx=1, bety=1, x=X0, y=Y0)
     expected = (twiss.px[-1], twiss.py[-1])
     assert track(quad, tmp_path, integrator_set) == pytest.approx(expected, rel=1e-5)
+
+
+@pytest.mark.parametrize("integrator_set", ["bdsimmatrix", "bdsimtwo", "geant4"])
+@pytest.mark.parametrize("k1l, edge", [(0.3, 0.0), (0.0, 0.05), (0.3, 0.05), (-0.3, 0.05)])
+def test_combined_function_bend(tmp_path, integrator_set, k1l, edge):
+    """The geant4 sets centre k1 on each segment's chord, and the non-matrix
+    sets lose vertical edge focusing with pole-face geometry built. The
+    drift gives the geant4 sets a sampler, which none places on an angled face."""
+    madx = pytest.importorskip("cpymad.madx").Madx(stdout=False)
+    bend = Dipole(name="B1", machine_area="T", physical=PhysicalElement(length=0.5))
+    bend.magnetic.length = 0.5
+    bend.magnetic.multipoles.K0L.normal = 0.1
+    bend.magnetic.multipoles.K1L.normal = k1l
+    bend.magnetic.entrance_edge_angle = bend.magnetic.exit_edge_angle = edge
+    drift = Drift(name="D1", machine_area="T", physical={"length": 0.1})
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        madx.input(section(bend, drift).to_madx(beam={"particle": "electron", "pc": P0C / 1e9}))
+    twiss = madx.twiss(betx=1, bety=1, x=X0, y=Y0)
+    expected = (twiss.px[-1], twiss.py[-1])
+    got = track(bend, tmp_path, integrator_set, trailing=(drift,))
+    assert got == pytest.approx(expected, abs=2e-7)
 
 
 @pytest.mark.parametrize("integrator_set", ["bdsimmatrix", "bdsimone", "geant4"])

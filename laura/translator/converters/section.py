@@ -41,7 +41,6 @@ from ..utils.functions import (
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
-from .magnet import MagnetTranslator, SolenoidTranslator
 from .codes import (
     astra_unsupported,
     bdsim_unsupported,
@@ -61,6 +60,7 @@ from .codes import (
 from .codes.gpt import GptCcs, GptDtMinT, GptZMinMax
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
+from .magnet import MagnetTranslator, SolenoidTranslator
 from .wake import WakefieldTranslator
 
 unsupported_elements = {
@@ -1542,11 +1542,14 @@ class SectionLatticeTranslator(SectionLattice):
         Returns
         -------
         Machine
-            A BDSIM `Machine` object.
+            A BDSIM `Machine` object, with its ``integratorSet`` and
+            ``buildPoleFaceGeometry=0`` options set; add to ``machine.options``
+            rather than replacing them.
         """
+        from pybdsim.Beam import Beam
         from pybdsim.Builder import Machine
         from pybdsim.Builder import Marker as Marker_bds
-        from pybdsim.Beam import Beam
+        from pybdsim.Options import Options
 
         from ..utils.functions import bdsim_functional_definitions
 
@@ -1581,6 +1584,9 @@ class SectionLatticeTranslator(SectionLattice):
             elements.extend(built if isinstance(built, list) else [built])
 
         machine = Machine()
+        machine.AddOptions(
+            Options(integratorSet=f'"{integrator_set}"', buildPoleFaceGeometry=0)
+        )
         sanitized_name = self.name.replace("-", "_")
         definitions = bdsim_functional_definitions(self.functional_definitions)
         variables_file = f"{sanitized_name}_variables.gmad"
