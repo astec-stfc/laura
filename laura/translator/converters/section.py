@@ -457,7 +457,7 @@ class SectionLatticeTranslator(SectionLattice):
             if element.name in superimposed_names:
                 continue
             start, end = s_bounds(element)
-            if previous_end is not None and start < previous_end - 1e-12:
+            if previous_end is not None and start < previous_end - 1e-9:
                 superimposed_names.add(element.name)
             else:
                 backbone.append(element)

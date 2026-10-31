@@ -827,6 +827,28 @@ def test_bmad_section_superimposes_overlapping_elements():
     ) in text
 
 
+def test_bmad_section_ignores_rounding_overlaps():
+    """An imported lattice's s carries ~1e-11 m of rounding: not an overlap, and
+    a drift cannot be superimposed anyway (LCLS cu_hxr has 602 of them)."""
+    from laura.models.element import Drift
+
+    first = quad("Q-1", 1, 0.2, middle=Position(z=0.5))
+    gap = Drift(name="D-1", machine_area="S", hardware_class="Drift",
+                physical=PhysicalElement(length=1, middle=Position(z=1.5 - 5e-12)))
+    last = quad("Q-2", 1, 0.2, middle=Position(z=2.5))
+    section = SectionLattice(
+        name="TOUCH",
+        order=["Q-1", "D-1", "Q-2"],
+        elements=ElementList(elements={e.name: e for e in (first, gap, last)}),
+    )
+
+    text = _export(section)
+
+    assert "superimpose" not in text
+    line = next(row for row in text.splitlines() if row.startswith("TOUCH: line"))
+    assert line.index("Q_1") < line.index("D_1") < line.index("Q_2")
+
+
 def test_bmad_section_uses_thin_kicker_inside_bend():
     bend = Dipole(
         name="B",
