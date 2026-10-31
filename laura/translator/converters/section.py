@@ -40,7 +40,6 @@ from ..utils.functions import (
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
-from .magnet import MagnetTranslator, SolenoidTranslator
 from .codes import (
     astra_unsupported,
     bmad_unsupported,
@@ -57,6 +56,7 @@ from .codes import (
 from .codes.gpt import GptCcs, GptDtMinT, GptZMinMax
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
+from .magnet import MagnetTranslator, SolenoidTranslator
 from .wake import WakefieldTranslator
 
 unsupported_elements = {
@@ -427,7 +427,7 @@ class SectionLatticeTranslator(SectionLattice):
             if element.name in superimposed_names:
                 continue
             start, end = s_bounds(element)
-            if previous_end is not None and start < previous_end - 1e-12:
+            if previous_end is not None and start < previous_end - 1e-9:
                 superimposed_names.add(element.name)
             else:
                 backbone.append(element)
