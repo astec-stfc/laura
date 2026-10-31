@@ -18,7 +18,7 @@ class WakefieldTranslator(BaseElementTranslator):
 
     def to_bmad(self) -> str:
         """
-        Generate a drift carrying a short-range wake for Bmad.
+        Generate a pipe carrying a short-range wake for Bmad.
 
         Returns
         -------
@@ -26,8 +26,8 @@ class WakefieldTranslator(BaseElementTranslator):
             String representation of the element for Bmad
         """
         self.start_write()
-        parameters = self._bmad_sr_wake(self._bmad_parameters("drift"))
-        return self._format_bmad("drift", parameters)
+        parameters = self._bmad_sr_wake(self._bmad_parameters("pipe"))
+        return self._format_bmad("pipe", parameters)
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
