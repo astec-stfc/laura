@@ -666,6 +666,7 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += header.write_gpt()
         elem_dict = self._translate()
         self._apply_wakefield_enable(elem_dict)
+        self._apply_tw_focusing(elem_dict)
         kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
