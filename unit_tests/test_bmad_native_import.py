@@ -979,11 +979,53 @@ def test_the_exported_wake_tracks_the_way_the_modes_it_came_from_do(
         tmp_path, _WAKE_HEADER + _to_bmad(section, particle="Electron"), "sampled.bmad"
     )
 
+    # the same per-cell wake on a standalone Wakefield, which Bmad needs as a pipe
+    from laura.models.element import Wakefield
+
+    n_cells = element.cavity.n_cells
+    pipe = Wakefield(
+        name="W1",
+        machine_area="L",
+        physical={"length": 2.0, "middle": Position(z=1.0)},
+        cavity={"n_cells": n_cells, "cell_length": 2.0 / n_cells},
+        simulation={"wakefield_definition": element.simulation.wakefield_definition},
+    )
+    piped = _write(
+        tmp_path,
+        _WAKE_HEADER
+        + _to_bmad(
+            SectionLattice(name="L", order=["W1"], elements=[pipe], geometry="open"),
+            particle="Electron",
+        ),
+        "piped.bmad",
+    )
+    assert "W1: pipe" in piped.read_text()
+
     from_modes, from_table = track(modes), track(sampled)
 
     # Point particles interpolate the table, so agreement is ~1e-7.
     assert from_table == pytest.approx(from_modes, rel=1e-6)
+    assert track(piped) == pytest.approx(from_modes, rel=1e-6)
     assert from_modes[0] < 0.0
+
+
+def test_a_wake_on_a_pipe_is_imported_as_a_wakefield(tmp_path):
+    """A Bmad drift cannot carry a wake, so LAURA's Wakefield goes out as a pipe."""
+    source = _write(
+        tmp_path,
+        _WAKE_HEADER
+        + "P1: pipe, l = 0.5, sr_wake = {z_max = 0.01, amp_scale = 1,\n"
+        "    scale_with_length = F, longitudinal = {5e13, 500, 1000, 0.25, none}}\n"
+        "Q1: quadrupole, l = 0.1, k1 = 1\n"
+        "L: line = (P1, Q1)\nuse, L\n",
+        "pipe.bmad",
+    )
+    elements = _elements(source, position_mode="s")
+
+    assert elements["P1"].hardware_type == "Wakefield"
+    wake = elements["P1"].simulation.wakefield_definition
+    assert wake.Wz.value.val[0] == pytest.approx(5.0e13)
+    assert wake.reference_length == pytest.approx(0.5)
 
 
 def test_bmad_split_bend_keeps_its_exit_fringe_field(tmp_path):
