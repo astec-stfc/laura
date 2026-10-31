@@ -6,6 +6,7 @@ import numpy as np
 from laura.models.constants import speed_of_light
 
 from .field_parameter import require_rf, set_field
+from laura.models.constants import speed_of_light
 from .sdds import write_sdds_field_file
 
 d = ",!?/&-:;@'\n \t"
@@ -19,6 +20,17 @@ def opal_tw_window(field, frequency: float) -> tuple[float, float]:
     """
     period = speed_of_light / frequency
     return field.start_cell_z - period / 2, field.start_cell_z + 3 * period / 2
+
+def opal_tw_window(field, frequency: float) -> tuple[float, float]:
+    """
+    The stretch of an ASTRA-style travelling-wave map that OPAL's ``TRAVELINGWAVE``
+    reads: two RF periods, the first full period starting at ``start_cell_z``.
+    OPAL takes the period as half the map's length and the core as starting half a
+    period in, so a map with longer couplers gets the wrong cell length.
+    """
+    period = speed_of_light / frequency
+    return field.start_cell_z - period / 2, field.start_cell_z + 3 * period / 2
+
 
 def write_opal_field_file(
     self,

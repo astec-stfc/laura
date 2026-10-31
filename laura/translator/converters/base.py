@@ -992,6 +992,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         etype = self._convert_type_opal(self.hardware_type)
         if etype.lower() == "drift":
             return ""
+        brho = -(designenergy or 0) * 1e6 / 299792458.0
         wholestring = f"{self.name.replace('-', '_')}: {etype}"
         brho = -(designenergy or 0) * 1e6 / 299792458.0
         for key, value in self._dump_items(

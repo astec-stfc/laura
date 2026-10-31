@@ -32,6 +32,7 @@ from ..utils.bmad import (
 )
 from ..utils.fields import FieldMap
 from ..utils.functions import (
+    cavity_energy_gain,
     bmad_functional_definitions,
     cavity_energy_gain,
     elegant_functional_definitions,
@@ -855,6 +856,14 @@ class SectionLatticeTranslator(SectionLattice):
                 Brho = np.sqrt(kinetic * (kinetic + 2 * mc2)) / speed_of_light
             if not isinstance(element, MagnetTranslator):
                 element._warn_dropped_misalignment("gpt", set())
+            if isinstance(element, RFCavityTranslator):
+                mc2 = electron_mass * speed_of_light**2 / elementary_charge
+                kinetic = (
+                    np.hypot(Brho * speed_of_light, mc2)
+                    - mc2
+                    + cavity_energy_gain(element) * 1e6
+                )
+                Brho = np.sqrt(kinetic * (kinetic + 2 * mc2)) / speed_of_light
             if (
                 element.hardware_type.lower() == "rfcavity"
                 and isinstance(element.simulation.wakefield_definition, FieldMap)

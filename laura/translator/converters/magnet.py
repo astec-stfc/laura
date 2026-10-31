@@ -1345,7 +1345,7 @@ class CorrectorTranslator(BaseElementTranslator):
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
         if self.physical.length:
             return super().to_opal(sval, designenergy)
-        length = speed_of_light * self.opal_time_step
+        length = 10 * speed_of_light * self.opal_time_step
         thin = self.model_copy(deep=True)
         thin.physical.length = thin.magnetic.length = length
         return BaseElementTranslator.to_opal(thin, sval - length / 2, designenergy)
