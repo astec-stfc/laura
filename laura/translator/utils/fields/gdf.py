@@ -108,7 +108,13 @@ def write_gdf_field_file(self, tw_cells: int | None = None) -> str:
                 ),
             )
             return gdf_file
-    gdf_file = self._output_filename(extension=".gdf")
+    travelling = (
+        self.field_type == "1DElectroDynamic" and self.cavity_type == "TravellingWave"
+    )
+    # the TW mock-up spans the whole structure, so structures sharing a map need their own file
+    gdf_file = self._output_filename(
+        extension=f"_{self.n_cells:g}cells.gdf" if travelling else ".gdf"
+    )
     blocks = None
     zdata = self.z.value.val
     if self.field_type in _GDF_BLOCKS:

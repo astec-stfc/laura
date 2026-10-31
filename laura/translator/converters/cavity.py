@@ -851,7 +851,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 f"phi{subname} = {(self.cavity.crest + 90 - self.phase + 0) % 360.0!s}/deg;\n"
             )
             if self.structure_type == "TravellingWave" and not travelling:
-                output += f"ffac{subname} = 1.007 * {9.0 / (2.0 * np.pi) * self.field_amplitude!s};\n"
+                output += f"ffac{subname} = {self._gpt_tw_ffac()!s};\n"
             else:
                 output += f"ffac{subname} = {self.field_amplitude!s};\n"
 

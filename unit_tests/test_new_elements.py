@@ -536,11 +536,12 @@ class TestMadxCavityAndAperture:
         assert '"Ez_im"' in maps[1] and "+ pi/2" in maps[1]
         assert any(line.startswith("ffac") and line.endswith("= 20000000.0;") for line in lines)
         assert (tmp_path / "tws_tw6cells.gdf").exists()
-        # without TW focusing, the old full-length standing-wave mock-up
+        # without TW focusing, the full-length standing-wave mock-up, gain set from the map
         tr.tw_focusing = False
         tr.simulation.field_definition.n_cells = 6
         out = tr.to_gpt()
-        assert out.count("map1D_TM") == 1 and "1.007 *" in out and "Ez_im" not in out
+        assert out.count("map1D_TM") == 1 and "Ez_im" not in out
+        assert f"= {tr._gpt_tw_ffac()};" in out and "1.007" not in out
 
     def test_standing_wave_cavity_elegant_uses_default_body_focus_model(self):
         cav = RFCavity(
