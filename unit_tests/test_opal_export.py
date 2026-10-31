@@ -66,9 +66,9 @@ def test_opal_quadrupole_k1_is_a_gradient():
     assert float(re.search(r"k1 = ([^,]+)", written).group(1)) == pytest.approx(-10.0)
 
 
-def test_opal_correctors_are_kickers_and_thin_ones_last_one_time_step():
-    """OPAL's hkicker/vkicker don't take hkick/vkick, and it rejects a corrector
-    shorter than one time step; both aborted the run."""
+def test_opal_correctors_are_kickers_and_thin_ones_last_ten_time_steps():
+    """OPAL's hkicker/vkicker don't take hkick/vkick, and it rejects an element
+    shorter than ten time steps of drift; both aborted the run."""
     def corrector(length):
         return translate(
             HorizontalCorrector(name="X", machine_area="S", physical={"length": length},
@@ -78,7 +78,7 @@ def test_opal_correctors_are_kickers_and_thin_ones_last_one_time_step():
     thin = corrector(0.0)
     thin.opal_time_step = 2e-12
     written = thin.to_opal(sval=1.0)
-    step = 299792458.0 * 2e-12
+    step = 10 * 299792458.0 * 2e-12
     assert float(re.search(r"\bl = ([^,]+)", written).group(1)) == pytest.approx(step)
     assert float(re.search(r"ELEMEDGE = ([^;]+)", written).group(1)) == pytest.approx(1.0 - step / 2)
     assert "hkick = 0.001" in written
