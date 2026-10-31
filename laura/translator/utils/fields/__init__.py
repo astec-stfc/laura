@@ -406,7 +406,8 @@ class FieldMap(BaseModel):
         location: str | None:
             Optional; if provided, it specifies the directory where the output file will be saved.
         **kwargs
-            Passed to :func:`~laura.translator.utils.fields.bmad.write_bmad_field_file`.
+            Passed to :func:`~laura.translator.utils.fields.bmad.write_bmad_field_file`
+            or :func:`~laura.translator.utils.fields.gdf.write_gdf_field_file`.
 
         Returns
         -------
@@ -427,7 +428,7 @@ class FieldMap(BaseModel):
         elif code.lower() in ["sdds", "elegant"]:
             return sdds.write_sdds_field_file(self)
         elif code.lower() in ["gdf", "gpt"]:
-            return gdf.write_gdf_field_file(self)
+            return gdf.write_gdf_field_file(self, **kwargs)
         elif code.lower() == "opal":
             return opal.write_opal_field_file(
                 self,

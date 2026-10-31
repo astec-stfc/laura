@@ -23,7 +23,56 @@ _GDF_WAKES = {
 }
 
 
-def write_gdf_field_file(self) -> str:
+def gpt_tw_field(self, n_cells: int) -> tuple:
+    """
+    A travelling-wave structure as GPT can track it: two standing waves a quarter
+    period apart in time, built as ASTRA builds its ``TWS`` element. The input and
+    output couplers are standing-wave cells. Between them the periodic part of the
+    map (``start_cell_z`` to ``end_cell_z``) repeats over ``n_cells`` cells, with an
+    imaginary part from the Floquet shift by one cell ``d`` (Loew et al.,
+    SLAC-PUB-2295): ``S(z) = (T(z + d) - T(z) cos(theta)) / sin(theta)``.
+    ``T cos(wt + phi) - S sin(wt + phi)`` is then a forward wave through the body.
+
+    Parameters
+    ----------
+    self: :class:`~laura.translator.utils.fields.FieldMap`
+        A travelling-wave field map
+    n_cells: int
+        Number of periodic cells, excluding the couplers (ASTRA's ``C_numb``)
+
+    Returns
+    -------
+    tuple:
+        z [m], then the real (T) and imaginary (S) on-axis fields, normalised to
+        the map's peak
+    """
+    z = np.asarray(self.z.value.val, dtype=float)
+    ez = np.asarray(self.Ez.value.val, dtype=float)
+    z1, z2 = float(self.start_cell_z), float(self.end_cell_z)
+    theta = 2 * np.pi * self.mode_numerator / self.mode_denominator
+    if abs(np.sin(theta)) < 1e-6:
+        raise ValueError(
+            "GPT's travelling-wave model needs a phase advance per cell other "
+            f"than 0 or pi, not {theta} rad"
+        )
+    cell = abs(theta) * speed_of_light / (2 * np.pi * self.frequency)
+    dz = z[1] - z[0]
+
+    def periodic(zz):
+        return np.interp(z1 + np.mod(zz - z1, z2 - z1), z, ez)
+
+    zbody = z1 + np.arange(int(round(n_cells * cell / dz))) * dz
+    tbody = periodic(zbody)
+    sbody = (periodic(zbody + cell) - tbody * np.cos(theta)) / np.sin(theta)
+    before, after = z < z1 - dz / 2, z >= z2 - dz / 2
+    zall = np.concatenate([z[before], zbody, z[after] + z1 + n_cells * cell - z2])
+    t = np.concatenate([ez[before], tbody, ez[after]])
+    s = np.concatenate([np.zeros(before.sum()), sbody, np.zeros(after.sum())])
+    peak = np.abs(ez).max()
+    return zall, t / peak, s / peak
+
+
+def write_gdf_field_file(self, tw_cells: int | None = None) -> str:
     """
     Write the field data of a :class:`~laura.translator.utils.fields.FieldMap`
     to a GPT GDF file, in a format set by `field_type`. Unsupported field
@@ -33,19 +82,33 @@ def write_gdf_field_file(self) -> str:
     ----------
     self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object
+    tw_cells: int | None
+        For a travelling-wave map, write the two-standing-wave model of
+        :func:`gpt_tw_field` over this many periodic cells, as columns ``Ez`` and
+        ``Ez_im``. Without it, a travelling-wave map is written as one
+        full-length standing wave.
 
     Returns
     -------
     str:
         The name of the GDF field file.
     """
-    travelling = (
-        self.field_type == "1DElectroDynamic" and self.cavity_type == "TravellingWave"
-    )
-    # the TW mock-up spans the whole structure, so structures sharing a map need their own file
-    gdf_file = self._output_filename(
-        extension=f"_{self.n_cells:g}cells.gdf" if travelling else ".gdf"
-    )
+    if self.field_type == "1DElectroDynamic" and tw_cells is not None:
+        if self.cavity_type == "TravellingWave":
+            zdata, real, imag = gpt_tw_field(self, tw_cells)
+            gdf_file = self._output_filename(extension=f"_tw{tw_cells}cells.gdf")
+            easygdf.save(
+                gdf_file,
+                union(
+                    [
+                        {"name": "z", "value": zdata},
+                        {"name": "Ez", "value": real},
+                        {"name": "Ez_im", "value": imag},
+                    ]
+                ),
+            )
+            return gdf_file
+    gdf_file = self._output_filename(extension=".gdf")
     blocks = None
     zdata = self.z.value.val
     if self.field_type in _GDF_BLOCKS:
