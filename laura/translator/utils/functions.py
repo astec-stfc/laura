@@ -1,18 +1,29 @@
 import math
-import re
 import os
+import re
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    get_args,
+    get_origin,
+)
 
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
-from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.models.base_models import IgnoreExtra
 from laura.models.constants import speed_of_light
-from laura.models.element import Magnet
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, get_args, get_origin
-from .fields import FieldMap
+from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.utils.naming import number_repeated_names  # noqa: F401 (re-exported)
+
+from .fields import FieldMap
 
 
 def same_element_placement(left: Any, right: Any) -> bool:
