@@ -104,7 +104,7 @@ class TestConversionRulesTable:
             "Drift", "Quadrupole", "Dipole", "Sextupole", "Octupole", "Solenoid",
             "Undulator", "Horizontal_Corrector", "Vertical_Corrector",
             "Combined_Corrector", "RFCavity", "Beam_Position_Monitor", "Screen",
-            "Aperture", "Collimator", "Marker",
+            "Aperture", "Collimator", "Marker", "Wakefield",
         ],
     )
     def test_hardware_type_mapped(self, hardware_type):
@@ -733,3 +733,265 @@ class TestRealRFTrackFieldMap:
 
         assert gain(1) > 1.0
         assert gain(1) > 5 * gain(-1)
+
+
+def _wake(z, **tables):
+    return SimpleNamespace(
+        z_values=np.asarray(z, dtype=float),
+        **{k: SimpleNamespace(value=_fake_val(v)) for k, v in tables.items()},
+    )
+
+
+class TestWakefieldArgs:
+    def test_units_sign_and_scale(self):
+        """V/C -> V/pC and V/C/m -> V/pC/mm, per metre; transverse sign flipped."""
+        wake = _wake([0, 1e-3, 2e-3], Wz=[1e12, 2e12, 3e12], Wx=[1e15, 1e15, 1e15])
+        w_t, w_l, hz, nbins = fields_rftrack.wakefield_1d_args(wake, factor=2.0)
+        assert w_l == pytest.approx([2, 4, 6])
+        assert w_t == pytest.approx([-2, -2, -2])
+        assert (hz, nbins) == (pytest.approx(1e-3), 501)
+
+    def test_wy_without_wx_and_zeros_without_either(self):
+        w_t, _, _, _ = fields_rftrack.wakefield_1d_args(_wake([0, 1], Wy=[1e15, 1e15]), 1.0)
+        assert w_t == pytest.approx([-1, -1])
+        w_t, w_l, _, _ = fields_rftrack.wakefield_1d_args(_wake([0, 1], Wz=[1e12, 1e12]), 1.0)
+        assert w_t == pytest.approx([0, 0])
+        assert w_l == pytest.approx([1, 1])
+
+    def test_must_start_at_zero(self):
+        with pytest.raises(ValueError, match="start at z = 0"):
+            fields_rftrack.wakefield_1d_args(_wake([1e-3, 2e-3], Wz=[1, 1]), 1.0)
+
+
+class TestRealRFTrackWake:
+    N_CELLS, LENGTH, W0 = 10, 0.5, 1e13  # cells, m, V/C (/m) per cell
+
+    def _wake_element(self, tmp_path, rft, length_attr=None):
+        h5py = pytest.importorskip("h5py")
+        from laura.models.physical import PhysicalElement
+        from laura.models.rf import WakefieldElement
+        from laura.models.simulation import WakefieldSimulationElement
+        from laura.translator.converters.wake import WakefieldTranslator
+
+        path = tmp_path / "wake.hdf5"
+        z = np.linspace(0, 0.01, 101)
+        with h5py.File(path, "w") as f:
+            f.attrs["type"] = "3DWake"
+            if length_attr:
+                f.attrs["length"] = length_attr
+            for name, units in (("z", "m"), ("Wz", "V/C"), ("Wx", "V/C/m"), ("Wy", "V/C/m")):
+                f.create_dataset(name, data=z if name == "z" else np.full_like(z, self.W0))
+                f[name].attrs["units"] = units
+        return WakefieldTranslator(
+            name="W1",
+            hardware_class="Wakefield",
+            hardware_type="Wakefield",
+            machine_area="SEC",
+            physical=PhysicalElement(middle=[0, 0, self.LENGTH / 2], length=self.LENGTH),
+            cavity=WakefieldElement(cell_length=self.LENGTH / self.N_CELLS, n_cells=self.N_CELLS),
+            simulation=WakefieldSimulationElement(wakefield_definition=str(path)),
+            directory=str(tmp_path),
+        )
+
+    @staticmethod
+    def _track(rft, element, x_mm=0.0, charge_pC=100.0, P=1000.0):
+        rng = np.random.default_rng(1)
+        M = np.zeros((20000, 6))
+        M[:, 0], M[:, 4], M[:, 5] = x_mm, rng.normal(0, 1.0, len(M)), P
+        lattice = rft.Lattice()
+        for e in element if isinstance(element, list) else [element]:
+            lattice.append(e)
+        bunch = rft.Bunch6d(rft.electronmass, charge_pC * 1e-12 / 1.602176634e-19, -1, M)
+        return lattice.track(bunch).get_phase_space("%xp %P")
+
+    def test_constant_wake_loses_half_of_n_cells_wakes(self, tmp_path, rft):
+        """A constant wake W per cell takes n_cells * W * Q / 2 from the bunch on
+        average; a +x offset with W > 0 kicks outwards, as LAURA's (Xsuite's) tables."""
+        element = self._wake_element(tmp_path, rft).to_rftrack()
+        loss = (1000.0 - self._track(rft, element)[:, 1].mean()) * 1e6  # eV
+        assert loss == pytest.approx(self.N_CELLS * self.W0 * 100e-12 / 2, rel=0.01)
+        xp = self._track(rft, element, x_mm=1.0)[:, 0].mean() * 1e-3  # rad
+        kick = self.N_CELLS * self.W0 * 100e-12 * 1e-3 / 2  # V for a 1 mm offset
+        assert xp == pytest.approx(kick / 1000e6, rel=0.01)
+
+    def test_wake_over_a_reference_length_goes_in_once_per_length(self, tmp_path, rft):
+        element = self._wake_element(tmp_path, rft, length_attr=self.LENGTH / 2).to_rftrack()
+        loss = (1000.0 - self._track(rft, element)[:, 1].mean()) * 1e6
+        assert loss == pytest.approx(2 * self.W0 * 100e-12 / 2, rel=0.01)
+
+    def test_a_zero_length_element_applies_its_wake_once(self, tmp_path, rft):
+        """As Bmad's ``scale_with_length = F`` wake on a marker (LCLS's resistive-wall ones)."""
+        translator = self._wake_element(tmp_path, rft)
+        translator.physical.length = 0.0
+        loss = (1000.0 - self._track(rft, translator.to_rftrack())[:, 1].mean()) * 1e6
+        assert loss == pytest.approx(self.W0 * 100e-12 / 2, rel=0.01)
+        lines, _ = translator.to_rftrack_repr("w")
+        assert "w_1 = rft.Drift(1e-09)" in lines
+
+    def test_disabled_wake_is_not_applied(self, tmp_path, rft):
+        translator = self._wake_element(tmp_path, rft)
+        translator.simulation.wakefield_enable = False
+        loss = 1000.0 - self._track(rft, translator.to_rftrack())[:, 1].mean()
+        assert loss == pytest.approx(0.0, abs=1e-12)
+
+    def test_repr_carries_the_wake(self, tmp_path, rft):
+        lines, (vn,) = self._wake_element(tmp_path, rft).to_rftrack_repr("w")
+        assert any(line.startswith("w.add_collective_effect(rft.Wakefield_1d(") for line in lines)
+        assert "w.set_cfx_nsteps(1)" in lines
+
+
+class _Placed:
+    """A stand-in RF-Track object, named after the class to place."""
+
+    def __init__(self, length):
+        self.length = length
+
+    def get_length(self):
+        return self.length
+
+
+class TestVolumePlacement:
+    @staticmethod
+    def _translator(start, theta=0.0, field_ref=None, z0=0.0):
+        c, s = np.cos(theta), np.sin(theta)
+        return SimpleNamespace(
+            physical=SimpleNamespace(
+                start=SimpleNamespace(array=np.asarray(start, dtype=float)),
+                rotation_matrix=np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]]),
+            ),
+            simulation=SimpleNamespace(field_definition=SimpleNamespace(z_values=[z0, z0 + 1])),
+            get_field_reference_position=lambda: np.asarray(field_ref, dtype=float),
+            roll=0.0, dz_rot=0.0, _curved=False,
+        )
+
+    def test_field_map_starts_at_its_first_sample_from_the_reference(self):
+        """A solenoid map centred on its reference, overlapping the element before it."""
+        fieldmap = type("Static_Magnetic_FieldMap_1d", (_Placed,), {})(0.6)
+        d = self._translator([0, 0, 1.0], field_ref=[0, 0, 1.1], z0=-0.3)
+        ((x, y, z, roll, pitch, yaw),) = SectionLatticeTranslator._rftrack_placements(
+            d, [fieldmap], np.array([0, 0, 0.5]), np.eye(3)
+        )
+        assert (x, y, z, yaw) == pytest.approx((0, 0, 0.3, 0))
+
+    def test_other_elements_at_their_entrance_and_lists_end_to_end(self):
+        d = self._translator([0.1, 0, 2.0], theta=0.2)
+        placements = SectionLatticeTranslator._rftrack_placements(
+            d, [_Placed(1.0), _Placed(0.5)], np.zeros(3), np.eye(3)
+        )
+        assert placements[0][:3] == pytest.approx((0.1, 0, 2.0))
+        assert placements[1][:3] == pytest.approx((0.1 + np.sin(0.2), 0, 2.0 + np.cos(0.2)))
+        assert placements[0][5] == pytest.approx(0.2)  # yaw turns +z towards +x
+
+
+class TestRealRFTrackVolume:
+    @staticmethod
+    def _ref(rft, P):
+        return rft.Bunch6dT(np.array([[0, 0, 0, 0, 0, P, rft.electronmass, -1.0, 1.0, 0.0]]))
+
+    @staticmethod
+    def _options(rft):
+        options = rft.TrackingOptions()
+        options.dt_mm = 0.1
+        options.odeint_epsabs = 1e-6  # RF-Track's 1e-3 adds urad of noise in a bend
+        return options
+
+    @staticmethod
+    def _bend_then_marker(e1, e2):
+        """A 0.1 rad, 0.5 m dipole and a marker 0.2 m after it, laid out by LAURA."""
+        dipole = Dipole(
+            name="D1",
+            machine_area="SEC",
+            magnetic={"length": 0.5, "angle": 0.1, "entrance_edge_angle": e1, "exit_edge_angle": e2},
+            physical={"length": 0.5, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
+        )
+        exit_dir = dipole.physical.end_rotation_matrix[:, 2]
+        marker = Marker(
+            name="M1",
+            machine_area="SEC",
+            physical={
+                "length": 0.0,
+                "middle": list(dipole.physical.end.array + 0.2 * exit_dir),
+                "global_rotation": {"theta": -0.1},
+            },
+        )
+        assert marker.physical.rotation_matrix[:, 2] == pytest.approx(exit_dir)
+        section = SectionLattice(
+            name="SEC", order=["D1", "M1"],
+            elements=ElementList(elements={"D1": dipole, "M1": marker}),
+        )
+        return SectionLatticeTranslator.from_section(section).to_rftrack_volume()
+
+    @staticmethod
+    def _at_marker(volume):
+        (bunch,) = [
+            b for s, b in zip(volume.get_screens(), volume.get_bunch_at_screens())
+            if s.get_name() == "M1"
+        ]
+        return bunch
+
+    @pytest.mark.parametrize("e1", [0.0, 0.1])  # rectangular, either face square
+    def test_bend_delivers_the_beam_onto_the_next_element(self, rft, e1):
+        """A bend's arc sends the reference to the next element's entrance on
+        axis, with LAURA's layout and RF-Track's bend direction."""
+        volume = self._bend_then_marker(e1, 0.1 - e1)
+        options = self._options(rft)
+        assert rftrack_conversion.autophase_volume(volume, self._ref(rft, 100.0), options) == pytest.approx(100.0)
+        volume.track(self._ref(rft, 100.0), options)
+        x, xp = self._at_marker(volume).get_phase_space("%x %xp")[0]
+        assert (x, xp) == pytest.approx((0.0, 0.0), abs=1e-4)  # mm, mrad
+
+    @pytest.mark.parametrize("e1, e2", [(0.0, 0.0), (0.0, 0.1), (0.1, 0.0)])
+    def test_bend_edges_match_a_lattice_sbend(self, rft, e1, e2):
+        """Arc and edge quadrupoles transport x, xp, y, yp and dP/P as RF-Track's
+        own Lattice SBend with e1, e2 does. Measured 1e-3 mm or mrad."""
+        volume = self._bend_then_marker(e1, e2)
+        options = self._options(rft)
+        P, mass = 100.0, rft.electronmass
+        start = volume.get_quadrupoles()[0].get_position().get_origin()[2, 0]
+        ref = rft.Bunch6dT(np.array([[0, 0, 0, 0, start, P, mass, -1.0, 1.0, 0.0]]))
+        rftrack_conversion.autophase_volume(volume, ref, options)
+        kicks = np.vstack([np.eye(4), np.zeros(4)])  # 1 mm, 1 mrad, then 1% off momentum
+        momenta = P * np.array([1, 1, 1, 1, 1.01])
+        volume.track(rft.Bunch6dT(np.column_stack([
+            kicks[:, 0], momenta * kicks[:, 1] * 1e-3, kicks[:, 2], momenta * kicks[:, 3] * 1e-3,
+            np.full(5, start), momenta, np.full(5, mass), np.full(5, -1.0), np.ones(5), np.zeros(5),
+        ])), options)
+        lattice = rft.Lattice()
+        # LAURA lays this bend out towards +x, an electron's -angle in RF-Track
+        lattice.append(rft.SBend(0.5, -0.1, -P, -e1, -e2))
+        lattice.append(rft.Drift(0.2))
+        expected = lattice.track(rft.Bunch6d(np.column_stack([
+            kicks, np.zeros(5), momenta, np.full(5, mass), np.full(5, -1.0), np.ones(5),
+        ])))
+        got = self._at_marker(volume).get_phase_space("%x %xp %y %yp")
+        assert got == pytest.approx(expected.get_phase_space("%x %xp %y %yp"), abs=2e-3)
+
+    def test_autophase_volume_sets_magnets_to_the_accelerated_momentum(self, rft):
+        volume = rft.Volume()
+        volume.add(rft.Pillbox_Cavity(np.array([20e6]), 3e9, 0.05, 1), 0.0, 0.0, 0.0, "entrance")
+        volume.add(rft.Quadrupole(0.1, float("nan"), 2.0), 0.0, 0.0, 0.2, "entrance")
+        options = rft.TrackingOptions()
+        options.dt_mm = 0.1
+        P = rftrack_conversion.autophase_volume(volume, self._ref(rft, 100.0), options)
+        assert P > 100.5
+        (quad,) = volume.get_quadrupoles()
+        # P at the quad's entrance, a time step short of the end: within 1e-5
+        assert quad.get_strength() == pytest.approx(P / -1 * 2.0 * 0.1, rel=1e-5)
+        volume.track(self._ref(rft, 100.0), options)
+        assert volume.get_bunch_at_s1().get_phase_space("%Pc")[0, 0] == pytest.approx(P, rel=1e-5)
+
+    def test_saved_script_rebuilds_the_volume(self, tmp_path, rft, sample_quad, sample_dipole):
+        section = SectionLattice(
+            name="SEC", order=["Q1", "D1"],
+            elements=ElementList(elements={"Q1": sample_quad, "D1": sample_dipole}),
+        )
+        translator = SectionLatticeTranslator.from_section(section)
+        translator.directory = str(tmp_path)
+        built = translator.to_rftrack_volume(save=True)
+        namespace = {}
+        exec((tmp_path / "SEC.py").read_text(), namespace)
+        assert namespace["volume"].get_length() == pytest.approx(built.get_length())
+        (bend,) = namespace["volume"].get_sbends()
+        (built_bend,) = built.get_sbends()
+        assert bend.get_length() == pytest.approx(built_bend.get_length())
+        assert bend.get_angle() == pytest.approx(built_bend.get_angle())

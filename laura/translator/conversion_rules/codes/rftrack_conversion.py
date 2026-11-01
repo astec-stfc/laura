@@ -53,6 +53,9 @@ def space_charge_engine(npart, sample_interval: int = 1, mirror_z=None):
     the nearest power of two to the cube root of the (down-sampled) particle
     count, minimum 4 (``laura.translator.utils.classes.get_grid_size``).
 
+    Install it as ``RF_Track.cvar.SC_engine``: RF-Track 2.7.4 tracks a ``Lattice``
+    or ``Volume`` with that global engine and ignores their ``set_sc_engine``.
+
     Parameters
     ----------
     npart: int
@@ -77,6 +80,57 @@ def space_charge_engine(npart, sample_interval: int = 1, mirror_z=None):
     if mirror_z is not None:
         sc.set_mirror(mirror_z)
     return sc
+
+
+def autophase_volume(volume, ref, options) -> float:
+    """
+    Autophase a Volume on the RF elements alone, then copy their timing and
+    set every quadrupole's and bend's P/Q to the momentum at its entrance.
+
+    For ``Volume.autophase``, a Lattice takes a NaN P/Q from the bunch
+    but a Volume gives NaN, and with a bend in place (RF-Track 2.7.4)
+    it phases the gun to send the reference back to the cathode.
+
+    Parameters
+    ----------
+    volume: RF_Track.Volume
+        From :meth:`~laura.translator.converters.section.SectionLatticeTranslator.to_rftrack_volume`.
+    ref: RF_Track.Bunch6dT
+        The reference particle.
+    options: RF_Track.TrackingOptions
+
+    Returns
+    -------
+    float
+        The final reference momentum [MeV/c].
+    """
+    rft = get_rftrack()
+    cavities = list(volume.get_rf_elements())
+    magnets = list(volume.get_quadrupoles()) + list(volume.get_sbends())
+    probe = rft.Volume()
+    for e in cavities:
+        probe.add(e, e.get_position(), "entrance")
+    for i, m in enumerate(magnets):
+        screen = rft.Screen()
+        screen.set_name(str(i))
+        probe.add(screen, m.get_position(), "entrance")
+    momentum = probe.autophase(ref, options)
+    for cavity, phased in zip(cavities, probe.get_rf_elements()):
+        cavity.set_t0(phased.get_t0())
+    probe.track(ref, options)
+    start_z, start_P, charge = ref.get_phase_space("%Z %Pc %Q")[0]
+    for screen, bunch in zip(probe.get_screens(), probe.get_bunch_at_screens()):
+        magnet = magnets[int(screen.get_name())]
+        if bunch.size():
+            P = bunch.get_phase_space("%Pc")[0, 0]
+        elif magnet.get_position().get_origin()[2, 0] <= start_z + 1e-6:
+            P = start_P  # at the start: the reference never crosses its screen
+        else:
+            raise RuntimeError(
+                f"RF-Track reference particle lost before {magnet.get_name()}"
+            )
+        magnet.set_P_over_Q(float(P / charge))
+    return momentum
 
 
 def _format_args(args) -> str:
@@ -139,9 +193,10 @@ def _field_types(t) -> tuple:
 
 build_drift, repr_drift = _make("Drift", _length_args)
 
-# P_Q is always NaN so RF-Track computes the gradient from LAURA's normalized
-# k1 at autophase() time (API notes §4.1, §10); unlike SBend, no beam momentum
-# is needed at conversion time.
+WAKE_HOST_LENGTH = 1e-9
+"""Length [m] of the Drift carrying a zero-length element's wake: RF-Track applies a wake
+per metre of the element hosting it, so a zero-length one would apply none."""
+
 build_quadrupole, _repr_quadrupole = _make(
     "Quadrupole", lambda t, P_Q: (t.physical.length, float("nan"), t.k1)
 )
@@ -166,14 +221,9 @@ def _sbend_args(t, P_Q: float) -> tuple:
     return (t.physical.length, t.angle, P_Q, t.e1, t.e2)
 
 
-# SBend(L, angle, P_Q, E1, E2) (manual §4.2.3). A NaN P_Q takes the bunch's own
-# P/Q, set by autophase() at each bend after acceleration (RF-Track 2.7.4); a
-# fixed P_Q [MV/c] is kept as given. K1 [1/m^2, MAD-X convention] is not a
-# constructor argument, so it is applied via `set_K1` when nonzero.
 def _sbend_setters(t) -> list:
     setters = [("set_K1", t.k1)] if t.k1 else []
-    # Fringe-field part of the edge focusing, MAD-X style: one half gap, and
-    # (ponytail: RF-Track has a single fint) the entrance fint for both faces.
+    # Fringe-field part of the edge focusing, MAD-X style: one half gap
     fringe = t._madx_fringe("sbend")
     if fringe.get("fint") and fringe.get("hgap"):
         setters += [("set_fint", fringe["fint"]), ("set_hgap", fringe["hgap"])]
@@ -181,6 +231,42 @@ def _sbend_setters(t) -> list:
 
 
 build_sbend, repr_sbend = _make("SBend", _sbend_args, _sbend_setters)
+
+
+VOLUME_EDGE_LENGTH = 1e-3
+"""Length [m] of the thin quadrupole standing in for a bend's pole-face edge in a Volume."""
+
+
+def _volume_sbend_args(t, P_Q: float) -> tuple:
+    R, R_end = t.physical.rotation_matrix, t.physical.end_rotation_matrix
+    exit_axis = R.T @ R_end[:, 2]
+    turn = float(np.arctan2(exit_axis[0], exit_axis[2]))
+    return (t.physical.length, -turn, P_Q, 0.0, 0.0)
+
+
+def _volume_edge_args(edge: str):
+    def args(t, P_Q: float) -> tuple:
+        h_tan_e = t.angle / t.physical.length * np.tan(getattr(t, edge))
+        return (VOLUME_EDGE_LENGTH, P_Q, -h_tan_e / VOLUME_EDGE_LENGTH)
+
+    return args
+
+
+_VOLUME_BEND_PARTS = [
+    _make("SBend", _volume_sbend_args, lambda t: [("set_K1", t.k1)] if t.k1 else []),
+    _make("Quadrupole", _volume_edge_args("e1")),
+    _make("Quadrupole", _volume_edge_args("e2")),
+]
+
+
+def build_volume_sbend(t, P_Q: float = float("nan"), **kwargs) -> list:
+    """``[arc, entrance edge, exit edge]`` of a bend in a Volume; see ``_rftrack_placements``."""
+    return [build(t, P_Q) for build, _ in _VOLUME_BEND_PARTS]
+
+
+def repr_volume_sbend(t, P_Q: float = float("nan"), **kwargs) -> list:
+    return [repr_(t, P_Q) for _, repr_ in _VOLUME_BEND_PARTS]
+
 
 # Kick strengths are left at 0, to be set at run time (as for ASTRA/GPT).
 build_corrector, repr_corrector = _make("Corrector", _length_args)
@@ -208,8 +294,7 @@ build_solenoid_fieldmap, repr_solenoid_fieldmap = _make(
     "Static_Magnetic_FieldMap_1d", _solenoid_fieldmap_args
 )
 # The third argument is the aperture radius [m], and RF-Track loses every particle
-# outside it (its default, 0, loses them all). It does not change the field, so it
-# is left wide; the element's own aperture is applied afterwards via set_aperture.
+# outside it (its default, 0, loses them all).
 _build_solenoid, _repr_solenoid = _make(
     "Solenoid", lambda t, P_Q: (t.physical.length, t.magnetic.field_amplitude, 1.0)
 )
@@ -270,9 +355,6 @@ build_screen, repr_screen = _make("Screen", lambda t, P_Q: ())
 def _cavity_args(t, P_Q) -> tuple:
     cav = t.cavity
     length = t.physical.length if t.physical.length > 0 else (cav.cell_length or 1.0)
-    # Without a field map, `field_amplitude` is the cavity's voltage, as Elegant,
-    # Ocelot and Xsuite read it. A uniform field E over the cell gains E * L * T,
-    # T being the transit-time factor at beta = 1.
     x = np.pi * float(cav.frequency) * length / speed_of_light
     transit = np.sinc(x / np.pi)
     if abs(transit) < 1e-3:
@@ -285,11 +367,6 @@ def _cavity_args(t, P_Q) -> tuple:
     return (np.array([amplitude]), float(cav.frequency), length, 1)
 
 
-# Pillbox_Cavity: a standing-wave cavity as one effective cell with a uniform
-# (0th Fourier coefficient) on-axis field.
-# ponytail: single cell/harmonic, because Pillbox_Cavity construction blows up
-# beyond ~25 cells; upgrade to SW_Structure (manual §4.3.6) once LAURA stores
-# per-cell Fourier coefficients.
 build_pillbox_cavity, repr_pillbox_cavity = _make(
     "Pillbox_Cavity", _cavity_args, _set_phid
 )
@@ -325,18 +402,16 @@ def _tw_structure_args(t, P_Q) -> tuple:
     cav = t.cavity
     frequency = float(cav.frequency)
     ph_adv = _resolve_ph_advance(t)
-    # The structure spans the element (RF-Track takes a fractional cell count,
-    # each cell ph_adv*c/(2*pi*f) long) and gains coefficient * length: the
-    # voltage Elegant and Bmad give a travelling-wave field_amplitude.
     cells = t.physical.length * 2 * np.pi * frequency / (ph_adv * speed_of_light)
-    voltage = t.simulation.field_amplitude / np.sqrt(2) * (t.get_cells() + 3.8) * cav.cell_length
+    voltage = (
+        t.simulation.field_amplitude
+        / np.sqrt(2)
+        * (t.get_cells() + 3.8)
+        * cav.cell_length
+    )
     return (np.array([voltage / t.physical.length]), 0, frequency, ph_adv, cells)
 
 
-# TW_Structure (analytic Fourier-series travelling-wave model, manual §4.3.5)
-# takes the real cell count without Pillbox_Cavity's construction blow-up.
-# ponytail: single harmonic (n=0), as in the manual's ideal TW example; pass
-# the full coefficient array once LAURA stores per-cell Fourier coefficients.
 build_tw_structure, repr_tw_structure = _make(
     "TW_Structure", _tw_structure_args, _set_phid
 )
@@ -354,8 +429,6 @@ def _cavity_fieldmap_available(t) -> bool:
 def _cavity_fieldmap_args(t, P_Q) -> tuple:
     from ...utils.fields import rftrack as fields_rftrack
 
-    # `field_amplitude` is the peak on-axis field, as ASTRA's MaxE; the map
-    # already holds every cell.
     return fields_rftrack.rf_fieldmap_1d_args(
         t.simulation.field_definition,
         amplitude=t.simulation.field_amplitude,
@@ -363,8 +436,6 @@ def _cavity_fieldmap_args(t, P_Q) -> tuple:
     )
 
 
-# RF_FieldMap_1d (manual §4.4.1) reconstructs the off-axis field from the
-# on-axis samples, like ASTRA's FILE_EFieLD; preferred over Pillbox_Cavity.
 build_cavity_fieldmap, repr_cavity_fieldmap = _make(
     "RF_FieldMap_1d", _cavity_fieldmap_args, _set_phid
 )
@@ -388,9 +459,6 @@ def _tw_fieldmap_available(t) -> bool:
 def _tw_fieldmap_args(t, P_Q) -> tuple:
     from ...utils.fields import rftrack as fields_rftrack
 
-    # The map replicates every cell, so the amplitude is the real per-cell
-    # field, not scaled by n_cells; `get_cells()` is ASTRA's `C_numb`, so
-    # RF-Track tracks the same physical structure length.
     (args,) = fields_rftrack.rf_fieldmap_1d_travelling_wave_args_list(
         t.simulation.field_definition,
         amplitude=t.simulation.field_amplitude,
@@ -400,25 +468,22 @@ def _tw_fieldmap_args(t, P_Q) -> tuple:
     return args
 
 
-# One RF_FieldMap_1d (manual §4.4.1) over couplers and tiled core, from the
-# cavity's ASTRA-TWS-style field map; preferred over TW_Structure.
+# One RF_FieldMap_1d (manual §4.4.1) over couplers and tiled core
 build_tw_fieldmap, repr_tw_fieldmap = _make(
     "RF_FieldMap_1d", _tw_fieldmap_args, _set_phid
 )
 
 
 def build_rf_cavity(t, **kwargs) -> "object":
-    """Dispatch, in priority order: a ``Drift`` for a cavity with no field (RF-Track
-    loses every particle in a zero-field RF element); :func:`build_tw_fieldmap`
-    (real on-axis field map) for a travelling-wave cavity with a
-    resolved ASTRA-TWS field map, else :func:`build_tw_structure`
-    (single-harmonic analytic approximation) for travelling-wave;
-    :func:`build_cavity_fieldmap` (real on-axis field map) for a standing-wave
-    cavity with one resolved, else :func:`build_pillbox_cavity` (uniform field
-    giving ``field_amplitude`` as the voltage)."""
+    """Dispatch, in priority order: a ``Drift`` for a cavity with no field;
+    :func:`build_tw_fieldmap` (real on-axis field map)
+    for a travelling-wave cavity with a resolved ASTRA-TWS field map,
+    else :func:`build_tw_structure` (single-harmonic analytic approximation)
+    for travelling-wave; :func:`build_cavity_fieldmap` (real on-axis field map)
+    for a standing-wave cavity with one resolved, else :func:`build_pillbox_cavity`
+    (uniform field giving ``field_amplitude`` as the voltage)."""
     if not t.simulation.field_amplitude:
         return build_drift(t, **kwargs)
-    # The translator's structure_type also accepts Bmad's "TravelingWave"
     if t.structure_type == "TravellingWave":
         if _tw_fieldmap_available(t):
             return build_tw_fieldmap(t, **kwargs)
@@ -457,8 +522,11 @@ _RULES = {
     "Screen": (build_screen, repr_screen),
     "Aperture": (build_drift, repr_drift),
     "Collimator": (build_drift, repr_drift),
-    # A zero-length Screen, so the beam can be read back at every marker
+    "Wakefield": (build_drift, repr_drift),
     "Marker": (build_screen, repr_screen),
 }
 rftrack_conversion_rules = {k: b for k, (b, _) in _RULES.items()}
 rftrack_repr_rules = {k: r for k, (_, r) in _RULES.items()}
+_VOLUME_RULES = {"Dipole": (build_volume_sbend, repr_volume_sbend)}
+rftrack_volume_conversion_rules = {k: b for k, (b, _) in _VOLUME_RULES.items()}
+rftrack_volume_repr_rules = {k: r for k, (_, r) in _VOLUME_RULES.items()}

@@ -94,6 +94,47 @@ def static_magnetic_fieldmap_1d_args(self, amplitude: float) -> tuple:
     return bz * amplitude, hz, -1
 
 
+def wakefield_1d_args(self, factor: float, nbins: int = 501) -> tuple:
+    """
+    Return the ``(W_transv, W_long, hz, nbins)`` arguments for
+    ``RF_Track.Wakefield_1d``, built from this wake's ``z``/``Wz``/``Wx`` (or
+    ``Wy``) samples.
+
+    RF-Track 2.7.4 takes V/pC/m and V/pC/m/mm, applied per metre of the wake element,
+    with the transverse kick of the opposite sign to LAURA's tables.
+
+    Parameters
+    ----------
+    factor: float
+        Cells per metre of the host element, e.g. ``n_cells / length``.
+    nbins: int
+        Longitudinal bins over the bunch; 501 matches the analytic value.
+
+    Returns
+    -------
+    tuple
+        Ready to splat into ``RF_Track.Wakefield_1d(*args)``.
+    """
+    z = np.asarray(self.z_values, dtype=float)
+    if abs(z[0]) > 1e-12:
+        raise ValueError(f"RF-Track wakes start at z = 0, not {z[0]} m")
+
+    def samples(name):
+        param = getattr(self, name, None)
+        value = getattr(param, "value", None)
+        return None if value is None else np.asarray(value.val, dtype=float)
+
+    w_long = samples("Wz")
+    # ponytail: one transverse table, Wx else Wy; RF-Track's Wakefield_1d takes one
+    w_transv = samples("Wx")
+    if w_transv is None:
+        w_transv = samples("Wy")
+    zeros = np.zeros_like(z)
+    hz, w_long = _uniform_mesh(z, zeros if w_long is None else w_long)
+    _, w_transv = _uniform_mesh(z, zeros if w_transv is None else w_transv)
+    return -w_transv * 1e-15 * factor, w_long * 1e-12 * factor, hz, int(nbins)
+
+
 def rf_fieldmap_1d_travelling_wave_args_list(
     self, amplitude: float, frequency: float, n_cells: int, direction: int = 1
 ) -> list:

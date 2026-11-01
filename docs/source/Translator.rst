@@ -435,8 +435,8 @@ RF-Track offers two integration environments, and :mod:`LAURA` can produce eithe
   returns a ``Lattice`` -- the space-integration environment, tracked with a ``Bunch6d``. Space
   charge is applied as ``sc_nsteps`` evenly-spaced kicks per element.
 * :py:meth:`to_rftrack_volume <laura.translator.converters.section.SectionLatticeTranslator.to_rftrack_volume>`
-  wraps that ``Lattice`` in a ``Volume`` at the origin -- the time-integration environment,
-  tracked with a ``Bunch6dT``. This is what RF-Track recommends for space-charge-dominated and
+  places every element in a ``Volume`` -- the time-integration environment, tracked with a
+  ``Bunch6dT``. This is what RF-Track recommends for space-charge-dominated and
   cathode regimes. Space charge here is driven by the ``sc_dt_mm`` tracking option rather than
   per-element kicks, so ``sc_nsteps`` is not applied.
 
