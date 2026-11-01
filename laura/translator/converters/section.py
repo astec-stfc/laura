@@ -32,8 +32,8 @@ from ..utils.bmad import (
 )
 from ..utils.fields import FieldMap
 from ..utils.functions import (
-    bmad_functional_definitions,
     cavity_energy_gain,
+    bmad_functional_definitions,
     elegant_functional_definitions,
     functional_fields,
     madx_functional_definitions,

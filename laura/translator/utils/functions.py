@@ -9,6 +9,7 @@ from pydantic.fields import FieldInfo
 from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.models.base_models import IgnoreExtra
 from laura.models.constants import speed_of_light
+from laura.models.element import Magnet
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, get_args, get_origin
 from .fields import FieldMap
 from laura.utils.naming import number_repeated_names  # noqa: F401 (re-exported)
