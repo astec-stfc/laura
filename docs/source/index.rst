@@ -69,8 +69,8 @@ works out of the box. Support for individual target codes is pulled in through e
 
 .. note::
 
-   `RF-Track <https://gitlab.cern.ch/rf-track>`_ is not distributed on PyPI, so it has no extra --
-   install its wheel manually into the same environment to use :ref:`rftrack-translator`.
+   `RF-Track <https://gitlab.cern.ch/rf-track>`_ is under a CERN proprietary licence, so it has no
+   extra -- install it yourself with ``pip install rf_track`` to use :ref:`rftrack-translator`.
 
 Documentation
 -------------

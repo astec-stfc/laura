@@ -8,14 +8,17 @@ than a bare class. Each builder has a matching ``repr_*`` entry in
 ``rftrack_repr_rules`` that renders the same call as Python source, for
 exporting a standalone script; :func:`_make` derives both from one args helper.
 
-RF-Track is not on PyPI, so its import is guarded; :func:`get_rftrack` raises
-only when it is actually needed.
+RF-Track is optional (``pip install rf_track``, under a CERN proprietary
+licence), so its import is guarded; :func:`get_rftrack` raises only when it is
+actually needed.
 """
 
 import math
 from warnings import warn
 
 import numpy as np
+
+from laura.models.constants import speed_of_light
 
 try:
     import RF_Track as _rft
@@ -33,14 +36,12 @@ def get_rftrack():
     Raises
     ------
     ImportError
-        If RF_Track is not installed (it is not on PyPI; download it from the
-        RF-Track page at CERN and install the wheel into this environment).
+        If RF_Track is not installed (``pip install rf_track``).
     """
     if not _RFTRACK_AVAILABLE:
         raise ImportError(
-            "RF_Track is not installed. It is not distributed on PyPI; download "
-            "the Python wheel from the RF-Track page (CERN, A. Latina) and "
-            "install it into this environment, e.g. `pip install RF_Track-*.whl`."
+            "RF_Track is not installed. Install it with `pip install rf_track` "
+            "(distributed by CERN under a proprietary licence)."
         )
     return _rft
 
@@ -117,7 +118,13 @@ def _length_args(t, P_Q) -> tuple:
 
 
 def _set_phid(t) -> list:
-    return [("set_phid", t.cavity.phase)]
+    return [("set_phid", _phid(t))]
+
+
+def _phid(t) -> float:
+    # Off crest after autophase, with ASTRA's sign (Phi = crest - phase): a
+    # positive LAURA phase is behind crest, as in Bmad and Xsuite.
+    return -t.cavity.phase
 
 
 def _field_types(t) -> tuple:
@@ -153,32 +160,27 @@ def repr_quadrupole(t, P_Q: float = float("nan"), **kwargs) -> tuple:
     )
 
 
-def _resolve_sbend_p_q(t, P_Q: float) -> float:
-    if P_Q != P_Q:  # NaN check without importing math/numpy just for this
-        warn(
-            f"No P_Q (reference momentum/charge) supplied for dipole {t.name}; "
-            f"RF-Track SBend requires a real value or the bend physics will be "
-            f"wrong (verified: NaN causes total particle loss). Using a "
-            f"placeholder of 1.0 MV/c — pass the real beam P_Q via to_rftrack()."
-        )
-        return 1.0
-    return P_Q
-
-
 def _sbend_args(t, P_Q: float) -> tuple:
-    P_Q = _resolve_sbend_p_q(t, P_Q)
     # `t.angle` (DipoleTranslator's `magnetic.KnL(0)` property), not the raw
     # `t.magnetic.angle` field, which is not reliably populated.
     return (t.physical.length, t.angle, P_Q, t.e1, t.e2)
 
 
-# SBend(L, angle, P_Q, E1, E2) (manual §4.2.3) has no P_Q=NaN deferred-autophase
-# convention: NaN loses the whole bunch, so the caller must supply the beam's
-# P_Q [MV/c], as `to_gpt(Brho=...)` does for GPT. K1 [1/m^2, MAD-X convention]
-# is not a constructor argument, so it is applied via `set_K1` when nonzero.
-build_sbend, repr_sbend = _make(
-    "SBend", _sbend_args, lambda t: [("set_K1", t.k1)] if t.k1 else []
-)
+# SBend(L, angle, P_Q, E1, E2) (manual §4.2.3). A NaN P_Q takes the bunch's own
+# P/Q, set by autophase() at each bend after acceleration (RF-Track 2.7.4); a
+# fixed P_Q [MV/c] is kept as given. K1 [1/m^2, MAD-X convention] is not a
+# constructor argument, so it is applied via `set_K1` when nonzero.
+def _sbend_setters(t) -> list:
+    setters = [("set_K1", t.k1)] if t.k1 else []
+    # Fringe-field part of the edge focusing, MAD-X style: one half gap, and
+    # (ponytail: RF-Track has a single fint) the entrance fint for both faces.
+    fringe = t._madx_fringe("sbend")
+    if fringe.get("fint") and fringe.get("hgap"):
+        setters += [("set_fint", fringe["fint"]), ("set_hgap", fringe["hgap"])]
+    return setters
+
+
+build_sbend, repr_sbend = _make("SBend", _sbend_args, _sbend_setters)
 
 # Kick strengths are left at 0, to be set at run time (as for ASTRA/GPT).
 build_corrector, repr_corrector = _make("Corrector", _length_args)
@@ -205,8 +207,11 @@ def _solenoid_fieldmap_args(t, P_Q) -> tuple:
 build_solenoid_fieldmap, repr_solenoid_fieldmap = _make(
     "Static_Magnetic_FieldMap_1d", _solenoid_fieldmap_args
 )
+# The third argument is the aperture radius [m], and RF-Track loses every particle
+# outside it (its default, 0, loses them all). It does not change the field, so it
+# is left wide; the element's own aperture is applied afterwards via set_aperture.
 _build_solenoid, _repr_solenoid = _make(
-    "Solenoid", lambda t, P_Q: (t.physical.length, t.magnetic.field_amplitude, 0.0)
+    "Solenoid", lambda t, P_Q: (t.physical.length, t.magnetic.field_amplitude, 1.0)
 )
 
 
@@ -265,9 +270,18 @@ build_screen, repr_screen = _make("Screen", lambda t, P_Q: ())
 def _cavity_args(t, P_Q) -> tuple:
     cav = t.cavity
     length = t.physical.length if t.physical.length > 0 else (cav.cell_length or 1.0)
-    # Collapsing `n_cells` cells into one effective cell needs the amplitude
-    # scaled by `n_cells`, or the energy gain is ~n_cells times too small.
-    amplitude = t.simulation.field_amplitude * (cav.n_cells or 1)
+    # Without a field map, `field_amplitude` is the cavity's voltage, as Elegant,
+    # Ocelot and Xsuite read it. A uniform field E over the cell gains E * L * T,
+    # T being the transit-time factor at beta = 1.
+    x = np.pi * float(cav.frequency) * length / speed_of_light
+    transit = np.sinc(x / np.pi)
+    if abs(transit) < 1e-3:
+        raise ValueError(
+            f"RF cavity {t.name}: a {length} m pillbox at {cav.frequency} Hz gains "
+            f"nothing at beta = 1 (transit-time factor {transit:.1e}), so it cannot "
+            f"give a voltage of {t.simulation.field_amplitude} V."
+        )
+    amplitude = t.simulation.field_amplitude / (length * transit)
     return (np.array([amplitude]), float(cav.frequency), length, 1)
 
 
@@ -309,15 +323,14 @@ def _resolve_ph_advance(t) -> float:
 
 def _tw_structure_args(t, P_Q) -> tuple:
     cav = t.cavity
-    amplitude = t.simulation.field_amplitude
+    frequency = float(cav.frequency)
     ph_adv = _resolve_ph_advance(t)
-    return (
-        np.array([1.0 / np.sqrt(2) * amplitude]),
-        0,
-        float(cav.frequency),
-        ph_adv,
-        int(3 + cav.n_cells),
-    )
+    # The structure spans the element (RF-Track takes a fractional cell count,
+    # each cell ph_adv*c/(2*pi*f) long) and gains coefficient * length: the
+    # voltage Elegant and Bmad give a travelling-wave field_amplitude.
+    cells = t.physical.length * 2 * np.pi * frequency / (ph_adv * speed_of_light)
+    voltage = t.simulation.field_amplitude / np.sqrt(2) * (t.get_cells() + 3.8) * cav.cell_length
+    return (np.array([voltage / t.physical.length]), 0, frequency, ph_adv, cells)
 
 
 # TW_Structure (analytic Fourier-series travelling-wave model, manual §4.3.5)
@@ -341,14 +354,12 @@ def _cavity_fieldmap_available(t) -> bool:
 def _cavity_fieldmap_args(t, P_Q) -> tuple:
     from ...utils.fields import rftrack as fields_rftrack
 
-    cav = t.cavity
-    # Amplitude scaled by n_cells as in `_cavity_args`; the field map already
-    # carries the per-cell shape, so this only matches the total peak amplitude.
-    amplitude = t.simulation.field_amplitude * (cav.n_cells or 1)
+    # `field_amplitude` is the peak on-axis field, as ASTRA's MaxE; the map
+    # already holds every cell.
     return fields_rftrack.rf_fieldmap_1d_args(
         t.simulation.field_definition,
-        amplitude=amplitude,
-        frequency=float(cav.frequency),
+        amplitude=t.simulation.field_amplitude,
+        frequency=float(t.cavity.frequency),
     )
 
 
@@ -374,69 +385,41 @@ def _tw_fieldmap_available(t) -> bool:
     )
 
 
-def _tw_fieldmap_args(t) -> tuple:
+def _tw_fieldmap_args(t, P_Q) -> tuple:
     from ...utils.fields import rftrack as fields_rftrack
 
-    cav = t.cavity
-    # The stitched field map replicates every cell, so the amplitude is the real
-    # per-cell field (as for TW_Structure), not scaled by n_cells.
-    amplitude = t.simulation.field_amplitude
-    args_list = fields_rftrack.rf_fieldmap_1d_travelling_wave_args_list(
+    # The map replicates every cell, so the amplitude is the real per-cell
+    # field, not scaled by n_cells; `get_cells()` is ASTRA's `C_numb`, so
+    # RF-Track tracks the same physical structure length.
+    (args,) = fields_rftrack.rf_fieldmap_1d_travelling_wave_args_list(
         t.simulation.field_definition,
-        amplitude=amplitude,
-        frequency=float(cav.frequency),
-        # Same cell count as ASTRA's `C_numb` (`get_cells()`), so RF-Track
-        # tracks the same physical structure length.
+        amplitude=t.simulation.field_amplitude,
+        frequency=float(t.cavity.frequency),
         n_cells=t.get_cells(),
     )
-    return args_list, cav.phase
+    return args
 
 
-def build_tw_fieldmap(t, **kwargs) -> "object":
-    """
-    Build input coupler, travelling-wave core and output coupler as
-    ``RF_Track.RF_FieldMap_1d`` elements (manual §4.4.1) from this cavity's
-    ASTRA-TWS-style field map, in preference to :func:`build_tw_structure`.
-
-    Returns a **list**, which the section translator flattens into its
-    top-level ``Lattice``: ``Volume.autophase()`` does not descend two
-    ``Lattice`` levels, so a nested sub-``Lattice`` leaves ``t0`` unset.
-
-    Every element gets the same ``set_phid`` (verified against CLARA L01); the
-    manual's +90 degree core offset applies only to
-    ``SW_Structure``/``TW_Structure``.
-    """
-    rft = get_rftrack()
-    args_list, phase = _tw_fieldmap_args(t)
-    elems = []
-    for args in args_list:
-        elem = rft.RF_FieldMap_1d(*args)
-        elem.set_phid(phase)
-        elems.append(elem)
-    return elems
-
-
-def repr_tw_fieldmap(t, **kwargs) -> list:
-    """
-    Return a **list** of ``(ctor_expr, post_stmts)`` tuples, one per element of
-    :func:`build_tw_fieldmap`; each is rendered as its own ``{varname}_N``
-    block and appended to the exported ``lattice`` individually.
-    """
-    args_list, phase = _tw_fieldmap_args(t)
-    return [
-        (f"RF_FieldMap_1d({_format_args(args)})", [f"{{var}}.set_phid({phase!r})"])
-        for args in args_list
-    ]
+# One RF_FieldMap_1d (manual §4.4.1) over couplers and tiled core, from the
+# cavity's ASTRA-TWS-style field map; preferred over TW_Structure.
+build_tw_fieldmap, repr_tw_fieldmap = _make(
+    "RF_FieldMap_1d", _tw_fieldmap_args, _set_phid
+)
 
 
 def build_rf_cavity(t, **kwargs) -> "object":
-    """Dispatch, in priority order: :func:`build_tw_fieldmap` (real stitched
-    on-axis field map) for a travelling-wave cavity with a resolved ASTRA-TWS
-    field map, else :func:`build_tw_structure` (single-harmonic analytic
-    approximation) for travelling-wave; :func:`build_cavity_fieldmap` (real
-    on-axis field map) for a standing-wave cavity with one resolved, else
-    :func:`build_pillbox_cavity` (single-coefficient approximation)."""
-    if t.cavity.structure_type == "TravellingWave":
+    """Dispatch, in priority order: a ``Drift`` for a cavity with no field (RF-Track
+    loses every particle in a zero-field RF element); :func:`build_tw_fieldmap`
+    (real on-axis field map) for a travelling-wave cavity with a
+    resolved ASTRA-TWS field map, else :func:`build_tw_structure`
+    (single-harmonic analytic approximation) for travelling-wave;
+    :func:`build_cavity_fieldmap` (real on-axis field map) for a standing-wave
+    cavity with one resolved, else :func:`build_pillbox_cavity` (uniform field
+    giving ``field_amplitude`` as the voltage)."""
+    if not t.simulation.field_amplitude:
+        return build_drift(t, **kwargs)
+    # The translator's structure_type also accepts Bmad's "TravelingWave"
+    if t.structure_type == "TravellingWave":
         if _tw_fieldmap_available(t):
             return build_tw_fieldmap(t, **kwargs)
         return build_tw_structure(t, **kwargs)
@@ -446,7 +429,9 @@ def build_rf_cavity(t, **kwargs) -> "object":
 
 
 def repr_rf_cavity(t, **kwargs) -> tuple:
-    if t.cavity.structure_type == "TravellingWave":
+    if not t.simulation.field_amplitude:
+        return repr_drift(t, **kwargs)
+    if t.structure_type == "TravellingWave":
         if _tw_fieldmap_available(t):
             return repr_tw_fieldmap(t, **kwargs)
         return repr_tw_structure(t, **kwargs)
@@ -472,21 +457,8 @@ _RULES = {
     "Screen": (build_screen, repr_screen),
     "Aperture": (build_drift, repr_drift),
     "Collimator": (build_drift, repr_drift),
-    "Marker": (build_drift, repr_drift),
+    # A zero-length Screen, so the beam can be read back at every marker
+    "Marker": (build_screen, repr_screen),
 }
 rftrack_conversion_rules = {k: b for k, (b, _) in _RULES.items()}
 rftrack_repr_rules = {k: r for k, (_, r) in _RULES.items()}
-
-# ---------------------------------------------------------------------------
-# Backwards compatibility: names renamed for PEP 8. Served lazily with a
-# FutureWarning so downstream consumers (astec-stfc/simba) keep working.
-# ---------------------------------------------------------------------------
-from laura._compat import deprecated_aliases  # noqa: E402
-
-__getattr__ = deprecated_aliases(
-    __name__,
-    globals(),
-    {
-        "_resolve_sbend_P_Q": "_resolve_sbend_p_q",
-    },
-)

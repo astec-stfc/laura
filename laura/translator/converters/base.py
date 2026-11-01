@@ -750,15 +750,16 @@ class BaseElementTranslator(PhysicalBaseElement):
         ----------
         P_Q: float
             Beam reference momentum-over-charge [MV/c] at this point in the
-            lattice. Only used by dipoles: RF-Track's ``SBend`` cannot defer it
-            to ``autophase()``, and a NaN value gives zero transmission.
+            lattice. Only used by dipoles; the default, NaN, makes RF-Track's
+            ``SBend`` take the bunch's own P/Q, set by ``autophase()`` (as
+            quadrupoles always do), which follows acceleration.
 
         Returns
         -------
         object or list of object
             An RF-Track element object (e.g. ``RF_Track.Quadrupole``), with its
-            name and aperture (if any) applied. Some builders (e.g.
-            ``build_tw_fieldmap``) return a list, which
+            name and aperture (if any) applied. A builder may return a list,
+            which
             :func:`~laura.translator.converters.section.SectionLatticeTranslator.to_rftrack`
             flattens into its own Lattice.
         """

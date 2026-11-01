@@ -40,7 +40,6 @@ from ..utils.functions import (
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
-from .magnet import MagnetTranslator, SolenoidTranslator
 from .codes import (
     astra_unsupported,
     bmad_unsupported,
@@ -57,6 +56,7 @@ from .codes import (
 from .codes.gpt import GptCcs, GptDtMinT, GptZMinMax
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
+from .magnet import MagnetTranslator, SolenoidTranslator
 from .wake import WakefieldTranslator
 
 unsupported_elements = {
@@ -1072,6 +1072,12 @@ class SectionLatticeTranslator(SectionLattice):
 
         return maglat
 
+    @staticmethod
+    def _rftrack_roll(d) -> float:
+        """Roll [rad] to append ``d`` with: its ``tilt`` plus roll error, but only
+        the ``tilt`` on a bend, whose roll error would roll its frame too."""
+        return d.roll - d.dz_rot * d._curved
+
     def to_rftrack(
         self, P_Q: float = float("nan"), save: bool = False, sc_nsteps: int = 0
     ) -> object:
@@ -1082,7 +1088,7 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         P_Q: float
             Beam reference momentum-over-charge [MV/c], forwarded to every
-            element; required for correct dipole bending (see
+            element; only dipoles use it, and NaN leaves it to ``autophase()`` (see
             :meth:`BaseElementTranslator.to_rftrack <laura.translator.converters.base.BaseElementTranslator.to_rftrack>`).
         save: bool
             If ``True``, also write a standalone Python script reconstructing
@@ -1106,11 +1112,15 @@ class SectionLatticeTranslator(SectionLattice):
         lattice = rft.Lattice()
         for d in elem_dict.values():
             elem = d.to_rftrack(P_Q=P_Q)
-            d._warn_dropped_misalignment("RF-Track", set())
+            d._warn_dropped_misalignment("RF-Track", set(), tilt=True)
+            roll = self._rftrack_roll(d)
             for e in elem if isinstance(elem, list) else [elem]:
                 if sc_nsteps > 0:
                     e.set_sc_nsteps(sc_nsteps)
-                lattice.append(e)
+                if roll:
+                    lattice.append(e, 0.0, 0.0, 0.0, roll, 0.0, 0.0, "center")
+                else:
+                    lattice.append(e)
         if save:
             self._save_rftrack_py_file(elem_dict, P_Q, sc_nsteps)
         return lattice
@@ -1167,7 +1177,7 @@ class SectionLatticeTranslator(SectionLattice):
         import re
 
         lines = ["import numpy as np", "import RF_Track as rft", ""]
-        all_varnames = []
+        appends = []
         for name, d in elem_dict.items():
             varname = "el_" + re.sub(r"\W", "_", name)
             elem_lines, varnames = d.to_rftrack_repr(varname, P_Q=P_Q)
@@ -1175,11 +1185,12 @@ class SectionLatticeTranslator(SectionLattice):
             if sc_nsteps > 0:
                 for vn in varnames:
                     lines.append(f"{vn}.set_sc_nsteps({sc_nsteps})")
-            all_varnames += varnames
+            roll = self._rftrack_roll(d)
+            rolled = f", 0.0, 0.0, 0.0, {roll!r}, 0.0, 0.0, 'center'" if roll else ""
+            appends += [f"lattice.append({vn}{rolled})" for vn in varnames]
             lines.append("")
         lines.append("lattice = rft.Lattice()")
-        for vn in all_varnames:
-            lines.append(f"lattice.append({vn})")
+        lines += appends
         with open(f"{self.directory}/{self.name}.py", "w") as f:
             f.write("\n".join(lines) + "\n")
 
