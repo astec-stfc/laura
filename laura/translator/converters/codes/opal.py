@@ -328,11 +328,9 @@ class OpalFieldSolver(OpalHeader):
     sample_interval: int = 1
     """Divides ``npart`` when sizing the space-charge grid. """
 
-    MIN_PARTICLES_PER_CELL: int = 8
-    """Fewest particles per space-charge cell the automatic mesh may produce.
-    Eight matches the mesh at which the CLARA benchmark stopped improving (16^3
-    at 32768 particles gave 2.07x ASTRA against 2.05x at 32^3, for an eighth of
-    the cells) and keeps ``grid**3`` safely below the particle count."""
+    MIN_PARTICLES_PER_CELL: int = 1
+    """Fewest particles per space-charge cell the automatic mesh may produce; 1 is
+    OPAL's own limit."""
 
     grid_size_override: int | tuple[int, int, int] | list | None = None
     """Explicit space-charge mesh size, replacing the heuristic in
