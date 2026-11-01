@@ -156,3 +156,12 @@ def test_an_inputs_file_includes_files_beside_it_and_leaves_diags_alone(tmp_path
         "main.in",
     ]
     assert (tmp_path / "diags" / "keep").exists()
+
+
+def test_a_soft_hwang_lee_edge_stays_hwang_lee():
+    edge = {"type": "DipEdge", "name": "e", "psi": 0.1, "rc": 5.0, "g": 0.03}
+    edge.update(K2=0.5, model="nonlinear_hwang_lee")
+    sbend = {"type": "Sbend", "name": "sb", "ds": 1.0, "rc": 5.0}
+    with quiet():
+        out = imported([edge, sbend, edge], name="line", energy=E).to_impactx(energy=E)
+    assert {d["model"] for d in out if d["type"] == "DipEdge"} == {"nonlinear_hwang_lee"}

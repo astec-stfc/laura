@@ -590,31 +590,41 @@ class RFCavityTranslator(BaseElementTranslator):
             properties["num_kicks"] = 3 * self.get_cells()
         return self.name, obj, properties
 
-    def xsuite_edges(self, cavity: object, p0c: float) -> tuple:
+    def rf_focusing(
+        self,
+        length: float,
+        voltage: float,
+        cos_phi: float,
+        p0c: float,
+        p1: float | None = None,
+    ) -> tuple:
         """
-        Transverse focusing for an Xsuite cavity, which has none of its own:
-        hard-edge (Chambers) lenses for a travelling wave, and the
-        Rosenzweig-Serafini matrix for a standing wave, or a travelling wave when
-        :attr:`~tw_focusing` is off.
+        The cavity's transverse 2x2 map in (x, px), px over the local reference
+        momentum: hard-edge (Chambers) lenses about an accelerating drift for a
+        travelling wave, and the Rosenzweig-Serafini matrix for a standing wave,
+        or a travelling wave when :attr:`~tw_focusing` is off.
 
         Parameters
         ----------
-        cavity: xtrack.Cavity
-            The cavity
+        length: float
+            Cavity length [m]
+        voltage: float
+            Peak energy gain [eV]
+        cos_phi: float
+            Cosine of the phase off crest
         p0c: float
             Reference momentum ahead of the cavity [eV]
+        p1: float, optional
+            Reference momentum after it [eV]; defaults to ``p0c`` plus the gain
 
         Returns
         -------
         tuple
-            (entrance map, reference energy increase, exit lens, reference momentum after)
+            (map, accelerating-drift body, exit lens, reference momentum after)
         """
-        import xtrack as xt
-
-        L, voltage = cavity.length, cavity.voltage  # noqa N803
-        cos_phi = np.sin(cavity.phase + np.radians(cavity.lag))
+        L = length  # noqa N806
         gain = voltage * cos_phi
-        p1 = p0c + gain
+        p1 = p0c + gain if p1 is None else p1
         log_ratio = np.log1p(gain / p0c) / (gain / p0c) if gain else 1.0
         body = np.array([[1, L * log_ratio], [0, p0c / p1]])
         exit = np.array([[1, 0], [gain / (2 * L * p1), 1]])
@@ -635,6 +645,32 @@ class RFCavityTranslator(BaseElementTranslator):
                     ],
                 ]
             )
+        return target, body, exit, p1
+
+    def xsuite_edges(self, cavity: object, p0c: float) -> tuple:
+        """
+        Transverse focusing for an Xsuite cavity, which has none of its own; see
+        :meth:`rf_focusing`.
+
+        Parameters
+        ----------
+        cavity: xtrack.Cavity
+            The cavity
+        p0c: float
+            Reference momentum ahead of the cavity [eV]
+
+        Returns
+        -------
+        tuple
+            (entrance map, reference energy increase, exit lens, reference momentum after)
+        """
+        import xtrack as xt
+
+        cos_phi = np.sin(cavity.phase + np.radians(cavity.lag))
+        target, body, exit, p1 = self.rf_focusing(
+            cavity.length, cavity.voltage, cos_phi, p0c
+        )
+        gain = p1 - p0c
 
         def taylor_map(m: np.ndarray) -> object:
             m1 = np.eye(6)

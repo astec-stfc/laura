@@ -6,7 +6,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from math import copysign, pi, radians, sqrt
+from math import copysign, cos, pi, radians, sqrt
 from pathlib import Path
 from typing import Any, Dict, Optional
 from warnings import warn
@@ -35,16 +35,22 @@ _READ_INPUTS = Path(__file__).with_name("impactx_inputs.py")
 
 def _stem(name: str) -> str:
     """``name`` without the suffix the exporter gives a part of an element."""
-    return re.sub(r"_(in|out|entry|exit|m\d+)$", "", name or "")
+    return re.sub(r"_(in|out|entry|exit|entrance|m\d+)$", "", name or "")
 
 
 def _parts(dicts: list, i: int) -> int:
     """How many dicts from ``dicts[i]`` make one element: the exporter's
     ``X_in``/kick/``X_out``, ``X_entry``/``X``/``X_exit`` aperture and
-    ``X_m1``... thin multipoles, or a bend body with its ``DipEdge``\\ s."""
+    ``X_m1``... thin multipoles, or a bend body with its ``DipEdge``\\ s.
+    A cavity's RF focusing ``X_entrance``/``X_exit`` maps join its parts."""
     names = [d.get("name") or "" for d in dicts[i : i + 3]]
     types = [d["type"] for d in dicts[i : i + 3]]
     stem = _stem(names[0])
+    if types[0] == "LinearMap" and names[0] == f"{stem}_entrance":
+        inner = _parts(dicts, i + 1)
+        after = dicts[i + 1 + inner : i + 2 + inner]
+        if [(d["type"], d.get("name")) for d in after] == [("LinearMap", f"{stem}_exit")]:
+            return inner + 2
     if names == [f"{stem}_in", stem, f"{stem}_out"] and not dicts[i + 1].get("ds"):
         return 3
     if names == [f"{stem}_entry", stem, f"{stem}_exit"] and types[0] == "Aperture":
@@ -97,6 +103,10 @@ class ImpactXLatticeImporter(LatticeImporter):
 
     elements: Dict = {}
 
+    _at: Optional[float] = None
+    """Reference energy [eV] at the element being read, which each ``ShortRF``
+    raises."""
+
     @model_validator(mode="after")
     def _load_source(self):  # noqa: N804
         if (self.lattice is None) == (self.source_file is None):
@@ -138,13 +148,14 @@ class ImpactXLatticeImporter(LatticeImporter):
 
     def _ref(self, key: str, name: str) -> float:
         """``key`` of the reference particle, which ``name`` needs."""
-        ref = reference(self.energy, self.particle)
+        ref = reference(self._at, self.particle)
         if key not in ref:
             raise ValueError(f"{name}: give the energy to import it.")
         return ref[key]
 
     def create_laura_element_dictionary(self) -> Dict:
         dicts, built, s, i = list(self.lattice), [], 0.0, 0
+        self._at = self.energy
         while i < len(dicts):
             count = _parts(dicts, i)
             group, i = dicts[i : i + count], i + count
@@ -156,7 +167,8 @@ class ImpactXLatticeImporter(LatticeImporter):
                 )
             s += length
             body = next(
-                (d for d in group if d["type"] not in ("DipEdge", *_DRIFTS)), group[0]
+                (d for d in group if d["type"] not in ("DipEdge", "LinearMap", *_DRIFTS)),
+                group[0],
             )
             if body["type"] in _DRIFTS:
                 continue
@@ -173,6 +185,9 @@ class ImpactXLatticeImporter(LatticeImporter):
                     f"for {data['name']!r}; skipping."
                 )
                 continue
+            if body["type"] == "ShortRF" and self._at:
+                mass = reference(None, self.particle)["mass"]
+                self._at += body["V"] * mass * cos(radians(body["phase"]))
             if laura_type not in (laura_elements.Aperture, laura_elements.Marker):
                 rotation = radians(float(body.get("rotation", 0.0)))
                 apply_misalignment(
@@ -256,7 +271,7 @@ class ImpactXLatticeImporter(LatticeImporter):
             return laura_elements.Aperture
         elif kind == "LinearMap":
             beta = 1.0
-            if self.energy:
+            if self._at:
                 beta_gamma = self._ref("beta_gamma", name)
                 beta = beta_gamma / sqrt(1 + beta_gamma**2)
             else:
@@ -330,9 +345,10 @@ class ImpactXLatticeImporter(LatticeImporter):
                 magnetic["gap" if location == "entrance" else "exit_gap"] = edge["g"]
                 magnetic[f"edge_field_integral_{location}"] = edge.get("K2", 0.0)
             if edge.get("model") == "nonlinear_hwang_lee":
+                # a soft edge needs them all: the exporter picks Hwang-Lee only when given
                 for k, default in _HWANG_LEE.items():
-                    if edge.get(k, default) != default:
-                        magnetic[f"fringe_{k.lower()}"] = edge[k]
+                    if edge.get("g") or edge.get(k, default) != default:
+                        magnetic[f"fringe_{k.lower()}"] = edge.get(k, default)
         data["magnetic"] = magnetic
         if simulation:
             data["simulation"] = simulation

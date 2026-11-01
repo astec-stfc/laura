@@ -1,7 +1,7 @@
 import json
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict, Optional, Literal
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional
 from warnings import warn
 
 import numpy as np
@@ -32,8 +32,8 @@ from ..utils.bmad import (
 )
 from ..utils.fields import FieldMap
 from ..utils.functions import (
-    cavity_energy_gain,
     bmad_functional_definitions,
+    cavity_energy_gain,
     elegant_functional_definitions,
     functional_fields,
     madx_functional_definitions,
@@ -746,9 +746,9 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[
-                            key
-                        ] += f"{section_header_text_astra[key]} = True\n"
+                        element_headers[key] += (
+                            f"{section_header_text_astra[key]} = True\n"
+                        )
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
@@ -780,9 +780,9 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers[
-                                "&WAKE"
-                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
+                            element_headers["&WAKE"] += (
+                                f"{section_header_text_astra['&WAKE']} = True\n"
+                            )
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += w.astra_wake_spacing[1]
@@ -1637,13 +1637,20 @@ class SectionLatticeTranslator(SectionLattice):
         -------
         list[dict]
         """
+        from ..conversion_rules.codes.impactx_conversion import reference
+
         energy = self.reference_energy if energy is None else energy
+        charge = abs(reference(None, particle)["charge"])
         elements = []
         for d in self._translate(self.create_drifts().values()).values():
             if not d.subelement:
                 elements += d.to_impactx(
                     model=model, energy=energy, particle=particle, field_maps=field_maps
                 )
+                if energy and d.hardware_type == "RFCavity" and d.simulation.change_p0:
+                    energy += (
+                        float(d.voltage) * charge * np.cos(np.radians(float(d.phase)))
+                    )
         if save:
             with open(f"{self.directory}/{self.name}.impactx.json", "w") as f:
                 json.dump(elements, f, indent=1)

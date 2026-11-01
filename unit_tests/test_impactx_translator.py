@@ -325,6 +325,19 @@ def test_fringe_integrals_reach_the_edges():
     d = translator(bend(fringe_k0=0.1, fringe_k6=0.2)).to_impactx()
     assert d[0]["K0"] == d[-1]["K0"] == 0.1
     assert d[0]["K6"] == 0.2 and "K1" not in d[0]
+    assert d[0]["model"] == d[-1]["model"] == "nonlinear_hwang_lee"
+
+
+def test_exact_edges_keep_the_design_orbit_without_hwang_lee_integrals():
+    soft = {"gap": 0.06, "edge_field_integral": 0.5}
+    plain = section(bend(**soft)).to_impactx(model="exact", energy=E * 1e6)
+    assert {d["model"] for d in plain if d["type"] == "DipEdge"} == {"linear_slac75"}
+    assert abs(impactx_track(plain, [[0.0] * 6])[0, :4]).max() < 1e-12
+    # Hwang-Lee's zeroth-order terms push the design particle off by ~g^2
+    hwang_lee = section(bend(fringe_k0=np.pi**2 / 6, **soft)).to_impactx(
+        model="exact", energy=E * 1e6
+    )
+    assert abs(impactx_track(hwang_lee, [[0.0] * 6])[0, 0]) > 1e-6
 
 
 def test_hard_edge_without_fint():
@@ -444,7 +457,61 @@ def test_other_cavities_stay_thin(tmp_path, span, cavity_type, field_maps, warns
     cavity = translator(field_map_cavity(tmp_path, span, cavity_type))
     with pytest.warns(UserWarning, match="field map spans") if warns else quiet():
         parts = cavity.to_impactx(energy=E * 1e6, field_maps=field_maps)
-    assert [p["type"] for p in parts] == ["ExactDrift", "ShortRF", "ExactDrift"]
+    assert [p["type"] for p in parts] == [
+        "LinearMap",
+        "ExactDrift",
+        "ShortRF",
+        "ExactDrift",
+        "LinearMap",
+    ]
+
+
+def linac_cavity(structure_type, s=1.5, name="cav"):
+    return RFCavity(
+        name=name,
+        machine_area="S",
+        physical={"s": s, "length": 3.0},
+        cavity={
+            "frequency": 2.856e9,
+            "phase": 20.0,
+            "structure_type": structure_type,
+            "mode_numerator": 2,
+            "mode_denominator": 3,
+        },
+        simulation={"field_amplitude": 20e6},
+    )
+
+
+@pytest.mark.parametrize("structure_type", ["TravellingWave", "StandingWave"])
+def test_a_thick_cavity_focuses_as_rf_focusing(structure_type):
+    """ShortRF only damps px, so ImpactX tracked linacs without RF focusing:
+    LCLS's beta came out 30-60% off Bmad's at WS32."""
+    cavity = translator(linac_cavity(structure_type))
+    dicts = cavity.to_impactx(energy=E * 1e6)
+    start = [[0] * 6, [1e-3, 0, 0, 0, 0, 0], [0, 1e-4, 0, 0, 0, 0], [0, 0, 1e-3, 0, 0, 0]]
+    out = impactx_track(dicts, start)
+    gain = float(cavity.voltage) * np.cos(np.radians(20.0)) / 1e6
+    p1 = np.sqrt((E + gain) ** 2 - 0.51099895069**2)
+    tracked = np.array(
+        [
+            [out[1, 0] / 1e-3, out[2, 0] / 1e-4],
+            [out[1, 1] / p1 / 1e-3, out[2, 1] / p1 / 1e-4],
+        ]
+    )
+    target, *_ = cavity.rf_focusing(
+        3.0, float(cavity.voltage), np.cos(np.radians(20.0)), P * 1e6, p1 * 1e6
+    )
+    np.testing.assert_allclose(tracked, target, rtol=1e-6, atol=1e-9)
+    assert out[3, 2] / 1e-3 == pytest.approx(target[0, 0], rel=1e-6)
+    assert out[0, 5] - E == pytest.approx(gain, rel=1e-9)
+
+
+def test_each_cavity_sees_the_energy_after_those_before():
+    first, second = linac_cavity("TravellingWave"), linac_cavity("TravellingWave", 4.5, "cav2")
+    dicts = section(first, second).to_impactx(energy=E * 1e6)
+    gain = float(translator(first).voltage) * np.cos(np.radians(20.0))
+    alone = translator(second).to_impactx(energy=E * 1e6 + gain)
+    assert [d for d in dicts if d["name"].startswith("cav2")] == alone
 
 
 def test_save_writes_json_in_directory(tmp_path):

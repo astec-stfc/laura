@@ -6,7 +6,7 @@ ImpactX elements, as the plain dicts ``element.to_dict()`` writes and
 ``model`` picks the fidelity tier, ``"linear"``, ``"paraxial"`` or ``"exact"``.
 """
 
-from math import ceil, degrees, sqrt
+from math import ceil, cos, degrees, hypot, radians, sqrt
 from warnings import warn
 
 import numpy as np
@@ -130,23 +130,28 @@ def build_magnet(t, model, ref) -> list:
 
 def _edge(t, location: str, psi: float, rc: float, fint, gap: float, model) -> dict:
     """A ``DipEdge``. With no fringe integral, a hard edge: ``g = 0``, else the
-    nonlinear model's tanh-profile defaults would bend a bare face."""
-    magnetic = t.magnetic
-    edge = {
+    nonlinear model's tanh-profile defaults would bend a bare face.
+
+    A soft edge is Hwang-Lee only with ``fringe_k*`` given. A hard edge
+    keeps the nonlinear hard-edge terms."""
+    integrals = {
+        k.upper(): v
+        for k in _HWANG_LEE
+        if (v := getattr(t.magnetic, f"fringe_{k}")) is not None
+    }
+    g = 0.0 if fint is None else gap
+    nonlinear = (integrals or not g) and t.fringe_order != 1
+    return {
         "type": "DipEdge",
         "name": f"{t.name}_{location}",
         "psi": psi,
         "rc": rc,
-        "g": 0.0 if fint is None else gap,
+        "g": g,
         "K2": fint or 0.0,
         "location": location,
-        "model": _EDGES["linear" if t.fringe_order == 1 else tier(_EDGES, model)],
+        "model": _EDGES[tier(_EDGES, model) if nonlinear else "linear"],
+        **integrals,
     }
-    for k in _HWANG_LEE:
-        value = getattr(magnetic, f"fringe_{k}")
-        if value is not None:
-            edge[k.upper()] = value
-    return edge
 
 
 def build_dipole(t, model, ref) -> list:
@@ -306,17 +311,47 @@ def field_map_cavity(t, ref) -> list | None:
     ]
 
 
+def _transverse_map(name: str, m: np.ndarray) -> dict:
+    """A zero-length ``LinearMap`` applying the 2x2 ``m`` in both planes."""
+    r = np.eye(6)
+    r[:2, :2] = r[2:4, 2:4] = m
+    return {"type": "LinearMap", "name": name, "ds": 0.0, "R": r.tolist()}
+
+
 def build_cavity(t, model, ref) -> list:
-    """A thin ``ShortRF`` between half drifts, as MAD-X's ``rfcavity``. ``V``
-    is the energy gain over ``m c^2``; crest is phase 0, LAURA's phase negated."""
+    """
+    A thin ``ShortRF`` between half drifts, as MAD-X's ``rfcavity``. ``V``
+    is the energy gain over ``m c^2``; crest is phase 0, LAURA's phase negated.
+
+    ``ShortRF`` only damps px by p0/p1, so with a reference energy, an entrance
+    map and exit lens make the whole the cavity's
+    :meth:`~laura.translator.converters.cavity.RFCavityTranslator.rf_focusing`.
+    Not in a ring (``change_p0 = 0``), whose reference the cavity leaves alone.
+    """
+    voltage = float(t.voltage) * abs(ref["charge"])
     kick = {
         "type": "ShortRF",
         "name": t.name,
         "freq": float(t.resolve(t.cavity.frequency)),
-        "V": float(t.voltage) * abs(ref["charge"]) / ref["mass"],
+        "V": voltage / ref["mass"],
         "phase": -float(t.phase),
     }
-    return _thin(t, kick, model)
+    parts = _thin(t, kick, model)
+    length = t.physical.length
+    if "beta_gamma" not in ref or not (length and voltage and t.simulation.change_p0):
+        return parts
+    mass = ref["mass"]
+    p0c = ref["beta_gamma"] * mass
+    cos_phi = cos(radians(float(t.phase)))
+    p1 = sqrt((hypot(p0c, mass) + voltage * cos_phi) ** 2 - mass**2)
+    target, _, exit, _ = t.rf_focusing(length, voltage, cos_phi, p0c, p1)
+    half = np.array([[1, length / 2], [0, 1]])
+    body = half @ np.diag([1, p0c / p1]) @ half
+    return [
+        _transverse_map(f"{t.name}_entrance", np.linalg.inv(exit @ body) @ target),
+        *parts,
+        _transverse_map(f"{t.name}_exit", exit),
+    ]
 
 
 def build_nonlinear_lens(t, model, ref) -> list:
