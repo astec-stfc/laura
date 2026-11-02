@@ -92,7 +92,10 @@ def test_export_reads_back_to_the_same_export(model):
         again = imported(dicts, name="line", energy=E).to_impactx(model=model, energy=E)
     assert [d["type"] for d in again] == [d["type"] for d in dicts]
     for before, after in zip(dicts, again):
-        assert after == pytest.approx(before, abs=1e-12), before["name"]
+        assert after.keys() == before.keys(), before["name"]
+        for key, value in before.items():  # pytest>=9.1 approx rejects nested lists in a dict
+            value = np.asarray(value) if isinstance(value, list) else value
+            assert after[key] == pytest.approx(value, abs=1e-12), (before["name"], key)
 
 
 def test_native_edges_merge_into_their_bend_and_names_repeat():
