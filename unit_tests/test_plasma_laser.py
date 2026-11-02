@@ -87,3 +87,13 @@ def test_injector_laser_is_not_a_driver():
     assert translator.driver_laser is None
     with pytest.warns(UserWarning, match="injector"):
         assert translator.to_wake_t().wakefield.laser is None
+
+
+def test_laser_is_linearly_polarized_by_default_in_wake_t():
+    # Wake-T treats anything but "linear" as circular, doubling the
+    # ponderomotive force on the plasma.
+    pytest.importorskip("wake_t")
+    plasma = _plasma()
+    plasma.laser = LaserElement(a0=3.0, wavelength=8e-7, waist=4e-5, pulse_duration_fwhm=3e-14)
+    laser = translate_elements([plasma])["P"].to_wake_t().wakefield.laser
+    assert laser.polarization == "linear"

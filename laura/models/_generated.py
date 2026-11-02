@@ -3019,8 +3019,8 @@ class _LaserElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'rad'}} })
     """Carrier-envelope phase [rad]."""
-    polarization: Optional[LaserPolarizationEnum] = Field(default=None, description="""Laser polarization state.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement']} })
-    """Laser polarization state."""
+    polarization: Optional[LaserPolarizationEnum] = Field(default=LaserPolarizationEnum.linear, description="""Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'string(linear)'} })
+    """Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise."""
     profile_type: Optional[LaserProfileTypeEnum] = Field(default=LaserProfileTypeEnum.gaussian, description="""Transverse intensity profile model.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'string(gaussian)'} })
     """Transverse intensity profile model."""
     laguerre_polynomial_order_p: int = Field(default=0, description="""Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'int(0)'} })

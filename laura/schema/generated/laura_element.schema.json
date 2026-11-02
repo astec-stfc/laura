@@ -7438,7 +7438,7 @@
         },
         "polarization": {
           "$ref": "#/$defs/LaserPolarizationEnum",
-          "description": "Laser polarization state."
+          "description": "Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise."
         },
         "polarization_angle": {
           "description": "Laser polarization angle with respect to the x-axis.",

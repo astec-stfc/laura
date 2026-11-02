@@ -1935,7 +1935,7 @@ export interface LaserElement {
     focal_position?: number,
     /** Carrier-envelope phase [rad]. */
     cep_phase?: number,
-    /** Laser polarization state. */
+    /** Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise. */
     polarization?: string,
     /** Transverse intensity profile model. */
     profile_type?: string,

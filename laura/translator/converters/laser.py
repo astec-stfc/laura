@@ -72,9 +72,12 @@ class LaserTranslator(BaseElementTranslator):
             # OpenPMDPulse,
         )
 
+        # Unset values are left to Wake-T's defaults: passing polarization=None,
+        # for one, makes Wake-T treat the pulse as circularly polarized.
         additional_dict = {
             self._convert_keyword_wake_t(param): getattr(self.laser, param)
             for param in self.additional_attrs
+            if getattr(self.laser, param) is not None
         }
         if self.profile_type == "gaussian":
             obj = GaussianPulse(

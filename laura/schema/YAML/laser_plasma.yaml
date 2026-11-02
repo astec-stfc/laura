@@ -250,7 +250,11 @@ classes:
           ucum_code: rad
       polarization:
         range: LaserPolarizationEnum
-        description: Laser polarization state.
+        description: >-
+          Laser polarization state. Codes that model the laser envelope (Wake-T)
+          scale the ponderomotive force by it, so it must be set; linear unless
+          stated otherwise.
+        ifabsent: string(linear)
       profile_type:
         range: LaserProfileTypeEnum
         description: Transverse intensity profile model.
