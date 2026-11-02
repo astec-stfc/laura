@@ -523,6 +523,20 @@ class LaserProfileTypeEnum(str, Enum):
     file = "file"
 
 
+class LaserRoleEnum(str, Enum):
+    """
+    What a laser attached to a plasma stage is for.
+    """
+    driver = "driver"
+    """
+    Drives the plasma wake (laser wakefield acceleration).
+    """
+    injector = "injector"
+    """
+    Injects electrons into a wake driven by something else, e.g. by ionizing a dopant inside a beam-driven wake (plasma photocathode). It does not drive the wake, so codes neither boost to its frame nor follow it with the moving window.
+    """
+
+
 
 class _PositionBase(ConfiguredBaseModel):
     """
@@ -1469,6 +1483,8 @@ class _PlasmaSimulationElementBase(_SimulationElementBase):
     """Maximum radial extension of the plasma column."""
     r_min_plasma: Optional[float] = Field(default=None, description="""Minimum radial extension of the plasma column [m]. Non-zero gives a hollow channel, with no plasma inside this radius. Codes that assume a filled column ignore it.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'unit': {'ucum_code': 'm'}} })
     """Minimum radial extension of the plasma column [m]. Non-zero gives a hollow channel, with no plasma inside this radius. Codes that assume a filled column ignore it."""
+    r_max_ionizable: Optional[float] = Field(default=None, description="""Radial extent of the ionizable species in a PIC code [m]; defaults to that of the plasma. Restricting it to where the driver or injection laser can ionize saves macroparticles.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'unit': {'ucum_code': 'm'}} })
+    """Radial extent of the ionizable species in a PIC code [m]; defaults to that of the plasma. Restricting it to where the driver or injection laser can ionize saves macroparticles."""
     dz_fields: Optional[float] = Field(default=None, description="""Interval for plasma wakefield updates.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
     """Interval for plasma wakefield updates."""
     plasma_pusher: str = Field(default="boris", description="""Pusher used to evolve the plasma in time.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'string(boris)'} })
@@ -2977,6 +2993,8 @@ class _LaserElementBase(ConfiguredBaseModel):
          'from_schema': 'https://w3id.org/laura/schema/laser_plasma',
          'in_subset': ['laser_properties']})
 
+    role: Optional[LaserRoleEnum] = Field(default=LaserRoleEnum.driver, description="""Whether the laser drives the wake or only injects electrons into a wake driven by the beam.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'string(driver)'} })
+    """Whether the laser drives the wake or only injects electrons into a wake driven by the beam."""
     a0: Optional[float] = Field(default=None, description="""Peak normalised vector potential. When set it is used as-is; otherwise it is derived from pulse_energy, waist and pulse_duration_fwhm assuming a Gaussian pulse.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement']} })
     """Peak normalised vector potential. When set it is used as-is; otherwise it is derived from pulse_energy, waist and pulse_duration_fwhm assuming a Gaussian pulse."""
     initial_position: float = Field(default=0, description="""Initial longitudinal position of the laser pulse centre [m], in the co-moving frame in which the bunch centroid (or reference particle) sits at zero.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],

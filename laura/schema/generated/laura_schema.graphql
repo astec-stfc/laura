@@ -90,6 +90,12 @@ enum LaserProfileTypeEnum
     file
   }
 
+enum LaserRoleEnum
+  {
+    driver
+    injector
+  }
+
 enum LatticeGeometryEnum
   {
     open
@@ -909,6 +915,7 @@ type LaserAttenuator
 
 type LaserElement
   {
+    role: LaserRoleEnum
     a0: Float
     initialPosition: Float
     waist: Float
@@ -1560,6 +1567,7 @@ type PlasmaSimulationElement
     rMax: Float
     rMaxPlasma: Float
     rMinPlasma: Float
+    rMaxIonizable: Float
     dzFields: Float
     plasmaPusher: String
     laserEvolution: Boolean

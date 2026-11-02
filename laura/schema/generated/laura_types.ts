@@ -266,6 +266,16 @@ export enum LaserProfileTypeEnum {
     flattened_gaussian = "flattened-gaussian",
     file = "file",
 };
+/**
+* What a laser attached to a plasma stage is for.
+*/
+export enum LaserRoleEnum {
+    
+    /** Drives the plasma wake (laser wakefield acceleration). */
+    driver = "driver",
+    /** Injects electrons into a wake driven by something else, e.g. by ionizing a dopant inside a beam-driven wake (plasma photocathode). It does not drive the wake, so codes neither boost to its frame nor follow it with the moving window. */
+    injector = "injector",
+};
 
 
 /**
@@ -947,6 +957,8 @@ export interface PlasmaSimulationElement extends SimulationElement {
     r_max_plasma?: number,
     /** Minimum radial extension of the plasma column [m]. Non-zero gives a hollow channel, with no plasma inside this radius. Codes that assume a filled column ignore it. */
     r_min_plasma?: number,
+    /** Radial extent of the ionizable species in a PIC code [m]; defaults to that of the plasma. Restricting it to where the driver or injection laser can ionize saves macroparticles. */
+    r_max_ionizable?: number,
     /** Interval for plasma wakefield updates. */
     dz_fields?: number,
     /** Pusher used to evolve the plasma in time. */
@@ -1905,6 +1917,8 @@ export interface LaserAttenuator extends StandardElement {
  * Laser-beam parameters (wavelength, pulse energy, profile, etc.) for a laser element or laser-driven plasma stage.
  */
 export interface LaserElement {
+    /** Whether the laser drives the wake or only injects electrons into a wake driven by the beam. */
+    role?: string,
     /** Peak normalised vector potential. When set it is used as-is; otherwise it is derived from pulse_energy, waist and pulse_duration_fwhm assuming a Gaussian pulse. */
     a0?: number,
     /** Initial longitudinal position of the laser pulse centre [m], in the co-moving frame in which the bunch centroid (or reference particle) sits at zero. */

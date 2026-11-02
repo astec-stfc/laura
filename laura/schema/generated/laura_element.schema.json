@@ -7476,6 +7476,10 @@
             "null"
           ]
         },
+        "role": {
+          "$ref": "#/$defs/LaserRoleEnum",
+          "description": "Whether the laser drives the wake or only injects electrons into a wake driven by the beam."
+        },
         "temporal_chirp_2nd_order": {
           "description": "The amount of temporal chirp, at focus (in the lab frame).",
           "type": [
@@ -8148,6 +8152,15 @@
         "file"
       ],
       "title": "LaserProfileTypeEnum",
+      "type": "string"
+    },
+    "LaserRoleEnum": {
+      "description": "What a laser attached to a plasma stage is for.",
+      "enum": [
+        "driver",
+        "injector"
+      ],
+      "title": "LaserRoleEnum",
       "type": "string"
     },
     "LatticeGeometryEnum": {
@@ -12528,6 +12541,14 @@
         },
         "r_max": {
           "description": "Radial extent of the simulation box [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "r_max_ionizable": {
+          "description": "Radial extent of the ionizable species in a PIC code [m]; defaults to that of the plasma. Restricting it to where the driver or injection laser can ionize saves macroparticles.",
+          "minimum": 0.0,
           "type": [
             "number",
             "null"

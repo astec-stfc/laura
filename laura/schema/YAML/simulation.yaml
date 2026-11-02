@@ -475,6 +475,15 @@ classes:
         minimum_value: 0.0
         unit:
           ucum_code: m
+      r_max_ionizable:
+        range: float
+        description: >-
+          Radial extent of the ionizable species in a PIC code [m]; defaults to
+          that of the plasma. Restricting it to where the driver or injection
+          laser can ionize saves macroparticles.
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
       dz_fields:
         range: float
         description: Interval for plasma wakefield updates.

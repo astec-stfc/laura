@@ -135,6 +135,14 @@ class PlasmaSimulationElement(_PlasmaSimulationElementBase):
         return self.r_max_plasma
 
     @property
+    def p_rmax_ionizable(self) -> float:
+        """Radial extent of the ionizable species, defaulting to that of the
+        plasma column."""
+        if self.r_max_ionizable is None:
+            return self.p_rmax
+        return self.r_max_ionizable
+
+    @property
     def p_rmin(self) -> float:
         """Inner radius of the plasma column, zero (a filled column) unless a
         hollow channel is asked for."""

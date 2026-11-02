@@ -141,6 +141,18 @@ enums:
       flattened-gaussian: { }
       file: { }
 
+  LaserRoleEnum:
+    description: What a laser attached to a plasma stage is for.
+    permissible_values:
+      driver:
+        description: Drives the plasma wake (laser wakefield acceleration).
+      injector:
+        description: >-
+          Injects electrons into a wake driven by something else, e.g. by
+          ionizing a dopant inside a beam-driven wake (plasma photocathode).
+          It does not drive the wake, so codes neither boost to its frame nor
+          follow it with the moving window.
+
 # --- Reusable Slots ----------------------------------------------------------
 
 slots:

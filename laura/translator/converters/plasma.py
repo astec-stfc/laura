@@ -73,8 +73,19 @@ class PlasmaTranslator(BaseElementTranslator):
             )
         }
         elemdict = modeldict | commondict | {"density": self._wake_t_density()}
+        if self.plasma.ionizable:
+            warn(
+                f"{self.name} has an ionizable species, which Wake-T does not model; "
+                "it is tracked as the pre-ionized plasma alone, with no ionization "
+                "injection. Use a PIC code such as FBPIC for that."
+            )
+        if self.laser is not None and self.driver_laser is None:
+            warn(
+                f"The laser of {self.name} is an injector, not a wake driver; Wake-T "
+                "cannot model the ionization it is there for, so it is left out."
+            )
         lasers = []
-        if isinstance(self.laser, LaserElement):
+        if self.driver_laser is not None:
             laser_translator = LaserTranslator.model_validate(self.model_dump())
             lasers.append(laser_translator.to_wake_t())
         if len(lasers) == 1:
@@ -90,6 +101,16 @@ class PlasmaTranslator(BaseElementTranslator):
             wakefield_model=self.simulation.wakefield_model, **elemdict
         )
         return obj
+
+    @property
+    def driver_laser(self) -> LaserElement | None:
+        """
+        The laser driving the wake, or None for a beam-driven stage -- which
+        includes one whose only laser is an injector (``role: injector``).
+        """
+        if isinstance(self.laser, LaserElement) and str(self.laser.role) == "driver":
+            return self.laser
+        return None
 
     def _wake_t_density(self) -> float | Any:
         """

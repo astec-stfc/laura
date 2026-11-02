@@ -189,6 +189,12 @@ classes:
     in_subset:
       - laser_properties
     attributes:
+      role:
+        range: LaserRoleEnum
+        description: >-
+          Whether the laser drives the wake or only injects electrons into a
+          wake driven by the beam.
+        ifabsent: string(driver)
       a0:
         range: float
         description: >-

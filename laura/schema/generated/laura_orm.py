@@ -1287,6 +1287,7 @@ class LaserElement(Base):
     __tablename__ = 'LaserElement'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    role = Column(Enum('driver', 'injector', name='LaserRoleEnum'))
     a0 = Column(Float())
     initial_position = Column(Float())
     waist = Column(Float())
@@ -1306,7 +1307,7 @@ class LaserElement(Base):
     
 
     def __repr__(self):
-        return f"LaserElement(id={self.id},a0={self.a0},initial_position={self.initial_position},waist={self.waist},wavelength={self.wavelength},pulse_energy={self.pulse_energy},pulse_duration_fwhm={self.pulse_duration_fwhm},focal_position={self.focal_position},cep_phase={self.cep_phase},polarization={self.polarization},profile_type={self.profile_type},laguerre_polynomial_order_p={self.laguerre_polynomial_order_p},laguerre_polynomial_order_m={self.laguerre_polynomial_order_m},flatness={self.flatness},propagation_direction={self.propagation_direction},polarization_angle={self.polarization_angle},temporal_chirp_2nd_order={self.temporal_chirp_2nd_order},)"
+        return f"LaserElement(id={self.id},role={self.role},a0={self.a0},initial_position={self.initial_position},waist={self.waist},wavelength={self.wavelength},pulse_energy={self.pulse_energy},pulse_duration_fwhm={self.pulse_duration_fwhm},focal_position={self.focal_position},cep_phase={self.cep_phase},polarization={self.polarization},profile_type={self.profile_type},laguerre_polynomial_order_p={self.laguerre_polynomial_order_p},laguerre_polynomial_order_m={self.laguerre_polynomial_order_m},flatness={self.flatness},propagation_direction={self.propagation_direction},polarization_angle={self.polarization_angle},temporal_chirp_2nd_order={self.temporal_chirp_2nd_order},)"
 
 
 
@@ -8123,6 +8124,7 @@ class PlasmaSimulationElement(SimulationElement):
     r_max = Column(Float())
     r_max_plasma = Column(Float())
     r_min_plasma = Column(Float())
+    r_max_ionizable = Column(Float())
     dz_fields = Column(Float())
     plasma_pusher = Column(Text())
     laser_evolution = Column(Boolean())
@@ -8154,7 +8156,7 @@ class PlasmaSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"PlasmaSimulationElement(id={self.id},wakefield_model={self.wakefield_model},bunch_pusher={self.bunch_pusher},dt_bunch={self.dt_bunch},n_out={self.n_out},min_longitudinal_position={self.min_longitudinal_position},max_longitudinal_position={self.max_longitudinal_position},plasma_min_longitudinal_position={self.plasma_min_longitudinal_position},plasma_max_longitudinal_position={self.plasma_max_longitudinal_position},n_longitudinal={self.n_longitudinal},n_radial={self.n_radial},particles_per_radial_cell={self.particles_per_radial_cell},particles_per_longitudinal_cell={self.particles_per_longitudinal_cell},particles_per_angular_cell={self.particles_per_angular_cell},r_max={self.r_max},r_max_plasma={self.r_max_plasma},r_min_plasma={self.r_min_plasma},dz_fields={self.dz_fields},plasma_pusher={self.plasma_pusher},laser_evolution={self.laser_evolution},laser_envelope_substeps={self.laser_envelope_substeps},laser_envelope_n_longitudinal={self.laser_envelope_n_longitudinal},laser_envelope_n_radial={self.laser_envelope_n_radial},laser_envelope_use_phase={self.laser_envelope_use_phase},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"PlasmaSimulationElement(id={self.id},wakefield_model={self.wakefield_model},bunch_pusher={self.bunch_pusher},dt_bunch={self.dt_bunch},n_out={self.n_out},min_longitudinal_position={self.min_longitudinal_position},max_longitudinal_position={self.max_longitudinal_position},plasma_min_longitudinal_position={self.plasma_min_longitudinal_position},plasma_max_longitudinal_position={self.plasma_max_longitudinal_position},n_longitudinal={self.n_longitudinal},n_radial={self.n_radial},particles_per_radial_cell={self.particles_per_radial_cell},particles_per_longitudinal_cell={self.particles_per_longitudinal_cell},particles_per_angular_cell={self.particles_per_angular_cell},r_max={self.r_max},r_max_plasma={self.r_max_plasma},r_min_plasma={self.r_min_plasma},r_max_ionizable={self.r_max_ionizable},dz_fields={self.dz_fields},plasma_pusher={self.plasma_pusher},laser_evolution={self.laser_evolution},laser_envelope_substeps={self.laser_envelope_substeps},laser_envelope_n_longitudinal={self.laser_envelope_n_longitudinal},laser_envelope_n_radial={self.laser_envelope_n_radial},laser_envelope_use_phase={self.laser_envelope_use_phase},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 

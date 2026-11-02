@@ -76,3 +76,14 @@ def test_stage_without_laser_is_beam_driven():
     plasma = _plasma()
     assert plasma.laser is None
     assert translate_elements([plasma])["P"].to_wake_t().wakefield.laser is None
+
+
+def test_injector_laser_is_not_a_driver():
+    pytest.importorskip("wake_t")
+    plasma = _plasma()
+    plasma.laser = LaserElement(role="injector", a0=0.03, wavelength=8e-7,
+                                waist=5e-6, pulse_duration_fwhm=3e-14)
+    translator = translate_elements([plasma])["P"]
+    assert translator.driver_laser is None
+    with pytest.warns(UserWarning, match="injector"):
+        assert translator.to_wake_t().wakefield.laser is None
