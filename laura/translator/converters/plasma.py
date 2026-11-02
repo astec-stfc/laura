@@ -59,7 +59,7 @@ class PlasmaTranslator(BaseElementTranslator):
             self.simulation.wakefield_model not in self.simulation.required_attrs.keys()
         ):
             raise ValueError(
-                f"Invalid wakefield model {self.wakefield_model}. "
+                f"Invalid wakefield model {self.simulation.wakefield_model}. "
                 f"Supported models are {list(self.simulation.required_attrs.keys())[1:]}."
             )
         commondict = {
@@ -68,13 +68,11 @@ class PlasmaTranslator(BaseElementTranslator):
         }
         modeldict = {
             self._convert_keyword_wake_t(param): getattr(self, param)
-            for param in self.simulation.required_attrs[self.simulation.wakefield_model]
+            for param in self.simulation.required_attrs.get(
+                self.simulation.wakefield_model, []
+            )
         }
-        if self.plasma.density_profile:
-            modeldict["density"] = self._wake_t_density_profile
-        else:
-            modeldict["density"] = float(self.plasma.density)
-        elemdict = modeldict | commondict
+        elemdict = modeldict | commondict | {"density": self._wake_t_density()}
         lasers = []
         if isinstance(self.laser, LaserElement):
             laser_translator = LaserTranslator.model_validate(self.model_dump())
@@ -92,6 +90,21 @@ class PlasmaTranslator(BaseElementTranslator):
             wakefield_model=self.simulation.wakefield_model, **elemdict
         )
         return obj
+
+    def _wake_t_density(self) -> float | Any:
+        """
+        The plasma density in the form Wake-T takes it: a number for a uniform
+        plasma, otherwise :func:`~_wake_t_density_profile`, which carries the
+        longitudinal profile and any parabolic channel together.
+
+        Returns
+        -------
+        float or Callable
+            Density in m^-3, or a function ``f(z, r)`` returning it
+        """
+        if self.plasma.is_uniform:
+            return float(self.plasma.density)
+        return self._wake_t_density_profile
 
     def _wake_t_density_profile(self, z, r=0.0) -> np.ndarray:
         """
@@ -174,3 +187,56 @@ class PlasmaTranslator(BaseElementTranslator):
             Relative density
         """
         return self.plasma.relative_density_profile(z, r)
+
+
+class PlasmaLensTranslator(PlasmaTranslator):
+    """
+    Translator for a :class:`~laura.models.element.PlasmaLens` (active plasma lens).
+
+    Only Wake-T models the lens directly. Codes without an equivalent element
+    see it as a drift of the same length, with a warning.
+    """
+
+    focusing_strength: float = 0.0
+    """Focusing gradient [T/m]."""
+
+    wakefields: bool = False
+    """Whether the beam-driven plasma wakefields in the lens are modelled."""
+
+    laser: LaserElement | None = None
+    """Unused; a plasma lens has no laser driver."""
+
+    def to_wake_t(self) -> Any:
+        """
+        Create a Wake-T ``ActivePlasmaLens``.
+
+        With :attr:`~wakefields` set, the plasma density and the grid
+        settings of the ``simulation`` sub-element are passed on, as for a
+        :class:`~PlasmaTranslator` stage.
+
+        Returns
+        -------
+        wake_t.ActivePlasmaLens
+            Wake-T plasma-lens object
+        """
+        from ..conversion_rules.codes import wake_t_conversion
+
+        kwargs = {
+            self._convert_keyword_wake_t(param): getattr(self, param)
+            for param in self.simulation.required_attrs["common"]
+        }
+        if self.wakefields:
+            model = self.simulation.wakefield_model or "quasistatic_2d"
+            kwargs.update(
+                {
+                    self._convert_keyword_wake_t(param): getattr(self, param)
+                    for param in self.simulation.required_attrs.get(model, [])
+                    if not param.startswith("laser_")
+                }
+            )
+            kwargs.update(wakefield_model=model, density=self._wake_t_density())
+        return wake_t_conversion.wake_t_conversion_rules["PlasmaLens"](
+            foc_strength=self.focusing_strength,
+            wakefields=self.wakefields,
+            **kwargs,
+        )

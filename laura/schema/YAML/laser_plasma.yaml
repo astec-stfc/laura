@@ -30,7 +30,9 @@ classes:
 
   Plasma:
     is_a: PhysicalAcceleratorElement
-    description: Laser-driven plasma-accelerator stage.
+    description: >-
+      Plasma-accelerator stage, driven either by the laser defined in
+      ``laser`` or, if there is none, by the incoming particle beam.
     class_uri: laura:Plasma
     slot_usage:
       hardware_type:
@@ -43,7 +45,38 @@ classes:
         description: Plasma channel parameters.
       laser:
         range: LaserElement
-        description: Laser driving the plasma stage.
+        description: >-
+          Laser driving the plasma stage. Leave unset for a beam-driven stage,
+          where the driver is part of the incoming beam.
+
+  PlasmaLens:
+    is_a: PhysicalAcceleratorElement
+    description: >-
+      Active plasma lens: a discharge capillary whose current produces an
+      azimuthal magnetic field that focuses the beam in both planes.
+    class_uri: laura:PlasmaLens
+    slot_usage:
+      hardware_type:
+        equals_string: PlasmaLens
+      simulation:
+        range: PlasmaSimulationElement
+    attributes:
+      focusing_strength:
+        range: float
+        description: Focusing gradient of the lens field [T/m].
+        ifabsent: float(0)
+        unit:
+          ucum_code: T/m
+      wakefields:
+        range: boolean
+        description: >-
+          Whether the plasma wakefields excited by the beam in the capillary
+          are also modelled; needs ``plasma.density`` and the grid settings in
+          ``simulation``.
+        ifabsent: "False"
+      plasma:
+        range: PlasmaElement
+        description: Capillary plasma, used only when ``wakefields`` is True.
 
   LaserEnergyMeter:
     is_a: StandardElement
@@ -156,9 +189,19 @@ classes:
     in_subset:
       - laser_properties
     attributes:
+      a0:
+        range: float
+        description: >-
+          Peak normalised vector potential. When set it is used as-is;
+          otherwise it is derived from pulse_energy, waist and
+          pulse_duration_fwhm assuming a Gaussian pulse.
+        minimum_value: 0.0
       initial_position:
         range: float
-        description: Initial longitudinal position of the laser pulse [m].
+        description: >-
+          Initial longitudinal position of the laser pulse centre [m], in the
+          co-moving frame in which the bunch centroid (or reference particle)
+          sits at zero.
         ifabsent: float(0)
         unit:
           ucum_code: m
@@ -246,12 +289,6 @@ classes:
         description: >-
           The amount of temporal chirp, at focus (in the lab frame).
         ifabsent: float(0)
-      species:
-        range: string
-        description: >-
-          The laser is either added directly to the interpolation grid initially
-          (direct) or it is progressively emitted by an antenna (antenna).
-        ifabsent: string(antenna)
 
   LaserEnergyMeterElement:
     description: Laser energy-meter sub-model (no additional fields).
@@ -264,7 +301,7 @@ classes:
   # -- Plasma sub-model -------------------------------------------------------
 
   PlasmaElement:
-    description: Plasma channel parameters for a laser-driven plasma-accelerator stage.
+    description: Plasma parameters for a laser- or beam-driven plasma stage or plasma lens.
     class_uri: laura:PlasmaElement
     attributes:
       density:
@@ -308,8 +345,9 @@ classes:
       density_profile:
         range: boolean
         description: >-
-          If True, use a user-defined profile; if False, use a flat-top
-          model.
+          If True, use the longitudinal profile chosen by
+          density_profile_type; if False, the density is uniform along the
+          stage. Either way it is multiplied by any parabolic channel.
         ifabsent: "False"
       density_profile_start:
         range: float

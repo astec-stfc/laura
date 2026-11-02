@@ -20,5 +20,5 @@ wake_t_conversion_rules = {
     "Sextupole": Sextupole,
     "Laser": GaussianPulse,
     "Plasma": PlasmaStage,
-    "Plasma_Lens": ActivePlasmaLens,
+    "PlasmaLens": ActivePlasmaLens,
 }

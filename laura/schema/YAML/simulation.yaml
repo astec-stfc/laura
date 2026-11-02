@@ -430,11 +430,15 @@ classes:
       plasma_min_longitudinal_position:
         range: float
         description: >-
-          Longitudinal position at which the plasma column starts [m].
+          Lower z bound of the plasma loaded at t = 0 in a PIC code such as
+          FBPIC [m]; defaults to the box lower edge. Plasma injected later by
+          the moving window is bounded only by the density profile.
       plasma_max_longitudinal_position:
         range: float
         description: >-
-          Longitudinal position at which the plasma column ends [m].
+          Upper z bound of the plasma loaded at t = 0 in a PIC code such as
+          FBPIC [m]; defaults to the box upper edge. Plasma injected later by
+          the moving window is bounded only by the density profile.
       n_longitudinal:
         range: integer
         description: Number of grid points in the longitudinal direction.

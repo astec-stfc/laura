@@ -1449,10 +1449,10 @@ class _PlasmaSimulationElementBase(_SimulationElementBase):
     """Minimum longitudinal position of the simulation box [m]."""
     max_longitudinal_position: float = Field(default=0, description="""Maximum longitudinal position of the simulation box [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
     """Maximum longitudinal position of the simulation box [m]."""
-    plasma_min_longitudinal_position: Optional[float] = Field(default=None, description="""Longitudinal position at which the plasma column starts [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
-    """Longitudinal position at which the plasma column starts [m]."""
-    plasma_max_longitudinal_position: Optional[float] = Field(default=None, description="""Longitudinal position at which the plasma column ends [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
-    """Longitudinal position at which the plasma column ends [m]."""
+    plasma_min_longitudinal_position: Optional[float] = Field(default=None, description="""Lower z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box lower edge. Plasma injected later by the moving window is bounded only by the density profile.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
+    """Lower z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box lower edge. Plasma injected later by the moving window is bounded only by the density profile."""
+    plasma_max_longitudinal_position: Optional[float] = Field(default=None, description="""Upper z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box upper edge. Plasma injected later by the moving window is bounded only by the density profile.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
+    """Upper z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box upper edge. Plasma injected later by the moving window is bounded only by the density profile."""
     n_longitudinal: int = Field(default=0, description="""Number of grid points in the longitudinal direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(0)'} })
     """Number of grid points in the longitudinal direction."""
     n_radial: int = Field(default=0, description="""Number of grid points in the radial direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(0)'} })
@@ -2977,10 +2977,12 @@ class _LaserElementBase(ConfiguredBaseModel):
          'from_schema': 'https://w3id.org/laura/schema/laser_plasma',
          'in_subset': ['laser_properties']})
 
-    initial_position: float = Field(default=0, description="""Initial longitudinal position of the laser pulse [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
+    a0: Optional[float] = Field(default=None, description="""Peak normalised vector potential. When set it is used as-is; otherwise it is derived from pulse_energy, waist and pulse_duration_fwhm assuming a Gaussian pulse.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement']} })
+    """Peak normalised vector potential. When set it is used as-is; otherwise it is derived from pulse_energy, waist and pulse_duration_fwhm assuming a Gaussian pulse."""
+    initial_position: float = Field(default=0, description="""Initial longitudinal position of the laser pulse centre [m], in the co-moving frame in which the bunch centroid (or reference particle) sits at zero.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
-    """Initial longitudinal position of the laser pulse [m]."""
+    """Initial longitudinal position of the laser pulse centre [m], in the co-moving frame in which the bunch centroid (or reference particle) sits at zero."""
     waist: float = Field(default=0, description="""Laser beam waist (1/e^2 radius) [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
@@ -3015,8 +3017,6 @@ class _LaserElementBase(ConfiguredBaseModel):
     """Laser polarization angle with respect to the x-axis."""
     temporal_chirp_2nd_order: float = Field(default=0, description="""The amount of temporal chirp, at focus (in the lab frame).""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'float(0)'} })
     """The amount of temporal chirp, at focus (in the lab frame)."""
-    species: str = Field(default="antenna", description="""The laser is either added directly to the interpolation grid initially (direct) or it is progressively emitted by an antenna (antenna).""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement', 'PlasmaElement'], 'ifabsent': 'string(antenna)'} })
-    """The laser is either added directly to the interpolation grid initially (direct) or it is progressively emitted by an antenna (antenna)."""
 
 
 class _LaserEnergyMeterElementBase(ConfiguredBaseModel):
@@ -3041,14 +3041,14 @@ class _LaserHalfWavePlateElementBase(ConfiguredBaseModel):
 
 class _PlasmaElementBase(ConfiguredBaseModel):
     """
-    Plasma channel parameters for a laser-driven plasma-accelerator stage.
+    Plasma parameters for a laser- or beam-driven plasma stage or plasma lens.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PlasmaElement',
          'from_schema': 'https://w3id.org/laura/schema/laser_plasma'})
 
     density: Optional[float] = Field(default=None, description="""Plasma (electron) number density [m^-^3].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'unit': {'ucum_code': 'm-3'}} })
     """Plasma (electron) number density [m^-^3]."""
-    species: str = Field(default="electron", description="""Plasma species name (e.g., ``electron``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement', 'PlasmaElement'], 'ifabsent': 'string(electron)'} })
+    species: str = Field(default="electron", description="""Plasma species name (e.g., ``electron``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'string(electron)'} })
     """Plasma species name (e.g., ``electron``)."""
     ramp_up: float = Field(default=0.001, description="""Entrance density-ramp length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
          'ifabsent': 'float(0.001)',
@@ -3066,8 +3066,8 @@ class _PlasmaElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0.001)',
          'unit': {'ucum_code': 'm'}} })
     """Exponential decay length of the density ramp [m]."""
-    density_profile: Optional[bool] = Field(default=False, description="""If True, use a user-defined profile; if False, use a flat-top model.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'False'} })
-    """If True, use a user-defined profile; if False, use a flat-top model."""
+    density_profile: Optional[bool] = Field(default=False, description="""If True, use the longitudinal profile chosen by density_profile_type; if False, the density is uniform along the stage. Either way it is multiplied by any parabolic channel.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'False'} })
+    """If True, use the longitudinal profile chosen by density_profile_type; if False, the density is uniform along the stage. Either way it is multiplied by any parabolic channel."""
     density_profile_start: float = Field(default=0, description="""Longitudinal position at which the density profile begins [m]. ramp_up, plateau and ramp_down are measured from here, and the density is zero upstream of it.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
@@ -6565,7 +6565,7 @@ class _PhotonMonitorBase(_DiagnosticBase):
 
 class _PlasmaBase(_PhysicalAcceleratorElementBase):
     """
-    Laser-driven plasma-accelerator stage.
+    Plasma-accelerator stage, driven either by the laser defined in ``laser`` or, if there is none, by the incoming particle beam.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Plasma',
          'from_schema': 'https://w3id.org/laura/schema/laser_plasma',
@@ -6574,15 +6574,15 @@ class _PlasmaBase(_PhysicalAcceleratorElementBase):
                         'simulation': {'name': 'simulation',
                                        'range': 'PlasmaSimulationElement'}}})
 
-    plasma: Optional[_PlasmaElementBase] = Field(default=None, description="""Plasma channel parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Plasma']} })
+    plasma: Optional[_PlasmaElementBase] = Field(default=None, description="""Plasma channel parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Plasma', 'PlasmaLens']} })
     """Plasma channel parameters."""
-    laser: Optional[_LaserElementBase] = Field(default=None, description="""Laser driving the plasma stage.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Laser',
+    laser: Optional[_LaserElementBase] = Field(default=None, description="""Laser driving the plasma stage. Leave unset for a beam-driven stage, where the driver is part of the incoming beam.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Laser',
                        'Plasma',
                        'LaserEnergyMeter',
                        'LaserHalfWavePlate',
                        'LaserMirror',
                        'Wiggler']} })
-    """Laser driving the plasma stage."""
+    """Laser driving the plasma stage. Leave unset for a beam-driven stage, where the driver is part of the incoming beam."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
@@ -6604,6 +6604,70 @@ class _PlasmaBase(_PhysicalAcceleratorElementBase):
     """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
     hardware_type: Optional[Literal["Plasma"]] = Field(default="Generic", description="""Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
          'equals_string': 'Plasma',
+         'ifabsent': 'string(Generic)'} })
+    """Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML."""
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    """Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``)."""
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``)."""
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    """Alternative internal name used by the control system when the physical name is inaccessible."""
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    """Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings."""
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """If set, this element is a logical sub-component of the named parent element."""
+    inherits_from: Optional[str] = Field(default=None, description="""If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.""", validation_alias=AliasChoices('inherits_from', 'inherit'), json_schema_extra = { "linkml_meta": {'aliases': ['inherit'], 'domain_of': ['AcceleratorElement']} })
+    """If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one."""
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""Signal types this element consumes (e.g. ``[current, voltage]``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Signal types this element consumes (e.g. ``[current, voltage]``)."""
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""Signal types this element produces (e.g. ``[power, phase]``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Signal types this element produces (e.g. ``[power, phase]``)."""
+    upstream: list[str] = Field(default_factory=list, description="""Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Names of elements feeding this one, whose ``outputs`` supply its ``inputs``."""
+    downstream: list[str] = Field(default_factory=list, description="""Names of elements this one feeds; the inverse of ``upstream``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Names of elements this one feeds; the inverse of ``upstream``."""
+
+
+class _PlasmaLensBase(_PhysicalAcceleratorElementBase):
+    """
+    Active plasma lens: a discharge capillary whose current produces an azimuthal magnetic field that focuses the beam in both planes.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PlasmaLens',
+         'from_schema': 'https://w3id.org/laura/schema/laser_plasma',
+         'slot_usage': {'hardware_type': {'equals_string': 'PlasmaLens',
+                                          'name': 'hardware_type'},
+                        'simulation': {'name': 'simulation',
+                                       'range': 'PlasmaSimulationElement'}}})
+
+    focusing_strength: float = Field(default=0, description="""Focusing gradient of the lens field [T/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaLens'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'T/m'}} })
+    """Focusing gradient of the lens field [T/m]."""
+    wakefields: Optional[bool] = Field(default=False, description="""Whether the plasma wakefields excited by the beam in the capillary are also modelled; needs ``plasma.density`` and the grid settings in ``simulation``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaLens'], 'ifabsent': 'False'} })
+    """Whether the plasma wakefields excited by the beam in the capillary are also modelled; needs ``plasma.density`` and the grid settings in ``simulation``."""
+    plasma: Optional[_PlasmaElementBase] = Field(default=None, description="""Capillary plasma, used only when ``wakefields`` is True.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Plasma', 'PlasmaLens']} })
+    """Capillary plasma, used only when ``wakefields`` is True."""
+    physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
+         'in_subset': ['physical_properties']} })
+    """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
+    simulation: Optional[_PlasmaSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Simulation / tracking attributes."""
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Power-supply electrical limits."""
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    """Manufacturer and serial-number data."""
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Control-system process-variable definitions."""
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Links to design drawings and files."""
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    """Unique element name within the machine."""
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
+    hardware_type: Optional[Literal["PlasmaLens"]] = Field(default="Generic", description="""Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'PlasmaLens',
          'ifabsent': 'string(Generic)'} })
     """Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML."""
     hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
@@ -7431,6 +7495,7 @@ _FaradayCupMonitorBase.model_rebuild()
 _IntegratedCurrentTransformerBase.model_rebuild()
 _PhotonMonitorBase.model_rebuild()
 _PlasmaBase.model_rebuild()
+_PlasmaLensBase.model_rebuild()
 _DipoleBase.model_rebuild()
 _QuadrupoleBase.model_rebuild()
 _SextupoleBase.model_rebuild()

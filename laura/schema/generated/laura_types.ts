@@ -43,6 +43,7 @@ export type FaradayCupMonitorName = string;
 export type IntegratedCurrentTransformerName = string;
 export type PhotonMonitorName = string;
 export type PlasmaName = string;
+export type PlasmaLensName = string;
 export type LaserEnergyMeterName = string;
 export type LaserHalfWavePlateName = string;
 export type LaserMirrorName = string;
@@ -926,9 +927,9 @@ export interface PlasmaSimulationElement extends SimulationElement {
     min_longitudinal_position?: number,
     /** Maximum longitudinal position of the simulation box [m]. */
     max_longitudinal_position?: number,
-    /** Longitudinal position at which the plasma column starts [m]. */
+    /** Lower z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box lower edge. Plasma injected later by the moving window is bounded only by the density profile. */
     plasma_min_longitudinal_position?: number,
-    /** Longitudinal position at which the plasma column ends [m]. */
+    /** Upper z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box upper edge. Plasma injected later by the moving window is bounded only by the density profile. */
     plasma_max_longitudinal_position?: number,
     /** Number of grid points in the longitudinal direction. */
     n_longitudinal?: number,
@@ -1809,13 +1810,26 @@ export interface CameraDiagnosticElement extends DiagnosticElement {
 
 
 /**
- * Laser-driven plasma-accelerator stage.
+ * Plasma-accelerator stage, driven either by the laser defined in ``laser`` or, if there is none, by the incoming particle beam.
  */
 export interface Plasma extends PhysicalAcceleratorElement {
     /** Plasma channel parameters. */
     plasma?: PlasmaElement,
-    /** Laser driving the plasma stage. */
+    /** Laser driving the plasma stage. Leave unset for a beam-driven stage, where the driver is part of the incoming beam. */
     laser?: LaserElement,
+}
+
+
+/**
+ * Active plasma lens: a discharge capillary whose current produces an azimuthal magnetic field that focuses the beam in both planes.
+ */
+export interface PlasmaLens extends PhysicalAcceleratorElement {
+    /** Focusing gradient of the lens field [T/m]. */
+    focusing_strength?: number,
+    /** Whether the plasma wakefields excited by the beam in the capillary are also modelled; needs ``plasma.density`` and the grid settings in ``simulation``. */
+    wakefields?: boolean,
+    /** Capillary plasma, used only when ``wakefields`` is True. */
+    plasma?: PlasmaElement,
 }
 
 
@@ -1891,7 +1905,9 @@ export interface LaserAttenuator extends StandardElement {
  * Laser-beam parameters (wavelength, pulse energy, profile, etc.) for a laser element or laser-driven plasma stage.
  */
 export interface LaserElement {
-    /** Initial longitudinal position of the laser pulse [m]. */
+    /** Peak normalised vector potential. When set it is used as-is; otherwise it is derived from pulse_energy, waist and pulse_duration_fwhm assuming a Gaussian pulse. */
+    a0?: number,
+    /** Initial longitudinal position of the laser pulse centre [m], in the co-moving frame in which the bunch centroid (or reference particle) sits at zero. */
     initial_position?: number,
     /** Laser beam waist (1/e^2 radius) [m]. */
     waist?: number,
@@ -1921,8 +1937,6 @@ export interface LaserElement {
     polarization_angle?: number,
     /** The amount of temporal chirp, at focus (in the lab frame). */
     temporal_chirp_2nd_order?: number,
-    /** The laser is either added directly to the interpolation grid initially (direct) or it is progressively emitted by an antenna (antenna). */
-    species?: string,
 }
 
 
@@ -1941,7 +1955,7 @@ export interface LaserHalfWavePlateElement {
 
 
 /**
- * Plasma channel parameters for a laser-driven plasma-accelerator stage.
+ * Plasma parameters for a laser- or beam-driven plasma stage or plasma lens.
  */
 export interface PlasmaElement {
     /** Plasma (electron) number density [m^-^3]. */
@@ -1956,7 +1970,7 @@ export interface PlasmaElement {
     ramp_down?: number,
     /** Exponential decay length of the density ramp [m]. */
     ramp_decay_length?: number,
-    /** If True, use a user-defined profile; if False, use a flat-top model. */
+    /** If True, use the longitudinal profile chosen by density_profile_type; if False, the density is uniform along the stage. Either way it is multiplied by any parabolic channel. */
     density_profile?: boolean,
     /** Longitudinal position at which the density profile begins [m]. ramp_up, plateau and ramp_down are measured from here, and the density is zero upstream of it. */
     density_profile_start?: number,

@@ -7,7 +7,35 @@ from ._generated import _PlasmaElementBase
 class PlasmaElement(_PlasmaElementBase):
     """Plasma model."""
 
-    pass
+    @property
+    def is_uniform(self) -> bool:
+        """True if the density is the same everywhere: no longitudinal profile
+        and no parabolic channel, so codes can be given :attr:`~density` alone
+        rather than a density function."""
+        return not self.density_profile and not self.parabolic_coefficient
+
+    @property
+    def profile_end(self) -> float | None:
+        """
+        Longitudinal position at which the density profile ends [m], measured
+        on the same axis as :attr:`~density_profile_start`.
+
+        Returns
+        -------
+        float or None
+            The end of the down-ramp for the ``decaying`` and ``linear``
+            profiles, the last tabulated position for ``tabulated``, and None
+            for a uniform plasma or a ``custom`` profile, whose extent is not
+            known
+        """
+        if not self.density_profile:
+            return None
+        profile_type = str(self.density_profile_type).lower()
+        if profile_type in ("decaying", "linear"):
+            return self.density_profile_start + self.ramp_up + self.plateau + self.ramp_down
+        if profile_type == "tabulated" and self.density_profile_positions:
+            return self.density_profile_start + max(self.density_profile_positions)
+        return None
 
     def plasma_wavelength(self) -> float:
         """
@@ -67,7 +95,9 @@ class PlasmaElement(_PlasmaElementBase):
         """
         Plasma density as a function of position, relative to :attr:`~density`.
 
-        The longitudinal shape is chosen by :attr:`~density_profile_type`:
+        If :attr:`~density_profile` is False the plasma is uniform along z.
+        Otherwise the longitudinal shape is chosen by
+        :attr:`~density_profile_type`:
 
         ``decaying``
             ``1/(1 + dz/ramp_decay_length)**2`` ramps either side of the plateau.
@@ -103,10 +133,12 @@ class PlasmaElement(_PlasmaElementBase):
             profile needs are not set consistently
         """
         profile_type = str(self.density_profile_type).lower()
-        if profile_type == "custom":
+        if self.density_profile and profile_type == "custom":
             return np.asarray(self.density_profile_callable(z, r), dtype=float)
         dz = np.asarray(z, dtype=float) - self.density_profile_start
-        if profile_type == "decaying":
+        if not self.density_profile:
+            n = np.ones_like(dz)
+        elif profile_type == "decaying":
             n = self._decaying_ramp_profile(dz)
         elif profile_type == "linear":
             n = self._linear_ramp_profile(dz)

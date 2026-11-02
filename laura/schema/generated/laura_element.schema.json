@@ -7383,6 +7383,14 @@
       "additionalProperties": false,
       "description": "Laser-beam parameters (wavelength, pulse energy, profile, etc.) for a laser element or laser-driven plasma stage.",
       "properties": {
+        "a0": {
+          "description": "Peak normalised vector potential. When set it is used as-is; otherwise it is derived from pulse_energy, waist and pulse_duration_fwhm assuming a Gaussian pulse.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "cep_phase": {
           "description": "Carrier-envelope phase [rad].",
           "type": [
@@ -7406,7 +7414,7 @@
           ]
         },
         "initial_position": {
-          "description": "Initial longitudinal position of the laser pulse [m].",
+          "description": "Initial longitudinal position of the laser pulse centre [m], in the co-moving frame in which the bunch centroid (or reference particle) sits at zero.",
           "type": [
             "number",
             "null"
@@ -7465,13 +7473,6 @@
           "minimum": 0.0,
           "type": [
             "number",
-            "null"
-          ]
-        },
-        "species": {
-          "description": "The laser is either added directly to the interpolation grid initially (direct) or it is progressively emitted by an antenna (antenna).",
-          "type": [
-            "string",
             "null"
           ]
         },
@@ -11712,7 +11713,7 @@
     },
     "Plasma": {
       "additionalProperties": false,
-      "description": "Laser-driven plasma-accelerator stage.",
+      "description": "Plasma-accelerator stage, driven either by the laser defined in ``laser`` or, if there is none, by the incoming particle beam.",
       "properties": {
         "alias": {
           "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
@@ -11812,7 +11813,7 @@
               "type": "null"
             }
           ],
-          "description": "Laser driving the plasma stage."
+          "description": "Laser driving the plasma stage. Leave unset for a beam-driven stage, where the driver is part of the incoming beam."
         },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
@@ -11924,7 +11925,7 @@
     },
     "PlasmaElement": {
       "additionalProperties": false,
-      "description": "Plasma channel parameters for a laser-driven plasma-accelerator stage.",
+      "description": "Plasma parameters for a laser- or beam-driven plasma stage or plasma lens.",
       "properties": {
         "density": {
           "description": "Plasma (electron) number density [m^-^3].",
@@ -11935,7 +11936,7 @@
           ]
         },
         "density_profile": {
-          "description": "If True, use a user-defined profile; if False, use a flat-top model.",
+          "description": "If True, use the longitudinal profile chosen by density_profile_type; if False, the density is uniform along the stage. Either way it is multiplied by any parabolic channel.",
           "type": [
             "boolean",
             "null"
@@ -12076,6 +12077,221 @@
         }
       },
       "title": "PlasmaElement",
+      "type": "object"
+    },
+    "PlasmaLens": {
+      "additionalProperties": false,
+      "description": "Active plasma lens: a discharge capillary whose current produces an azimuthal magnetic field that focuses the beam in both planes.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "focusing_strength": {
+          "description": "Focusing gradient of the lens field [T/m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "PlasmaLens",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "plasma": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlasmaElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Capillary plasma, used only when ``wakefields`` is True."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlasmaSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefields": {
+          "description": "Whether the plasma wakefields excited by the beam in the capillary are also modelled; needs ``plasma.density`` and the grid settings in ``simulation``.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "PlasmaLens",
       "type": "object"
     },
     "PlasmaSimulationElement": {
@@ -12290,14 +12506,14 @@
           ]
         },
         "plasma_max_longitudinal_position": {
-          "description": "Longitudinal position at which the plasma column ends [m].",
+          "description": "Upper z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box upper edge. Plasma injected later by the moving window is bounded only by the density profile.",
           "type": [
             "number",
             "null"
           ]
         },
         "plasma_min_longitudinal_position": {
-          "description": "Longitudinal position at which the plasma column starts [m].",
+          "description": "Lower z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box lower edge. Plasma injected later by the moving window is bounded only by the density profile.",
           "type": [
             "number",
             "null"

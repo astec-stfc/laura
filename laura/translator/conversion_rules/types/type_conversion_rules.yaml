@@ -36,6 +36,7 @@ elegant:
   Laser: drift
   TwissMatch: twiss
   Plasma: drift
+  PlasmaLens: drift
   Photon_Monitor: watch
   CrabCavity: rfdf
   MatrixTransform: ematrix
@@ -80,6 +81,7 @@ genesis:
   Vertical_Corrector: corrector
   Combined_Corrector: corrector
   Plasma: drift
+  PlasmaLens: drift
   TwissMatch: drift
   Laser: drift
   CrabCavity: drift
@@ -109,6 +111,7 @@ opal:
   Vertical_Corrector: vkicker
   Combined_Corrector: kicker
   Plasma: drift
+  PlasmaLens: drift
   TwissMatch: drift
   Laser: drift
   Aperture: monitor
@@ -143,6 +146,7 @@ madx:
   NonLinearLens: nllens
   Wiggler: drift
   Plasma: drift
+  PlasmaLens: drift
   TwissMatch: marker
   Laser: drift
   Aperture: rcollimator

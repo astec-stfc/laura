@@ -1287,6 +1287,7 @@ class LaserElement(Base):
     __tablename__ = 'LaserElement'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    a0 = Column(Float())
     initial_position = Column(Float())
     waist = Column(Float())
     wavelength = Column(Float())
@@ -1302,11 +1303,10 @@ class LaserElement(Base):
     propagation_direction = Column(Integer())
     polarization_angle = Column(Float())
     temporal_chirp_2nd_order = Column(Float())
-    species = Column(Text())
     
 
     def __repr__(self):
-        return f"LaserElement(id={self.id},initial_position={self.initial_position},waist={self.waist},wavelength={self.wavelength},pulse_energy={self.pulse_energy},pulse_duration_fwhm={self.pulse_duration_fwhm},focal_position={self.focal_position},cep_phase={self.cep_phase},polarization={self.polarization},profile_type={self.profile_type},laguerre_polynomial_order_p={self.laguerre_polynomial_order_p},laguerre_polynomial_order_m={self.laguerre_polynomial_order_m},flatness={self.flatness},propagation_direction={self.propagation_direction},polarization_angle={self.polarization_angle},temporal_chirp_2nd_order={self.temporal_chirp_2nd_order},species={self.species},)"
+        return f"LaserElement(id={self.id},a0={self.a0},initial_position={self.initial_position},waist={self.waist},wavelength={self.wavelength},pulse_energy={self.pulse_energy},pulse_duration_fwhm={self.pulse_duration_fwhm},focal_position={self.focal_position},cep_phase={self.cep_phase},polarization={self.polarization},profile_type={self.profile_type},laguerre_polynomial_order_p={self.laguerre_polynomial_order_p},laguerre_polynomial_order_m={self.laguerre_polynomial_order_m},flatness={self.flatness},propagation_direction={self.propagation_direction},polarization_angle={self.polarization_angle},temporal_chirp_2nd_order={self.temporal_chirp_2nd_order},)"
 
 
 
@@ -1349,7 +1349,7 @@ class LaserHalfWavePlateElement(Base):
 
 class PlasmaElement(Base):
     """
-    Plasma channel parameters for a laser-driven plasma-accelerator stage.
+    Plasma parameters for a laser- or beam-driven plasma stage or plasma lens.
     """
     __tablename__ = 'PlasmaElement'
 
@@ -6289,6 +6289,96 @@ class PlasmaDownstream(Base):
     
 
 
+class PlasmaLensAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'PlasmaLens_alias'
+
+    PlasmaLens_name = Column(Text(), ForeignKey('PlasmaLens.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PlasmaLens_alias(PlasmaLens_name={self.PlasmaLens_name},alias={self.alias},)"
+
+
+
+    
+
+
+class PlasmaLensInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'PlasmaLens_inputs'
+
+    PlasmaLens_name = Column(Text(), ForeignKey('PlasmaLens.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PlasmaLens_inputs(PlasmaLens_name={self.PlasmaLens_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class PlasmaLensOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'PlasmaLens_outputs'
+
+    PlasmaLens_name = Column(Text(), ForeignKey('PlasmaLens.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PlasmaLens_outputs(PlasmaLens_name={self.PlasmaLens_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class PlasmaLensUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'PlasmaLens_upstream'
+
+    PlasmaLens_name = Column(Text(), ForeignKey('PlasmaLens.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PlasmaLens_upstream(PlasmaLens_name={self.PlasmaLens_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class PlasmaLensDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'PlasmaLens_downstream'
+
+    PlasmaLens_name = Column(Text(), ForeignKey('PlasmaLens.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PlasmaLens_downstream(PlasmaLens_name={self.PlasmaLens_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class LaserEnergyMeterAlias(Base):
     """
     None
@@ -11054,7 +11144,7 @@ class Diagnostic(PhysicalAcceleratorElement):
 
 class Plasma(PhysicalAcceleratorElement):
     """
-    Laser-driven plasma-accelerator stage.
+    Plasma-accelerator stage, driven either by the laser defined in ``laser`` or, if there is none, by the incoming particle beam.
     """
     __tablename__ = 'Plasma'
 
@@ -11111,6 +11201,76 @@ class Plasma(PhysicalAcceleratorElement):
 
     def __repr__(self):
         return f"Plasma(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},plasma_id={self.plasma_id},laser_id={self.laser_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class PlasmaLens(PhysicalAcceleratorElement):
+    """
+    Active plasma lens: a discharge capillary whose current produces an azimuthal magnetic field that focuses the beam in both planes.
+    """
+    __tablename__ = 'PlasmaLens'
+
+    focusing_strength = Column(Float())
+    wakefields = Column(Boolean())
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    inherits_from = Column(Text())
+    plasma_id = Column(Integer(), ForeignKey('PlasmaElement.id'))
+    plasma = relationship("PlasmaElement", uselist=False, foreign_keys=[plasma_id])
+    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
+    simulation_id = Column(Integer(), ForeignKey('PlasmaSimulationElement.id'))
+    simulation = relationship("PlasmaSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "PlasmaLensAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: PlasmaLensAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "PlasmaLensInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: PlasmaLensInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "PlasmaLensOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: PlasmaLensOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="PlasmaLens_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="PlasmaLens_downstream")
+    
+
+    def __repr__(self):
+        return f"PlasmaLens(focusing_strength={self.focusing_strength},wakefields={self.wakefields},name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},plasma_id={self.plasma_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 

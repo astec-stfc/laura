@@ -909,6 +909,7 @@ type LaserAttenuator
 
 type LaserElement
   {
+    a0: Float
     initialPosition: Float
     waist: Float
     wavelength: Float
@@ -924,7 +925,6 @@ type LaserElement
     propagationDirection: Int
     polarizationAngle: Float
     temporalChirp2ndOrder: Float
-    species: String
   }
 
 type LaserEnergyMeter
@@ -1492,6 +1492,33 @@ type PlasmaElement
     ionizationDensity: Float
     ionizationInitialLevel: Int
     ionizationMaxLevel: Int
+  }
+
+type PlasmaLens
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inheritsFrom: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    aperture: ApertureElement
+    focusingStrength: Float
+    wakefields: Boolean
+    plasma: PlasmaElement
+    hardwareType: String
+    simulation: PlasmaSimulationElement
   }
 
 type PlasmaSimulationElement

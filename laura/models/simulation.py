@@ -79,6 +79,20 @@ class PlasmaSimulationElement(_PlasmaSimulationElementBase):
     Plasma simulation element model.
     """
 
+    _GRID_ATTRS: ClassVar[list[str]] = [
+        "r_max",
+        "n_longitudinal",
+        "n_radial",
+        "min_longitudinal_position",
+        "max_longitudinal_position",
+        "dz_fields",
+        "laser_evolution",
+        "laser_envelope_substeps",
+        "laser_envelope_n_longitudinal",
+        "laser_envelope_n_radial",
+        "laser_envelope_use_phase",
+    ]
+
     required_attrs: ClassVar[dict[str, list[str]]] = {
         "common": [
             "length",
@@ -86,24 +100,18 @@ class PlasmaSimulationElement(_PlasmaSimulationElementBase):
             "dt_bunch",
             "n_out",
         ],
-        "quasistatic_2d": [
-            "density",
-            "r_max",
-            "r_max_plasma",
-            "n_longitudinal",
-            "n_radial",
-            "min_longitudinal_position",
-            "max_longitudinal_position",
-            "particles_per_radial_cell",
-            "laser_evolution",
-            "laser_envelope_substeps",
-            "laser_envelope_n_longitudinal",
-            "laser_envelope_n_radial",
-            "laser_envelope_use_phase",
-            "dz_fields",
-            "parabolic_coefficient",
-        ],
+        # Analytic models: the density (and laser, if any) is all they need.
+        "simple_blowout": [],
+        "focusing_blowout": [],
+        "cold_fluid_1d": _GRID_ATTRS,
+        "quasistatic_2d": _GRID_ATTRS + ["r_max_plasma", "particles_per_radial_cell"],
+        "quasistatic_2d_ion": _GRID_ATTRS + ["r_max_plasma", "particles_per_radial_cell"],
     }
+    """Attributes passed to each Wake-T wakefield model, beyond the density,
+    which is passed as a function wherever it is not uniform. The parabolic
+    channel goes in that function rather than through Wake-T's deprecated
+    ``parabolic_coefficient``, so it is applied once and the same way as in
+    FBPIC."""
 
     @property
     def p_zmin(self) -> float:

@@ -12,7 +12,6 @@ plasma:
   envelope_n_radial: laser_envelope_nr
   envelope_use_phase: laser_envelope_use_phase
   initial_position: xi_c
-  pulse_energy: a_0
   waist: w_0
   pulse_duration_fwhm: tau
   wavelength: l_0

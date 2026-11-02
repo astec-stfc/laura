@@ -14,7 +14,6 @@ plasma:
   particles_per_angular_cell: p_nt
 laser:
   initial_position: z0
-  pulse_energy: a0
   waist: waist
   pulse_duration_fwhm: tau
   wavelength: lambda0
