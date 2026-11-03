@@ -3031,8 +3031,6 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
             return
         composed: Dict[str, str] = {}
         for path, areas in self._layouts.items():
-            # every traversal, not the de-duplicated names: on a multipass path
-            # what follows a section's later pass starts from its exit too
             passes = getattr(self, "_layout_passes", {}).get(path)
             if passes:
                 areas = [entry.section for entry in passes]
