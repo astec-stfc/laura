@@ -324,4 +324,9 @@ class ApertureTranslator(BaseElementTranslator):
         else:
             obj = get_bdsim_drift(self.name)
         keywords = self._bdsim_keywords(obj, section_aperture)
+        if obj.__name__ in ("ECol", "RCol", "JCol"):
+            keywords["xsize"] = self.aperture.radius or (self.aperture.horizontal_size or 0.0) / 2
+            keywords["ysize"] = self.aperture.radius or (self.aperture.vertical_size or 0.0) / 2
+            if obj.__name__ != "JCol" and not keywords["ysize"]:
+                keywords["ysize"] = keywords["xsize"]  # round, or square
         return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))

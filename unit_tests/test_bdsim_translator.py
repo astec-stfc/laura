@@ -576,7 +576,8 @@ class TestApertureAndOffsets:
         )
         gmad = str(_translate(quad).to_bdsim(section_aperture=self.SECTION))
         assert 'apertureType="rectangular"' in gmad
-        assert "aper1=0.004*m" in gmad and "aper2=0.002*m" in gmad
+        # LAURA's sizes are full apertures, gmad's aper1/aper2 half widths
+        assert "aper1=0.002*m" in gmad and "aper2=0.001*m" in gmad
         assert "aper1=0.01*m" not in gmad
 
     def test_four_aperture_parameters(self):
@@ -612,8 +613,29 @@ class TestApertureAndOffsets:
         quad = _quadrupole()
         quad.aperture = ApertureElement(shape="scraper", horizontal_size=0.004)
         gmad = str(_translate(quad).to_bdsim())
-        assert "aper1=0.004*m" in gmad
+        assert "aper1=0.002*m" in gmad
         assert "apertureType" not in gmad
+
+    @pytest.mark.parametrize(
+        "aperture, element, xsize, ysize",
+        [
+            ({"shape": "circular", "radius": 5e-4}, "ecol", 5e-4, 5e-4),
+            ({"shape": "elliptical", "horizontal_size": 0.004, "vertical_size": 0.002}, "ecol", 0.002, 0.001),
+            ({"shape": "rectangular", "horizontal_size": 0.004}, "rcol", 0.002, 0.002),
+        ],
+    )
+    def test_collimator_half_apertures(self, aperture, element, xsize, ysize):
+        """gmad's xsize/ysize are half apertures: a circular collimator's radius (which
+        used to be dropped, leaving the jaws closed), or half LAURA's full sizes."""
+        from laura.models.element import Collimator
+
+        col = Collimator(
+            name="COL", machine_area="A", aperture=aperture,
+            physical={"length": 0.1, "middle": {"x": 0.0, "y": 0.0, "z": 0.5}},
+        )
+        gmad = str(_translate(col).to_bdsim())
+        assert gmad.startswith(f"COL: {element},")
+        assert f"xsize={xsize}," in gmad and f"ysize={ysize}" in gmad
 
     def test_transverse_alignment_errors_become_offsets(self):
         quad = _quadrupole()
