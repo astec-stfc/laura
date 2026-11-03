@@ -28,6 +28,16 @@ def test_what_follows_a_later_pass_starts_at_the_shared_sections_exit():
     assert m.elements["DMP_Q"].physical.start.z == pytest.approx(m.elements["LIN_Q"].physical.end.z)
 
 
+def test_a_pass_copy_carries_that_passs_arc_length():
+    m = machine()
+    layout = m.lattices["ERL"]
+    arc = layout.arc_lengths()
+    assert layout.element_on_pass("LIN_Q#2").physical.s == pytest.approx(arc["LIN_Q#2"] + 0.2)
+    assert layout.element_on_pass("LIN_Q#1").physical.s == pytest.approx(m.elements["LIN_Q"].physical.s)
+    # the device has not moved
+    assert layout.element_on_pass("LIN_Q#2").physical.start.z == pytest.approx(m.elements["LIN_Q"].physical.start.z)
+
+
 def test_s_positions_take_pass_qualified_names():
     s = machine().get_elements_s_pos(end="DMP_Q")
     assert {"LIN_Q#1", "LIN_Q#2", "DMP_Q"} <= set(s)

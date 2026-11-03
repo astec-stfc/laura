@@ -1700,6 +1700,15 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
         element.name = flatten_occurrence(name)
         self.apply_settings(element, base)
         self.apply_pass_values(element, entry, base)
+        phys = getattr(element, "physical", None)
+        entrance = self.arc_lengths().get(name)
+        if phys is not None and phys.s is not None and entrance is not None:
+            offset = entrance + (phys.length or 0.0) / 2.0 - phys.s
+            # positions are read off the trajectory at s; the device has not moved
+            trajectory = phys._trajectory
+            if trajectory is not None:
+                phys._trajectory = Trajectory(trajectory._s + offset, trajectory._pos, trajectory._rots)
+            phys.s = phys.s + offset
         return element
 
     @property
