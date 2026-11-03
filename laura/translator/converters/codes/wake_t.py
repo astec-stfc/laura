@@ -14,4 +14,5 @@ wake_t_unsupported = [
     "TwissMatch",
     "MatrixTransform",
     "CrabCavity",
+    "Target",
 ]

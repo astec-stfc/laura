@@ -281,6 +281,43 @@ classes:
       hardware_type:
         equals_string: Collimator
 
+  Target:
+    is_a: PhysicalAcceleratorElement
+    description: >-
+      A block of material in the beam, which the beam passes through and interacts
+      with: a radiator, a converter, a foil. Its thickness along the beam is
+      ``physical.length``. Modelled by BDSIM; 
+      codes without material interactions treat it as a drift.
+    class_uri: laura:Target
+    slot_usage:
+      hardware_type:
+        equals_string: Target
+      material:
+        description: >-
+          Material of the block, by a name BDSIM / Geant4 knows (``tungsten``,
+          ``copper``, ``G4_W``...).
+    attributes:
+      target:
+        range: TargetElement
+        description: Transverse shape of the block.
+
+  TargetElement:
+    description: Transverse shape of a target block.
+    class_uri: laura:TargetElement
+    attributes:
+      transverse_size:
+        range: float
+        description: >-
+          Full transverse size of the block [m]: the side of a square block, or the
+          diameter of a round one. BDSIM's default if unset.
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      circular:
+        range: boolean
+        ifabsent: "false"
+        description: A round block (a cylinder along the beam) rather than a square one.
+
   Drift:
     is_a: PhysicalAcceleratorElement
     description: Field-free drift space between elements.

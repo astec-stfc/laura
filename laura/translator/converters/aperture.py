@@ -1,6 +1,7 @@
 from typing import Dict
 from warnings import warn
 
+from laura.models.element import TargetElement
 from laura.models.simulation import ApertureElement
 
 from ..converters import elements_elegant, elements_madx
@@ -330,3 +331,49 @@ class ApertureTranslator(BaseElementTranslator):
             if obj.__name__ != "JCol" and not keywords["ysize"]:
                 keywords["ysize"] = keywords["xsize"]  # round, or square
         return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+
+
+class TargetTranslator(BaseElementTranslator):
+    """A block of material in the beam: BDSIM's ``target``; a drift elsewhere."""
+
+    target: TargetElement | None = None
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> object:
+        """
+        BDSIM ``target``: ``l`` and ``material``, its full transverse size as
+        ``horizontalWidth`` and, for a round block, ``apertureType="circular"``
+        (which is all that keyword means for a target: its outer shape).
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+            Unused: the beam pipe's aperture is not the block's shape.
+        charge_sign: int or float, optional
+            Unused.
+        integrator_set: str, optional
+            Unused.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes.bdsim_conversion import Target as TargetBDSIM
+
+        if not self.material:
+            raise ValueError(f"Target {self.name} has no material, which BDSIM needs")
+        keywords = self._bdsim_keywords(TargetBDSIM, None)
+        for key in [k for k in keywords if k.startswith("aper") or k == "beampipeMaterial"]:
+            del keywords[key]
+        keywords.pop("apertureType", None)
+        target = self.target or TargetElement()
+        if target.transverse_size:
+            keywords["horizontalWidth"] = target.transverse_size
+        if target.circular:
+            keywords["apertureType"] = "circular"
+        return TargetBDSIM(**keywords)

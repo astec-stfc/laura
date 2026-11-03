@@ -169,6 +169,7 @@ bmad_unsupported = [
     "RFProtection",
     "Shutter",
     "Stage",
+    "Target",
     "VacuumGauge",
     "Valve",
     "Wire",

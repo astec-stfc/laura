@@ -63,6 +63,7 @@ ocelot_unsupported = [
     "Decapole",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
 ]
 
 

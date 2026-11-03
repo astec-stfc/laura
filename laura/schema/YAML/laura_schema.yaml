@@ -121,6 +121,10 @@ enums:
         description: Weak-strong beam-beam interaction.
       RFMultipole:
         description: RF-driven multipole kick.
+      Target:
+        description: >-
+          Material placed in the beam to interact with it: a radiator, converter
+          or foil.
 
   LaserPolarizationEnum:
     description: Polarization state of a laser beam.

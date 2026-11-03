@@ -18,6 +18,7 @@ gpt_unsupported = [
     "MatrixTransform",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
 ]
 
 

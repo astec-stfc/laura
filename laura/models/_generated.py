@@ -507,6 +507,10 @@ class HardwareClassEnum(str, Enum):
     """
     RF-driven multipole kick.
     """
+    Target = "Target"
+    """
+    Material placed in the beam to interact with it: a radiator, converter or foil.
+    """
 
 
 class LaserPolarizationEnum(str, Enum):
@@ -697,7 +701,7 @@ class _ControlVariableBase(ConfiguredBaseModel):
          'domain_of': ['ControlVariable'],
          'ifabsent': 'string(statistical)'} })
     """Kind of quantity this variable carries. Accepted in YAML as ``type``."""
-    target: Optional[str] = Field(default=None, description="""Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    target: Optional[str] = Field(default=None, description="""Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable', 'Target']} })
     """Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value."""
     expression: Optional[str] = Field(default=None, description="""Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``."""
@@ -788,6 +792,19 @@ class _ApertureElementBase(ConfiguredBaseModel):
     """Downstream / outer extent [m]."""
     material: Optional[str] = Field(default=None, description="""Aperture material.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'PhysicalAcceleratorElement']} })
     """Aperture material."""
+
+
+class _TargetElementBase(ConfiguredBaseModel):
+    """
+    Transverse shape of a target block.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:TargetElement',
+         'from_schema': 'https://w3id.org/laura/schema/elements'})
+
+    transverse_size: Optional[float] = Field(default=None, description="""Full transverse size of the block [m]: the side of a square block, or the diameter of a round one. BDSIM's default if unset.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['TargetElement'], 'unit': {'ucum_code': 'm'}} })
+    """Full transverse size of the block [m]: the side of a square block, or the diameter of a round one. BDSIM's default if unset."""
+    circular: Optional[bool] = Field(default=False, description="""A round block (a cylinder along the beam) rather than a square one.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TargetElement'], 'ifabsent': 'false'} })
+    """A round block (a cylinder along the beam) rather than a square one."""
 
 
 class _SpaceChargeSettingsBase(ConfiguredBaseModel):
@@ -5601,6 +5618,69 @@ class _CollimatorBase(_ApertureBase):
     """Names of elements this one feeds; the inverse of ``upstream``."""
 
 
+class _TargetBase(_PhysicalAcceleratorElementBase):
+    """
+    A block of material in the beam, which the beam passes through and interacts with: a radiator, a converter, a foil. Its thickness along the beam is ``physical.length``. Modelled by BDSIM;  codes without material interactions treat it as a drift.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Target',
+         'from_schema': 'https://w3id.org/laura/schema/elements',
+         'slot_usage': {'hardware_type': {'equals_string': 'Target',
+                                          'name': 'hardware_type'},
+                        'material': {'description': 'Material of the block, by a name '
+                                                    'BDSIM / Geant4 knows '
+                                                    '(``tungsten``, ``copper``, '
+                                                    '``G4_W``...).',
+                                     'name': 'material'}}})
+
+    target: Optional[_TargetElementBase] = Field(default=None, description="""Transverse shape of the block.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable', 'Target']} })
+    """Transverse shape of the block."""
+    physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
+         'in_subset': ['physical_properties']} })
+    """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
+    material: Optional[str] = Field(default=None, description="""Material of the block, by a name BDSIM / Geant4 knows (``tungsten``, ``copper``, ``G4_W``...).""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'PhysicalAcceleratorElement']} })
+    """Material of the block, by a name BDSIM / Geant4 knows (``tungsten``, ``copper``, ``G4_W``...)."""
+    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Simulation / tracking attributes."""
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Power-supply electrical limits."""
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    """Manufacturer and serial-number data."""
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Control-system process-variable definitions."""
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Links to design drawings and files."""
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    """Unique element name within the machine."""
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
+    hardware_type: Optional[Literal["Target"]] = Field(default="Generic", description="""Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'Target',
+         'ifabsent': 'string(Generic)'} })
+    """Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML."""
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    """Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``)."""
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``)."""
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    """Alternative internal name used by the control system when the physical name is inaccessible."""
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    """Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings."""
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """If set, this element is a logical sub-component of the named parent element."""
+    inherits_from: Optional[str] = Field(default=None, description="""If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.""", validation_alias=AliasChoices('inherits_from', 'inherit'), json_schema_extra = { "linkml_meta": {'aliases': ['inherit'], 'domain_of': ['AcceleratorElement']} })
+    """If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one."""
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""Signal types this element consumes (e.g. ``[current, voltage]``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Signal types this element consumes (e.g. ``[current, voltage]``)."""
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""Signal types this element produces (e.g. ``[power, phase]``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Signal types this element produces (e.g. ``[power, phase]``)."""
+    upstream: list[str] = Field(default_factory=list, description="""Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Names of elements feeding this one, whose ``outputs`` supply its ``inputs``."""
+    downstream: list[str] = Field(default_factory=list, description="""Names of elements this one feeds; the inverse of ``upstream``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Names of elements this one feeds; the inverse of ``upstream``."""
+
+
 class _DriftBase(_PhysicalAcceleratorElementBase):
     """
     Field-free drift space between elements.
@@ -7593,6 +7673,7 @@ _ShutterElementBase.model_rebuild()
 _ValveElementBase.model_rebuild()
 _LightingElementBase.model_rebuild()
 _ApertureElementBase.model_rebuild()
+_TargetElementBase.model_rebuild()
 _SpaceChargeSettingsBase.model_rebuild()
 _SectionLatticeBase.model_rebuild()
 _LayoutPassBase.model_rebuild()
@@ -7699,6 +7780,7 @@ _ValveBase.model_rebuild()
 _MarkerBase.model_rebuild()
 _ApertureBase.model_rebuild()
 _CollimatorBase.model_rebuild()
+_TargetBase.model_rebuild()
 _DriftBase.model_rebuild()
 _MagnetBase.model_rebuild()
 _RFCavityBase.model_rebuild()

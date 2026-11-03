@@ -15,6 +15,7 @@ rftrack_unsupported = [
     "Vertical_AC_Dipole",
     "Wire",
     "Plasma",
+    "Target",
     "Beam_Arrival_Monitor",
     "Bunch_Length_Monitor",
     "Camera",

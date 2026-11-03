@@ -70,6 +70,7 @@ ocelot_conversion_rules = {
     "Marker": Marker,
     "Laser": Drift,
     "Plasma": Drift,
+    "Target": Drift,
     "Diagnostic": Marker,
     "TwissMatch": Marker,
     "MatrixTransform": Matrix,

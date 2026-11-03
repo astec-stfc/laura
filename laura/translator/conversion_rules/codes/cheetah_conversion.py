@@ -66,6 +66,7 @@ cheetah_conversion_rules = {
     "Wakefield": Drift,
     "Laser": Drift,
     "Plasma": Drift,
+    "Target": Drift,
     "TwissMatch": Drift,
     "Diagnostic": Screen,
     "MatrixTransform": CustomTransferMap,

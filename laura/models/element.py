@@ -65,6 +65,8 @@ from ._generated import (
     _ShutterBase,
     _SolenoidBase,
     _StageBase,
+    _TargetBase,
+    _TargetElementBase,
     _TwissMatchBase,
     _VacuumGaugeBase,
     _ValveBase,
@@ -1195,6 +1197,25 @@ class Shutter(PhysicalBaseElement, _ShutterBase):
     """Shutter control attributes of the element."""
 
     _NESTED_DEFAULTS = {"shutter": ShutterElement}
+
+
+class TargetElement(_TargetElementBase):
+    """Transverse shape of a target block."""
+
+
+class Target(PhysicalBaseElement, _TargetBase):
+    """
+    A block of material in the beam: a radiator, converter or foil, as BDSIM's
+    ``target``; a drift in codes without material interactions.
+    """
+
+    hardware_class: str = Field(default="Target", frozen=True)
+    """Target hardware class"""
+
+    hardware_type: str = Field(default="Target", frozen=True)
+    """Target hardware type"""
+
+    _NESTED_DEFAULTS = {"target": TargetElement}
 
 
 class Valve(PhysicalBaseElement, _ValveBase):

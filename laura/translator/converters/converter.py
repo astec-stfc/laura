@@ -24,6 +24,7 @@ from laura.models.element import (
     RFMultipole,
     Screen,
     Solenoid,
+    Target,
     TwissMatch,
     VerticalCorrector,
     Wakefield,
@@ -33,7 +34,7 @@ from laura.models.element import (
 )
 
 from .ac_dipole import ACDipoleTranslator
-from .aperture import ApertureTranslator
+from .aperture import ApertureTranslator, TargetTranslator
 from .base import BaseElementTranslator
 from .beam_beam import BeamBeamTranslator
 from .cavity import RFCavityTranslator
@@ -119,6 +120,8 @@ def translate_elements(
             translator = DiagnosticTranslator
         elif isinstance(elem, Aperture):
             translator = ApertureTranslator
+        elif isinstance(elem, Target):
+            translator = TargetTranslator
         elif isinstance(elem, Plasma):
             translator = PlasmaTranslator
         elif isinstance(elem, Laser):

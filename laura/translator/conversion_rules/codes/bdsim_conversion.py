@@ -21,7 +21,16 @@ from pybdsim.Builder import (
     VKicker,
     WireScanner,
     Rmat,
+    Element,
 )
+
+
+class Target(Element):
+    """gmad's ``target``, a block of material in the beam; pybdsim has no builder for it."""
+
+    def __init__(self, name, l, material, **kwargs):
+        Element.__init__(self, name, "target", l=l, material=material, **kwargs)
+
 
 bdsim_conversion_rules = {
     "Dipole": SBend,
@@ -63,6 +72,7 @@ bdsim_conversion_rules = {
     "Marker": Marker,
     "Laser": Laser,
     "Plasma": Drift,
+    "Target": Target,
     "Diagnostic": Marker,
     "TwissMatch": Marker,
     "MatrixTransform": Rmat,

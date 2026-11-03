@@ -783,3 +783,42 @@ class TestWireScanner:
         assert "wire_diameter" in WireScanner(
             name="WS", machine_area="T"
         ).diagnostic.model_fields
+
+
+class TestTarget:
+    """A block of material in the beam: gmad's ``target``, a drift everywhere else."""
+
+    @staticmethod
+    def _target(**kwargs):
+        from laura.models.element import Target
+
+        return Target(
+            name="TGT", machine_area="T",
+            physical={"length": 1e-3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}}, **kwargs,
+        )
+
+    def test_a_round_tungsten_target(self):
+        target = self._target(material="tungsten", target={"transverse_size": 0.02, "circular": True})
+        gmad = str(_translate(target).to_bdsim())
+        assert gmad.startswith("TGT: target,")
+        for keyword in ('material="tungsten"', "l=0.001", "horizontalWidth=0.02", 'apertureType="circular"'):
+            assert keyword in gmad
+
+    def test_the_beam_pipe_is_not_the_blocks_shape(self):
+        """gmad reads a target's apertureType as its outer shape, so the section's
+        beam pipe must not leak onto it: a square block stays square."""
+        gmad = str(_translate(self._target(material="copper")).to_bdsim(
+            section_aperture={"type": "circular", "size": 0.01, "material": "iron"}
+        ))
+        assert "apertureType" not in gmad and "aper1" not in gmad and "horizontalWidth" not in gmad
+
+    def test_bdsim_needs_its_material(self):
+        with pytest.raises(ValueError, match="no material"):
+            _translate(self._target()).to_bdsim()
+
+    def test_it_is_a_drift_in_codes_without_material(self):
+        translator = _translate(self._target(material="tungsten"))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            assert "drift" in translator.to_elegant().lower()
+            assert "drift" in translator.to_madx().lower()
