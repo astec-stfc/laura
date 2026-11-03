@@ -1232,8 +1232,17 @@ class SectionLatticeTranslator(SectionLattice):
 
         self._check_elements_supported("ocelot")
 
-        method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
         elem_dict = self._translate(self.create_drifts().values())
+        helical = any(
+            getattr(getattr(d, "magnetic", None), "helical", False)
+            for d in elem_dict.values()
+            if d.hardware_type == "Wiggler"
+        )
+        method = {
+            "global": SecondTM,
+            Octupole: KickTM,
+            Undulator: SecondTM if helical else RungeKuttaTM,
+        }
         elements = []
 
         symbolic = not IgnoreExtra.resolve_functional

@@ -1301,6 +1301,30 @@ class WigglerTranslator(BaseElementTranslator):
             terms.append(f"{key} = {self._flag(value)}")
         return f"{index}{self.name}: {etype} = {{{', '.join(terms)}}};\n"
 
+    def to_ocelot(self) -> object:
+        """
+        Ocelot ``Undulator``, with the period, number of periods and deflection
+        parameter set -- without them Ocelot tracks it as a drift, with none of
+        the undulator's natural focusing.
+
+        ``strength`` is the peak K: a planar undulator gets ``Kx = K``, a
+        helical one ``Kx = Ky = K`` (the reverse of the Ocelot importer).
+
+        Returns
+        -------
+        object
+            Ocelot element
+        """
+        obj = super().to_ocelot()
+        m = self.magnetic
+        strength = m.resolved("strength") if m.strength is not None else 0.0
+        if m.period:
+            obj.lperiod = float(m.period)
+            obj.nperiods = int(m.num_periods or round(float(m.length) / float(m.period)))
+        obj.Kx = float(strength)
+        obj.Ky = float(strength) if m.helical else 0.0
+        return obj
+
 
 class CorrectorTranslator(BaseElementTranslator):
     """

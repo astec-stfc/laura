@@ -1,6 +1,7 @@
 """ImpactX import: LAURA's own export reads back to the same export, and
 native ImpactX lattices and inputs files read as their users write them."""
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -21,7 +22,20 @@ from unit_tests.helpers import quiet
 from unit_tests.test_impactx_translator import LINE, bend, impactx_track, section
 
 E = 250e6  # total energy [eV]
-FODO = Path.home() / "Documents/impactx/examples/fodo/input_fodo.in"
+
+
+def _impactx_examples() -> Path:
+    """ImpactX's examples directory: $IMPACTX_EXAMPLES, else the first of the
+    usual checkout locations that exists."""
+    if os.environ.get("IMPACTX_EXAMPLES"):
+        return Path(os.environ["IMPACTX_EXAMPLES"])
+    for candidate in (Path.home() / "impactx/examples", Path.home() / "Documents/impactx/examples"):
+        if candidate.is_dir():
+            return candidate
+    return Path.home() / "impactx/examples"
+
+
+FODO = _impactx_examples() / "fodo/input_fodo.in"
 
 ELEMENTS = [
     *(e.model_copy(deep=True) for e in LINE),  # placing them would move LINE's
@@ -145,6 +159,7 @@ def test_reads_an_inputs_file():
     assert sum(name.startswith("monitor") for name in elements) == 6
 
 
+@pytest.mark.skipif(not FODO.is_file(), reason="needs the ImpactX examples")
 def test_an_inputs_file_includes_files_beside_it_and_leaves_diags_alone(tmp_path):
     pytest.importorskip("impactx")
     (tmp_path / "input_fodo.in").write_text(FODO.read_text())
