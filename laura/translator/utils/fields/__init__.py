@@ -361,7 +361,7 @@ class FieldMap(BaseModel):
         path = os.path.join(_output_location, pre + extension)
         try:
             return os.path.relpath(path)
-        except ValueError:  # Windows: path and cwd on different drives
+        except ValueError:
             return os.path.abspath(path)
 
     def get_field_data(self, code: str) -> np.ndarray | None:
