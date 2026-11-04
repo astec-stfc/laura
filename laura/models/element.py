@@ -29,6 +29,7 @@ from ._generated import (
     _CombinedCorrectorBase,
     _CombinedSolenoidQuadrupoleBase,
     _CrabCavityBase,
+    _DecapoleBase,
     _DiagnosticBase,
     _DipoleBase,
     _DriftBase,
@@ -66,6 +67,10 @@ from ._generated import (
     _ShutterBase,
     _SolenoidBase,
     _StageBase,
+    _CrystalBase,
+    _CrystalElementBase,
+    _TargetBase,
+    _TargetElementBase,
     _TwissMatchBase,
     _VacuumGaugeBase,
     _ValveBase,
@@ -92,6 +97,7 @@ from .diagnostic import (
     ChargeDiagnosticElement,
     PhotonIntensityMonitorDiagnostic,
     ScreenDiagnostic,
+    WireScannerDiagnostic,
 )
 from .electrical import ElectricalElement
 from .laser import (
@@ -104,6 +110,7 @@ from .magnetic import (
     CombinedCorrectorMagnet,
     CombinedSolenoidQuadrupoleMagnet,
     CorrectorMagnet,
+    DecapoleMagnet,
     DipoleMagnet,
     MagneticElement,
     NonLinearLensMagnet,
@@ -363,6 +370,12 @@ class PhysicalBaseElement(Element, _PhysicalAcceleratorElementBase):
     physical: Optional[PhysicalElement] = Field(default=None)
     """Physical attributes of the element."""
 
+    aperture: Optional[ApertureElement] = None
+    """Aperture attributes of the element [optional]."""
+
+    material: str | Dict | None = None
+    """Material attributes of the element [optional]."""
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         self.physical = _coerce_nested_model(self.physical, PhysicalElement)
@@ -481,6 +494,18 @@ class Octupole(Magnet, _OctupoleBase):
 
     magnetic: OctupoleMagnet = Field(default_factory=OctupoleMagnet)
     """Magnetic attributes of the octupole."""
+
+
+class Decapole(Magnet, _DecapoleBase):
+    """
+    Decapole element.
+    """
+
+    hardware_type: str = Field(default="Decapole", frozen=True)
+    """Decapole hardware type."""
+
+    magnetic: DecapoleMagnet = Field(default_factory=DecapoleMagnet)
+    """Magnetic attributes of the decapole."""
 
 
 class HorizontalCorrector(Dipole, _HorizontalCorrectorBase):
@@ -754,6 +779,14 @@ class WireScanner(Diagnostic, _WireScannerBase):
     hardware_type: str = Field(default="WireScanner", frozen=True)
     """Wire scanner hardware type."""
 
+    material: str | Dict | None = "carbon"
+    """Material of the scanning wire."""
+
+    diagnostic: Optional[WireScannerDiagnostic] = None
+    """Wire-scanner diagnostic attributes."""
+
+    _NESTED_DEFAULTS = {"diagnostic": WireScannerDiagnostic}
+
 
 class ChargeDiagnostic(Diagnostic, _ChargeDiagnosticBase):
     """
@@ -1013,6 +1046,9 @@ class PowerSupply(Element):
     (for example magnets and RF chains) through control-signal connectivity.
     """
 
+    hardware_class: str = Field(default="Generic", frozen=True)
+    """Power supply hardware class."""
+
     hardware_type: str = Field(default="PowerSupply", frozen=True)
     """Power supply hardware type."""
 
@@ -1218,6 +1254,43 @@ class Shutter(PhysicalBaseElement, _ShutterBase):
     _NESTED_DEFAULTS = {"shutter": ShutterElement}
 
 
+class TargetElement(_TargetElementBase):
+    """Transverse shape of a target block."""
+
+
+class Target(PhysicalBaseElement, _TargetBase):
+    """
+    A block of material in the beam: a radiator, converter or foil, as BDSIM's
+    ``target``; a drift in codes without material interactions.
+    """
+
+    hardware_class: str = Field(default="Target", frozen=True)
+    """Target hardware class"""
+
+    hardware_type: str = Field(default="Target", frozen=True)
+    """Target hardware type"""
+
+    _NESTED_DEFAULTS = {"target": TargetElement}
+
+
+class CrystalElement(_CrystalElementBase):
+    """Geometry, orientation and lattice of a bent crystal (silicon's lattice by default)."""
+
+
+class Crystal(PhysicalBaseElement, _CrystalBase):
+    """
+    A bent crystal in the beam, centred on it.
+    """
+
+    hardware_class: str = Field(default="Target", frozen=True)
+    """Crystal hardware class: material in the beam, as a target"""
+
+    hardware_type: str = Field(default="Crystal", frozen=True)
+    """Crystal hardware type"""
+
+    _NESTED_DEFAULTS = {"crystal": CrystalElement}
+
+
 class Valve(PhysicalBaseElement, _ValveBase):
     """
     Vacuum valve element.
@@ -1285,6 +1358,9 @@ class Drift(PhysicalBaseElement, _DriftBase):
     """
     Drift element.
     """
+
+    hardware_class: str = Field(default="Drift", frozen=True)
+    """Drift hardware class."""
 
     hardware_type: str = Field(default="Drift", frozen=True)
     """Drift hardware type."""

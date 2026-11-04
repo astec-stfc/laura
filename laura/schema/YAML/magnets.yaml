@@ -4,7 +4,7 @@ title: LAURA Magnet Model Chunk
 description: >-
   Magnet classes.
 version: "0.1.0"
-license: Apache Software License 2.0
+license: GPL-3.0-or-later
 
 prefixes:
   linkml:  https://w3id.org/linkml/
@@ -97,6 +97,25 @@ classes:
       hardware_type:
         equals_string: Octupole
         ifabsent: Octupole
+
+  Decapole_Magnet:
+    is_a: MagneticElement
+    description: Decapole magnet field, principal multipole order 4.
+    slot_usage:
+      order:
+        ifabsent: int(4)
+        equals_number: 4
+
+  Decapole:
+    is_a: Magnet
+    description: Decapole magnet.
+    class_uri: laura:Decapole
+    slot_usage:
+      magnetic:
+        range: Decapole_Magnet
+      hardware_type:
+        equals_string: Decapole
+        ifabsent: Decapole
 
   # -- Correctors ---------------------------------------------------------------
 
@@ -261,6 +280,12 @@ classes:
         ifabsent: float(0.0)
         description: Magnetic length [m].
         minimum_value: 0
+      tilt:
+        range: float
+        ifabsent: float(0.0)
+        description: Global tilt about the beam axis [rad].
+        unit:
+          ucum_code: rad
       order:
         range: integer
         ifabsent: int(0)
@@ -332,6 +357,12 @@ classes:
         ifabsent: float(0.0)
         description: Magnetic length [m].
         minimum_value: 0
+      tilt:
+        range: float
+        ifabsent: float(0.0)
+        description: Global tilt about the beam axis [rad].
+        unit:
+          ucum_code: rad
       strength:
         range: float
         ifabsent: float(0.0)
@@ -401,6 +432,12 @@ classes:
         ifabsent: float(0.0)
         description: Magnetic length [m].
         minimum_value: 0
+      tilt:
+        range: float
+        ifabsent: float(0.0)
+        description: Global tilt about the beam axis [rad].
+        unit:
+          ucum_code: rad
       integrated_strength:
         range: float
         ifabsent: float(0.0)

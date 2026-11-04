@@ -1,4 +1,4 @@
-# metamodel_version: 1.11.0
+# metamodel_version: 1.12.0
 # version: 0.1.0
 enum ApertureShapeEnum
   {
@@ -7,6 +7,13 @@ enum ApertureShapeEnum
     elliptical
     planar
     scraper
+  }
+
+enum BeampipeShapeEnum
+  {
+    circular
+    rectangular
+    elliptical
   }
 
 enum BendingPlaneEnum
@@ -51,6 +58,7 @@ enum HardwareClassEnum
     Wire
     BeamBeam
     RFMultipole
+    Target
   }
 
 enum IOTypeEnum
@@ -161,6 +169,7 @@ interface ACDipole
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: ACDipoleSimulationElement
   }
 
@@ -214,6 +223,7 @@ type Aperture
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    material: String
     aperture: ApertureElement
     hardwareType: String
   }
@@ -227,6 +237,7 @@ type ApertureElement
     radius: Float
     negativeExtent: Float
     positiveExtent: Float
+    material: String
   }
 
 type BAMDiagnosticElement
@@ -254,6 +265,7 @@ type BeamArrivalMonitor
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: DiagnosticSimulationElement
     diagnostic: BAMDiagnosticElement
     hardwareType: String
@@ -279,6 +291,7 @@ type BeamBeam
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     hardwareType: String
     simulation: BeamBeamSimulationElement
   }
@@ -333,6 +346,7 @@ type BeamPositionMonitor
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: DiagnosticSimulationElement
     diagnostic: BPMDiagnosticElement
     hardwareType: String
@@ -368,6 +382,7 @@ type BunchLengthMonitor
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: DiagnosticSimulationElement
     diagnostic: BLMDiagnosticElement
     hardwareType: String
@@ -393,6 +408,7 @@ type Camera
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: DiagnosticSimulationElement
     diagnostic: CameraDiagnosticElement
     hardwareType: String
@@ -489,6 +505,7 @@ type ChargeDiagnostic
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
@@ -519,6 +536,7 @@ type Collimator
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    material: String
     aperture: ApertureElement
     hardwareType: String
   }
@@ -569,9 +587,48 @@ type CrabCavity
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: RFCavitySimulationElement
     cavity: RFDeflectingCavityElement
     hardwareType: String
+  }
+
+type Crystal
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inheritsFrom: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    aperture: ApertureElement
+    crystal: CrystalElement
+    hardwareType: String
+    material: String
+  }
+
+type CrystalElement
+  {
+    dataFile: String
+    bendingAngle: Float
+    entranceAngle: Float
+    horizontalSize: Float
+    verticalSize: Float
+    latticeConstants: [Float]
+    latticeAngles: [Float]
+    spaceGroup: Int
   }
 
 type DegaussableElement
@@ -602,6 +659,7 @@ type Diagnostic
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     diagnostic: DiagnosticElement
     simulation: DiagnosticSimulationElement
   }
@@ -657,6 +715,7 @@ type Drift
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     hardwareType: String
     simulation: DriftSimulationElement
   }
@@ -719,6 +778,7 @@ type ElectrostaticSeparator
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     hardwareType: String
     simulation: ElectrostaticSeparatorSimulationElement
   }
@@ -805,6 +865,7 @@ type FaradayCupMonitor
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
@@ -835,6 +896,7 @@ type HorizontalACDipole
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: ACDipoleSimulationElement
     hardwareType: String
   }
@@ -859,6 +921,7 @@ type IntegratedCurrentTransformer
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
@@ -885,6 +948,7 @@ type Laser
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     laser: LaserElement
     hardwareType: String
   }
@@ -1137,6 +1201,9 @@ type MachineModel
     elements: [AcceleratorElement]
     sections: [SectionLattice]
     layouts: [MachineLayout]
+    beampipeApertureType: BeampipeShapeEnum
+    beampipeSize: Float
+    beampipeMaterial: String
   }
 
 type Magnet
@@ -1160,6 +1227,7 @@ type Magnet
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     magnetic: MagneticElement
     degauss: DegaussableElement
     simulation: MagnetSimulationElement
@@ -1257,6 +1325,7 @@ type Marker
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     hardwareType: String
   }
 
@@ -1280,6 +1349,7 @@ type MatrixTransform
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     hardwareType: String
     simulation: MatrixTransformSimulationElement
   }
@@ -1359,6 +1429,7 @@ type PhotonMonitor
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: DiagnosticSimulationElement
     diagnostic: PhotonIntensityMonitorDiagnostic
     hardwareType: String
@@ -1387,6 +1458,7 @@ type PhysicalAcceleratorElement
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
   }
 
 type PhysicalElement
@@ -1472,6 +1544,7 @@ type Plasma
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     plasma: PlasmaElement
     laser: LaserElement
     hardwareType: String
@@ -1521,6 +1594,7 @@ type PlasmaLens
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     focusingStrength: Float
     wakefields: Boolean
     plasma: PlasmaElement
@@ -1641,6 +1715,7 @@ type RFCavity
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     cavity: RFCavityElement
     hardwareType: String
     simulation: RFCavitySimulationElement
@@ -1728,6 +1803,7 @@ type RFDeflectingCavity
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: RFCavitySimulationElement
     cavity: RFDeflectingCavityElement
     hardwareType: String
@@ -1824,6 +1900,7 @@ type RFMultipole
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     hardwareType: String
     simulation: RFMultipoleSimulationElement
   }
@@ -1922,6 +1999,7 @@ type Screen
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: DiagnosticSimulationElement
     diagnostic: ScreenDiagnosticElement
     hardwareType: String
@@ -1943,6 +2021,9 @@ type SectionLattice
     referenceEnergy: Float
     spaceCharge: SpaceChargeSettings
     elements: [String]
+    beampipeApertureType: BeampipeShapeEnum
+    beampipeSize: Float
+    beampipeMaterial: String
   }
 
 type Shutter
@@ -1966,6 +2047,7 @@ type Shutter
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     shutter: ShutterElement
     hardwareType: String
   }
@@ -2031,6 +2113,7 @@ type Stage
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     hardwareType: String
   }
 
@@ -2054,6 +2137,38 @@ type StandardElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
     reference: ReferenceElement
+  }
+
+type Target
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inheritsFrom: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    aperture: ApertureElement
+    target: TargetElement
+    hardwareType: String
+    material: String
+  }
+
+type TargetElement
+  {
+    transverseSize: Float
+    circular: Boolean
   }
 
 type Trace
@@ -2084,6 +2199,7 @@ type TwissMatch
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     hardwareType: String
     simulation: TwissMatchSimulationElement
   }
@@ -2143,6 +2259,7 @@ type VacuumGauge
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     hardwareType: String
   }
 
@@ -2167,6 +2284,7 @@ type Valve
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     valve: ValveElement
     hardwareType: String
   }
@@ -2196,6 +2314,7 @@ type VerticalACDipole
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: ACDipoleSimulationElement
     hardwareType: String
   }
@@ -2220,6 +2339,7 @@ type Wakefield
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     cavity: WakefieldElement
     hardwareType: String
     simulation: WakefieldSimulationElement
@@ -2297,6 +2417,7 @@ type WallCurrentMonitor
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
@@ -2322,6 +2443,7 @@ type Wire
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     hardwareType: String
     simulation: WireSimulationElement
   }
@@ -2346,9 +2468,16 @@ type WireScanner
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
-    diagnostic: DiagnosticElement
     simulation: DiagnosticSimulationElement
+    diagnostic: WireScannerDiagnosticElement
     hardwareType: String
+    material: String
+  }
+
+type WireScannerDiagnosticElement
+  {
+    wireDiameter: Float
+    wireLength: Float
   }
 
 type WireSimulationElement

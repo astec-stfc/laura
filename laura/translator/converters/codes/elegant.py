@@ -34,6 +34,8 @@ elegant_unsupported = [
     "Decapole",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
+    "Crystal",
 ]
 
 

@@ -15,6 +15,8 @@ export type ValveName = string;
 export type MarkerName = string;
 export type ApertureName = string;
 export type CollimatorName = string;
+export type TargetName = string;
+export type CrystalName = string;
 export type DriftName = string;
 export type LightingName = string;
 export type PowerSupplyName = string;
@@ -52,6 +54,7 @@ export type DipoleName = string;
 export type QuadrupoleName = string;
 export type SextupoleName = string;
 export type OctupoleName = string;
+export type DecapoleName = string;
 export type HorizontalCorrectorName = string;
 export type VerticalCorrectorName = string;
 export type CombinedCorrectorName = string;
@@ -148,7 +151,7 @@ export enum NumericDtypeEnum {
     float64 = "float64",
 };
 /**
-* Cross-sectional shape of a beam-pipe aperture.
+* Cross-sectional shape of a beam-pipe aperture. `scraper` is a jaw geometry rather than a pipe shape -- the extents are rectangular, but the jaws are positioned independently, so it maps to ASTRA's Scr_X/Scr_Y (not Col_X/Col_Y) and BDSIM's jcol (not rcol). It therefore has no gmad `apertureType`.
 */
 export enum ApertureShapeEnum {
     
@@ -168,6 +171,15 @@ export enum LatticeGeometryEnum {
     open = "open",
     /** Recirculating machine such as a storage ring, for which closed orbits and periodic Twiss parameters are computed. */
     closed = "closed",
+};
+/**
+* Cross-sectional shape of a beam-pipe aperture.
+*/
+export enum BeampipeShapeEnum {
+    
+    circular = "circular",
+    rectangular = "rectangular",
+    elliptical = "elliptical",
 };
 /**
 * How a sampled waveform behaves between the points it was sampled at.
@@ -244,6 +256,8 @@ export enum HardwareClassEnum {
     BeamBeam = "BeamBeam",
     /** RF-driven multipole kick. */
     RFMultipole = "RFMultipole",
+    /** Material placed in the beam to interact with it: a radiator, converter or foil. */
+    Target = "Target",
 };
 /**
 * Polarization state of a laser beam.
@@ -558,6 +572,8 @@ export interface ApertureElement {
     negative_extent?: number,
     /** Downstream / outer extent [m]. */
     positive_extent?: number,
+    /** Aperture material. */
+    material?: string,
 }
 
 
@@ -590,6 +606,58 @@ export interface Aperture extends PhysicalAcceleratorElement {
  * Movable collimator jaw (extends Aperture).
  */
 export interface Collimator extends Aperture {
+}
+
+
+/**
+ * A block of material in the beam, which the beam passes through and interacts with: a radiator, a converter, a foil. Its thickness along the beam is ``physical.length``. Modelled by BDSIM;  codes without material interactions treat it as a drift.
+ */
+export interface Target extends PhysicalAcceleratorElement {
+    /** Transverse shape of the block. */
+    target?: TargetElement,
+}
+
+
+/**
+ * Transverse shape of a target block.
+ */
+export interface TargetElement {
+    /** Full transverse size of the block [m]: the side of a square block, or the diameter of a round one. BDSIM's default if unset. */
+    transverse_size?: number,
+    /** A round block (a cylinder along the beam) rather than a square one. */
+    circular?: boolean,
+}
+
+
+/**
+ * A bent crystal in the beam, which channels particles along its planes (or, off alignment, reflects or scatters them). Its thickness along the beam is ``physical.length``, and it is centred on the beam axis.
+ */
+export interface Crystal extends PhysicalAcceleratorElement {
+    /** Crystal geometry, orientation and lattice. */
+    crystal?: CrystalElement,
+}
+
+
+/**
+ * Geometry, orientation and lattice of a bent crystal. The lattice defaults are silicon's (diamond cubic).
+ */
+export interface CrystalElement {
+    /** Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``): absolute, relative to the lattice, or with ``$master_lattice$``. */
+    data_file?: string,
+    /** Horizontal bending angle of the crystal's planes over its length [rad]; the angle a fully channelled particle is deflected by. */
+    bending_angle?: number,
+    /** Angle of the crystal planes at its entrance to the beam axis [rad]: 0 aligns them for channelling; beyond the critical angle, but within the bend, gives volume reflection; beyond the bend, amorphous scattering. */
+    entrance_angle?: number,
+    /** Full horizontal size of the crystal [m]. */
+    horizontal_size?: number,
+    /** Full vertical size of the crystal [m]. */
+    vertical_size?: number,
+    /** Unit-cell edges a, b, c [m]. Silicon's if unset. */
+    lattice_constants?: number[],
+    /** Unit-cell angles alpha, beta, gamma [rad]. Right angles if unset. */
+    lattice_angles?: number[],
+    /** Crystallographic space group number. Silicon's (227) if unset. */
+    space_group?: number,
 }
 
 
@@ -653,6 +721,12 @@ export interface SectionLattice {
     space_charge?: SpaceChargeSettings,
     /** Ordered list of element names in this section. */
     elements?: string[],
+    /** Cross-sectional beam pipe aperture shape. */
+    beampipe_aperture_type?: string,
+    /** Size of beam pipe [m]. A single value for a circular aperture, or two values (horizontal, vertical) for a rectangular or elliptical one. */
+    beampipe_size?: number,
+    /** Beam pipe material */
+    beampipe_material?: string,
 }
 
 
@@ -698,6 +772,12 @@ export interface MachineModel {
     sections?: SectionLatticeName[],
     /** All named beamline layouts. */
     layouts?: MachineLayoutName[],
+    /** Cross-sectional beam pipe aperture shape. */
+    beampipe_aperture_type?: string,
+    /** Size of beam pipe [m]. A single value for a circular aperture, or two values (horizontal, vertical) for a rectangular or elliptical one. */
+    beampipe_size?: number,
+    /** Beam pipe material */
+    beampipe_material?: string,
 }
 
 
@@ -1597,6 +1677,8 @@ export interface Screen extends Diagnostic {
  * Wire scanner: thin wires stepped through the beam to measure its transverse profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation element.
  */
 export interface WireScanner extends Diagnostic {
+    /** Instrument-specific diagnostic parameters. */
+    diagnostic?: WireScannerDiagnosticElement,
 }
 
 
@@ -1681,6 +1763,17 @@ export interface PhotonIntensityMonitorDiagnostic extends DiagnosticElement {
 export interface BLMDiagnosticElement extends DiagnosticElement {
     /** BLM type (e.g., ``CDR``). Accepted in YAML as ``blm_type``. */
     type?: string,
+}
+
+
+/**
+ * Intercepting wire-scanner diagnostic: a thin wire swept through the beam to measure its transverse profile. Distinct from a Wire element, which carries a current to act on the beam rather than to intercept it.
+ */
+export interface WireScannerDiagnosticElement extends DiagnosticElement {
+    /** Diameter of the scanning wire [m]. */
+    wire_diameter?: number,
+    /** Length of the scanning wire [m]. */
+    wire_length?: number,
 }
 
 
@@ -2062,6 +2155,20 @@ export interface Octupole extends Magnet {
 
 
 /**
+ * Decapole magnet field, principal multipole order 4.
+ */
+export interface DecapoleMagnet extends MagneticElement {
+}
+
+
+/**
+ * Decapole magnet.
+ */
+export interface Decapole extends Magnet {
+}
+
+
+/**
  * Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.
  */
 export interface CorrectorMagnet extends DipoleMagnet {
@@ -2147,6 +2254,8 @@ export interface SolenoidFields {
 export interface SolenoidMagnet {
     /** Magnetic length [m]. */
     length?: number,
+    /** Global tilt about the beam axis [rad]. */
+    tilt?: number,
     /** Principal solenoid multipole order. */
     order?: number,
     /** Nominal integrated axial field components. */
@@ -2193,6 +2302,8 @@ export interface CombinedSolenoidQuadrupole extends Magnet {
 export interface WigglerMagnet {
     /** Magnetic length [m]. */
     length?: number,
+    /** Global tilt about the beam axis [rad]. */
+    tilt?: number,
     /** Deflection parameter K. May be a functional expression. */
     strength?: number,
     /** Peak on-axis field [T]. */
@@ -2229,6 +2340,8 @@ export interface Wiggler extends Magnet {
 export interface NonLinearLensMagnet {
     /** Magnetic length [m]. */
     length?: number,
+    /** Global tilt about the beam axis [rad]. */
+    tilt?: number,
     /** Integrated lens strength (MAD-X ``knll``). May be a functional expression. */
     integrated_strength?: number,
     /** Dimensional parameter setting the transverse scale (MAD-X ``cnll``). May be a functional expression. */
@@ -2343,6 +2456,8 @@ export interface PhysicalAcceleratorElement extends Element {
     physical?: PhysicalElement,
     /** Aperture of the element. */
     aperture?: ApertureElement,
+    /** Element material. */
+    material?: string,
 }
 
 

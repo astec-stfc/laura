@@ -67,6 +67,8 @@ cheetah_conversion_rules = {
     "Laser": Drift,
     "Plasma": Drift,
     "PlasmaLens": Drift,
+    "Target": Drift,
+    "Crystal": Drift,
     "TwissMatch": Drift,
     "Diagnostic": Screen,
     "MatrixTransform": CustomTransferMap,

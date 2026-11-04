@@ -110,6 +110,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -235,8 +242,7 @@
               "type": "null"
             }
           ],
-          "description": "Peak kick voltage/amplitude of the exciter.",
-          "type": "number"
+          "description": "Peak kick voltage/amplitude of the exciter."
         },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
@@ -323,8 +329,7 @@
               "type": "null"
             }
           ],
-          "description": "Phase lag [deg].",
-          "type": "number"
+          "description": "Phase lag [deg]."
         },
         "ramp": {
           "description": "Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp.",
@@ -355,8 +360,7 @@
               "type": "null"
             }
           ],
-          "description": "Smoothing control for field or wake interpolation.",
-          "type": "number"
+          "description": "Smoothing control for field or wake interpolation."
         },
         "space_charge_method": {
           "description": "Space-charge tracking method.",
@@ -638,6 +642,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -729,6 +740,13 @@
             "null"
           ]
         },
+        "material": {
+          "description": "Aperture material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "negative_extent": {
           "description": "Upstream / inner extent [m].",
           "type": [
@@ -760,7 +778,14 @@
           ]
         },
         "shape": {
-          "$ref": "#/$defs/ApertureShapeEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureShapeEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Cross-sectional aperture shape."
         },
         "vertical_size": {
@@ -776,7 +801,7 @@
       "type": "object"
     },
     "ApertureShapeEnum": {
-      "description": "Cross-sectional shape of a beam-pipe aperture.",
+      "description": "Cross-sectional shape of a beam-pipe aperture. `scraper` is a jaw geometry rather than a pipe shape -- the extents are rectangular, but the jaws are positioned independently, so it maps to ASTRA's Scr_X/Scr_Y (not Col_X/Col_Y) and BDSIM's jcol (not rcol). It therefore has no gmad `apertureType`.",
       "enum": [
         "circular",
         "rectangular",
@@ -953,6 +978,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -1143,6 +1175,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -1362,8 +1401,7 @@
               "type": "null"
             }
           ],
-          "description": "Smoothing control for field or wake interpolation.",
-          "type": "number"
+          "description": "Smoothing control for field or wake interpolation."
         },
         "space_charge_method": {
           "description": "Space-charge tracking method.",
@@ -1547,6 +1585,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -1625,6 +1670,16 @@
       ],
       "title": "BeamPositionMonitor",
       "type": "object"
+    },
+    "BeampipeShapeEnum": {
+      "description": "Cross-sectional shape of a beam-pipe aperture.",
+      "enum": [
+        "circular",
+        "rectangular",
+        "elliptical"
+      ],
+      "title": "BeampipeShapeEnum",
+      "type": "string"
     },
     "BendingPlaneEnum": {
       "description": "Bending plane enum.",
@@ -1757,6 +1812,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -1958,6 +2020,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -2569,6 +2638,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -2773,6 +2849,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -2999,6 +3082,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -3242,6 +3332,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -3373,8 +3470,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -3388,8 +3484,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -3472,7 +3567,14 @@
           ]
         },
         "plane": {
-          "$ref": "#/$defs/BendingPlaneEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BendingPlaneEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -3558,7 +3660,14 @@
       "description": "A single process-variable entry mapping a logical name to a control-system PV identifier.",
       "properties": {
         "control_type": {
-          "$ref": "#/$defs/ControlTypeEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlTypeEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Kind of quantity this variable carries. Accepted in YAML as ``type``."
         },
         "description": {
@@ -3583,7 +3692,14 @@
           ]
         },
         "element_dtype": {
-          "$ref": "#/$defs/NumericDtypeEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NumericDtypeEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container."
         },
         "expression": {
@@ -3638,8 +3754,7 @@
               {
                 "type": "string"
               }
-            ],
-            "type": "string"
+            ]
           },
           "type": [
             "array",
@@ -3689,8 +3804,7 @@
               "type": "null"
             }
           ],
-          "description": "Last-read value. Scalar for most control types; a list for ``waveform``.",
-          "type": "string"
+          "description": "Last-read value. Scalar for most control types; a list for ``waveform``."
         }
       },
       "title": "ControlVariable",
@@ -3766,8 +3880,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -3781,8 +3894,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -3837,8 +3949,7 @@
               "type": "null"
             }
           ],
-          "description": "Horizontal deflection [rad]. May be a functional expression. Derived from multipoles.K0L.normal.",
-          "type": "number"
+          "description": "Horizontal deflection [rad]. May be a functional expression. Derived from multipoles.K0L.normal."
         },
         "length": {
           "description": "Magnetic (effective) length [m].",
@@ -3880,7 +3991,14 @@
           ]
         },
         "plane": {
-          "$ref": "#/$defs/BendingPlaneEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BendingPlaneEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -3938,8 +4056,7 @@
               "type": "null"
             }
           ],
-          "description": "Vertical deflection [rad]. May be a functional expression. Derived from multipoles.K0L.skew.",
-          "type": "number"
+          "description": "Vertical deflection [rad]. May be a functional expression. Derived from multipoles.K0L.skew."
         },
         "width": {
           "description": "Physical width of the magnet in the bending plane [m].",
@@ -4074,6 +4191,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -4151,6 +4275,718 @@
         "hardware_class"
       ],
       "title": "CrabCavity",
+      "type": "object"
+    },
+    "Crystal": {
+      "additionalProperties": false,
+      "description": "A bent crystal in the beam, which channels particles along its planes (or, off alignment, reflects or scatters them). Its thickness along the beam is ``physical.length``, and it is centred on the beam axis.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "crystal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CrystalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Crystal geometry, orientation and lattice."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Crystal",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Material of the crystal, by a name Geant4 knows (``G4_Si``, ``G4_Ge``...). Needed to translate it to BDSIM.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "Crystal",
+      "type": "object"
+    },
+    "CrystalElement": {
+      "additionalProperties": false,
+      "description": "Geometry, orientation and lattice of a bent crystal. The lattice defaults are silicon's (diamond cubic).",
+      "properties": {
+        "bending_angle": {
+          "description": "Horizontal bending angle of the crystal's planes over its length [rad]; the angle a fully channelled particle is deflected by.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "data_file": {
+          "description": "Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``): absolute, relative to the lattice, or with ``$master_lattice$``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entrance_angle": {
+          "description": "Angle of the crystal planes at its entrance to the beam axis [rad]: 0 aligns them for channelling; beyond the critical angle, but within the bend, gives volume reflection; beyond the bend, amorphous scattering.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "horizontal_size": {
+          "description": "Full horizontal size of the crystal [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lattice_angles": {
+          "description": "Unit-cell angles alpha, beta, gamma [rad]. Right angles if unset.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "lattice_constants": {
+          "description": "Unit-cell edges a, b, c [m]. Silicon's if unset.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "space_group": {
+          "description": "Crystallographic space group number. Silicon's (227) if unset.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "vertical_size": {
+          "description": "Full vertical size of the crystal [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "CrystalElement",
+      "type": "object"
+    },
+    "Decapole": {
+      "additionalProperties": false,
+      "description": "Decapole magnet.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "degauss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DegaussableElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Degaussing-cycle parameters."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Decapole",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "magnetic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DecapoleMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Magnetic field parameters."
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MagnetSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "Decapole",
+      "type": "object"
+    },
+    "DecapoleMagnet": {
+      "additionalProperties": false,
+      "description": "Decapole magnet field, principal multipole order 4.",
+      "properties": {
+        "angle": {
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "bore": {
+          "description": "Magnet bore radius [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral": {
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "entrance_edge_angle": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fringe-field entrance edge angle [rad]."
+        },
+        "exit_edge_angle": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fringe-field exit edge angle [rad]."
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_integral_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldIntegral"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Polynomial calibration of integrated field vs. current."
+        },
+        "fringe_field_coefficient": {
+          "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gap": {
+          "description": "Full gap between pole faces [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gradient": {
+          "description": "Peak field gradient [T/m] (quads) or peak field [T] (dipoles).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "length": {
+          "description": "Magnetic (effective) length [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "linear_saturation_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LinearSaturationFit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Bi-linear saturation calibration."
+        },
+        "multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Integrated multipole field components."
+        },
+        "order": {
+          "const": 4,
+          "description": "Principal multipole order (0 = dipole, 1 = quad, ?).",
+          "minimum": -1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "plane": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BendingPlaneEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
+        },
+        "random_multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Random multipole errors at the reference radius."
+        },
+        "settle_time": {
+          "description": "Power-supply settle time after a change [s].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "skew": {
+          "description": "Whether the magnet is rotated 45? to produce a skew field component.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "systematic_multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Systematic (design) multipole errors at the reference radius."
+        },
+        "tilt": {
+          "description": "Global tilt about the beam axis [rad].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "width": {
+          "description": "Physical width of the magnet in the bending plane [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "DecapoleMagnet",
       "type": "object"
     },
     "DegaussableElement": {
@@ -4306,6 +5142,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -4517,8 +5360,7 @@
               "type": "null"
             }
           ],
-          "description": "Smoothing control for field or wake interpolation.",
-          "type": "number"
+          "description": "Smoothing control for field or wake interpolation."
         },
         "space_charge_method": {
           "description": "Space-charge tracking method.",
@@ -4699,6 +5541,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -4830,8 +5679,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -4845,8 +5693,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -4929,7 +5776,14 @@
           ]
         },
         "plane": {
-          "$ref": "#/$defs/BendingPlaneEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BendingPlaneEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -5096,6 +5950,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -5329,8 +6190,7 @@
               "type": "null"
             }
           ],
-          "description": "Smoothing control for field or wake interpolation.",
-          "type": "number"
+          "description": "Smoothing control for field or wake interpolation."
         },
         "space_charge_method": {
           "description": "Space-charge tracking method.",
@@ -5525,6 +6385,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -5664,8 +6531,7 @@
               "type": "null"
             }
           ],
-          "description": "Horizontal deflecting electric field [V/m].",
-          "type": "number"
+          "description": "Horizontal deflecting electric field [V/m]."
         },
         "horizontal_offset": {
           "description": "Horizontal simulation offset from the reference orbit [m].",
@@ -5737,8 +6603,7 @@
               "type": "null"
             }
           ],
-          "description": "Smoothing control for field or wake interpolation.",
-          "type": "number"
+          "description": "Smoothing control for field or wake interpolation."
         },
         "space_charge_method": {
           "description": "Space-charge tracking method.",
@@ -5780,8 +6645,7 @@
               "type": "null"
             }
           ],
-          "description": "Vertical deflecting electric field [V/m].",
-          "type": "number"
+          "description": "Vertical deflecting electric field [V/m]."
         },
         "vertical_offset": {
           "description": "Vertical simulation offset from the reference orbit [m].",
@@ -6157,6 +7021,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -6279,7 +7150,8 @@
         "ACDipole",
         "Wire",
         "BeamBeam",
-        "RFMultipole"
+        "RFMultipole",
+        "Target"
       ],
       "title": "HardwareClassEnum",
       "type": "string"
@@ -6394,6 +7266,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -6606,6 +7485,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -6831,6 +7717,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -7117,6 +8010,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -7437,7 +8337,14 @@
           ]
         },
         "polarization": {
-          "$ref": "#/$defs/LaserPolarizationEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LaserPolarizationEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise."
         },
         "polarization_angle": {
@@ -7448,7 +8355,14 @@
           ]
         },
         "profile_type": {
-          "$ref": "#/$defs/LaserProfileTypeEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LaserProfileTypeEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Transverse intensity profile model."
         },
         "propagation_direction": {
@@ -7477,7 +8391,14 @@
           ]
         },
         "role": {
-          "$ref": "#/$defs/LaserRoleEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LaserRoleEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Whether the laser drives the wake or only injects electrons into a wake driven by the beam."
         },
         "temporal_chirp_2nd_order": {
@@ -8730,6 +9651,41 @@
       "additionalProperties": false,
       "description": "Top-level container for a complete accelerator lattice: elements, sections, layouts, and named lattice configurations.",
       "properties": {
+        "beampipe_aperture_type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeampipeShapeEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-sectional beam pipe aperture shape."
+        },
+        "beampipe_material": {
+          "description": "Beam pipe material",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "beampipe_size": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Size of beam pipe [m]. A single value for a circular aperture, or two values (horizontal, vertical) for a rectangular or elliptical one."
+        },
         "elements": {
           "description": "All elements in the machine, keyed by name.",
           "items": {
@@ -8903,6 +9859,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -9063,8 +10026,7 @@
               "type": "null"
             }
           ],
-          "description": "Field amplitude scaling for magnet tracking.",
-          "type": "number"
+          "description": "Field amplitude scaling for magnet tracking."
         },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
@@ -9180,8 +10142,7 @@
               "type": "null"
             }
           ],
-          "description": "Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).",
-          "type": "integer"
+          "description": "Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth)."
         },
         "smooth_points": {
           "description": "Number of points used to smooth the field map [ASTRA].",
@@ -9302,8 +10263,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -9317,8 +10277,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -9400,7 +10359,14 @@
           ]
         },
         "plane": {
-          "$ref": "#/$defs/BendingPlaneEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BendingPlaneEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -9589,6 +10555,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -9779,6 +10752,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -10006,8 +10986,7 @@
               "type": "null"
             }
           ],
-          "description": "Smoothing control for field or wake interpolation.",
-          "type": "number"
+          "description": "Smoothing control for field or wake interpolation."
         },
         "space_charge_method": {
           "description": "Space-charge tracking method.",
@@ -10116,8 +11095,7 @@
               "type": "null"
             }
           ],
-          "description": "Integrated normal (upright) multipole strength [T.m^{1-n}].",
-          "type": "number"
+          "description": "Integrated normal (upright) multipole strength [T.m^{1-n}]."
         },
         "order": {
           "description": "Multipole order (0 = dipole, 1 = quadrupole, ?).",
@@ -10146,8 +11124,7 @@
               "type": "null"
             }
           ],
-          "description": "Integrated skew (rotated) multipole strength [T.m^{1-n}].",
-          "type": "number"
+          "description": "Integrated skew (rotated) multipole strength [T.m^{1-n}]."
         }
       },
       "title": "Multipole",
@@ -10349,6 +11326,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -10450,6 +11434,13 @@
         "length": {
           "description": "Magnetic length [m].",
           "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tilt": {
+          "description": "Global tilt about the beam axis [rad].",
           "type": [
             "number",
             "null"
@@ -10609,6 +11600,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -10740,8 +11738,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -10755,8 +11752,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -10839,7 +11835,14 @@
           ]
         },
         "plane": {
-          "$ref": "#/$defs/BendingPlaneEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BendingPlaneEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -11342,6 +12345,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -11530,6 +12540,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -11845,6 +12862,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -12209,6 +13233,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -12588,8 +13619,7 @@
               "type": "null"
             }
           ],
-          "description": "Smoothing control for field or wake interpolation.",
-          "type": "number"
+          "description": "Smoothing control for field or wake interpolation."
         },
         "space_charge_method": {
           "description": "Space-charge tracking method.",
@@ -12974,6 +14004,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -13105,8 +14142,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -13120,8 +14156,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -13204,7 +14239,14 @@
           ]
         },
         "plane": {
-          "$ref": "#/$defs/BendingPlaneEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BendingPlaneEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -13382,6 +14424,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -13564,8 +14613,7 @@
               "type": "null"
             }
           ],
-          "description": "Operating phase offset [deg].",
-          "type": "number"
+          "description": "Operating phase offset [deg]."
         },
         "power_calibration": {
           "description": "Calibration constant relating measured power to cavity gradient.",
@@ -13680,8 +14728,7 @@
               "type": "string"
             }
           ],
-          "description": "Cavity field amplitude.",
-          "type": "number"
+          "description": "Cavity field amplitude."
         },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
@@ -13781,8 +14828,7 @@
               "type": "null"
             }
           ],
-          "description": "Cavity smoothing parameter.",
-          "type": "integer"
+          "description": "Cavity smoothing parameter."
         },
         "smooth_current_bins": {
           "description": "Flag indicating current-bin smoothing.",
@@ -14018,6 +15064,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -14182,8 +15235,7 @@
               "type": "null"
             }
           ],
-          "description": "Operating phase offset [deg].",
-          "type": "number"
+          "description": "Operating phase offset [deg]."
         },
         "shunt_impedance": {
           "description": "Shunt impedance [M?/m].",
@@ -14677,6 +15729,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -14802,8 +15861,7 @@
               "type": "null"
             }
           ],
-          "description": "Longitudinal voltage [V].",
-          "type": "number"
+          "description": "Longitudinal voltage [V]."
         },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
@@ -14910,8 +15968,7 @@
               "type": "null"
             }
           ],
-          "description": "Overall phase lag [deg].",
-          "type": "number"
+          "description": "Overall phase lag [deg]."
         },
         "pnl": {
           "description": "Normal multipole phases [deg], dipole through decapole.",
@@ -14952,8 +16009,7 @@
               "type": "null"
             }
           ],
-          "description": "Smoothing control for field or wake interpolation.",
-          "type": "number"
+          "description": "Smoothing control for field or wake interpolation."
         },
         "space_charge_method": {
           "description": "Space-charge tracking method.",
@@ -15324,7 +16380,14 @@
           ]
         },
         "interpolation": {
-          "$ref": "#/$defs/WaveformInterpolationEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WaveformInterpolationEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "How the strength behaves between the sampled knots."
         },
         "time": {
@@ -15463,6 +16526,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -15585,6 +16655,41 @@
       "additionalProperties": false,
       "description": "An ordered list of element names defining a contiguous beamline section.",
       "properties": {
+        "beampipe_aperture_type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeampipeShapeEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-sectional beam pipe aperture shape."
+        },
+        "beampipe_material": {
+          "description": "Beam pipe material",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "beampipe_size": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Size of beam pipe [m]. A single value for a circular aperture, or two values (horizontal, vertical) for a rectangular or elliptical one."
+        },
         "elements": {
           "description": "Ordered list of element names in this section.",
           "items": {
@@ -15596,7 +16701,14 @@
           ]
         },
         "geometry": {
-          "$ref": "#/$defs/LatticeGeometryEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LatticeGeometryEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent."
         },
         "master_lattice": {
@@ -15769,6 +16881,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -15900,8 +17019,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field entrance edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field entrance edge angle [rad]."
         },
         "exit_edge_angle": {
           "anyOf": [
@@ -15915,8 +17033,7 @@
               "type": "null"
             }
           ],
-          "description": "Fringe-field exit edge angle [rad].",
-          "type": "string"
+          "description": "Fringe-field exit edge angle [rad]."
         },
         "exit_gap": {
           "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
@@ -15999,7 +17116,14 @@
           ]
         },
         "plane": {
-          "$ref": "#/$defs/BendingPlaneEnum",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BendingPlaneEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -16166,6 +17290,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -16393,8 +17524,7 @@
               "type": "null"
             }
           ],
-          "description": "Smoothing control for field or wake interpolation.",
-          "type": "number"
+          "description": "Smoothing control for field or wake interpolation."
         },
         "space_charge_method": {
           "description": "Space-charge tracking method.",
@@ -16574,6 +17704,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -16834,6 +17971,13 @@
             }
           ],
           "description": "Systematic field errors."
+        },
+        "tilt": {
+          "description": "Global tilt about the beam axis [rad].",
+          "type": [
+            "number",
+            "null"
+          ]
         }
       },
       "title": "SolenoidMagnet",
@@ -17005,6 +18149,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -17252,6 +18403,237 @@
       "title": "StandardElement",
       "type": "object"
     },
+    "Target": {
+      "additionalProperties": false,
+      "description": "A block of material in the beam, which the beam passes through and interacts with: a radiator, a converter, a foil. Its thickness along the beam is ``physical.length``. Modelled by BDSIM;  codes without material interactions treat it as a drift.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Target",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Material of the block, by a name BDSIM / Geant4 knows (``tungsten``, ``copper``, ``G4_W``...).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TargetElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Transverse shape of the block."
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "Target",
+      "type": "object"
+    },
+    "TargetElement": {
+      "additionalProperties": false,
+      "description": "Transverse shape of a target block.",
+      "properties": {
+        "circular": {
+          "description": "A round block (a cylinder along the beam) rather than a square one.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "transverse_size": {
+          "description": "Full transverse size of the block [m]: the side of a square block, or the diameter of a round one. BDSIM's default if unset.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "TargetElement",
+      "type": "object"
+    },
     "Trace": {
       "additionalProperties": false,
       "description": "LLRF trace metadata.",
@@ -17398,6 +18780,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -17659,8 +19048,7 @@
               "type": "null"
             }
           ],
-          "description": "Smoothing control for field or wake interpolation.",
-          "type": "number"
+          "description": "Smoothing control for field or wake interpolation."
         },
         "space_charge_method": {
           "description": "Space-charge tracking method.",
@@ -17818,6 +19206,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -18008,6 +19403,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -18215,6 +19617,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -18428,6 +19837,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -18628,6 +20044,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -18956,8 +20379,7 @@
               "type": "null"
             }
           ],
-          "description": "Smoothing parameter for Gaussian interpolation.",
-          "type": "number"
+          "description": "Smoothing parameter for Gaussian interpolation."
         },
         "space_charge_method": {
           "description": "Space-charge tracking method.",
@@ -19168,6 +20590,13 @@
             }
           ],
           "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Unique element name within the machine.",
@@ -19402,6 +20831,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -19544,6 +20980,13 @@
             "null"
           ]
         },
+        "tilt": {
+          "description": "Global tilt about the beam axis [rad].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "transverse_gradient_x": {
           "description": "Transverse field gradient in x [1/m].",
           "type": [
@@ -19673,6 +21116,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -19791,7 +21241,7 @@
         "diagnostic": {
           "anyOf": [
             {
-              "$ref": "#/$defs/DiagnosticElement"
+              "$ref": "#/$defs/WireScannerDiagnosticElement"
             },
             {
               "type": "null"
@@ -19874,6 +21324,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -19951,6 +21408,30 @@
         "hardware_class"
       ],
       "title": "WireScanner",
+      "type": "object"
+    },
+    "WireScannerDiagnosticElement": {
+      "additionalProperties": false,
+      "description": "Intercepting wire-scanner diagnostic: a thin wire swept through the beam to measure its transverse profile. Distinct from a Wire element, which carries a current to act on the beam rather than to intercept it.",
+      "properties": {
+        "wire_diameter": {
+          "description": "Diameter of the scanning wire [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wire_length": {
+          "description": "Length of the scanning wire [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "WireScannerDiagnosticElement",
       "type": "object"
     },
     "WireSimulationElement": {
@@ -20085,8 +21566,7 @@
               "type": "null"
             }
           ],
-          "description": "Smoothing control for field or wake interpolation.",
-          "type": "number"
+          "description": "Smoothing control for field or wake interpolation."
         },
         "space_charge_method": {
           "description": "Space-charge tracking method.",
@@ -20137,9 +21617,9 @@
   },
   "$id": "https://w3id.org/laura/schema",
   "$schema": "https://json-schema.org/draft/2019-09/schema",
-  "additionalProperties": true,
+  "additionalProperties": false,
   "description": "Root base class for all LAURA accelerator elements.  Every lattice element is an instance of a concrete subclass identified by ``hardware_type``.",
-  "metamodel_version": "1.11.0",
+  "metamodel_version": "1.12.0",
   "properties": {
     "alias": {
       "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
@@ -20250,4 +21730,3 @@
   "type": "object",
   "version": "0.1.0"
 }
-

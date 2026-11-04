@@ -4,7 +4,7 @@ title: LAURA RF Model Chunk
 description: >-
   RF cavity, wakefield, LLRF, and protection-system schema classes.
 version: "0.1.0"
-license: Apache Software License 2.0
+license: GPL-3.0-or-later
 
 prefixes:
   linkml:  https://w3id.org/linkml/

@@ -50,7 +50,7 @@ class PlasmaTranslator(BaseElementTranslator):
         from ..conversion_rules.codes import wake_t_conversion
 
         type_conversion_rules_wake_t = wake_t_conversion.wake_t_conversion_rules
-        if self.simulation.wakefield_model is None:
+        if self.simulation.wakefield_model is None and self.verbose:
             warn(
                 "No wakefield model defined; no plasma wakefields will be computed."
                 f"Supported models are {list(self.simulation.required_attrs.keys())[1:]}."
@@ -93,9 +93,10 @@ class PlasmaTranslator(BaseElementTranslator):
         elif len(lasers) == 2:
             elemdict.update({"laser": SummedPulse(lasers[0], lasers[1])})
         elif len(lasers) > 2:
-            warn(
-                "More than two laser sub-elements found; only the first two will be used."
-            )
+            if self.verbose:
+                warn(
+                    "More than two laser sub-elements found; only the first two will be used."
+                )
             elemdict.update({"laser": SummedPulse(lasers[0], lasers[1])})
         obj = type_conversion_rules_wake_t[self.hardware_type](
             wakefield_model=self.simulation.wakefield_model, **elemdict

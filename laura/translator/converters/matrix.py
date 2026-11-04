@@ -1,4 +1,5 @@
 from itertools import combinations_with_replacement, permutations
+from typing import Dict
 from warnings import warn
 
 import numpy as np
@@ -7,6 +8,15 @@ from laura.models.simulation import MatrixTransformSimulationElement
 
 from ..utils.functions import sanitize_string
 from .base import BaseElementTranslator, elegant_line
+
+
+def _bdsim_rmatrix(r_matrix) -> Dict:
+    """
+    Build the ``r11``..``r44`` keywords for ``pybdsim.Builder.Rmat``.
+    """
+    return {
+        f"r{i + 1}{j + 1}": float(r_matrix[i][j]) for i in range(4) for j in range(4)
+    }
 
 
 class MatrixTransformTranslator(BaseElementTranslator):
@@ -190,9 +200,10 @@ class MatrixTransformTranslator(BaseElementTranslator):
 
         type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
-        warn(
-            f"WARNING! Only 1st-order transfer maps implemented for cheetah, {self.name}"
-        )
+        if self.verbose:
+            warn(
+                f"WARNING! Only 1st-order transfer maps implemented for cheetah, {self.name}"
+            )
         obj = type_conversion_rules_cheetah[self.hardware_type](
             name=self.name,
             length=tensor(self.physical.length, dtype=float64),
@@ -200,3 +211,43 @@ class MatrixTransformTranslator(BaseElementTranslator):
             sanitize_name=True,
         )
         return obj
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; unused here.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; unused here.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+
+        if not self.physical.length:
+            from pybdsim.Builder import ThinRmat
+
+            obj = ThinRmat
+        else:
+            obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        keywords.update(_bdsim_rmatrix(self.simulation.r_matrix))
+        if self.verbose:
+            warn(
+                f"WARNING! Only 1st-order transfer maps implemented for BDSIM, {self.name}"
+            )
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))

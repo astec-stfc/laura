@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel", "setuptools_scm"]
+requires = ["setuptools>=77", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -30,10 +30,14 @@ dependencies = [
     "soliday.sdds"
 ]
 
-requires-python = ">= 3.10"
+requires-python = ">= 3.11"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 classifiers = [
-    "Programming Language :: Python :: 3.10",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 
 [tool.setuptools_scm]
@@ -64,6 +68,10 @@ bmad = [
     "pytao>=0.5.5",
 ]
 
+bdsim = [
+    "pybdsim>=3.6.1",
+]
+
 madx = [
     "cpymad>=1.16.0",
 ]
@@ -74,7 +82,7 @@ gpt = [
 
 # Full install of all supported simulation codes for conversion
 conversion = [
-    "laura-accelerator[xsuite,ocelot,cheetah,wake_t,bmad,madx,gpt]",
+    "laura-accelerator[xsuite,ocelot,cheetah,wake_t,bmad,madx,gpt,bdsim]",
 ]
 
 # Naming-convention linting and the AST codemod used to apply renames.

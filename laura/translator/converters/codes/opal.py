@@ -20,6 +20,8 @@ opal_unsupported = [
     "ActivePlasmaLens",
     "CrabCavity",
     "Wiggler",
+    "Target",
+    "Crystal",
 ]
 
 
