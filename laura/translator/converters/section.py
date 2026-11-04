@@ -1413,6 +1413,7 @@ class SectionLatticeTranslator(SectionLattice):
                     and isinstance(obj, xt.Cavity)
                     and p0c is not None
                     and obj.length > 0
+                    and element.simulation.change_p0  # a held reference (a ring's) has no gain to account for
                 )
                 if edges:
                     entrance, increase, exit, p0c = element.xsuite_edges(obj, p0c)
