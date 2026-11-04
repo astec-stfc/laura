@@ -55,6 +55,9 @@ from laura.translator.converters.section import (  # noqa: E402
     SectionLatticeTranslator,
 )
 from laura.translator.utils.bmad import bmad_survey_frame  # noqa: E402
+from laura.translator.utils.fields import FieldMap  # noqa: E402
+from laura.translator.utils.fields.field_parameter import FieldParameter  # noqa: E402
+from laura.translator.utils.units import UnitValue  # noqa: E402
 from unit_tests.helpers import quad  # noqa: E402
 
 
@@ -120,20 +123,23 @@ def test_bmad_short_range_wake_sidecars(tmp_path):
         simulation={"wakefield_definition": str(wake_path)},
     )
     text = _bmad(wake, tmp_path)
-    assert text == "W: drift, l = 0.2, sr_wake = call::wake.bmad\n"
+    # a Bmad drift cannot hold a wake; a pipe can
+    assert text == "W: pipe, l = 0.2, sr_wake = call::wake.bmad\n"
     sidecar = (tmp_path / "wake.bmad").read_text()
-    assert "scale_with_length = F" in sidecar
+    assert "scale_with_length = T" in sidecar
     assert "time_based = F" in sidecar
-    assert "0.01 5" in sidecar
-    assert "0.02 0,\n" in sidecar
+    # LAURA's z >= 0 behind the source is Bmad's z <= 0; per metre of the 0.2 m element
+    assert "      -0.01 25,\n" in sidecar
+    assert "      -0.02 0,\n" in sidecar
 
     cavity = RFCavity(
         name="C",
         machine_area="S",
+        physical={"length": 0.6},
         cavity={
             "phase": 0,
             "frequency": 1e9,
-            "n_cells": 1,
+            "n_cells": 3,
             "cell_length": 0.2,
             "structure_Type": "StandingWave",
         },
@@ -143,6 +149,37 @@ def test_bmad_short_range_wake_sidecars(tmp_path):
         },
     )
     assert "sr_wake = call::wake.bmad" in _bmad(cavity, tmp_path)
+    # a per-cell wake: Bmad's 0.6 m times 25 /m gives three cells' worth
+    assert "      -0.01 25,\n" in (tmp_path / "wake.bmad").read_text()
+
+
+def test_bmad_wake_export_prefers_the_wakes_own_reference_length(tmp_path):
+    """A wake tabulated over the whole structure must not be multiplied up by n_cells."""
+    wake = FieldMap(
+        field_type="LongitudinalWake", length=3, reference_length=0.5, read=True
+    )
+    wake.filename = str(tmp_path / "w.hdf5")
+    wake.z = FieldParameter(name="z", value=UnitValue(np.array([0, 0.01, 0.02]), "m"))
+    wake.Wz = FieldParameter(name="Wz", value=UnitValue(np.array([10.0, 5, 0]), "V/C"))
+    sidecar = open(wake.write_field_file(code="bmad", cell_length=0.1)).read()
+    assert "scale_with_length = T" in sidecar
+    assert "      -0.01 10,\n" in sidecar
+    # a thin element can't scale with length, so it takes the table whole
+    sidecar = open(wake.write_field_file(code="bmad", cell_length=0.0)).read()
+    assert "scale_with_length = F" in sidecar
+    assert "      -0.01 5,\n" in sidecar
+
+
+def test_hdf5_wake_keeps_its_reference_length_not_its_sample_count(tmp_path):
+    wake = FieldMap(
+        field_type="LongitudinalWake", length=3, reference_length=0.5, read=True
+    )
+    wake.filename = str(tmp_path / "w.hdf5")
+    wake.z = FieldParameter(name="z", value=UnitValue(np.array([0, 0.01, 0.02]), "m"))
+    wake.Wz = FieldParameter(name="Wz", value=UnitValue(np.array([10.0, 5, 0]), "V/C"))
+    reread = FieldMap(filename=wake.write_field_file(code="hdf5"))
+    assert reread.reference_length == pytest.approx(0.5)
+    assert reread.length == 3
 
 
 def test_bmad_transverse_only_wake_is_reported_and_omitted(tmp_path):
@@ -789,6 +826,28 @@ def test_bmad_section_superimposes_overlapping_elements():
     assert (
         "superimpose, element = S_EMBED, offset = 0, ele_origin = beginning"
     ) in text
+
+
+def test_bmad_section_ignores_rounding_overlaps():
+    """An imported lattice's s carries ~1e-11 m of rounding: not an overlap, and
+    a drift cannot be superimposed anyway (LCLS cu_hxr has 602 of them)."""
+    from laura.models.element import Drift
+
+    first = quad("Q-1", 1, 0.2, middle=Position(z=0.5))
+    gap = Drift(name="D-1", machine_area="S", hardware_class="Drift",
+                physical=PhysicalElement(length=1, middle=Position(z=1.5 - 5e-12)))
+    last = quad("Q-2", 1, 0.2, middle=Position(z=2.5))
+    section = SectionLattice(
+        name="TOUCH",
+        order=["Q-1", "D-1", "Q-2"],
+        elements=ElementList(elements={e.name: e for e in (first, gap, last)}),
+    )
+
+    text = _export(section)
+
+    assert "superimpose" not in text
+    line = next(row for row in text.splitlines() if row.startswith("TOUCH: line"))
+    assert line.index("Q_1") < line.index("D_1") < line.index("Q_2")
 
 
 def test_bmad_section_uses_thin_kicker_inside_bend():

@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from xtrack import Line
 
 from ...models.base_models import IgnoreExtra
+from ...models.constants import electron_mass, elementary_charge, speed_of_light
 from ...models.element_list import SectionLattice
 from ...models.rf import WakefieldElement
 from ...models.simulation import (
@@ -30,17 +31,16 @@ from ..utils.bmad import (
 )
 from ..utils.fields import FieldMap
 from ..utils.functions import (
+    cavity_energy_gain,
     bmad_functional_definitions,
     elegant_functional_definitions,
     functional_fields,
     madx_functional_definitions,
     sanitize_string,
-    tw_cavity_energy_gain,
 )
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
-from .magnet import MagnetTranslator, SolenoidTranslator
 from .codes import (
     astra_unsupported,
     bmad_unsupported,
@@ -57,6 +57,7 @@ from .codes import (
 from .codes.gpt import GptCcs, GptDtMinT, GptZMinMax
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
+from .magnet import MagnetTranslator, SolenoidTranslator
 from .wake import WakefieldTranslator
 
 unsupported_elements = {
@@ -117,6 +118,10 @@ class SectionLatticeTranslator(SectionLattice):
     gpt_headers: Dict = {}
     """Headers for GPT input file; see :class:`~laura.translator.converters.codes.gpt.GptElement`
     and its child classes."""
+
+    gpt_screen_positions: Dict = {}
+    """``{element name: z}`` of each GPT screen as written by :meth:`to_gpt`; past a
+    dipole, z is measured in that dipole's ccs rather than the survey frame."""
 
     opal_headers: Dict = {}
     """Headers for OPAL input file; see :class:`~laura.translator.converters.codes.opal.OpalHeader`
@@ -427,7 +432,7 @@ class SectionLatticeTranslator(SectionLattice):
             if element.name in superimposed_names:
                 continue
             start, end = s_bounds(element)
-            if previous_end is not None and start < previous_end - 1e-12:
+            if previous_end is not None and start < previous_end - 1e-9:
                 superimposed_names.add(element.name)
             else:
                 backbone.append(element)
@@ -594,10 +599,16 @@ class SectionLatticeTranslator(SectionLattice):
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
                         counter[key] += e.aperture.number_of_elements
+                    elif isinstance(e, WakefieldTranslator):
+                        counter[key] += e.astra_wake_spacing[1]
                     else:
                         counter[key] += 1
-                    if hasattr(e.simulation, "wakefield_definition") and isinstance(
-                        e.simulation.wakefield_definition, (str, FieldMap)
+                    if (
+                        not isinstance(e, WakefieldTranslator)
+                        and hasattr(e.simulation, "wakefield_definition")
+                        and isinstance(
+                            e.simulation.wakefield_definition, (str, FieldMap)
+                        )
                     ):
                         w = WakefieldTranslator(
                             name=e.name + "_wake",
@@ -639,8 +650,8 @@ class SectionLatticeTranslator(SectionLattice):
         Create a GPT-compatible input file based on the lattice information and
         the settings provided in :attr:`~gpt_headers`.
 
-        Note that, for sections with accelerating sections, the magnetic rigidity `Brho` may not
-        be updated correctly, which may affect the accuracy of tracking through dipoles.
+        Downstream of each RF cavity, magnets are scaled to `Brho` raised by
+        :func:`~laura.translator.utils.functions.cavity_energy_gain`, an estimate.
 
         Parameters
         ----------
@@ -649,7 +660,7 @@ class SectionLatticeTranslator(SectionLattice):
         endz: float
             End longitudinal location of the lattice.
         Brho: float
-            Magnetic rigidity.
+            Magnetic rigidity at the start of the section.
         dtmin: float, optional
             Minimum time step size for integration
         charge_sign: int, optional
@@ -666,6 +677,7 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += header.write_gpt()
         elem_dict = self._translate()
         self._apply_wakefield_enable(elem_dict)
+        self.gpt_screen_positions = {}
         kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
@@ -680,6 +692,14 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += element.to_gpt(Brho, **kwargs)
             if not isinstance(element, MagnetTranslator):
                 element._warn_dropped_misalignment("gpt", set())
+            if isinstance(element, RFCavityTranslator):
+                mc2 = electron_mass * speed_of_light**2 / elementary_charge
+                kinetic = (
+                    np.hypot(Brho * speed_of_light, mc2)
+                    - mc2
+                    + cavity_energy_gain(element) * 1e6
+                )
+                Brho = np.sqrt(kinetic * (kinetic + 2 * mc2)) / speed_of_light
             if (
                 element.hardware_type.lower() == "rfcavity"
                 and isinstance(element.simulation.wakefield_definition, FieldMap)
@@ -700,20 +720,21 @@ class SectionLatticeTranslator(SectionLattice):
                     ),
                     directory=element.directory,
                 )
+                w.ccs = element.ccs  # model_post_init resets ccs to the origin
                 fulltext += w.to_gpt(Brho, **kwargs)
-            new_ccs = deepcopy(element.ccs)
-            if not new_ccs.name == ccs.name:
-                relpos, relrot = ccs.relative_position(
-                    list(element.physical.middle.model_dump().values()),
-                    list(element.physical.global_rotation.model_dump().values()),
-                )
-            else:
-                relpos = list(element.physical.middle.model_dump().values())
-            ccs = deepcopy(new_ccs)
+            ccs = deepcopy(element.ccs)
             if (
                 element.hardware_class.lower() == "diagnostic"
                 or element.hardware_type.lower() == "marker"
             ):
+                # a screen's z is measured from the origin of the ccs it is written in
+                relpos = list(element.physical.middle.model_dump().values())
+                if ccs.name != "wcs":
+                    relpos, _ = ccs.relative_position(
+                        relpos,
+                        list(element.physical.global_rotation.model_dump().values()),
+                    )
+                self.gpt_screen_positions[element.name] = relpos[2] + 0.001
                 fulltext += f'screen({ccs.name_as_str}, "I", {str(relpos[2] + 0.001)}, {ccs.name_as_str});\n'
                 # if self.gpt_headers["setfile"].particle_definition == "laser":
         lastelem = list(elem_dict.values())[-1]
@@ -726,11 +747,9 @@ class SectionLatticeTranslator(SectionLattice):
             list(lastelem.physical.global_rotation.model_dump().values()),
         )
         if ccs.name == "wcs":
-            fulltext += f'screen("wcs", "I", {lastelem.physical.end.z}, "wcs");\n'
-        else:
-            fulltext += (
-                f'screen({ccs.name_as_str}, "I", {relpos[2]}, {ccs.name_as_str});\n'
-            )
+            relpos[2] = lastelem.physical.end.z
+        fulltext += f'screen({ccs.name_as_str}, "I", {relpos[2]}, {ccs.name_as_str});\n'
+        self.gpt_screen_positions.setdefault(lastelem.name, relpos[2])
         zminmax = GptZMinMax(
             ECS='"wcs", "I"',
             zmin=startz - 0.1,
@@ -747,13 +766,13 @@ class SectionLatticeTranslator(SectionLattice):
         Create an OPAL-compatible input file based on the lattice information and
         the settings provided in :attr:`~opal_headers`.
 
-        Note that, for sections with accelerating sections, the beam energy `energy` may not
-        be updated correctly, which may affect the accuracy of tracking through dipoles.
+        Each RF cavity raises the design energy by
+        :func:`~laura.translator.utils.functions.cavity_energy_gain`, an estimate.
 
         Parameters
         ----------
         energy: float
-            Beam energy
+            Beam energy at the start of the section [MeV]
         breakstr: str
             String for separating sections in the lattice file.
 
@@ -763,6 +782,7 @@ class SectionLatticeTranslator(SectionLattice):
             An OPAL-compatible input file.
         """
         self._check_elements_supported("opal")
+        self._warn_dropped_wakes("OPAL")
         check_dict = [
             "option",
             "distribution",
@@ -781,13 +801,14 @@ class SectionLatticeTranslator(SectionLattice):
         elem_dict = self._translate()
         written = []
         svals = self.get_resolved_s_values(as_dict=True, at_entrance=True)
+        dt = self.opal_headers["track"].DT
+        # with staged steps, the longest one fits a thin element into every stage
+        dt = max(dt) if isinstance(dt, (list, tuple)) else dt
         for d in elem_dict.values():
             d.opal_version = self.opal_version
+            d.opal_time_step = float(dt)
             if isinstance(d, RFCavityTranslator):
-                if d.structure_type.lower() == "travellingwave":
-                    energy += tw_cavity_energy_gain(d)
-                else:
-                    energy += d.field_amplitude * np.cos(np.pi * d.phase / 180)
+                energy += cavity_energy_gain(d)
             if d.subelement:
                 phys = d.physical
                 traj = getattr(phys, "_trajectory", None)
@@ -846,6 +867,29 @@ class SectionLatticeTranslator(SectionLattice):
             sim = getattr(d, "simulation", None)
             if sim is not None and hasattr(sim, "wakefield_enable"):
                 sim.wakefield_enable = False
+
+    def _warn_dropped_wakes(self, code: str) -> None:
+        """
+        Warn that ``code`` is written without the structure wakefields that are
+        switched on, since LAURA doesn't export wakes to it.
+
+        Parameters
+        ----------
+        code: str
+            Name of the code being written
+        """
+        if not self.wakefield_enable:
+            return
+        names = [
+            e.name
+            for e in self.elements.elements.values()
+            if getattr(getattr(e, "simulation", None), "wakefield_definition", None)
+            and getattr(e.simulation, "wakefield_enable", True)
+        ]
+        if names:
+            warn(
+                f"{code} is written without structure wakefields; dropped on {', '.join(names)}"
+            )
 
     def _apply_tw_focusing(self, elem_dict: dict) -> None:
         """Pass :attr:`~tw_focusing` on to the translated cavities."""
@@ -1218,6 +1262,7 @@ class SectionLatticeTranslator(SectionLattice):
         from cheetah import Segment
 
         self._check_elements_supported("cheetah")
+        self._warn_dropped_wakes("Cheetah")
 
         elem_dict = self._translate(self.create_drifts().values())
         self._apply_tw_focusing(elem_dict)
@@ -1276,6 +1321,7 @@ class SectionLatticeTranslator(SectionLattice):
         import xtrack as xt
 
         self._check_elements_supported("xsuite")
+        self._warn_dropped_wakes("Xsuite")
 
         if not isinstance(env, xt.Environment):
             env = xt.Environment()
@@ -1436,6 +1482,7 @@ class SectionLatticeTranslator(SectionLattice):
             into a ``<name>_errors`` macro, to ``exec`` after each ``USE``
             (done here when ``beam`` is given).
         """
+        self._warn_dropped_wakes("MAD-X")
         elem_dict = self._translate(self.create_drifts().values())
         svals = self.get_s_values(as_dict=True, at_entrance=True)
         exit_svals = self.get_s_values(as_dict=True, at_entrance=False)
