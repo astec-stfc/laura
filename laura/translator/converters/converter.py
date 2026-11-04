@@ -20,6 +20,7 @@ from laura.models.element import (
     MatrixTransform,
     NonLinearLens,
     Plasma,
+    PlasmaLens,
     RFCavity,
     RFDeflectingCavity,
     RFMultipole,
@@ -54,7 +55,7 @@ from .magnet import (
     WigglerTranslator,
 )
 from .matrix import MatrixTransformTranslator
-from .plasma import PlasmaTranslator
+from .plasma import PlasmaLensTranslator, PlasmaTranslator
 from .rf_multipole import RFMultipoleTranslator
 from .twiss import TwissMatchTranslator
 from .wake import WakefieldTranslator
@@ -122,6 +123,8 @@ def translate_elements(
             translator = DiagnosticTranslator
         elif isinstance(elem, Aperture):
             translator = ApertureTranslator
+        elif isinstance(elem, PlasmaLens):
+            translator = PlasmaLensTranslator
         elif isinstance(elem, Target):
             translator = TargetTranslator
         elif isinstance(elem, Crystal):

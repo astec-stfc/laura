@@ -421,12 +421,24 @@ classes:
         ifabsent: int(1)
       min_longitudinal_position:
         range: float
-        description: Minimum longitudinal position [m].
+        description: Minimum longitudinal position of the simulation box [m].
         ifabsent: float(0)
       max_longitudinal_position:
         range: float
-        description: Maximum longitudinal position [m].
+        description: Maximum longitudinal position of the simulation box [m].
         ifabsent: float(0)
+      plasma_min_longitudinal_position:
+        range: float
+        description: >-
+          Lower z bound of the plasma loaded at t = 0 in a PIC code such as
+          FBPIC [m]; defaults to the box lower edge. Plasma injected later by
+          the moving window is bounded only by the density profile.
+      plasma_max_longitudinal_position:
+        range: float
+        description: >-
+          Upper z bound of the plasma loaded at t = 0 in a PIC code such as
+          FBPIC [m]; defaults to the box upper edge. Plasma injected later by
+          the moving window is bounded only by the density profile.
       n_longitudinal:
         range: integer
         description: Number of grid points in the longitudinal direction.
@@ -435,10 +447,18 @@ classes:
         range: integer
         description: Number of grid points in the radial direction.
         ifabsent: int(0)
-      plasma_particles_per_cell:
+      particles_per_radial_cell:
         range: integer
-        description: Number of plasma particles per cell.
+        description: Number of plasma particles per radial cell.
         ifabsent: int(2)
+      particles_per_longitudinal_cell:
+        range: integer
+        description: Number of plasma particles per longitudinal cell.
+        ifabsent: int(2)
+      particles_per_angular_cell:
+        range: integer
+        description: Number of plasma particles per angular cell.
+        ifabsent: int(4)
       r_max:
         range: float
         description: Radial extent of the simulation box [m].
@@ -446,6 +466,24 @@ classes:
       r_max_plasma:
         range: float
         description: Maximum radial extension of the plasma column.
+      r_min_plasma:
+        range: float
+        description: >-
+          Minimum radial extension of the plasma column [m]. Non-zero gives a
+          hollow channel, with no plasma inside this radius. Codes that assume
+          a filled column ignore it.
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      r_max_ionizable:
+        range: float
+        description: >-
+          Radial extent of the ionizable species in a PIC code [m]; defaults to
+          that of the plasma. Restricting it to where the driver or injection
+          laser can ionize saves macroparticles.
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
       dz_fields:
         range: float
         description: Interval for plasma wakefield updates.
@@ -453,6 +491,39 @@ classes:
         range: string
         description: Pusher used to evolve the plasma in time.
         ifabsent: string(boris)
+      laser_evolution:
+        range: boolean
+        description: >-
+          Whether the driver is evolved by a laser-envelope solver as the stage
+          is tracked, rather than held at its initial profile. Applies to codes
+          that model the laser as an envelope; a full PIC code such as FBPIC
+          always resolves the laser on the grid and ignores this.
+        ifabsent: "true"
+      laser_envelope_substeps:
+        range: integer
+        description: >-
+          Number of envelope-solver steps taken per wakefield step. Raise it
+          where the envelope evolves faster than the wake it drives.
+        ifabsent: int(1)
+      laser_envelope_n_longitudinal:
+        range: integer
+        description: >-
+          Number of longitudinal grid points for the laser-envelope solver, if
+          it is to run on a finer grid than the wakefield. Defaults to the
+          wakefield grid's n_longitudinal.
+      laser_envelope_n_radial:
+        range: integer
+        description: >-
+          Number of radial grid points for the laser-envelope solver, if it is
+          to run on a finer grid than the wakefield. Defaults to the wakefield
+          grid's n_radial.
+      laser_envelope_use_phase:
+        range: boolean
+        description: >-
+          Whether the envelope solver carries an explicit phase term, which
+          allows a coarser longitudinal grid at the cost of a more expensive
+          step.
+        ifabsent: "true"
 
   TwissMatchSimulationElement:
     is_a: SimulationElement

@@ -30,6 +30,7 @@ from .importer import (
 
 elegant_unsupported = [
     "Plasma",
+    "PlasmaLens",
     "Decapole",
     "ActivePlasmaLens",
     "CrabCavity",

@@ -12,6 +12,7 @@ gpt_unsupported = [
     "Decapole",
     "TwissMatch",
     "Plasma",
+    "PlasmaLens",
     "Laser",
     "Wiggler",
     "MatrixTransform",

@@ -30,7 +30,9 @@ classes:
 
   Plasma:
     is_a: PhysicalAcceleratorElement
-    description: Laser-driven plasma-accelerator stage.
+    description: >-
+      Plasma-accelerator stage, driven either by the laser defined in
+      ``laser`` or, if there is none, by the incoming particle beam.
     class_uri: laura:Plasma
     slot_usage:
       hardware_type:
@@ -43,7 +45,38 @@ classes:
         description: Plasma channel parameters.
       laser:
         range: LaserElement
-        description: Laser driving the plasma stage.
+        description: >-
+          Laser driving the plasma stage. Leave unset for a beam-driven stage,
+          where the driver is part of the incoming beam.
+
+  PlasmaLens:
+    is_a: PhysicalAcceleratorElement
+    description: >-
+      Active plasma lens: a discharge capillary whose current produces an
+      azimuthal magnetic field that focuses the beam in both planes.
+    class_uri: laura:PlasmaLens
+    slot_usage:
+      hardware_type:
+        equals_string: PlasmaLens
+      simulation:
+        range: PlasmaSimulationElement
+    attributes:
+      focusing_strength:
+        range: float
+        description: Focusing gradient of the lens field [T/m].
+        ifabsent: float(0)
+        unit:
+          ucum_code: T/m
+      wakefields:
+        range: boolean
+        description: >-
+          Whether the plasma wakefields excited by the beam in the capillary
+          are also modelled; needs ``plasma.density`` and the grid settings in
+          ``simulation``.
+        ifabsent: "False"
+      plasma:
+        range: PlasmaElement
+        description: Capillary plasma, used only when ``wakefields`` is True.
 
   LaserEnergyMeter:
     is_a: StandardElement
@@ -156,9 +189,25 @@ classes:
     in_subset:
       - laser_properties
     attributes:
+      role:
+        range: LaserRoleEnum
+        description: >-
+          Whether the laser drives the wake or only injects electrons into a
+          wake driven by the beam.
+        ifabsent: string(driver)
+      a0:
+        range: float
+        description: >-
+          Peak normalised vector potential. When set it is used as-is;
+          otherwise it is derived from pulse_energy, waist and
+          pulse_duration_fwhm assuming a Gaussian pulse.
+        minimum_value: 0.0
       initial_position:
         range: float
-        description: Initial longitudinal position of the laser pulse [m].
+        description: >-
+          Initial longitudinal position of the laser pulse centre [m], in the
+          co-moving frame in which the bunch centroid (or reference particle)
+          sits at zero.
         ifabsent: float(0)
         unit:
           ucum_code: m
@@ -201,7 +250,11 @@ classes:
           ucum_code: rad
       polarization:
         range: LaserPolarizationEnum
-        description: Laser polarization state.
+        description: >-
+          Laser polarization state. Codes that model the laser envelope (Wake-T)
+          scale the ponderomotive force by it, so it must be set; linear unless
+          stated otherwise.
+        ifabsent: string(linear)
       profile_type:
         range: LaserProfileTypeEnum
         description: Transverse intensity profile model.
@@ -213,6 +266,13 @@ classes:
           ``profile_type = laguerre-gaussian``).
         ifabsent: int(0)
         minimum_value: 0
+      laguerre_polynomial_order_m:
+        range: integer
+        description: >-
+          Azimuthal order of Laguerre-Gaussian polynomial mode (for
+          ``profile_type = laguerre-gaussian``).
+        ifabsent: int(0)
+        minimum_value: 0
       flatness:
         range: integer
         description: >-
@@ -220,6 +280,25 @@ classes:
           (for ``profile_type = flattened-gaussian``).
         ifabsent: int(6)
         minimum_value: 1
+      propagation_direction:
+        range: integer
+        description: >-
+          Laser propagation direction; +1 means laser 
+          and particles co-propagate, -1 means they
+          counter-propagate.
+        ifabsent: int(1)
+        minimum_value: -1
+        maximum_value: 1
+      polarization_angle:
+        range: float
+        description: >-
+          Laser polarization angle with respect to the x-axis.
+        ifabsent: float(0)
+      temporal_chirp_2nd_order:
+        range: float
+        description: >-
+          The amount of temporal chirp, at focus (in the lab frame).
+        ifabsent: float(0)
 
   LaserEnergyMeterElement:
     description: Laser energy-meter sub-model (no additional fields).
@@ -232,7 +311,7 @@ classes:
   # -- Plasma sub-model -------------------------------------------------------
 
   PlasmaElement:
-    description: Plasma channel parameters for a laser-driven plasma-accelerator stage.
+    description: Plasma parameters for a laser- or beam-driven plasma stage or plasma lens.
     class_uri: laura:PlasmaElement
     attributes:
       density:
@@ -276,10 +355,106 @@ classes:
       density_profile:
         range: boolean
         description: >-
-          If True, use a user-defined profile; if False, use a flat-top
-          model.
+          If True, use the longitudinal profile chosen by
+          density_profile_type; if False, the density is uniform along the
+          stage. Either way it is multiplied by any parabolic channel.
         ifabsent: "False"
+      density_profile_start:
+        range: float
+        description: >-
+          Longitudinal position at which the density profile begins [m].
+          ramp_up, plateau and ramp_down are measured from here, and the
+          density is zero upstream of it.
+        ifabsent: float(0)
+        unit:
+          ucum_code: m
+      density_profile_type:
+        range: string
+        description: >-
+          Shape of the longitudinal density profile used when density_profile
+          is True. ``decaying`` is a 1/(1 + dz/ramp_decay_length)^2 ramp either
+          side of the plateau; ``linear`` ramps linearly over ramp_up and
+          ramp_down; ``tabulated`` interpolates density_profile_positions
+          against density_profile_values; ``custom`` calls
+          density_profile_function.
+        ifabsent: string(decaying)
+      density_profile_function:
+        range: string
+        description: >-
+          Dotted path to a callable ``f(z, r) -> relative density``, written as
+          ``package.module:function`` or ``package.module.function``. Used when
+          density_profile_type is ``custom``.
+      density_profile_positions:
+        range: float
+        multivalued: true
+        description: >-
+          Longitudinal positions [m] of a tabulated density profile, used when
+          density_profile_type is ``tabulated``.
+        unit:
+          ucum_code: m
+      density_profile_values:
+        range: float
+        multivalued: true
+        description: >-
+          Density values at density_profile_positions, relative to density,
+          used when density_profile_type is ``tabulated``.
       parabolic_coefficient:
         range: float
-        description: Parabolic coefficient for a transverse density profile.
+        description: >-
+          Parabolic coefficient of a transverse density channel [m^-^2]. The
+          longitudinal profile is multiplied by
+          ``1 + parabolic_coefficient * r^2``.
         ifabsent: float(0)
+        unit:
+          ucum_code: m-2
+      temperature:
+        range: float
+        description: >-
+          Initial temperature of the plasma species [eV], assumed isotropic and
+          Maxwellian. Zero means a cold plasma, which is the usual assumption
+          for a laser-wakefield stage; a finite value matters where the initial
+          momentum spread competes with the wake, as in a plasma lens or a
+          low-amplitude wake.
+        ifabsent: float(0)
+        minimum_value: 0.0
+        unit:
+          ucum_code: eV
+      ionizable:
+        range: boolean
+        description: >-
+          Whether a further, ionizable species is present alongside the plasma
+          defined above, with electrons freed from it by the driver field as
+          the stage is tracked. This is what makes ionization injection
+          possible; the plasma above is then the pre-ionized background, and
+          may have zero density if the whole gas is to be ionized by the
+          driver. Only PIC codes that model ionization use it.
+        ifabsent: "False"
+      ionization_element:
+        range: string
+        description: >-
+          Atomic symbol of the ionizable species, e.g. ``N`` or ``He`` (not
+          ``Nitrogen``). Required when ionizable is True.
+      ionization_density:
+        range: float
+        description: >-
+          Number density of the ionizable species [m^-^3], counting atoms
+          rather than electrons. Defaults to density. A dopant is typically a
+          small fraction of the background.
+        minimum_value: 0.0
+        unit:
+          ucum_code: m-3
+      ionization_initial_level:
+        range: integer
+        description: >-
+          Ionization level the atoms start at; 0 for a neutral atom. Starting
+          part-way up avoids spending macroparticles on levels the driver
+          ionizes far ahead of the wake, as with the first five levels of
+          nitrogen.
+        ifabsent: int(0)
+        minimum_value: 0
+      ionization_max_level:
+        range: integer
+        description: >-
+          Highest ionization level the atoms may reach. Defaults to the
+          physical limit for the element.
+        minimum_value: 0

@@ -7953,6 +7953,14 @@
       "additionalProperties": false,
       "description": "Laser-beam parameters (wavelength, pulse energy, profile, etc.) for a laser element or laser-driven plasma stage.",
       "properties": {
+        "a0": {
+          "description": "Peak normalised vector potential. When set it is used as-is; otherwise it is derived from pulse_energy, waist and pulse_duration_fwhm assuming a Gaussian pulse.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "cep_phase": {
           "description": "Carrier-envelope phase [rad].",
           "type": [
@@ -7976,9 +7984,17 @@
           ]
         },
         "initial_position": {
-          "description": "Initial longitudinal position of the laser pulse [m].",
+          "description": "Initial longitudinal position of the laser pulse centre [m], in the co-moving frame in which the bunch centroid (or reference particle) sits at zero.",
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "laguerre_polynomial_order_m": {
+          "description": "Azimuthal order of Laguerre-Gaussian polynomial mode (for ``profile_type = laguerre-gaussian``).",
+          "minimum": 0,
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -7992,11 +8008,27 @@
         },
         "polarization": {
           "$ref": "#/$defs/LaserPolarizationEnum",
-          "description": "Laser polarization state."
+          "description": "Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise."
+        },
+        "polarization_angle": {
+          "description": "Laser polarization angle with respect to the x-axis.",
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "profile_type": {
           "$ref": "#/$defs/LaserProfileTypeEnum",
           "description": "Transverse intensity profile model."
+        },
+        "propagation_direction": {
+          "description": "Laser propagation direction; +1 means laser  and particles co-propagate, -1 means they counter-propagate.",
+          "maximum": 1,
+          "minimum": -1,
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "pulse_duration_fwhm": {
           "description": "Pulse duration at FWHM [s].",
@@ -8009,6 +8041,17 @@
         "pulse_energy": {
           "description": "Laser pulse energy [J].",
           "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "role": {
+          "$ref": "#/$defs/LaserRoleEnum",
+          "description": "Whether the laser drives the wake or only injects electrons into a wake driven by the beam."
+        },
+        "temporal_chirp_2nd_order": {
+          "description": "The amount of temporal chirp, at focus (in the lab frame).",
           "type": [
             "number",
             "null"
@@ -8674,10 +8717,20 @@
       "enum": [
         "gaussian",
         "laguerre-gaussian",
+        "laguerre-gaussian-donut",
         "flattened-gaussian",
         "file"
       ],
       "title": "LaserProfileTypeEnum",
+      "type": "string"
+    },
+    "LaserRoleEnum": {
+      "description": "What a laser attached to a plasma stage is for.",
+      "enum": [
+        "driver",
+        "injector"
+      ],
+      "title": "LaserRoleEnum",
       "type": "string"
     },
     "LatticeGeometryEnum": {
@@ -12318,7 +12371,7 @@
     },
     "Plasma": {
       "additionalProperties": false,
-      "description": "Laser-driven plasma-accelerator stage.",
+      "description": "Plasma-accelerator stage, driven either by the laser defined in ``laser`` or, if there is none, by the incoming particle beam.",
       "properties": {
         "alias": {
           "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
@@ -12418,7 +12471,7 @@
               "type": "null"
             }
           ],
-          "description": "Laser driving the plasma stage."
+          "description": "Laser driving the plasma stage. Leave unset for a beam-driven stage, where the driver is part of the incoming beam."
         },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
@@ -12537,7 +12590,7 @@
     },
     "PlasmaElement": {
       "additionalProperties": false,
-      "description": "Plasma channel parameters for a laser-driven plasma-accelerator stage.",
+      "description": "Plasma parameters for a laser- or beam-driven plasma stage or plasma lens.",
       "properties": {
         "density": {
           "description": "Plasma (electron) number density [m^-^3].",
@@ -12548,14 +12601,93 @@
           ]
         },
         "density_profile": {
-          "description": "If True, use a user-defined profile; if False, use a flat-top model.",
+          "description": "If True, use the longitudinal profile chosen by density_profile_type; if False, the density is uniform along the stage. Either way it is multiplied by any parabolic channel.",
           "type": [
             "boolean",
             "null"
           ]
         },
+        "density_profile_function": {
+          "description": "Dotted path to a callable ``f(z, r) -> relative density``, written as ``package.module:function`` or ``package.module.function``. Used when density_profile_type is ``custom``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "density_profile_positions": {
+          "description": "Longitudinal positions [m] of a tabulated density profile, used when density_profile_type is ``tabulated``.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "density_profile_start": {
+          "description": "Longitudinal position at which the density profile begins [m]. ramp_up, plateau and ramp_down are measured from here, and the density is zero upstream of it.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "density_profile_type": {
+          "description": "Shape of the longitudinal density profile used when density_profile is True. ``decaying`` is a 1/(1 + dz/ramp_decay_length)^2 ramp either side of the plateau; ``linear`` ramps linearly over ramp_up and ramp_down; ``tabulated`` interpolates density_profile_positions against density_profile_values; ``custom`` calls density_profile_function.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "density_profile_values": {
+          "description": "Density values at density_profile_positions, relative to density, used when density_profile_type is ``tabulated``.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "ionizable": {
+          "description": "Whether a further, ionizable species is present alongside the plasma defined above, with electrons freed from it by the driver field as the stage is tracked. This is what makes ionization injection possible; the plasma above is then the pre-ionized background, and may have zero density if the whole gas is to be ionized by the driver. Only PIC codes that model ionization use it.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "ionization_density": {
+          "description": "Number density of the ionizable species [m^-^3], counting atoms rather than electrons. Defaults to density. A dopant is typically a small fraction of the background.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ionization_element": {
+          "description": "Atomic symbol of the ionizable species, e.g. ``N`` or ``He`` (not ``Nitrogen``). Required when ionizable is True.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ionization_initial_level": {
+          "description": "Ionization level the atoms start at; 0 for a neutral atom. Starting part-way up avoids spending macroparticles on levels the driver ionizes far ahead of the wake, as with the first five levels of nitrogen.",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "ionization_max_level": {
+          "description": "Highest ionization level the atoms may reach. Defaults to the physical limit for the element.",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "parabolic_coefficient": {
-          "description": "Parabolic coefficient for a transverse density profile.",
+          "description": "Parabolic coefficient of a transverse density channel [m^-^2]. The longitudinal profile is multiplied by ``1 + parabolic_coefficient * r^2``.",
           "type": [
             "number",
             "null"
@@ -12599,9 +12731,232 @@
             "string",
             "null"
           ]
+        },
+        "temperature": {
+          "description": "Initial temperature of the plasma species [eV], assumed isotropic and Maxwellian. Zero means a cold plasma, which is the usual assumption for a laser-wakefield stage; a finite value matters where the initial momentum spread competes with the wake, as in a plasma lens or a low-amplitude wake.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         }
       },
       "title": "PlasmaElement",
+      "type": "object"
+    },
+    "PlasmaLens": {
+      "additionalProperties": false,
+      "description": "Active plasma lens: a discharge capillary whose current produces an azimuthal magnetic field that focuses the beam in both planes.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "focusing_strength": {
+          "description": "Focusing gradient of the lens field [T/m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "PlasmaLens",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "plasma": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlasmaElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Capillary plasma, used only when ``wakefields`` is True."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlasmaSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefields": {
+          "description": "Whether the plasma wakefields excited by the beam in the capillary are also modelled; needs ``plasma.density`` and the grid settings in ``simulation``.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "PlasmaLens",
       "type": "object"
     },
     "PlasmaSimulationElement": {
@@ -12688,6 +13043,41 @@
             "null"
           ]
         },
+        "laser_envelope_n_longitudinal": {
+          "description": "Number of longitudinal grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_longitudinal.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "laser_envelope_n_radial": {
+          "description": "Number of radial grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_radial.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "laser_envelope_substeps": {
+          "description": "Number of envelope-solver steps taken per wakefield step. Raise it where the envelope evolves faster than the wake it drives.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "laser_envelope_use_phase": {
+          "description": "Whether the envelope solver carries an explicit phase term, which allows a coarser longitudinal grid at the cost of a more expensive step.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "laser_evolution": {
+          "description": "Whether the driver is evolved by a laser-envelope solver as the stage is tracked, rather than held at its initial profile. Applies to codes that model the laser as an envelope; a full PIC code such as FBPIC always resolves the laser on the grid and ignores this.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "lsc_bins": {
           "description": "Number of bins used in longitudinal space-charge calculations.",
           "type": [
@@ -12710,14 +13100,14 @@
           ]
         },
         "max_longitudinal_position": {
-          "description": "Maximum longitudinal position [m].",
+          "description": "Maximum longitudinal position of the simulation box [m].",
           "type": [
             "number",
             "null"
           ]
         },
         "min_longitudinal_position": {
-          "description": "Minimum longitudinal position [m].",
+          "description": "Minimum longitudinal position of the simulation box [m].",
           "type": [
             "number",
             "null"
@@ -12759,10 +13149,38 @@
             "null"
           ]
         },
-        "plasma_particles_per_cell": {
-          "description": "Number of plasma particles per cell.",
+        "particles_per_angular_cell": {
+          "description": "Number of plasma particles per angular cell.",
           "type": [
             "integer",
+            "null"
+          ]
+        },
+        "particles_per_longitudinal_cell": {
+          "description": "Number of plasma particles per longitudinal cell.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "particles_per_radial_cell": {
+          "description": "Number of plasma particles per radial cell.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "plasma_max_longitudinal_position": {
+          "description": "Upper z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box upper edge. Plasma injected later by the moving window is bounded only by the density profile.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "plasma_min_longitudinal_position": {
+          "description": "Lower z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box lower edge. Plasma injected later by the moving window is bounded only by the density profile.",
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -12780,8 +13198,24 @@
             "null"
           ]
         },
+        "r_max_ionizable": {
+          "description": "Radial extent of the ionizable species in a PIC code [m]; defaults to that of the plasma. Restricting it to where the driver or injection laser can ionize saves macroparticles.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "r_max_plasma": {
           "description": "Maximum radial extension of the plasma column.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "r_min_plasma": {
+          "description": "Minimum radial extension of the plasma column [m]. Non-zero gives a hollow channel, with no plasma inside this radius. Codes that assume a filled column ignore it.",
+          "minimum": 0.0,
           "type": [
             "number",
             "null"

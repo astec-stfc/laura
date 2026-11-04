@@ -1,6 +1,6 @@
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict, Optional, Literal
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Literal
 from warnings import warn
 
 import numpy as np
@@ -71,6 +71,7 @@ unsupported_elements = {
     "cheetah": cheetah_unsupported,
     "csrtrack": csrtrack_unsupported,
     "elegant": elegant_unsupported,
+    "fbpic": [],  # to_fbpic skips, with a warning, every element but plasmas, lasers and drifts
     "genesis": genesis_unsupported,
     "gpt": gpt_unsupported,
     "madx": madx_unsupported,
@@ -1604,6 +1605,32 @@ class SectionLatticeTranslator(SectionLattice):
                     beamline.append(element.to_wake_t())
                     element._warn_dropped_misalignment("Wake-T", set())
         return Beamline(beamline)
+
+    def to_fbpic(self) -> List:
+        """
+        Create a list of FBPIC objects based on the lattice information.
+
+        Returns
+        -------
+        List
+            A list of FBPIC objects.
+        """
+        self._check_elements_supported("fbpic")
+        elem_dict = self._translate(self.create_drifts().values())
+        beamline = []
+        if not any([elem.hardware_type.lower() == "plasma" for elem in elem_dict.values()]):
+            raise ValueError(f"No plasma elements defined for {self.name}; "
+                             f"cannot run FBPIC")
+        for element in list(elem_dict.values()):
+            if element.hardware_type.lower() in ["plasma", "laser"]:
+                beamline.append(element)
+            elif "drift" in element.hardware_type.lower():
+                pass
+            else:
+                warn(f"Element type {element.hardware_type} not supported for FBPIC; "
+                     f"skipping {element.name}")
+
+        return beamline
 
     def to_bdsim(
         self,

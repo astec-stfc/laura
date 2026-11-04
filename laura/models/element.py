@@ -5,6 +5,7 @@ The main class for representing accelerator elements in LAURA.
 """
 
 import copy
+import warnings
 import os
 from typing import Any, ClassVar, Dict, List, Optional, Union
 
@@ -53,6 +54,7 @@ from ._generated import (
     _PhysicalAcceleratorElementBase,
     _PIDBase,
     _PlasmaBase,
+    _PlasmaLensBase,
     _QuadrupoleBase,
     _RFCavityBase,
     _RFDeflectingCavityBase,
@@ -958,13 +960,64 @@ class Plasma(PhysicalBaseElement, _PlasmaBase):
     simulation: Optional[PlasmaSimulationElement] = None
     """Plasma simulation attributes."""
 
+    plasma: Optional[PlasmaElement] = None
+    """Plasma attributes."""
+
     laser: Optional[LaserElement] = None
-    """Laser attributes."""
+    """Laser attributes; None for a beam-driven stage."""
+
+    # No "laser" default: a stage without one is beam-driven, and codes tell the
+    # two apart by ``laser is None``.
+    _NESTED_DEFAULTS = {
+        "simulation": PlasmaSimulationElement,
+        "plasma": PlasmaElement,
+    }
+
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        self._check_profile_fits()
+
+    def _check_profile_fits(self) -> None:
+        """
+        Warn if the density profile runs past the end of the element.
+
+        Codes track a plasma stage for exactly its ``length``, so any of the
+        profile beyond it -- usually the down-ramp -- is silently dropped.
+        """
+        if self.plasma is None or self.physical is None:
+            return
+        end = self.plasma.profile_end
+        length = self.physical.length or 0.0
+        if end is not None and end > length * (1 + 1e-9):
+            warnings.warn(
+                f"The density profile of {self.name} ends at {end:.6g} m "
+                f"(density_profile_start + ramp_up + plateau + ramp_down), past "
+                f"the element length of {length:.6g} m; the profile beyond the "
+                "element is not tracked. Lengthen the element or shorten the "
+                "profile."
+            )
+
+
+class PlasmaLens(PhysicalBaseElement, _PlasmaLensBase):
+    """
+    Active plasma lens element.
+    """
+
+    hardware_class: str = Field(default="Plasma", frozen=True)
+    """Plasma lens hardware class."""
+
+    hardware_type: str = Field(default="PlasmaLens", frozen=True)
+    """Plasma lens hardware type."""
+
+    simulation: Optional[PlasmaSimulationElement] = None
+    """Plasma simulation attributes, used when wakefields are modelled."""
+
+    plasma: Optional[PlasmaElement] = None
+    """Capillary plasma, used when wakefields are modelled."""
 
     _NESTED_DEFAULTS = {
         "simulation": PlasmaSimulationElement,
         "plasma": PlasmaElement,
-        "laser": LaserElement,
     }
 
 

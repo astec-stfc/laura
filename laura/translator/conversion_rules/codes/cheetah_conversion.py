@@ -66,6 +66,7 @@ cheetah_conversion_rules = {
     "Wakefield": Drift,
     "Laser": Drift,
     "Plasma": Drift,
+    "PlasmaLens": Drift,
     "Target": Drift,
     "Crystal": Drift,
     "TwissMatch": Drift,

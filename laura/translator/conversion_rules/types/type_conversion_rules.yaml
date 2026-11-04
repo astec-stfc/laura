@@ -36,6 +36,7 @@ elegant:
   Laser: drift
   TwissMatch: twiss
   Plasma: drift
+  PlasmaLens: drift
   Target: drift
   Crystal: drift
   Photon_Monitor: watch
@@ -82,6 +83,7 @@ genesis:
   Vertical_Corrector: corrector
   Combined_Corrector: corrector
   Plasma: drift
+  PlasmaLens: drift
   Target: drift
   Crystal: drift
   TwissMatch: drift
@@ -113,6 +115,7 @@ opal:
   Vertical_Corrector: kicker
   Combined_Corrector: kicker
   Plasma: drift
+  PlasmaLens: drift
   Target: drift
   Crystal: drift
   TwissMatch: drift
@@ -150,6 +153,7 @@ madx:
   NonLinearLens: nllens
   Wiggler: drift
   Plasma: drift
+  PlasmaLens: drift
   Target: drift
   Crystal: drift
   TwissMatch: marker

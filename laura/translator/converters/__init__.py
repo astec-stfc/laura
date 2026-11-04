@@ -165,6 +165,11 @@ keyword_conversion_rules_genesis = LazyDict(
         "../conversion_rules/keywords/keyword_conversion_rules_genesis.yaml"
     )
 )
+keyword_conversion_rules_fbpic = LazyDict(
+    lambda: _load_yaml_file(
+        "../conversion_rules/keywords/keyword_conversion_rules_fbpic.yaml"
+    )
+)
 elements_genesis = LazyDict(
     lambda: _load_yaml_file("../conversion_rules/elements/elements_genesis.yaml")
 )

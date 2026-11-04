@@ -28,6 +28,7 @@ from ..converters import (
     keyword_conversion_rules_opal,
     keyword_conversion_rules_wake_t,
     keyword_conversion_rules_xsuite,
+    keyword_conversion_rules_fbpic,
     type_conversion_rules,
     type_conversion_rules_bmad,
     type_conversion_rules_elegant,
@@ -183,6 +184,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             "wake_t": keyword_conversion_rules_wake_t,
             "genesis": keyword_conversion_rules_genesis,
             "opal": keyword_conversion_rules_opal,
+            "fbpic": keyword_conversion_rules_fbpic,
             "bmad": keyword_conversion_rules_bmad,
             "madx": keyword_conversion_rules_madx,
             "bdsim": keyword_conversion_rules_bdsim,
@@ -921,6 +923,20 @@ class BaseElementTranslator(PhysicalBaseElement):
                 setattr(obj, self._convert_keyword_wake_t(key), value)
         return obj
 
+    def to_fbpic(self) -> object:
+        """
+        Generates a FBPIC object based on the element's properties and type.
+
+        Note that this is a placeholder function; FBPIC only supports a limited number of element types,
+        and objects such as plasmas form part of the overall simulation object.
+
+        Returns
+        -------
+        object
+            FBPIC object
+        """
+        pass
+
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
         """
         Generates a string representation of the object's properties in the OPAL format.
@@ -1354,6 +1370,14 @@ class BaseElementTranslator(PhysicalBaseElement):
         return self._convert_keyword(
             keyword,
             self.conversion_rules["wake_t"],
+            strip_prefixes=self._KEYWORD_STRIP_PREFIXES_WAKE_T,
+        )
+
+    def _convert_keyword_fbpic(self, keyword: str) -> str:
+        """Converts a keyword to its corresponding FBPIC keyword using predefined rules."""
+        return self._convert_keyword(
+            keyword,
+            self.conversion_rules["fbpic"],
             strip_prefixes=self._KEYWORD_STRIP_PREFIXES_WAKE_T,
         )
 

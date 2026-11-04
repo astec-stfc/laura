@@ -59,7 +59,7 @@ class PlasmaTranslator(BaseElementTranslator):
             self.simulation.wakefield_model not in self.simulation.required_attrs.keys()
         ):
             raise ValueError(
-                f"Invalid wakefield model {self.wakefield_model}. "
+                f"Invalid wakefield model {self.simulation.wakefield_model}. "
                 f"Supported models are {list(self.simulation.required_attrs.keys())[1:]}."
             )
         commondict = {
@@ -68,15 +68,24 @@ class PlasmaTranslator(BaseElementTranslator):
         }
         modeldict = {
             self._convert_keyword_wake_t(param): getattr(self, param)
-            for param in self.simulation.required_attrs[self.simulation.wakefield_model]
+            for param in self.simulation.required_attrs.get(
+                self.simulation.wakefield_model, []
+            )
         }
-        if self.plasma.density_profile:
-            modeldict["density"] = self._density_profile
-        else:
-            modeldict["density"] = float(self.plasma.density)
-        elemdict = modeldict | commondict
+        elemdict = modeldict | commondict | {"density": self._wake_t_density()}
+        if self.plasma.ionizable:
+            warn(
+                f"{self.name} has an ionizable species, which Wake-T does not model; "
+                "it is tracked as the pre-ionized plasma alone, with no ionization "
+                "injection. Use a PIC code such as FBPIC for that."
+            )
+        if self.laser is not None and self.driver_laser is None:
+            warn(
+                f"The laser of {self.name} is an injector, not a wake driver; Wake-T "
+                "cannot model the ionization it is there for, so it is left out."
+            )
         lasers = []
-        if isinstance(self.laser, LaserElement):
+        if self.driver_laser is not None:
             laser_translator = LaserTranslator.model_validate(self.model_dump())
             lasers.append(laser_translator.to_wake_t())
         if len(lasers) == 1:
@@ -94,73 +103,162 @@ class PlasmaTranslator(BaseElementTranslator):
         )
         return obj
 
-    # Density function.
-    def _density_profile(self, z: float) -> np.ndarray:
+    @property
+    def driver_laser(self) -> LaserElement | None:
         """
-        Define plasma density as a function of length.
-        This takes the :attr:`~length` of the plasma element and calculates the density profile based
-        on the :attr:`~ramp_up`, :attr:`~plateau`, :attr:`~ramp_down` and :attr:`~ramp_decay_length` attributes.
+        The laser driving the wake, or None for a beam-driven stage -- which
+        includes one whose only laser is an injector (``role: injector``).
+        """
+        if isinstance(self.laser, LaserElement) and str(self.laser.role) == "driver":
+            return self.laser
+        return None
+
+    def _wake_t_density(self) -> float | Any:
+        """
+        The plasma density in the form Wake-T takes it: a number for a uniform
+        plasma, otherwise :func:`~_wake_t_density_profile`, which carries the
+        longitudinal profile and any parabolic channel together.
+
+        Returns
+        -------
+        float or Callable
+            Density in m^-3, or a function ``f(z, r)`` returning it
+        """
+        if self.plasma.is_uniform:
+            return float(self.plasma.density)
+        return self._wake_t_density_profile
+
+    def _wake_t_density_profile(self, z, r=0.0) -> np.ndarray:
+        """
+        :func:`~_density_profile`, floored just above zero for Wake-T.
+
+        Wake-T normalises its grid by the local plasma skin depth, which is
+        infinite where the density is exactly zero. The floor is the same
+        1e-6 of nominal density that the ``decaying`` profile already
+        returns past its down-ramp.
 
         Parameters
         ----------
-        n_steps : int, optional
-            Number of steps to use for the density profile, by default 1000
+        z : float or np.ndarray
+            Longitudinal position in metres
+        r : float or np.ndarray
+            Radial position from the axis in metres
 
         Returns
         -------
         np.ndarray
-            Array of length `n_steps` containing the density profile in m^-3
+            Density in m^-3, never less than 1e-6 of :attr:`~plasma.density`
         """
-        # Allocate relative density array.
-        if self.plasma.plateau <= 0:
-            raise ValueError("Plateau length must be positive for density profile.")
-        if (
-            self.plasma.ramp_up < 0
-            or self.plasma.ramp_down < 0
-            or self.plasma.ramp_decay_length <= 0
-        ):
-            raise ValueError(
-                "Ramp lengths must be non-negative and ramp decay length must be positive for density profile."
-            )
-        n = np.ones_like(z)
-        # Add upramp.
-        n = np.where(
-            z < self.plasma.ramp_up,
-            1 / (1 + (self.plasma.ramp_up - z) / self.plasma.ramp_decay_length) ** 2,
-            n,
+        return np.maximum(
+            self._density_profile(z, r), 1e-6 * float(self.plasma.density)
         )
-        # Add downramp.
-        try:
-            n = np.where(
-                (z > self.plasma.ramp_up + self.plasma.plateau)
-                & (
-                    z
-                    <= self.plasma.ramp_up + self.plasma.plateau + self.plasma.ramp_down
-                ),
-                1
-                / (
-                    1
-                    + (z - self.plasma.ramp_up - self.plasma.plateau)
-                    / self.plasma.ramp_decay_length
-                )
-                ** 2,
-                n,
+
+    def laser_to_fbpic(self) -> Any | None:
+        """
+        Create the FBPIC laser profile for the laser attached to this plasma stage
+        via `fbpic.lpa_utils.laser.add_laser_pulse`.
+
+        Returns
+        -------
+        fbpic.lpa_utils.laser.laser_profiles.LaserProfile or None
+            The laser profile, or None if no laser is attached to this stage.
+        """
+        if not isinstance(self.laser, LaserElement):
+            return None
+        data = self.model_dump()
+        data["hardware_type"] = "Laser"
+        data["hardware_class"] = "Laser"
+        return LaserTranslator.model_validate(data).to_fbpic()
+
+    def _density_profile(self, z, r=0.0) -> np.ndarray:
+        """
+        Absolute plasma density as a function of position, in m^-3.
+
+        This is the form Wake-T expects. PIC codes such as FBPIC instead want the
+        density *relative* to the nominal density; use
+        :func:`~_relative_density_profile` for those.
+
+        Parameters
+        ----------
+        z : float or np.ndarray
+            Longitudinal position along the plasma element in metres
+        r : float or np.ndarray
+            Radial position from the axis in metres
+
+        Returns
+        -------
+        np.ndarray
+            Density in m^-3
+        """
+        return self.plasma._density_profile(z, r)
+
+    def _relative_density_profile(self, z, r=0.0) -> np.ndarray:
+        """
+        Plasma density profile relative to :attr:`~plasma.density`.
+
+        Parameters
+        ----------
+        z : float or np.ndarray
+            Longitudinal position along the plasma element in metres
+        r : float or np.ndarray
+            Radial position from the axis in metres
+
+        Returns
+        -------
+        np.ndarray
+            Relative density
+        """
+        return self.plasma.relative_density_profile(z, r)
+
+
+class PlasmaLensTranslator(PlasmaTranslator):
+    """
+    Translator for a :class:`~laura.models.element.PlasmaLens` (active plasma lens).
+
+    Only Wake-T models the lens directly. Codes without an equivalent element
+    see it as a drift of the same length, with a warning.
+    """
+
+    focusing_strength: float = 0.0
+    """Focusing gradient [T/m]."""
+
+    wakefields: bool = False
+    """Whether the beam-driven plasma wakefields in the lens are modelled."""
+
+    laser: LaserElement | None = None
+    """Unused; a plasma lens has no laser driver."""
+
+    def to_wake_t(self) -> Any:
+        """
+        Create a Wake-T ``ActivePlasmaLens``.
+
+        With :attr:`~wakefields` set, the plasma density and the grid
+        settings of the ``simulation`` sub-element are passed on, as for a
+        :class:`~PlasmaTranslator` stage.
+
+        Returns
+        -------
+        wake_t.ActivePlasmaLens
+            Wake-T plasma-lens object
+        """
+        from ..conversion_rules.codes import wake_t_conversion
+
+        kwargs = {
+            self._convert_keyword_wake_t(param): getattr(self, param)
+            for param in self.simulation.required_attrs["common"]
+        }
+        if self.wakefields:
+            model = self.simulation.wakefield_model or "quasistatic_2d"
+            kwargs.update(
+                {
+                    self._convert_keyword_wake_t(param): getattr(self, param)
+                    for param in self.simulation.required_attrs.get(model, [])
+                    if not param.startswith("laser_")
+                }
             )
-        except ZeroDivisionError:
-            n = np.where(
-                (z > self.plasma.ramp_up + self.plasma.plateau)
-                & (
-                    z
-                    <= self.plasma.ramp_up + self.plasma.plateau + self.plasma.ramp_down
-                ),
-                1,
-                n,
-            )
-        # Make zero after downramp.
-        n = np.where(
-            z > self.plasma.ramp_up + self.plasma.plateau + self.plasma.ramp_down,
-            1e-6,
-            n,
+            kwargs.update(wakefield_model=model, density=self._wake_t_density())
+        return wake_t_conversion.wake_t_conversion_rules["PlasmaLens"](
+            foc_strength=self.focusing_strength,
+            wakefields=self.wakefields,
+            **kwargs,
         )
-        # Return absolute density.
-        return n * self.plasma.density

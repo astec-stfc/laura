@@ -162,6 +162,7 @@ bmad_unsupported = [
     "NonLinearLens",
     "PID",
     "Plasma",
+    "PlasmaLens",
     "PowerSupply",
     "RFHeartbeat",
     "RFModulator",

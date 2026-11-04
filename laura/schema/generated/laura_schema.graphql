@@ -92,8 +92,15 @@ enum LaserProfileTypeEnum
   {
     gaussian
     laguerre__HYPHEN_MINUS__gaussian
+    laguerre__HYPHEN_MINUS__gaussian__HYPHEN_MINUS__donut
     flattened__HYPHEN_MINUS__gaussian
     file
+  }
+
+enum LaserRoleEnum
+  {
+    driver
+    injector
   }
 
 enum LatticeGeometryEnum
@@ -933,6 +940,8 @@ type LaserAttenuator
 
 type LaserElement
   {
+    role: LaserRoleEnum
+    a0: Float
     initialPosition: Float
     waist: Float
     wavelength: Float
@@ -943,7 +952,11 @@ type LaserElement
     polarization: LaserPolarizationEnum
     profileType: LaserProfileTypeEnum
     laguerrePolynomialOrderP: Int
+    laguerrePolynomialOrderM: Int
     flatness: Int
+    propagationDirection: Int
+    polarizationAngle: Float
+    temporalChirp2ndOrder: Float
   }
 
 type LaserEnergyMeter
@@ -1508,7 +1521,45 @@ type PlasmaElement
     rampDown: Float
     rampDecayLength: Float
     densityProfile: Boolean
+    densityProfileStart: Float
+    densityProfileType: String
+    densityProfileFunction: String
+    densityProfilePositions: [Float]
+    densityProfileValues: [Float]
     parabolicCoefficient: Float
+    temperature: Float
+    ionizable: Boolean
+    ionizationElement: String
+    ionizationDensity: Float
+    ionizationInitialLevel: Int
+    ionizationMaxLevel: Int
+  }
+
+type PlasmaLens
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inheritsFrom: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    aperture: ApertureElement
+    focusingStrength: Float
+    wakefields: Boolean
+    plasma: PlasmaElement
+    hardwareType: String
+    simulation: PlasmaSimulationElement
   }
 
 type PlasmaSimulationElement
@@ -1540,13 +1591,24 @@ type PlasmaSimulationElement
     nOut: Int
     minLongitudinalPosition: Float
     maxLongitudinalPosition: Float
+    plasmaMinLongitudinalPosition: Float
+    plasmaMaxLongitudinalPosition: Float
     nLongitudinal: Int
     nRadial: Int
-    plasmaParticlesPerCell: Int
+    particlesPerRadialCell: Int
+    particlesPerLongitudinalCell: Int
+    particlesPerAngularCell: Int
     rMax: Float
     rMaxPlasma: Float
+    rMinPlasma: Float
+    rMaxIonizable: Float
     dzFields: Float
     plasmaPusher: String
+    laserEvolution: Boolean
+    laserEnvelopeSubsteps: Int
+    laserEnvelopeNLongitudinal: Int
+    laserEnvelopeNRadial: Int
+    laserEnvelopeUsePhase: Boolean
   }
 
 type Position

@@ -58,6 +58,7 @@ ocelot_unsupported = [
     "Wakefield",
     "Laser",
     "Plasma",
+    "PlasmaLens",
     "MatrixTransform",
     "TwissMatch",
     "Decapole",

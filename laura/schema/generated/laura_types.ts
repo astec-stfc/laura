@@ -15,6 +15,8 @@ export type ValveName = string;
 export type MarkerName = string;
 export type ApertureName = string;
 export type CollimatorName = string;
+export type TargetName = string;
+export type CrystalName = string;
 export type DriftName = string;
 export type LightingName = string;
 export type PowerSupplyName = string;
@@ -43,6 +45,7 @@ export type FaradayCupMonitorName = string;
 export type IntegratedCurrentTransformerName = string;
 export type PhotonMonitorName = string;
 export type PlasmaName = string;
+export type PlasmaLensName = string;
 export type LaserEnergyMeterName = string;
 export type LaserHalfWavePlateName = string;
 export type LaserMirrorName = string;
@@ -253,6 +256,8 @@ export enum HardwareClassEnum {
     BeamBeam = "BeamBeam",
     /** RF-driven multipole kick. */
     RFMultipole = "RFMultipole",
+    /** Material placed in the beam to interact with it: a radiator, converter or foil. */
+    Target = "Target",
 };
 /**
 * Polarization state of a laser beam.
@@ -270,8 +275,20 @@ export enum LaserProfileTypeEnum {
     
     gaussian = "gaussian",
     laguerre_gaussian = "laguerre-gaussian",
+    /** Donut-like Laguerre-Gaussian mode, in which a single azimuthal mode is kept rather than the cosine combination of +m and -m. */
+    laguerre_gaussian_donut = "laguerre-gaussian-donut",
     flattened_gaussian = "flattened-gaussian",
     file = "file",
+};
+/**
+* What a laser attached to a plasma stage is for.
+*/
+export enum LaserRoleEnum {
+    
+    /** Drives the plasma wake (laser wakefield acceleration). */
+    driver = "driver",
+    /** Injects electrons into a wake driven by something else, e.g. by ionizing a dopant inside a beam-driven wake (plasma photocathode). It does not drive the wake, so codes neither boost to its frame nor follow it with the moving window. */
+    injector = "injector",
 };
 
 
@@ -589,6 +606,58 @@ export interface Aperture extends PhysicalAcceleratorElement {
  * Movable collimator jaw (extends Aperture).
  */
 export interface Collimator extends Aperture {
+}
+
+
+/**
+ * A block of material in the beam, which the beam passes through and interacts with: a radiator, a converter, a foil. Its thickness along the beam is ``physical.length``. Modelled by BDSIM;  codes without material interactions treat it as a drift.
+ */
+export interface Target extends PhysicalAcceleratorElement {
+    /** Transverse shape of the block. */
+    target?: TargetElement,
+}
+
+
+/**
+ * Transverse shape of a target block.
+ */
+export interface TargetElement {
+    /** Full transverse size of the block [m]: the side of a square block, or the diameter of a round one. BDSIM's default if unset. */
+    transverse_size?: number,
+    /** A round block (a cylinder along the beam) rather than a square one. */
+    circular?: boolean,
+}
+
+
+/**
+ * A bent crystal in the beam, which channels particles along its planes (or, off alignment, reflects or scatters them). Its thickness along the beam is ``physical.length``, and it is centred on the beam axis.
+ */
+export interface Crystal extends PhysicalAcceleratorElement {
+    /** Crystal geometry, orientation and lattice. */
+    crystal?: CrystalElement,
+}
+
+
+/**
+ * Geometry, orientation and lattice of a bent crystal. The lattice defaults are silicon's (diamond cubic).
+ */
+export interface CrystalElement {
+    /** Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``): absolute, relative to the lattice, or with ``$master_lattice$``. */
+    data_file?: string,
+    /** Horizontal bending angle of the crystal's planes over its length [rad]; the angle a fully channelled particle is deflected by. */
+    bending_angle?: number,
+    /** Angle of the crystal planes at its entrance to the beam axis [rad]: 0 aligns them for channelling; beyond the critical angle, but within the bend, gives volume reflection; beyond the bend, amorphous scattering. */
+    entrance_angle?: number,
+    /** Full horizontal size of the crystal [m]. */
+    horizontal_size?: number,
+    /** Full vertical size of the crystal [m]. */
+    vertical_size?: number,
+    /** Unit-cell edges a, b, c [m]. Silicon's if unset. */
+    lattice_constants?: number[],
+    /** Unit-cell angles alpha, beta, gamma [rad]. Right angles if unset. */
+    lattice_angles?: number[],
+    /** Crystallographic space group number. Silicon's (227) if unset. */
+    space_group?: number,
 }
 
 
@@ -944,24 +1013,46 @@ export interface PlasmaSimulationElement extends SimulationElement {
     dt_bunch?: string,
     /** Number of distribution dumps during the plasma stage. */
     n_out?: number,
-    /** Minimum longitudinal position [m]. */
+    /** Minimum longitudinal position of the simulation box [m]. */
     min_longitudinal_position?: number,
-    /** Maximum longitudinal position [m]. */
+    /** Maximum longitudinal position of the simulation box [m]. */
     max_longitudinal_position?: number,
+    /** Lower z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box lower edge. Plasma injected later by the moving window is bounded only by the density profile. */
+    plasma_min_longitudinal_position?: number,
+    /** Upper z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box upper edge. Plasma injected later by the moving window is bounded only by the density profile. */
+    plasma_max_longitudinal_position?: number,
     /** Number of grid points in the longitudinal direction. */
     n_longitudinal?: number,
     /** Number of grid points in the radial direction. */
     n_radial?: number,
-    /** Number of plasma particles per cell. */
-    plasma_particles_per_cell?: number,
+    /** Number of plasma particles per radial cell. */
+    particles_per_radial_cell?: number,
+    /** Number of plasma particles per longitudinal cell. */
+    particles_per_longitudinal_cell?: number,
+    /** Number of plasma particles per angular cell. */
+    particles_per_angular_cell?: number,
     /** Radial extent of the simulation box [m]. */
     r_max?: number,
     /** Maximum radial extension of the plasma column. */
     r_max_plasma?: number,
+    /** Minimum radial extension of the plasma column [m]. Non-zero gives a hollow channel, with no plasma inside this radius. Codes that assume a filled column ignore it. */
+    r_min_plasma?: number,
+    /** Radial extent of the ionizable species in a PIC code [m]; defaults to that of the plasma. Restricting it to where the driver or injection laser can ionize saves macroparticles. */
+    r_max_ionizable?: number,
     /** Interval for plasma wakefield updates. */
     dz_fields?: number,
     /** Pusher used to evolve the plasma in time. */
     plasma_pusher?: string,
+    /** Whether the driver is evolved by a laser-envelope solver as the stage is tracked, rather than held at its initial profile. Applies to codes that model the laser as an envelope; a full PIC code such as FBPIC always resolves the laser on the grid and ignores this. */
+    laser_evolution?: boolean,
+    /** Number of envelope-solver steps taken per wakefield step. Raise it where the envelope evolves faster than the wake it drives. */
+    laser_envelope_substeps?: number,
+    /** Number of longitudinal grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_longitudinal. */
+    laser_envelope_n_longitudinal?: number,
+    /** Number of radial grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_radial. */
+    laser_envelope_n_radial?: number,
+    /** Whether the envelope solver carries an explicit phase term, which allows a coarser longitudinal grid at the cost of a more expensive step. */
+    laser_envelope_use_phase?: boolean,
 }
 
 
@@ -1824,13 +1915,26 @@ export interface CameraDiagnosticElement extends DiagnosticElement {
 
 
 /**
- * Laser-driven plasma-accelerator stage.
+ * Plasma-accelerator stage, driven either by the laser defined in ``laser`` or, if there is none, by the incoming particle beam.
  */
 export interface Plasma extends PhysicalAcceleratorElement {
     /** Plasma channel parameters. */
     plasma?: PlasmaElement,
-    /** Laser driving the plasma stage. */
+    /** Laser driving the plasma stage. Leave unset for a beam-driven stage, where the driver is part of the incoming beam. */
     laser?: LaserElement,
+}
+
+
+/**
+ * Active plasma lens: a discharge capillary whose current produces an azimuthal magnetic field that focuses the beam in both planes.
+ */
+export interface PlasmaLens extends PhysicalAcceleratorElement {
+    /** Focusing gradient of the lens field [T/m]. */
+    focusing_strength?: number,
+    /** Whether the plasma wakefields excited by the beam in the capillary are also modelled; needs ``plasma.density`` and the grid settings in ``simulation``. */
+    wakefields?: boolean,
+    /** Capillary plasma, used only when ``wakefields`` is True. */
+    plasma?: PlasmaElement,
 }
 
 
@@ -1906,7 +2010,11 @@ export interface LaserAttenuator extends StandardElement {
  * Laser-beam parameters (wavelength, pulse energy, profile, etc.) for a laser element or laser-driven plasma stage.
  */
 export interface LaserElement {
-    /** Initial longitudinal position of the laser pulse [m]. */
+    /** Whether the laser drives the wake or only injects electrons into a wake driven by the beam. */
+    role?: string,
+    /** Peak normalised vector potential. When set it is used as-is; otherwise it is derived from pulse_energy, waist and pulse_duration_fwhm assuming a Gaussian pulse. */
+    a0?: number,
+    /** Initial longitudinal position of the laser pulse centre [m], in the co-moving frame in which the bunch centroid (or reference particle) sits at zero. */
     initial_position?: number,
     /** Laser beam waist (1/e^2 radius) [m]. */
     waist?: number,
@@ -1920,14 +2028,22 @@ export interface LaserElement {
     focal_position?: number,
     /** Carrier-envelope phase [rad]. */
     cep_phase?: number,
-    /** Laser polarization state. */
+    /** Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise. */
     polarization?: string,
     /** Transverse intensity profile model. */
     profile_type?: string,
     /** Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``). */
     laguerre_polynomial_order_p?: number,
+    /** Azimuthal order of Laguerre-Gaussian polynomial mode (for ``profile_type = laguerre-gaussian``). */
+    laguerre_polynomial_order_m?: number,
     /** Flatness order N of a flattened-Gaussian profile (for ``profile_type = flattened-gaussian``). */
     flatness?: number,
+    /** Laser propagation direction; +1 means laser  and particles co-propagate, -1 means they counter-propagate. */
+    propagation_direction?: number,
+    /** Laser polarization angle with respect to the x-axis. */
+    polarization_angle?: number,
+    /** The amount of temporal chirp, at focus (in the lab frame). */
+    temporal_chirp_2nd_order?: number,
 }
 
 
@@ -1946,7 +2062,7 @@ export interface LaserHalfWavePlateElement {
 
 
 /**
- * Plasma channel parameters for a laser-driven plasma-accelerator stage.
+ * Plasma parameters for a laser- or beam-driven plasma stage or plasma lens.
  */
 export interface PlasmaElement {
     /** Plasma (electron) number density [m^-^3]. */
@@ -1961,10 +2077,32 @@ export interface PlasmaElement {
     ramp_down?: number,
     /** Exponential decay length of the density ramp [m]. */
     ramp_decay_length?: number,
-    /** If True, use a user-defined profile; if False, use a flat-top model. */
+    /** If True, use the longitudinal profile chosen by density_profile_type; if False, the density is uniform along the stage. Either way it is multiplied by any parabolic channel. */
     density_profile?: boolean,
-    /** Parabolic coefficient for a transverse density profile. */
+    /** Longitudinal position at which the density profile begins [m]. ramp_up, plateau and ramp_down are measured from here, and the density is zero upstream of it. */
+    density_profile_start?: number,
+    /** Shape of the longitudinal density profile used when density_profile is True. ``decaying`` is a 1/(1 + dz/ramp_decay_length)^2 ramp either side of the plateau; ``linear`` ramps linearly over ramp_up and ramp_down; ``tabulated`` interpolates density_profile_positions against density_profile_values; ``custom`` calls density_profile_function. */
+    density_profile_type?: string,
+    /** Dotted path to a callable ``f(z, r) -> relative density``, written as ``package.module:function`` or ``package.module.function``. Used when density_profile_type is ``custom``. */
+    density_profile_function?: string,
+    /** Longitudinal positions [m] of a tabulated density profile, used when density_profile_type is ``tabulated``. */
+    density_profile_positions?: number[],
+    /** Density values at density_profile_positions, relative to density, used when density_profile_type is ``tabulated``. */
+    density_profile_values?: number[],
+    /** Parabolic coefficient of a transverse density channel [m^-^2]. The longitudinal profile is multiplied by ``1 + parabolic_coefficient * r^2``. */
     parabolic_coefficient?: number,
+    /** Initial temperature of the plasma species [eV], assumed isotropic and Maxwellian. Zero means a cold plasma, which is the usual assumption for a laser-wakefield stage; a finite value matters where the initial momentum spread competes with the wake, as in a plasma lens or a low-amplitude wake. */
+    temperature?: number,
+    /** Whether a further, ionizable species is present alongside the plasma defined above, with electrons freed from it by the driver field as the stage is tracked. This is what makes ionization injection possible; the plasma above is then the pre-ionized background, and may have zero density if the whole gas is to be ionized by the driver. Only PIC codes that model ionization use it. */
+    ionizable?: boolean,
+    /** Atomic symbol of the ionizable species, e.g. ``N`` or ``He`` (not ``Nitrogen``). Required when ionizable is True. */
+    ionization_element?: string,
+    /** Number density of the ionizable species [m^-^3], counting atoms rather than electrons. Defaults to density. A dopant is typically a small fraction of the background. */
+    ionization_density?: number,
+    /** Ionization level the atoms start at; 0 for a neutral atom. Starting part-way up avoids spending macroparticles on levels the driver ionizes far ahead of the wake, as with the first five levels of nitrogen. */
+    ionization_initial_level?: number,
+    /** Highest ionization level the atoms may reach. Defaults to the physical limit for the element. */
+    ionization_max_level?: number,
 }
 
 
