@@ -23,6 +23,7 @@ csrtrack_unsupported = [
     "ActivePlasmaLens",
     "CrabCavity",
     "Target",
+    "Crystal",
 ]
 
 class CsrTrackElement(DeprecatedMethodAliases, BaseModel):

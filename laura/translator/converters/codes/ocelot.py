@@ -64,6 +64,7 @@ ocelot_unsupported = [
     "ActivePlasmaLens",
     "CrabCavity",
     "Target",
+    "Crystal",
 ]
 
 

@@ -1547,7 +1547,7 @@ class SectionLatticeTranslator(SectionLattice):
             rather than replacing them.
         """
         from pybdsim.Beam import Beam
-        from pybdsim.Builder import Machine
+        from pybdsim.Builder import GmadObject, Machine
         from pybdsim.Builder import Marker as Marker_bds
         from pybdsim.Options import Options
 
@@ -1594,6 +1594,10 @@ class SectionLatticeTranslator(SectionLattice):
             machine.AddIncludePre(variables_file)
 
         for be in elements:
+            if isinstance(be, GmadObject):
+                # a definition an element refers to (a crystal), not part of the line
+                machine.AddObject(be)
+                continue
             machine.Append(be)
             if isinstance(be, Marker_bds):
                 machine.AddSampler(be.name)

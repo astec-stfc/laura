@@ -170,6 +170,7 @@ bmad_unsupported = [
     "Shutter",
     "Stage",
     "Target",
+    "Crystal",
     "VacuumGauge",
     "Valve",
     "Wire",

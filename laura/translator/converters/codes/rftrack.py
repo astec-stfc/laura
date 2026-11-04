@@ -16,6 +16,7 @@ rftrack_unsupported = [
     "Wire",
     "Plasma",
     "Target",
+    "Crystal",
     "Beam_Arrival_Monitor",
     "Bunch_Length_Monitor",
     "Camera",

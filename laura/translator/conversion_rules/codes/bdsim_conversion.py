@@ -22,6 +22,7 @@ from pybdsim.Builder import (
     WireScanner,
     Rmat,
     Element,
+    CrystalCol,
 )
 
 
@@ -73,6 +74,7 @@ bdsim_conversion_rules = {
     "Laser": Laser,
     "Plasma": Drift,
     "Target": Target,
+    "Crystal": CrystalCol,
     "Diagnostic": Marker,
     "TwissMatch": Marker,
     "MatrixTransform": Rmat,

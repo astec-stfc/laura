@@ -318,6 +318,73 @@ classes:
         ifabsent: "false"
         description: A round block (a cylinder along the beam) rather than a square one.
 
+  Crystal:
+    is_a: PhysicalAcceleratorElement
+    description: >-
+      A bent crystal in the beam, which channels particles along its planes (or, off
+      alignment, reflects or scatters them). Its thickness along the beam is
+      ``physical.length``, and it is centred on the beam axis.
+    class_uri: laura:Crystal
+    slot_usage:
+      hardware_type:
+        equals_string: Crystal
+      material:
+        description: >-
+          Material of the crystal, by a name Geant4 knows (``G4_Si``, ``G4_Ge``...).
+          Needed to translate it to BDSIM.
+    attributes:
+      crystal:
+        range: CrystalElement
+        description: Crystal geometry, orientation and lattice.
+
+  CrystalElement:
+    description: >-
+      Geometry, orientation and lattice of a bent crystal. The lattice defaults are
+      silicon's (diamond cubic).
+    class_uri: laura:CrystalElement
+    attributes:
+      data_file:
+        range: string
+        description: >-
+          Geant4 channelling data for the crystal and its planes: the common prefix of
+          its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``):
+          absolute, relative to the lattice, or with ``$master_lattice$``.
+      bending_angle:
+        range: float
+        description: >-
+          Horizontal bending angle of the crystal's planes over its length [rad]; the
+          angle a fully channelled particle is deflected by.
+        ifabsent: float(0.0)
+      entrance_angle:
+        range: float
+        description: >-
+          Angle of the crystal planes at its entrance to the beam axis [rad]: 0 aligns
+          them for channelling; beyond the critical angle, but within the bend, gives
+          volume reflection; beyond the bend, amorphous scattering.
+        ifabsent: float(0.0)
+      horizontal_size:
+        range: float
+        description: Full horizontal size of the crystal [m].
+        ifabsent: float(0.0005)
+        minimum_value: 0.0
+      vertical_size:
+        range: float
+        description: Full vertical size of the crystal [m].
+        ifabsent: float(0.01)
+        minimum_value: 0.0
+      lattice_constants:
+        range: float
+        multivalued: true
+        description: Unit-cell edges a, b, c [m]. Silicon's if unset.
+      lattice_angles:
+        range: float
+        multivalued: true
+        description: Unit-cell angles alpha, beta, gamma [rad]. Right angles if unset.
+      space_group:
+        range: integer
+        description: Crystallographic space group number. Silicon's (227) if unset.
+        ifabsent: int(227)
+
   Drift:
     is_a: PhysicalAcceleratorElement
     description: Field-free drift space between elements.

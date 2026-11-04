@@ -773,11 +773,11 @@ class _ApertureElementBase(ConfiguredBaseModel):
 
     number_of_elements: int = Field(default=0, description="""Number of aperture sub-elements (e.g., for multi-leaf collimators).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'ifabsent': 'int(0)'} })
     """Number of aperture sub-elements (e.g., for multi-leaf collimators)."""
-    horizontal_size: float = Field(default=0.0, description="""Full horizontal aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'],
+    horizontal_size: float = Field(default=0.0, description="""Full horizontal aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'CrystalElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Full horizontal aperture [m]."""
-    vertical_size: float = Field(default=0.0, description="""Full vertical aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'],
+    vertical_size: float = Field(default=0.0, description="""Full vertical aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'CrystalElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Full vertical aperture [m]."""
@@ -805,6 +805,32 @@ class _TargetElementBase(ConfiguredBaseModel):
     """Full transverse size of the block [m]: the side of a square block, or the diameter of a round one. BDSIM's default if unset."""
     circular: Optional[bool] = Field(default=False, description="""A round block (a cylinder along the beam) rather than a square one.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TargetElement'], 'ifabsent': 'false'} })
     """A round block (a cylinder along the beam) rather than a square one."""
+
+
+class _CrystalElementBase(ConfiguredBaseModel):
+    """
+    Geometry, orientation and lattice of a bent crystal. The lattice defaults are silicon's (diamond cubic).
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CrystalElement',
+         'from_schema': 'https://w3id.org/laura/schema/elements'})
+
+    data_file: Optional[str] = Field(default=None, description="""Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``), absolute or relative to the lattice. Needed to translate it to BDSIM.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement']} })
+    """Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``), absolute or relative to the lattice. Needed to translate it to BDSIM."""
+    bending_angle: float = Field(default=0.0, description="""Horizontal bending angle of the crystal's planes over its length [rad]; the angle a fully channelled particle is deflected by.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement'], 'ifabsent': 'float(0.0)'} })
+    """Horizontal bending angle of the crystal's planes over its length [rad]; the angle a fully channelled particle is deflected by."""
+    entrance_angle: float = Field(default=0.0, description="""Angle of the crystal planes at its entrance to the beam axis [rad]: 0 aligns them for channelling; beyond the critical angle, but within the bend, gives volume reflection; beyond the bend, amorphous scattering.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement'], 'ifabsent': 'float(0.0)'} })
+    """Angle of the crystal planes at its entrance to the beam axis [rad]: 0 aligns them for channelling; beyond the critical angle, but within the bend, gives volume reflection; beyond the bend, amorphous scattering."""
+    horizontal_size: float = Field(default=0.0005, description="""Full horizontal size of the crystal [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'CrystalElement'],
+         'ifabsent': 'float(0.0005)'} })
+    """Full horizontal size of the crystal [m]."""
+    vertical_size: float = Field(default=0.01, description="""Full vertical size of the crystal [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'CrystalElement'], 'ifabsent': 'float(0.01)'} })
+    """Full vertical size of the crystal [m]."""
+    lattice_constants: list[float] = Field(default_factory=list, description="""Unit-cell edges a, b, c [m]. Silicon's if unset.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement']} })
+    """Unit-cell edges a, b, c [m]. Silicon's if unset."""
+    lattice_angles: list[float] = Field(default_factory=list, description="""Unit-cell angles alpha, beta, gamma [rad]. Right angles if unset.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement']} })
+    """Unit-cell angles alpha, beta, gamma [rad]. Right angles if unset."""
+    space_group: int = Field(default=227, description="""Crystallographic space group number. Silicon's (227) if unset.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement'], 'ifabsent': 'int(227)'} })
+    """Crystallographic space group number. Silicon's (227) if unset."""
 
 
 class _SpaceChargeSettingsBase(ConfiguredBaseModel):
@@ -5681,6 +5707,69 @@ class _TargetBase(_PhysicalAcceleratorElementBase):
     """Names of elements this one feeds; the inverse of ``upstream``."""
 
 
+class _CrystalBase(_PhysicalAcceleratorElementBase):
+    """
+    A bent crystal in the beam, which channels particles along its planes (or, off alignment, reflects or scatters them). Its thickness along the beam is ``physical.length``, and it is centred on the beam axis. Modelled by BDSIM, as a ``crystalcol`` with Geant4 channelling (physics list ``completechannelling``); codes without material interactions treat it as a drift.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Crystal',
+         'from_schema': 'https://w3id.org/laura/schema/elements',
+         'slot_usage': {'hardware_type': {'equals_string': 'Crystal',
+                                          'name': 'hardware_type'},
+                        'material': {'description': 'Material of the crystal, by a '
+                                                    'name Geant4 knows (``G4_Si``, '
+                                                    '``G4_Ge``...). Needed to '
+                                                    'translate it to BDSIM.',
+                                     'name': 'material'}}})
+
+    crystal: Optional[_CrystalElementBase] = Field(default=None, description="""Crystal geometry, orientation and lattice.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Crystal']} })
+    """Crystal geometry, orientation and lattice."""
+    physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
+         'in_subset': ['physical_properties']} })
+    """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
+    material: Optional[str] = Field(default=None, description="""Material of the crystal, by a name Geant4 knows (``G4_Si``, ``G4_Ge``...). Needed to translate it to BDSIM.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'PhysicalAcceleratorElement']} })
+    """Material of the crystal, by a name Geant4 knows (``G4_Si``, ``G4_Ge``...). Needed to translate it to BDSIM."""
+    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Simulation / tracking attributes."""
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Power-supply electrical limits."""
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    """Manufacturer and serial-number data."""
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Control-system process-variable definitions."""
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Links to design drawings and files."""
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    """Unique element name within the machine."""
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
+    hardware_type: Optional[Literal["Crystal"]] = Field(default="Generic", description="""Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'Crystal',
+         'ifabsent': 'string(Generic)'} })
+    """Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML."""
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    """Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``)."""
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``)."""
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    """Alternative internal name used by the control system when the physical name is inaccessible."""
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    """Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings."""
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """If set, this element is a logical sub-component of the named parent element."""
+    inherits_from: Optional[str] = Field(default=None, description="""If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.""", validation_alias=AliasChoices('inherits_from', 'inherit'), json_schema_extra = { "linkml_meta": {'aliases': ['inherit'], 'domain_of': ['AcceleratorElement']} })
+    """If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one."""
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""Signal types this element consumes (e.g. ``[current, voltage]``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Signal types this element consumes (e.g. ``[current, voltage]``)."""
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""Signal types this element produces (e.g. ``[power, phase]``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Signal types this element produces (e.g. ``[power, phase]``)."""
+    upstream: list[str] = Field(default_factory=list, description="""Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Names of elements feeding this one, whose ``outputs`` supply its ``inputs``."""
+    downstream: list[str] = Field(default_factory=list, description="""Names of elements this one feeds; the inverse of ``upstream``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Names of elements this one feeds; the inverse of ``upstream``."""
+
+
 class _DriftBase(_PhysicalAcceleratorElementBase):
     """
     Field-free drift space between elements.
@@ -7674,6 +7763,7 @@ _ValveElementBase.model_rebuild()
 _LightingElementBase.model_rebuild()
 _ApertureElementBase.model_rebuild()
 _TargetElementBase.model_rebuild()
+_CrystalElementBase.model_rebuild()
 _SpaceChargeSettingsBase.model_rebuild()
 _SectionLatticeBase.model_rebuild()
 _LayoutPassBase.model_rebuild()
@@ -7781,6 +7871,7 @@ _MarkerBase.model_rebuild()
 _ApertureBase.model_rebuild()
 _CollimatorBase.model_rebuild()
 _TargetBase.model_rebuild()
+_CrystalBase.model_rebuild()
 _DriftBase.model_rebuild()
 _MagnetBase.model_rebuild()
 _RFCavityBase.model_rebuild()

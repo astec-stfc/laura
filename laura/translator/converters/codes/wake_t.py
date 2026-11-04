@@ -15,4 +15,5 @@ wake_t_unsupported = [
     "MatrixTransform",
     "CrabCavity",
     "Target",
+    "Crystal",
 ]

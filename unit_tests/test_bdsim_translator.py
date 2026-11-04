@@ -822,3 +822,71 @@ class TestTarget:
             warnings.simplefilter("ignore")
             assert "drift" in translator.to_elegant().lower()
             assert "drift" in translator.to_madx().lower()
+
+
+class TestCrystal:
+    """A bent crystal centred on the beam: a gmad ``crystal`` and the ``crystalcol``
+    holding it; a drift everywhere else."""
+
+    @staticmethod
+    def _crystal(length=30e-6, **crystal):
+        from laura.models.element import Crystal
+
+        return Crystal(
+            name="CRY-1", machine_area="T", material="G4_Si",
+            physical={"length": length, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
+            crystal={"data_file": "/data/Si220pl", "bending_angle": 900e-6, **crystal},
+        )
+
+    def test_a_definition_and_the_collimator_holding_it(self):
+        definition, col = _translate(self._crystal()).to_bdsim()
+        assert definition.objecttype == "crystal" and definition.name == "CRY_1_crystal"
+        assert 'data="/data/Si220pl"' in str(definition)
+        assert definition["bendingAngleYAxis"] == 900e-6 and definition["spaceGroup"] == 227
+        gmad = str(col)
+        assert gmad.startswith("CRY_1: crystalcol,")
+        for keyword in ('crystalLeft="CRY_1_crystal"', "xsize=-0.00025", "crystalAngleYAxisLeft=0.00045"):
+            assert keyword in gmad
+
+    @pytest.mark.parametrize("entrance_angle", [0.0, 2e-3])
+    def test_it_fits_its_container_once_turned(self, entrance_angle):
+        """BDSIM refuses t (1 + |tan a|) > l - 2 lengthSafety (1 nm)."""
+        definition, col = _translate(self._crystal(entrance_angle=entrance_angle)).to_bdsim()
+        angle = 450e-6 + entrance_angle
+        assert definition["lengthZ"] * (1 + math.tan(angle)) <= 30e-6 - 2e-9
+        assert definition["lengthZ"] > 0.99 * 30e-6 / (1 + math.tan(angle))
+
+    def test_a_relative_data_file_is_the_lattices(self):
+        translator = _translate(self._crystal(data_file="crystals/Si220pl"))
+        translator.master_lattice = "/lattices/CLARA"
+        definition, _ = translator.to_bdsim()
+        assert "/lattices/CLARA/crystals/Si220pl" in str(definition)
+
+    def test_bdsim_needs_its_data_and_material(self):
+        crystal = self._crystal()
+        crystal.crystal.data_file = None
+        with pytest.raises(ValueError, match="data_file"):
+            _translate(crystal).to_bdsim()
+        crystal = self._crystal()
+        crystal.material = None
+        with pytest.raises(ValueError, match="material"):
+            _translate(crystal).to_bdsim()
+
+    def test_the_section_writes_the_definition_as_an_object(self):
+        crystal = self._crystal()
+        section = SectionLattice(
+            name="CRY-SEC", order=["CRY-1"], elements=ElementList(elements={"CRY-1": crystal}),
+        )
+        translator = SectionLatticeTranslator.from_section(section)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            machine = translator.to_bdsim()
+        assert "CRY_1" in machine.sequence and "CRY_1_crystal" not in machine.sequence
+        assert [o.name for o in machine.objects] == ["CRY_1_crystal"]
+
+    def test_it_is_a_drift_in_codes_without_material(self):
+        translator = _translate(self._crystal())
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            assert "drift" in translator.to_elegant().lower()
+            assert "drift" in translator.to_madx().lower()

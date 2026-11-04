@@ -19,6 +19,7 @@ opal_unsupported = [
     "CrabCavity",
     "Wiggler",
     "Target",
+    "Crystal",
 ]
 
 

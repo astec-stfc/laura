@@ -6,6 +6,7 @@ from laura.models.element import (
     BeamBeam,
     CombinedCorrector,
     CrabCavity,
+    Crystal,
     Decapole,
     Diagnostic,
     Dipole,
@@ -34,7 +35,7 @@ from laura.models.element import (
 )
 
 from .ac_dipole import ACDipoleTranslator
-from .aperture import ApertureTranslator, TargetTranslator
+from .aperture import ApertureTranslator, CrystalTranslator, TargetTranslator
 from .base import BaseElementTranslator
 from .beam_beam import BeamBeamTranslator
 from .cavity import RFCavityTranslator
@@ -122,6 +123,8 @@ def translate_elements(
             translator = ApertureTranslator
         elif isinstance(elem, Target):
             translator = TargetTranslator
+        elif isinstance(elem, Crystal):
+            translator = CrystalTranslator
         elif isinstance(elem, Plasma):
             translator = PlasmaTranslator
         elif isinstance(elem, Laser):

@@ -65,6 +65,8 @@ from ._generated import (
     _ShutterBase,
     _SolenoidBase,
     _StageBase,
+    _CrystalBase,
+    _CrystalElementBase,
     _TargetBase,
     _TargetElementBase,
     _TwissMatchBase,
@@ -1216,6 +1218,24 @@ class Target(PhysicalBaseElement, _TargetBase):
     """Target hardware type"""
 
     _NESTED_DEFAULTS = {"target": TargetElement}
+
+
+class CrystalElement(_CrystalElementBase):
+    """Geometry, orientation and lattice of a bent crystal (silicon's lattice by default)."""
+
+
+class Crystal(PhysicalBaseElement, _CrystalBase):
+    """
+    A bent crystal in the beam, centred on it.
+    """
+
+    hardware_class: str = Field(default="Target", frozen=True)
+    """Crystal hardware class: material in the beam, as a target"""
+
+    hardware_type: str = Field(default="Crystal", frozen=True)
+    """Crystal hardware type"""
+
+    _NESTED_DEFAULTS = {"crystal": CrystalElement}
 
 
 class Valve(PhysicalBaseElement, _ValveBase):

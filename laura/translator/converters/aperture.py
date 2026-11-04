@@ -1,13 +1,16 @@
 from typing import Dict
 from warnings import warn
 
-from laura.models.element import TargetElement
+from laura.models.element import CrystalElement, TargetElement
 from laura.models.simulation import ApertureElement
 
 from ..converters import elements_elegant, elements_madx
 from ..utils.functions import sanitize_string
 from .base import BaseElementTranslator, elegant_line
 
+
+SILICON_LATTICE_CONSTANT = 5.431e-10
+"""Silicon's cubic lattice constant [m], the default unit cell of a :class:`CrystalTranslator`."""
 
 class ApertureTranslator(BaseElementTranslator):
     aperture: ApertureElement
@@ -377,3 +380,77 @@ class TargetTranslator(BaseElementTranslator):
         if target.circular:
             keywords["apertureType"] = "circular"
         return TargetBDSIM(**keywords)
+
+
+class CrystalTranslator(BaseElementTranslator):
+    """A bent crystal centred on the beam: BDSIM's ``crystalcol``; a drift elsewhere."""
+
+    crystal: CrystalElement | None = None
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> list:
+        """
+        A gmad ``crystal`` definition and the ``crystalcol`` holding it.
+
+        The crystal is centred on the beam axis (the collimator's half gap is minus half
+        its width) and turned by half its bending angle, which aligns its planes with
+        the beam at its entrance, plus :attr:`entrance_angle`.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+            Unused: the container is sized to the crystal.
+        charge_sign: int or float, optional
+            Unused.
+        integrator_set: str, optional
+            Unused.
+
+        Returns
+        -------
+        list
+            ``[pybdsim.Builder.Crystal, pybdsim.Builder.CrystalCol]``; the section adds
+            the first as an object and the second to the line.
+        """
+        import math
+        import os
+
+        from pybdsim.Builder import Crystal as CrystalBDSIM
+        from pybdsim.Builder import CrystalCol
+
+        from ..utils.functions import expand_substitution
+
+        crystal = self.crystal or CrystalElement()
+        if not self.material:
+            raise ValueError(f"Crystal {self.name} has no material, which BDSIM needs")
+        if not crystal.data_file:
+            raise ValueError(f"Crystal {self.name} has no channelling data_file, which BDSIM needs")
+        data = expand_substitution(self, crystal.data_file, self.master_lattice or "./")
+        if not os.path.isabs(data) and self.master_lattice:
+            data = os.path.join(self.master_lattice, data)
+        angle = crystal.bending_angle / 2 + crystal.entrance_angle
+        thickness = (self.length - 2e-9 - 1e-8) / (1 + abs(math.tan(angle)))
+        if thickness <= 0:
+            raise ValueError(f"Crystal {self.name} is too short ({self.length} m) to model")
+        a, b, c = crystal.lattice_constants or [SILICON_LATTICE_CONSTANT] * 3
+        alpha, beta, gamma = crystal.lattice_angles or [math.pi / 2] * 3
+        name = sanitize_string(self.name)
+        definition = CrystalBDSIM(
+            f"{name}_crystal", material=self.material, data=os.path.abspath(data), shape="box",
+            lengthX=crystal.horizontal_size, lengthY=crystal.vertical_size, lengthZ=thickness,
+            sizeA=a, sizeB=b, sizeC=c, alpha=alpha, beta=beta, gamma=gamma,
+            spaceGroup=crystal.space_group, bendingAngleYAxis=crystal.bending_angle,
+            bendingAngleZAxis=0,
+        )
+        keywords = self._bdsim_keywords(CrystalCol, None)
+        for key in [k for k in keywords if k.startswith("aper") or k == "beampipeMaterial"]:
+            del keywords[key]
+        keywords.update(
+            xsize=-crystal.horizontal_size / 2, material=self.material,
+            crystalLeft=f"{name}_crystal", crystalAngleYAxisLeft=angle,
+            apertureType="rectangular", aper1=crystal.horizontal_size, aper2=crystal.vertical_size,
+        )
+        return [definition, CrystalCol(**keywords)]

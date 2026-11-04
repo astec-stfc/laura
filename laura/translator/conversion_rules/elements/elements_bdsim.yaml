@@ -4,6 +4,18 @@
 # element accepts (BDSIM manual, "Beamline Elements"); `tilt` is valid on
 # every element. pybdsim's Marker takes only a name -- it has no **kwargs, so
 # passing any other keyword (including a beam-pipe aperture) raises TypeError.
+CrystalCol:
+  aper1: float
+  aper2: float
+  apertureType: str
+  crystalAngleYAxisLeft: float
+  crystalLeft: str
+  l: float
+  material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
+  xsize: float
 Decapole:
   k4: float
   l: float
