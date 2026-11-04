@@ -156,7 +156,11 @@ class RFCavityTranslator(BaseElementTranslator):
             etype = "rfcavity"
         parameters = self._bmad_parameters(etype)
         frequency, voltage = parameters.get("rf_frequency"), parameters.get("voltage")
-        if etype == "rfcavity" and isinstance(frequency, (int, float)) and frequency == 0:
+        if (
+            etype == "rfcavity"
+            and isinstance(frequency, (int, float))
+            and frequency == 0
+        ):
             # Tao cannot find a closed orbit through an rfcavity with rf_frequency = 0
             # (the maps hold NaN), so a cavity that is off is written as the drift it is.
             if isinstance(voltage, (int, float)) and voltage == 0:
@@ -385,7 +389,7 @@ class RFCavityTranslator(BaseElementTranslator):
         type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
         self.start_write()
         self.generate_field_file_name(
-            self.simulation.wakefield_definition, code="astra"
+            self.simulation.wakefield_definition, code="ocelot"
         )
         obj = type_conversion_rules_ocelot[self.hardware_type](eid=self.name)
         attributes = ocelot_attributes(type(obj))

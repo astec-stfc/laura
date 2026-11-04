@@ -249,10 +249,23 @@ def load_functional_definitions(
     raise ValueError("functional_definitions must be a path, dict, or None")
 
 
+TOUCHING = 1e-6
+"""Metres: a step shorter than this between two elements is round-off, not an overlap."""
+
+
 def signed_gap(prev: PhysicalElement, start) -> float:
-    """Distance along the beam from the exit of ``prev`` to ``start``, negative where they overlap."""
+    """
+    Distance along the beam from the exit of ``prev`` to ``start``, negative where they overlap.
+
+    Elements that touch (a step under :data:`TOUCHING`) are not overlapping: the sign of a step of 1e-10 m is
+    round-off, and a negative drift of that size changes the tunes of a ring in Ocelot by 0.5 and makes Bmad
+    superimpose the next element, so the plain length is returned.
+    """
     step = np.asarray(start) - np.asarray(prev.end.array)
-    return float(np.copysign(np.linalg.norm(step), step @ prev.end_rotation_matrix[:, 2]))
+    length = float(np.linalg.norm(step))
+    if length < TOUCHING:
+        return length
+    return float(np.copysign(length, step @ prev.end_rotation_matrix[:, 2]))
 
 
 def insert_drifts(
