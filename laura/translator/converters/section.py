@@ -71,6 +71,7 @@ unsupported_elements = {
     "cheetah": cheetah_unsupported,
     "csrtrack": csrtrack_unsupported,
     "elegant": elegant_unsupported,
+    "fbpic": [],  # to_fbpic skips, with a warning, every element but plasmas, lasers and drifts
     "genesis": genesis_unsupported,
     "gpt": gpt_unsupported,
     "madx": madx_unsupported,
@@ -1614,6 +1615,7 @@ class SectionLatticeTranslator(SectionLattice):
         List
             A list of FBPIC objects.
         """
+        self._check_elements_supported("fbpic")
         elem_dict = self._translate(self.create_drifts().values())
         beamline = []
         if not any([elem.hardware_type.lower() == "plasma" for elem in elem_dict.values()]):
