@@ -810,8 +810,19 @@ class RFCavityTranslator(BaseElementTranslator):
         relpos, _ = self.ccs.relative_position(
             field_ref_pos, list(self.physical.global_rotation.model_dump().values())
         )
+        field = self.simulation.field_definition
+        # a real travelling wave (two standing waves) needs a map that marks its cells
+        travelling = (
+            self.structure_type == "TravellingWave"
+            and self.tw_focusing
+            and getattr(field, "field_type", None) == "1DElectroDynamic"
+            and getattr(field, "cavity_type", None) == "TravellingWave"
+            and getattr(field, "start_cell_z", None) is not None
+        )
         field_file_name = self.generate_field_file_name(
-            self.simulation.field_definition, code="gpt"
+            field,
+            code="gpt",
+            **({"tw_cells": self.get_cells()} if travelling else {}),
         )
         self.generate_field_file_name(self.simulation.wakefield_definition, code="gpt")
         """
@@ -826,12 +837,15 @@ class RFCavityTranslator(BaseElementTranslator):
                 f"w{subname} = 2*pi*f{subname};\n"
                 f"phi{subname} = {(self.cavity.crest + 90 - self.phase + 0) % 360.0!s}/deg;\n"
             )
-            if self.structure_type == "TravellingWave":
+            if self.structure_type == "TravellingWave" and not travelling:
                 output += "ffac" + subname + " = " + str(self._gpt_tw_ffac()) + ";\n"
             else:
                 output += f"ffac{subname} = {self.field_amplitude!s};\n"
 
             output += f'map1D_TM("{self.ccs.name}", {ccs_label}, {value_text}, "{field_file_name!s}", "z", "Ez", ffac{subname}, phi{subname}, w{subname});\n'
+            if travelling:
+                # Ez cos(wt + phi) - Ez_im sin(wt + phi): a forward wave in the body
+                output += f'map1D_TM("{self.ccs.name}", {ccs_label}, {value_text}, "{field_file_name!s}", "z", "Ez_im", ffac{subname}, phi{subname} + pi/2, w{subname});\n'
         else:
             output = ""
         return output
