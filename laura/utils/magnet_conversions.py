@@ -5,7 +5,6 @@ Provides standardized formulas for converting between integrated field strengths
 and magnet currents, accounting for magnet rigidity and magnet type.
 """
 
-from typing import Union
 
 
 def k_to_current(

@@ -3,14 +3,15 @@ from pydantic import (
     Field,
     field_validator,
 )
-from typing import List, Type, Union
-from .base_models import IgnoreExtra, T, DeviceList
+from typing import List, Union
+from .base_models import IgnoreExtra, DeviceList
 from ._generated import (
     _DiagnosticElementBase,
     _BPMDiagnosticElementBase,
     _BAMDiagnosticElementBase,
     _BLMDiagnosticElementBase,
     _ScreenDiagnosticElementBase,
+    _WireScannerDiagnosticElementBase,
     _ChargeDiagnosticElementBase,
     _CameraDiagnosticElementBase,
     _CameraPixelResultsIndicesBase,
@@ -130,7 +131,7 @@ def _build_camera_sensor(**kwargs) -> CameraSensor:
 
 def pco_camera_sensor():
     """
-    A specific instantiation of `~laura.models.diagnostic.Camera_Sensor` for PCO cameras.
+    A specific instantiation of `~laura.models.diagnostic.CameraSensor` for PCO cameras.
     """
 
     return _build_camera_sensor(
@@ -151,7 +152,7 @@ def pco_camera_sensor():
 
 def manta_camera_sensor():
     """
-    A specific instantiation of `~laura.models.diagnostic.Camera_Sensor` for Manta cameras.
+    A specific instantiation of `~laura.models.diagnostic.CameraSensor` for Manta cameras.
     """
 
     return _build_camera_sensor(
@@ -215,6 +216,12 @@ class ScreenDiagnostic(_ScreenDiagnosticElementBase):
     @classmethod
     def validate_devices(cls, v: Union[str, List]) -> DeviceList:
         return _coerce_device_list(v)
+
+
+class WireScannerDiagnostic(_WireScannerDiagnosticElementBase):
+    """
+    Wire-scanner diagnostic model.
+    """
 
 
 class ChargeDiagnosticElement(_ChargeDiagnosticElementBase):

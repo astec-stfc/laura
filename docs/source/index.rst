@@ -37,7 +37,8 @@ SPARQL or loaded into a database without :mod:`LAURA` itself being involved.
 Installation
 ------------
 
-:mod:`LAURA` is published on PyPI as ``laura-accelerator`` and requires Python 3.10 or newer:
+:mod:`LAURA` is published on PyPI as ``laura-accelerator`` and requires Python 3.11 or newer
+(tested against 3.11, 3.12, 3.13 and 3.14):
 
 .. code-block:: bash
 

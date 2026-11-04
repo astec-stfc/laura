@@ -1,19 +1,14 @@
-"""Tests for laura.exporters.YAML and laura.importers.YAML_Loader."""
+"""Tests for laura.exporters.yaml_exporter and laura.importers.yaml_loader."""
 
 import pytest
 import os
 import json
-import tempfile
-import shutil
 import yaml
 
 from laura.models.element import (
     Quadrupole,
     Marker,
-    PhysicalBaseElement,
-    Dipole,
 )
-from laura.models.physical import Position
 from laura.exporters.yaml_exporter import (
     export_as_yaml,
     export_machine,
@@ -25,15 +20,26 @@ from laura.importers.yaml_loader import (
     read_yaml_element_file,
     read_yaml_combined_file,
     get_all_subclasses,
-    filter_top_level,
     resolve_controls_schema,
 )
 from laura import LAURA
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
+def _yaml_files(path):
+    return [f for _, _, files in os.walk(path) for f in files if f.endswith(".yaml")]
+
+
+def _quad_data(**extra):
+    return {
+        "name": "Q1",
+        "hardware_class": "Magnet",
+        "hardware_type": "Quadrupole",
+        "machine_area": "SEC",
+        "magnetic": {"length": 0.3, "k1l": -1.5},
+        "physical": {"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
+        **extra,
+    }
+
 
 @pytest.fixture
 def sample_quad():
@@ -66,16 +72,11 @@ def small_machine(sample_quad, sample_marker):
     )
 
 
-# ---------------------------------------------------------------------------
-# export_as_yaml
-# ---------------------------------------------------------------------------
-
 class TestExportAsYaml:
     def test_returns_dict_when_no_filename(self, sample_quad):
         result = export_as_yaml(None, sample_quad)
         assert isinstance(result, dict)
         assert result["name"] == "Q1"
-        # CASCADING_RULES is stripped from exported data
         assert "CASCADING_RULES" not in result
 
     def test_writes_file(self, sample_quad, tmp_path):
@@ -92,33 +93,13 @@ class TestExportAsYaml:
         assert result["hardware_type"] == "Marker"
 
 
-# ---------------------------------------------------------------------------
-# export_machine / export_machine_combined_file / export_elements
-# ---------------------------------------------------------------------------
-
 class TestExportMachine:
     def test_export_machine_creates_files(self, small_machine, tmp_path):
         export_path = str(tmp_path / "lattice")
         export_machine(path=export_path, machine=small_machine, overwrite=True)
-        # Check that YAML files were created
-        yaml_files = []
-        for root, dirs, files in os.walk(export_path):
-            for f in files:
-                if f.endswith(".yaml"):
-                    yaml_files.append(f)
-        assert len(yaml_files) >= 2
-
-    def test_export_machine_no_overwrite(self, small_machine, tmp_path):
-        export_path = str(tmp_path / "lattice")
-        export_machine(path=export_path, machine=small_machine, overwrite=True)
-        # Export again without overwrite — files should still exist
+        assert len(_yaml_files(export_path)) >= 2
         export_machine(path=export_path, machine=small_machine, overwrite=False)
-        yaml_files = []
-        for root, dirs, files in os.walk(export_path):
-            for f in files:
-                if f.endswith(".yaml"):
-                    yaml_files.append(f)
-        assert len(yaml_files) >= 2
+        assert len(_yaml_files(export_path)) >= 2
 
     def test_export_machine_combined_file(self, small_machine, tmp_path):
         export_path = str(tmp_path / "combined")
@@ -132,29 +113,12 @@ class TestExportMachine:
     def test_export_elements(self, sample_quad, sample_marker, tmp_path):
         export_path = str(tmp_path / "elems")
         export_elements(path=export_path, elements=[sample_quad, sample_marker])
-        yaml_files = []
-        for root, dirs, files in os.walk(export_path):
-            for f in files:
-                if f.endswith(".yaml"):
-                    yaml_files.append(f)
-        assert len(yaml_files) == 2
+        assert len(_yaml_files(export_path)) == 2
 
-
-# ---------------------------------------------------------------------------
-# Importers: interpret_YAML_Element
-# ---------------------------------------------------------------------------
 
 class TestInterpretYAMLElement:
     def test_interpret_quadrupole(self):
-        data = {
-            "name": "Q1",
-            "hardware_class": "Magnet",
-            "hardware_type": "Quadrupole",
-            "machine_area": "SEC",
-            "magnetic": {"length": 0.3, "k1l": -1.5},
-            "physical": {"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
-        }
-        elem = interpret_yaml_element(data)
+        elem = interpret_yaml_element(_quad_data())
         assert elem is not None
         assert elem.name == "Q1"
         assert elem.hardware_type == "Quadrupole"
@@ -180,22 +144,10 @@ class TestInterpretYAMLElement:
         assert interpret_yaml_element(data) is None
 
     def test_interpret_with_exclude_set(self):
-        data = {
-            "name": "Q1",
-            "hardware_class": "Magnet",
-            "hardware_type": "Quadrupole",
-            "machine_area": "SEC",
-            "magnetic": {"length": 0.3},
-            "physical": {"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
-            "custom_field": "should_be_excluded",
-        }
+        data = _quad_data(custom_field="should_be_excluded")
         elem = interpret_yaml_element(data, exclude_set={"custom_field"})
         assert elem is not None
 
-
-# ---------------------------------------------------------------------------
-# Importers: read_YAML_Element_File / read_YAML_Combined_File
-# ---------------------------------------------------------------------------
 
 class TestReadYAMLFiles:
     def test_read_single_element_file(self, sample_quad, tmp_path):
@@ -214,7 +166,6 @@ class TestReadYAMLFiles:
         assert "Q1" in names or "M1" in names
 
     def test_read_combined_json_file(self, sample_quad, sample_marker, tmp_path):
-        """Test reading a JSON combined file."""
         q_dict = export_as_yaml(None, sample_quad)
         m_dict = export_as_yaml(None, sample_marker)
         combined = {"Q1": q_dict, "M1": m_dict}
@@ -231,10 +182,6 @@ class TestReadYAMLFiles:
         elem = read_yaml_element_file(filepath, exclude_keys=["controls"])
         assert elem is not None
 
-
-# ---------------------------------------------------------------------------
-# Importers: controls schema expansion
-# ---------------------------------------------------------------------------
 
 QUAD_SCHEMA_YAML = """
 variables:
@@ -259,8 +206,7 @@ variables:
 
 class TestControlsSchema:
     def test_resolve_controls_schema_fills_in_identifier(self, tmp_path):
-        schema_file = tmp_path / "quad_schema.yaml"
-        schema_file.write_text(QUAD_SCHEMA_YAML)
+        (tmp_path / "quad_schema.yaml").write_text(QUAD_SCHEMA_YAML)
         controls = {"schema": "quad_schema.yaml"}
         resolved = resolve_controls_schema(controls, "Q1", base_dir=str(tmp_path))
         assert resolved["variables"]["READI"]["identifier"] == "Q1:READI"
@@ -268,22 +214,18 @@ class TestControlsSchema:
         assert resolved["variables"]["SETI"]["readback"] == "READI"
 
     def test_resolve_controls_schema_field_override(self, tmp_path):
-        schema_file = tmp_path / "quad_schema.yaml"
-        schema_file.write_text(QUAD_SCHEMA_YAML)
+        (tmp_path / "quad_schema.yaml").write_text(QUAD_SCHEMA_YAML)
         controls = {
             "schema": "quad_schema.yaml",
             "variables": {"SETI": {"description": "Custom override"}},
         }
         resolved = resolve_controls_schema(controls, "Q1", base_dir=str(tmp_path))
-        # Overridden field changes...
         assert resolved["variables"]["SETI"]["description"] == "Custom override"
-        # ...but the rest of the templated entry survives.
         assert resolved["variables"]["SETI"]["identifier"] == "Q1:SETI"
         assert resolved["variables"]["SETI"]["readback"] == "READI"
 
     def test_resolve_controls_schema_new_variable(self, tmp_path):
-        schema_file = tmp_path / "quad_schema.yaml"
-        schema_file.write_text(QUAD_SCHEMA_YAML)
+        (tmp_path / "quad_schema.yaml").write_text(QUAD_SCHEMA_YAML)
         controls = {
             "schema": "quad_schema.yaml",
             "variables": {"EXTRA": {"identifier": "Q1:EXTRA", "protocol": "CA"}},
@@ -293,27 +235,18 @@ class TestControlsSchema:
         assert "READI" in resolved["variables"]
 
     def test_resolve_controls_schema_identifier_pattern_override(self, tmp_path):
-        schema_file = tmp_path / "quad_schema.yaml"
-        schema_file.write_text(QUAD_SCHEMA_YAML)
+        (tmp_path / "quad_schema.yaml").write_text(QUAD_SCHEMA_YAML)
         controls = {"schema": "quad_schema.yaml", "identifier_pattern": "Q_SHARED"}
         resolved = resolve_controls_schema(controls, "Q1", base_dir=str(tmp_path))
-        # Substitution uses identifier_pattern, not the element's own name.
         assert resolved["variables"]["READI"]["identifier"] == "Q_SHARED:READI"
         assert resolved["variables"]["SETI"]["identifier"] == "Q_SHARED:SETI"
         assert resolved["identifier_pattern"] == "Q_SHARED"
 
     def test_interpret_yaml_element_identifier_pattern(self, tmp_path):
-        schema_file = tmp_path / "quad_schema.yaml"
-        schema_file.write_text(QUAD_SCHEMA_YAML)
-        data = {
-            "name": "Q5",
-            "hardware_class": "Magnet",
-            "hardware_type": "Quadrupole",
-            "machine_area": "SEC",
-            "magnetic": {"length": 0.3, "k1l": -1.5},
-            "physical": {"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
-            "controls": {"schema": "quad_schema.yaml", "identifier_pattern": "Q1"},
-        }
+        (tmp_path / "quad_schema.yaml").write_text(QUAD_SCHEMA_YAML)
+        data = _quad_data(
+            name="Q5", controls={"schema": "quad_schema.yaml", "identifier_pattern": "Q1"}
+        )
         elem = interpret_yaml_element(data, base_dir=str(tmp_path))
         assert elem.controls.variables["READI"].identifier == "Q1:READI"
         assert elem.controls.identifier_pattern == "Q1"
@@ -328,17 +261,8 @@ class TestControlsSchema:
         assert resolve_controls_schema(controls, "Q1") == controls
 
     def test_interpret_yaml_element_expands_schema(self, tmp_path):
-        schema_file = tmp_path / "quad_schema.yaml"
-        schema_file.write_text(QUAD_SCHEMA_YAML)
-        data = {
-            "name": "Q1",
-            "hardware_class": "Magnet",
-            "hardware_type": "Quadrupole",
-            "machine_area": "SEC",
-            "magnetic": {"length": 0.3, "k1l": -1.5},
-            "physical": {"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
-            "controls": {"schema": "quad_schema.yaml"},
-        }
+        (tmp_path / "quad_schema.yaml").write_text(QUAD_SCHEMA_YAML)
+        data = _quad_data(controls={"schema": "quad_schema.yaml"})
         elem = interpret_yaml_element(data, base_dir=str(tmp_path))
         assert elem is not None
         assert elem.controls.variables["SETI"].identifier == "Q1:SETI"
@@ -346,82 +270,44 @@ class TestControlsSchema:
         assert elem.controls.schema_ == "quad_schema.yaml"
 
     def test_read_yaml_element_file_resolves_schema_relative_to_file(self, tmp_path):
-        schema_file = tmp_path / "quad_schema.yaml"
-        schema_file.write_text(QUAD_SCHEMA_YAML)
+        (tmp_path / "quad_schema.yaml").write_text(QUAD_SCHEMA_YAML)
         element_file = tmp_path / "Q1.yaml"
-        yaml.dump(
-            {
-                "name": "Q1",
-                "hardware_class": "Magnet",
-                "hardware_type": "Quadrupole",
-                "machine_area": "SEC",
-                "magnetic": {"length": 0.3, "k1l": -1.5},
-                "physical": {"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
-                "controls": {"schema": "quad_schema.yaml"},
-            },
-            element_file.open("w"),
-        )
+        element_file.write_text(yaml.dump(_quad_data(controls={"schema": "quad_schema.yaml"})))
         elem = read_yaml_element_file(str(element_file))
         assert elem.controls.variables["SETI"].identifier == "Q1:SETI"
 
 
-# ---------------------------------------------------------------------------
-# Exporters: collapse_schema
-# ---------------------------------------------------------------------------
-
 class TestControlsSchemaExport:
-    def _make_quad(self, schema_dir, tmp_path, extra_controls=None):
+    OVERRIDE = {"variables": {"SETI": {"description": "Custom override"}}}
+
+    def _make_quad(self, schema_dir, extra_controls=None):
         schema_dir.mkdir(parents=True, exist_ok=True)
         (schema_dir / "_schema.yaml").write_text(QUAD_SCHEMA_YAML)
-        controls = {"schema": "_schema.yaml"}
-        if extra_controls:
-            controls.update(extra_controls)
-        data = {
-            "name": "Q1",
-            "hardware_class": "Magnet",
-            "hardware_type": "Quadrupole",
-            "machine_area": "SEC",
-            "magnetic": {"length": 0.3, "k1l": -1.5},
-            "physical": {"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
-            "controls": controls,
-        }
-        return interpret_yaml_element(data, base_dir=str(schema_dir))
+        controls = {"schema": "_schema.yaml", **(extra_controls or {})}
+        return interpret_yaml_element(_quad_data(controls=controls), base_dir=str(schema_dir))
 
     def test_export_as_yaml_collapses_to_schema(self, tmp_path):
         schema_root = tmp_path / "root"
-        schema_dir = schema_root / "Magnet" / "Quadrupole"
-        elem = self._make_quad(
-            schema_dir, tmp_path,
-            extra_controls={"variables": {"SETI": {"description": "Custom override"}}},
-        )
+        elem = self._make_quad(schema_root / "Magnet" / "Quadrupole", self.OVERRIDE)
         dump = export_as_yaml(None, elem, collapse_schema=True, schema_root=str(schema_root))
         assert dump["controls"]["schema"] == "_schema.yaml"
-        assert dump["controls"]["variables"] == {"SETI": {"description": "Custom override"}}
+        assert dump["controls"]["variables"] == self.OVERRIDE["variables"]
 
     def test_export_as_yaml_without_collapse_is_fully_expanded(self, tmp_path):
-        schema_root = tmp_path / "root"
-        schema_dir = schema_root / "Magnet" / "Quadrupole"
-        elem = self._make_quad(schema_dir, tmp_path)
+        elem = self._make_quad(tmp_path / "root" / "Magnet" / "Quadrupole")
         dump = export_as_yaml(None, elem, collapse_schema=False)
         assert "READI" in dump["controls"]["variables"]
         assert "SETI" in dump["controls"]["variables"]
 
     def test_export_as_yaml_falls_back_when_schema_missing(self, tmp_path):
-        schema_root = tmp_path / "root"
-        schema_dir = schema_root / "Magnet" / "Quadrupole"
-        elem = self._make_quad(schema_dir, tmp_path)
-        # Point schema_root somewhere that has no matching schema file.
+        elem = self._make_quad(tmp_path / "root" / "Magnet" / "Quadrupole")
         dump = export_as_yaml(None, elem, collapse_schema=True, schema_root=str(tmp_path / "nowhere"))
         assert "schema" not in dump["controls"]
         assert "READI" in dump["controls"]["variables"]
 
     def test_export_elements_collapses_and_copies_schema(self, tmp_path):
         schema_root = tmp_path / "root"
-        schema_dir = schema_root / "Magnet" / "Quadrupole"
-        elem = self._make_quad(
-            schema_dir, tmp_path,
-            extra_controls={"variables": {"SETI": {"description": "Custom override"}}},
-        )
+        elem = self._make_quad(schema_root / "Magnet" / "Quadrupole", self.OVERRIDE)
         dest = tmp_path / "dest"
         export_elements(str(dest), [elem], collapse_schema=True, schema_root=str(schema_root))
         assert (dest / "Magnet" / "Quadrupole" / "_schema.yaml").exists()
@@ -430,7 +316,7 @@ class TestControlsSchemaExport:
         assert reloaded.controls.variables["READI"].identifier == "Q1:READI"
 
     def test_export_elements_accepts_flat_schema_root(self, tmp_path):
-        elem = self._make_quad(tmp_path, tmp_path)
+        elem = self._make_quad(tmp_path)
         dest = tmp_path / "dest"
 
         export_elements(str(dest), [elem], collapse_schema=True, schema_root=str(tmp_path))
@@ -441,11 +327,7 @@ class TestControlsSchemaExport:
 
     def test_combined_export_embeds_schema_and_is_standalone(self, tmp_path):
         schema_root = tmp_path / "root"
-        schema_dir = schema_root / "Magnet" / "Quadrupole"
-        elem = self._make_quad(
-            schema_dir, tmp_path,
-            extra_controls={"variables": {"SETI": {"description": "Custom override"}}},
-        )
+        elem = self._make_quad(schema_root / "Magnet" / "Quadrupole", self.OVERRIDE)
         sections = {"sections": {"SEC": ["Q1"]}}
         layouts = {"default_layout": "beam", "layouts": {"beam": ["SEC"]}}
         machine = LAURA(element_list=[elem], layout=layouts, section=sections)
@@ -458,19 +340,14 @@ class TestControlsSchemaExport:
         with open(combined_file) as f:
             raw = yaml.safe_load(f)
         assert "_schemas" in raw
-        assert raw["Q1"]["controls"]["variables"] == {"SETI": {"description": "Custom override"}}
+        assert raw["Q1"]["controls"]["variables"] == self.OVERRIDE["variables"]
 
-        # No companion schema file present -- must resolve purely from the
-        # embedded `_schemas` section.
+        # No companion schema file: must resolve from the embedded `_schemas`.
         elems = read_yaml_combined_file(str(combined_file))
         reloaded = next(e for e in elems if e is not None)
         assert reloaded.controls.variables["SETI"].description == "Custom override"
         assert reloaded.controls.variables["READI"].identifier == "Q1:READI"
 
-
-# ---------------------------------------------------------------------------
-# Utility: get_all_subclasses / filter_top_level
-# ---------------------------------------------------------------------------
 
 class TestImporterUtils:
     def test_get_all_subclasses(self):
@@ -478,18 +355,6 @@ class TestImporterUtils:
 
         subs = get_all_subclasses(BaseModel)
         assert len(subs) > 0
-        # Should include our models
         class_names = {cls.__name__ for cls in subs}
         assert "Quadrupole" in class_names
 
-    def test_filter_top_level_with_exclude(self):
-        data = {"a": 1, "b": 2, "c": 3}
-        result = filter_top_level(data, exclude_keys=["b"])
-        assert "a" in result
-        assert "b" not in result
-        assert "c" in result
-
-    def test_filter_top_level_no_exclude(self):
-        data = {"a": 1, "b": 2}
-        result = filter_top_level(data)
-        assert result == data

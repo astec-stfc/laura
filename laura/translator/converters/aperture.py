@@ -1,12 +1,76 @@
+from typing import Dict
+from warnings import warn
+
+from laura.models.element import CrystalElement, TargetElement
 from laura.models.simulation import ApertureElement
 
 from ..converters import elements_elegant, elements_madx
 from ..utils.functions import sanitize_string
-from .base import BaseElementTranslator
+from .base import BaseElementTranslator, elegant_line
 
+
+SILICON_LATTICE_CONSTANT = 5.431e-10
+"""Silicon's cubic lattice constant [m], the default unit cell of a :class:`CrystalTranslator`."""
 
 class ApertureTranslator(BaseElementTranslator):
     aperture: ApertureElement
+
+    def to_bmad(self) -> str:
+        """
+        Generate a native Bmad collimator with symmetric aperture limits.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        shape = getattr(self.aperture.shape, "value", self.aperture.shape)
+        etype = "ecollimator" if shape in ("elliptical", "circular") else "rcollimator"
+        horizontal = self.aperture.radius or (self.aperture.horizontal_size or 0.0) / 2
+        vertical = (
+            self.aperture.radius
+            or (self.aperture.vertical_size or 0.0) / 2
+            or horizontal
+        )
+        return self._format_bmad(
+            etype,
+            {
+                "l": self.length,
+                "x1_limit": horizontal,
+                "x2_limit": horizontal,
+                "y1_limit": vertical,
+                "y2_limit": vertical,
+            },
+        )
+
+    def xsuite_limit(self) -> tuple | None:
+        """
+        The aperture as an Xsuite black absorber: a thin ``LimitEllipse`` (circular,
+        elliptical) or ``LimitRect`` (rectangular, planar, scraper; a plane without a
+        size is open), which
+        :meth:`~laura.translator.converters.section.SectionLattice.to_xsuite` places at
+        the element's entrance and exit. Sizes are full widths, as Bmad reads them.
+
+        Returns
+        -------
+        tuple or None
+            ``(xtrack class, properties)``, or None if the aperture has no size.
+        """
+        import xtrack as xt
+
+        shape = getattr(self.aperture.shape, "value", self.aperture.shape)
+        half_x = (self.aperture.horizontal_size or 0.0) / 2
+        half_y = (self.aperture.vertical_size or 0.0) / 2
+        if shape in ("circular", "elliptical"):
+            a = self.aperture.radius or half_x or half_y
+            b = self.aperture.radius or half_y or a
+            return (xt.LimitEllipse, {"a": a, "b": b}) if a else None
+        limits = {}
+        if half_x:
+            limits.update(min_x=-half_x, max_x=half_x)
+        if half_y:
+            limits.update(min_y=-half_y, max_y=half_y)
+        return (xt.LimitRect, limits) if limits else None
 
     def to_madx(self, at: float = None) -> str:
         """
@@ -33,23 +97,13 @@ class ApertureTranslator(BaseElementTranslator):
         if self.aperture.shape in ["elliptical", "circular"] and etype == "rcollimator":
             etype = "ecollimator"
         string = sanitize_string(self.name) + ": " + etype
-        keys = []
-        for key, value in self.full_dump(resolve=self._resolve_functional).items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_madx(key) in elements_madx[etype]
-                and value is not None
-            ):
-                key = self._convert_keyword_madx(key)
-                deferred = not self._resolve_functional and self.is_functional(value)
-                value = 1 if value is True else value
-                value = 0 if value is False else value
-                if key not in keys:
-                    op = ":=" if deferred else "="
-                    string += f", {key} {op} {value}"
-                keys.append(key)
+        for key, value in self._dump_items(
+            self._convert_keyword_madx,
+            elements_madx[etype],
+            resolve=self._resolve_functional,
+        ):
+            deferred = not self._resolve_functional and self.is_functional(value)
+            string += f", {key} {':=' if deferred else '='} {self._flag(value)}"
         if at is not None:
             string += f", at = {at}"
         return string + ";\n"
@@ -83,18 +137,20 @@ class ApertureTranslator(BaseElementTranslator):
                 else self.physical.start.z + self.dz + 1e-3
             )
             dic["Ap_Z2"] = {"value": end, "default": 0}
+        dic["A_xoff"] = {"value": self.dx, "default": 0, "type": "not_zero"}
+        dic["A_yoff"] = {"value": self.dy, "default": 0, "type": "not_zero"}
         dic["A_xrot"] = {
-            "value": self.x_rot + self.dx_rot,
+            "value": self._astra_rotation("x"),
             "default": 0,
             "type": "not_zero",
         }
         dic["A_yrot"] = {
-            "value": self.y_rot + self.dy_rot,
+            "value": self._astra_rotation("y"),
             "default": 0,
             "type": "not_zero",
         }
         dic["A_zrot"] = {
-            "value": self.z_rot + self.dz_rot,
+            "value": self._astra_rotation("z"),
             "default": 0,
             "type": "not_zero",
         }
@@ -103,11 +159,6 @@ class ApertureTranslator(BaseElementTranslator):
     def _write_astra_circular(self) -> dict:
         """
         Creates the part of the ASTRA element dictionary relevant to circular apertures in ASTRA
-
-        Parameters
-        ----------
-        dic: dict
-            Dictionary containing the parameters for the aperture
 
         Returns
         -------
@@ -131,12 +182,14 @@ class ApertureTranslator(BaseElementTranslator):
 
     def _write_astra_planar(self, plane, width) -> dict:
         """
-        Creates the part of the ASTRA element dictionary common to all apertures in ASTRA
+        Creates the ASTRA element dictionary for one plane of a planar aperture.
 
         Parameters
         ----------
-        dic: dict
-            Dictionary containing the parameters for the aperture
+        plane: str
+            ASTRA ``File_Aperture`` value, ``"Col_X"`` or ``"Col_Y"``
+        width: float
+            Aperture half-width written as ``Ap_R`` [mm]
 
         Returns
         -------
@@ -164,8 +217,8 @@ class ApertureTranslator(BaseElementTranslator):
         str
             String representation of the element for ASTRA
 
-        Raises:
-        -------
+        Raises
+        ------
         ValueError
             If `shape` is not in the list of allowed values.
         """
@@ -238,33 +291,195 @@ class ApertureTranslator(BaseElementTranslator):
             A formatted string representing the object's properties in Elegant format.
         """
         self.start_write()
-        wholestring = ""
         etype = self._convert_type_elegant(self.hardware_type)
-        string = self.name + ": " + etype
-        keys = []
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_elegant(key) in elements_elegant[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_elegant(key)
-                    # if key == "dx":
-                    #     value = self.physical.middle.x
-                    # elif key == "dy":
-                    #     value = self.physical.middle.y
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    if key not in keys:
-                        tmpstring = ", " + key + " = " + str(value)
-                        if len(string + tmpstring) > 76:
-                            wholestring += string + ",&\n"
-                            string = ""
-                            string += tmpstring[2::]
-                        else:
-                            string += tmpstring
-                    keys.append(key)
-        wholestring += string + ";\n"
-        return wholestring
+        terms = [
+            f"{key} = {self._flag(value)}"
+            for key, value in self._dump_items(
+                self._convert_keyword_elegant, elements_elegant[etype]
+            )
+        ]
+        return elegant_line(self.name + ": " + etype, terms)
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; unused here.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; unused here.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+
+        def get_bdsim_drift(name) -> object:
+            if self.verbose:
+                warn(
+                    f"Aperture type not defined for {name} or not provided for BDSIM; setting as drift"
+                )
+            from pybdsim.Builder import Drift as Drift_BDSIM
+
+            return Drift_BDSIM
+
+        type_conversion_rules_bdsim = bdsim_conversion.bdsim_conversion_rules
+        if self.hardware_type in type_conversion_rules_bdsim:
+            if hasattr(self, "aperture"):
+                if self.aperture.shape in ["elliptical", "circular"]:
+                    from pybdsim.Builder import ECol
+
+                    obj = ECol
+                elif self.aperture.shape in ["planar", "rectangular"]:
+                    from pybdsim.Builder import RCol
+
+                    obj = RCol
+                elif self.aperture.shape == "scraper":
+                    from pybdsim.Builder import JCol
+
+                    obj = JCol
+                else:
+                    obj = get_bdsim_drift(self.name)
+            else:
+                obj = get_bdsim_drift(self.name)
+        else:
+            obj = get_bdsim_drift(self.name)
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        if obj.__name__ in ("ECol", "RCol", "JCol"):
+            keywords["xsize"] = self.aperture.radius or (self.aperture.horizontal_size or 0.0) / 2
+            keywords["ysize"] = self.aperture.radius or (self.aperture.vertical_size or 0.0) / 2
+            if obj.__name__ != "JCol" and not keywords["ysize"]:
+                keywords["ysize"] = keywords["xsize"]  # round, or square
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+
+
+class TargetTranslator(BaseElementTranslator):
+    """A block of material in the beam: BDSIM's ``target``; a drift elsewhere."""
+
+    target: TargetElement | None = None
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> object:
+        """
+        BDSIM ``target``: ``l`` and ``material``, its full transverse size as
+        ``horizontalWidth`` and, for a round block, ``apertureType="circular"``
+        (which is all that keyword means for a target: its outer shape).
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+            Unused: the beam pipe's aperture is not the block's shape.
+        charge_sign: int or float, optional
+            Unused.
+        integrator_set: str, optional
+            Unused.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes.bdsim_conversion import Target as TargetBDSIM
+
+        if not self.material:
+            raise ValueError(f"Target {self.name} has no material, which BDSIM needs")
+        keywords = self._bdsim_keywords(TargetBDSIM, None)
+        for key in [k for k in keywords if k.startswith("aper") or k == "beampipeMaterial"]:
+            del keywords[key]
+        keywords.pop("apertureType", None)
+        target = self.target or TargetElement()
+        if target.transverse_size:
+            keywords["horizontalWidth"] = target.transverse_size
+        if target.circular:
+            keywords["apertureType"] = "circular"
+        return TargetBDSIM(**keywords)
+
+
+class CrystalTranslator(BaseElementTranslator):
+    """A bent crystal centred on the beam: BDSIM's ``crystalcol``; a drift elsewhere."""
+
+    crystal: CrystalElement | None = None
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> list:
+        """
+        A gmad ``crystal`` definition and the ``crystalcol`` holding it.
+
+        The crystal is centred on the beam axis (the collimator's half gap is minus half
+        its width) and turned by half its bending angle, which aligns its planes with
+        the beam at its entrance, plus :attr:`entrance_angle`.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+            Unused: the container is sized to the crystal.
+        charge_sign: int or float, optional
+            Unused.
+        integrator_set: str, optional
+            Unused.
+
+        Returns
+        -------
+        list
+            ``[pybdsim.Builder.Crystal, pybdsim.Builder.CrystalCol]``; the section adds
+            the first as an object and the second to the line.
+        """
+        import math
+        import os
+
+        from pybdsim.Builder import Crystal as CrystalBDSIM
+        from pybdsim.Builder import CrystalCol
+
+        from ..utils.functions import expand_substitution
+
+        crystal = self.crystal or CrystalElement()
+        if not self.material:
+            raise ValueError(f"Crystal {self.name} has no material, which BDSIM needs")
+        if not crystal.data_file:
+            raise ValueError(f"Crystal {self.name} has no channelling data_file, which BDSIM needs")
+        data = expand_substitution(self, crystal.data_file, self.master_lattice or "./")
+        if not os.path.isabs(data) and self.master_lattice:
+            data = os.path.join(self.master_lattice, data)
+        angle = crystal.bending_angle / 2 + crystal.entrance_angle
+        thickness = (self.length - 2e-9 - 1e-8) / (1 + abs(math.tan(angle)))
+        if thickness <= 0:
+            raise ValueError(f"Crystal {self.name} is too short ({self.length} m) to model")
+        a, b, c = crystal.lattice_constants or [SILICON_LATTICE_CONSTANT] * 3
+        alpha, beta, gamma = crystal.lattice_angles or [math.pi / 2] * 3
+        name = sanitize_string(self.name)
+        definition = CrystalBDSIM(
+            f"{name}_crystal", material=self.material, data=os.path.abspath(data), shape="box",
+            lengthX=crystal.horizontal_size, lengthY=crystal.vertical_size, lengthZ=thickness,
+            sizeA=a, sizeB=b, sizeC=c, alpha=alpha, beta=beta, gamma=gamma,
+            spaceGroup=crystal.space_group, bendingAngleYAxis=crystal.bending_angle,
+            bendingAngleZAxis=0,
+        )
+        keywords = self._bdsim_keywords(CrystalCol, None)
+        for key in [k for k in keywords if k.startswith("aper") or k == "beampipeMaterial"]:
+            del keywords[key]
+        keywords.update(
+            xsize=-crystal.horizontal_size / 2, material=self.material,
+            crystalLeft=f"{name}_crystal", crystalAngleYAxisLeft=angle,
+            apertureType="rectangular", aper1=crystal.horizontal_size, aper2=crystal.vertical_size,
+        )
+        return [definition, CrystalCol(**keywords)]

@@ -1,0 +1,136 @@
+# One linac, entered twice by the same beam: an energy-recovery linac.
+#
+# The companion to ``multipass_sections.yaml`` and ``multipass_layouts.yaml``.
+#
+# There is exactly one of each cavity here. That is the whole point. An ERL
+# accelerates a bunch through the linac, sends it round a recirculation arc,
+# and brings it back through *the same two cavities* half an RF period later,
+# so the bunch gives its energy back to the field instead of dumping it into
+# the beam dump. One set of hardware, two passes.
+#
+# Contrast ``repeats_sections.yaml``, where ``repeat: 3`` writes a cell out
+# three times: that is three cells of hardware bolted end to end. Here there
+# is one cavity, and the beam meets it twice. LAURA calls the first repetition
+# and the second multipass, and they are not interchangeable -- see
+# ``multipass_layouts.yaml``, which is where the difference is declared.
+#
+# Nothing in this file knows about passes. A pass is a property of the beam
+# path, exactly as ``direction`` is (``reversal_elements.yaml``), so it lives
+# in the layouts file. An element cannot know how many times a beam happens to
+# come round.
+#
+# Positions are left to the section order (see ``sequential_elements.yaml``),
+# so the machine is defined by lengths alone.
+
+INJ_Q:
+  name: INJ_Q
+  hardware_class: Magnet
+  hardware_type: Quadrupole
+  machine_area: INJECTOR
+  physical:
+    length: 0.2
+  magnetic:
+    length: 0.2
+    magnet_type: quadrupole
+    k1l: 0.4
+
+# The two shared cavities. `phase: 0` is the accelerating pass; the return
+# pass overrides it to 180 in multipass_layouts.yaml. The value stored here is
+# the one the element *has* -- there is only one of it, so it cannot also hold
+# the return pass's value, which is why the override lives on the pass.
+CAV_01:
+  name: CAV_01
+  hardware_class: RF
+  hardware_type: RFCavity
+  hardware_model: SBand
+  machine_area: LINAC
+  physical:
+    length: 1.0
+  cavity:
+    frequency: 1.3e9
+    phase: 0.0
+    n_cells: 9
+
+CAV_02:
+  name: CAV_02
+  hardware_class: RF
+  hardware_type: RFCavity
+  hardware_model: SBand
+  machine_area: LINAC
+  physical:
+    length: 1.0
+  cavity:
+    frequency: 1.3e9
+    phase: 0.0
+    n_cells: 9
+
+LIN_Q:
+  name: LIN_Q
+  hardware_class: Magnet
+  hardware_type: Quadrupole
+  machine_area: LINAC
+  physical:
+    length: 0.2
+  magnetic:
+    length: 0.2
+    magnet_type: quadrupole
+    k1l: 0.5
+
+ARC_B:
+  name: ARC_B
+  hardware_class: Magnet
+  hardware_type: Dipole
+  machine_area: ARC
+  physical:
+    length: 0.5
+  magnetic:
+    length: 0.5
+    magnet_type: dipole
+    angle: 3.14159265
+
+ARC_Q:
+  name: ARC_Q
+  hardware_class: Magnet
+  hardware_type: Quadrupole
+  machine_area: ARC
+  physical:
+    length: 0.2
+  magnetic:
+    length: 0.2
+    magnet_type: quadrupole
+    k1l: -0.4
+
+DRIFT_ARC:
+  name: DRIFT_ARC
+  hardware_class: Drift
+  hardware_type: Drift
+  machine_area: ARC
+  physical:
+    length: 0.5
+
+DRIFT_LIN:
+  name: DRIFT_LIN
+  inherits_from: DRIFT_ARC
+  machine_area: LINAC
+
+DRIFT_INJ:
+  name: DRIFT_INJ
+  inherits_from: DRIFT_ARC
+  machine_area: INJECTOR
+
+DRIFT_DUMP:
+  name: DRIFT_DUMP
+  inherits_from: DRIFT_ARC
+  machine_area: DUMP
+
+DMP_Q:
+  name: DMP_Q
+  hardware_class: Magnet
+  hardware_type: Quadrupole
+  machine_area: DUMP
+  physical:
+    length: 0.2
+  magnetic:
+    length: 0.2
+    magnet_type: quadrupole
+    k1l: 0.3

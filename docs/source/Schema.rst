@@ -321,8 +321,8 @@ Useful entry points:
 
 .. note::
 
-   These pages are generated, and the directory is cleared before each run -- do not edit them,
-   and do not add anything else to ``docs/source/schema/``.
+   These pages are generated on every docs build and are not committed; the directory is
+   cleared before each run, so do not add anything to ``docs/source/schema/``.
 
 .. toctree::
    :maxdepth: 1

@@ -20,6 +20,7 @@ import sys
 import subprocess
 import importlib
 import pkgutil
+from pathlib import Path
 
 # This file is docs/source/conf.py, so the project root is two levels up.
 # Resolve it from __file__ rather than the working directory, which differs
@@ -55,6 +56,11 @@ def _preimport_laura() -> None:
 
 
 _preimport_laura()
+
+# The schema reference pages are generated, not committed.
+from laura.schema.postprocess_docs import generate as _generate_schema_docs  # noqa: E402
+
+_generate_schema_docs(Path(__file__).parent / "schema")
 
 
 def get_git_revision_hash(short: bool = True) -> str:
@@ -187,7 +193,6 @@ autodoc_pydantic_field_doc_policy = "both"  # shows docstrings and Field descrip
 # autodoc_typehints = "none"
 
 autodoc_mock_imports = [
-    "IPython",          # optional dependency for SimFrame_Loader
     "ocelot",           # optional accelerator-code dependency
     "xsuite",           # optional accelerator-code dependency
     "xtrack",           # optional accelerator-code dependency (used by xsuite converters)

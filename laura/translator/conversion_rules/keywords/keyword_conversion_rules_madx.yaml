@@ -12,12 +12,6 @@ general:
 dipole:
   angle: angle
   half_gap: hgap
-quadrupole:
-  dz_rot: tilt
-sextupole:
-  dz_rot: tilt
-octupole:
-  dz_rot: tilt
 solenoid:
   ks: ks
 nonlinearlens:

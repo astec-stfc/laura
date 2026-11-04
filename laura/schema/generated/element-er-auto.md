@@ -6,6 +6,7 @@ AcceleratorElement {
     HardwareClassEnum hardware_class  
     string hardware_model  
     string hardware_type  
+    string inherits_from  
     IOTypeEnumList inputs  
     string machine_area  
     IOTypeEnumList outputs  

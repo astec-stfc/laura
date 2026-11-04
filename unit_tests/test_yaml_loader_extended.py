@@ -1,47 +1,34 @@
-"""Extended tests for laura.importers.YAML_Loader.
-
-Covers:
-- fast_get_element_metadata
-- LazyElementDict (lazy load, metadata, iteration, containment)
-- LazyAdapterDict (type-adapter caching)
-- validate_element_dict / _get_json_schema
-- read_YAML_Element_File with validate=True
-- read_YAML_Combined_File with validate=True
-- read_YAML_Element_Files (multi-file)
-"""
-
 import os
-import tempfile
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 import yaml
 
-from laura.models.element import Quadrupole, Marker, Dipole, ELEMENT_REGISTRY
+from laura.models.element import Quadrupole, Marker, ELEMENT_REGISTRY
 from laura.exporters.yaml_exporter import export_as_yaml, export_machine_combined_file
 from laura.importers.yaml_loader import (
     fast_get_element_metadata,
     LazyElementDict,
     LazyAdapterDict,
-    filter_top_level,
     interpret_yaml_element,
     read_yaml_element_file,
     read_yaml_element_files,
     read_yaml_combined_file,
+    validate_element_dict,
+    _get_json_schema,
 )
 from laura import LAURA
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 def _write_element_yaml(directory: str, element) -> str:
-    """Export *element* to a YAML file in *directory* and return the path."""
     filepath = os.path.join(directory, f"{element.name}.yaml")
     export_as_yaml(filepath, element)
     return filepath
+
+
+def _write_raw(path, data) -> str:
+    path.write_text(yaml.dump(data))
+    return str(path)
 
 
 def _make_quad(name="Q1", machine_area="SEC", k1l=-1.0) -> Quadrupole:
@@ -62,62 +49,65 @@ def _make_marker(name="M1", machine_area="SEC") -> Marker:
     )
 
 
-# ---------------------------------------------------------------------------
-# fast_get_element_metadata
-# ---------------------------------------------------------------------------
-
 class TestFastGetElementMetadata:
-    """fast_get_element_metadata reads name/machine_area without a full YAML parse."""
-
-    def test_extracts_name(self, tmp_path):
-        q = _make_quad(name="QA", machine_area="S01")
-        fpath = _write_element_yaml(str(tmp_path), q)
-        meta = fast_get_element_metadata(fpath)
-        assert meta["name"] == "QA"
-
-    def test_extracts_machine_area(self, tmp_path):
-        q = _make_quad(name="QB", machine_area="INJECT")
-        fpath = _write_element_yaml(str(tmp_path), q)
-        meta = fast_get_element_metadata(fpath)
-        assert meta["machine_area"] == "INJECT"
-
-    def test_returns_dict_with_required_keys(self, tmp_path):
-        m = _make_marker(name="M5", machine_area="BA1")
-        fpath = _write_element_yaml(str(tmp_path), m)
-        meta = fast_get_element_metadata(fpath)
-        assert "name" in meta
-        assert "machine_area" in meta
+    @pytest.mark.parametrize(
+        "element",
+        [_make_quad(name="QA", machine_area="INJECT"), _make_marker(name="M5", machine_area="BA1")],
+        ids=["quad", "marker"],
+    )
+    def test_extracts_name_and_machine_area(self, tmp_path, element):
+        meta = fast_get_element_metadata(_write_element_yaml(str(tmp_path), element))
+        assert meta["name"] == element.name
+        assert meta["machine_area"] == element.machine_area
 
     def test_falls_back_to_filename_when_name_missing(self, tmp_path):
-        """When YAML has no 'name' key the filename stem is used."""
-        fpath = str(tmp_path / "MY_ELEMENT.yaml")
-        with open(fpath, "w") as fh:
-            yaml.dump({"hardware_type": "Quadrupole", "machine_area": "X"}, fh)
+        fpath = _write_raw(tmp_path / "MY_ELEMENT.yaml", {"hardware_type": "Quadrupole", "machine_area": "X"})
         meta = fast_get_element_metadata(fpath)
         assert meta["name"] == "MY_ELEMENT"
 
     def test_machine_area_is_none_when_absent(self, tmp_path):
-        fpath = str(tmp_path / "bare.yaml")
-        with open(fpath, "w") as fh:
-            yaml.dump({"name": "bare_elem", "hardware_type": "Quadrupole"}, fh)
+        fpath = _write_raw(tmp_path / "bare.yaml", {"name": "bare_elem", "hardware_type": "Quadrupole"})
         meta = fast_get_element_metadata(fpath)
         assert meta["machine_area"] is None
 
     def test_gracefully_handles_nonexistent_file(self):
-        """Missing file does not raise; name falls back to basename."""
         meta = fast_get_element_metadata("/no/such/file/element.yaml")
         assert meta["name"] == "element"
 
+    def test_keeps_a_hash_inside_a_name(self, tmp_path):
+        """``#`` is a comment only after whitespace; Bmad names split pieces ``Q#1``."""
+        q = _make_quad(name="QM01#1", machine_area="LI21")
+        fpath = _write_element_yaml(str(tmp_path), q)
+        meta = fast_get_element_metadata(fpath)
+        assert meta["name"] == "QM01#1"
 
-# ---------------------------------------------------------------------------
-# LazyElementDict
-# ---------------------------------------------------------------------------
+    def test_two_hashed_names_stay_distinct_in_a_lattice(self, tmp_path):
+        for name in ("QM01#1", "QM01#2"):
+            _write_element_yaml(str(tmp_path), _make_quad(name=name, machine_area="LI21"))
+        machine = LAURA(
+            element_list=str(tmp_path),
+            section={"sections": {"LI21": ["QM01#1", "QM01#2"]}},
+            layout={"layouts": {"line": ["LI21"]}, "default_layout": "line"},
+        )
+        assert set(machine.elements) == {"QM01#1", "QM01#2"}
+
+    def test_strips_a_real_trailing_comment(self, tmp_path):
+        fpath = tmp_path / "commented.yaml"
+        fpath.write_text("name: QX  # the horizontal one\nmachine_area: S01  # injector\n")
+        meta = fast_get_element_metadata(str(fpath))
+        assert meta["name"] == "QX"
+        assert meta["machine_area"] == "S01"
+
+    def test_unquotes_a_quoted_name(self, tmp_path):
+        fpath = tmp_path / "quoted.yaml"
+        fpath.write_text('name: "Q#1"\nmachine_area: \'S01\'\n')
+        meta = fast_get_element_metadata(str(fpath))
+        assert meta["name"] == "Q#1"
+        assert meta["machine_area"] == "S01"
+
 
 class TestLazyElementDict:
-    """LazyElementDict loads YAML files on first access and caches the result."""
-
     def _build(self, tmp_path):
-        """Return a LazyElementDict backed by two real YAML files."""
         q = _make_quad("Q1", "SEC")
         m = _make_marker("M1", "SEC")
         fq = _write_element_yaml(str(tmp_path), q)
@@ -125,58 +115,35 @@ class TestLazyElementDict:
         filenames = {"Q1": fq, "M1": fm}
         return LazyElementDict(filenames), filenames
 
-    def test_len_equals_number_of_files(self, tmp_path):
+    def test_keys_known_before_loading(self, tmp_path):
         d, _ = self._build(tmp_path)
         assert len(d) == 2
-
-    def test_keys_present_before_loading(self, tmp_path):
-        d, _ = self._build(tmp_path)
         assert "Q1" in d.keys()
         assert "M1" in d.keys()
-
-    def test_contains_known_key(self, tmp_path):
-        d, _ = self._build(tmp_path)
         assert "Q1" in d
         assert "M1" in d
-
-    def test_does_not_contain_unknown_key(self, tmp_path):
-        d, _ = self._build(tmp_path)
         assert "UNKNOWN_ELEM" not in d
+        assert set(d) == {"Q1", "M1"}
 
-    def test_getitem_loads_element(self, tmp_path):
+    def test_getitem_loads_and_caches_element(self, tmp_path):
         d, _ = self._build(tmp_path)
         elem = d["Q1"]
         assert elem is not None
         assert elem.name == "Q1"
         assert elem.hardware_type == "Quadrupole"
-
-    def test_getitem_caches_loaded_element(self, tmp_path):
-        d, _ = self._build(tmp_path)
-        elem1 = d["Q1"]
-        elem2 = d["Q1"]
-        # Second access returns same object (cached)
-        assert elem1 is elem2
+        assert d["Q1"] is elem
 
     def test_getitem_unknown_key_raises(self, tmp_path):
         d, _ = self._build(tmp_path)
         with pytest.raises(KeyError):
             _ = d["DOES_NOT_EXIST"]
 
-    def test_get_returns_default_for_missing_key(self, tmp_path):
+    def test_get(self, tmp_path):
         d, _ = self._build(tmp_path)
-        result = d.get("MISSING", "default_value")
-        assert result == "default_value"
-
-    def test_get_returns_element_for_present_key(self, tmp_path):
-        d, _ = self._build(tmp_path)
+        assert d.get("MISSING", "default_value") == "default_value"
         result = d.get("M1")
         assert result is not None
         assert result.name == "M1"
-
-    def test_iter_yields_all_keys(self, tmp_path):
-        d, _ = self._build(tmp_path)
-        all_keys = list(d)
-        assert set(all_keys) == {"Q1", "M1"}
 
     def test_values_loads_all_elements(self, tmp_path):
         d, _ = self._build(tmp_path)
@@ -185,15 +152,13 @@ class TestLazyElementDict:
         assert names == {"Q1", "M1"}
 
     def test_is_loaded_returns_true_after_init(self, tmp_path):
-        """After __init__, is_loaded returns True because keys are in the dict."""
+        """Keys are placed in the dict at init time, with None values."""
         d, _ = self._build(tmp_path)
-        # Keys are placed in dict at init time (with None values)
         assert d.is_loaded("Q1") is True
 
     def test_get_metadata_returns_name_and_area(self, tmp_path):
-        """get_metadata returns element fields after the element has been loaded."""
         d, _ = self._build(tmp_path)
-        _ = d["Q1"]  # trigger load so the element object is stored
+        _ = d["Q1"]
         meta = d.get_metadata("Q1")
         assert meta is not None
         assert meta["name"] == "Q1"
@@ -204,9 +169,7 @@ class TestLazyElementDict:
         assert d.get_metadata("TOTALLY_UNKNOWN") is None
 
     def test_get_all_metadata_returns_all_entries(self, tmp_path):
-        """get_all_metadata returns entries for all elements after loading."""
         d, _ = self._build(tmp_path)
-        # Load both elements so get_metadata can return data from the stored objects
         _ = d["Q1"]
         _ = d["M1"]
         all_meta = d.get_all_metadata()
@@ -215,13 +178,6 @@ class TestLazyElementDict:
         assert all_meta["Q1"]["name"] == "Q1"
         assert all_meta["M1"]["machine_area"] == "SEC"
 
-    def test_get_metadata_after_load_uses_element(self, tmp_path):
-        """After an element is loaded, get_metadata reads from the loaded object."""
-        d, _ = self._build(tmp_path)
-        _ = d["Q1"]  # trigger load
-        meta = d.get_metadata("Q1")
-        assert meta["name"] == "Q1"
-
     def test_empty_dict(self):
         d = LazyElementDict({})
         assert len(d) == 0
@@ -229,39 +185,21 @@ class TestLazyElementDict:
         assert d.get("anything") is None
 
 
-# ---------------------------------------------------------------------------
-# LazyAdapterDict
-# ---------------------------------------------------------------------------
-
 class TestLazyAdapterDict:
-    """LazyAdapterDict creates TypeAdapters on demand and caches them."""
-
-    def test_get_known_type_returns_adapter(self):
+    def test_get_known_type_returns_cached_adapter(self):
         d = LazyAdapterDict()
         adapter = d.get("Quadrupole")
         assert adapter is not None
-        # Pydantic TypeAdapter has a validate_python method
         assert callable(adapter.validate_python)
-
-    def test_get_known_type_caches_adapter(self):
-        d = LazyAdapterDict()
-        a1 = d.get("Quadrupole")
-        a2 = d.get("Quadrupole")
-        assert a1 is a2
-
-    def test_get_unknown_type_returns_none(self):
-        d = LazyAdapterDict()
-        result = d.get("CompletelyUnknownType12345")
-        assert result is None
+        assert d.get("Quadrupole") is adapter
 
     def test_get_unknown_type_returns_default(self):
         d = LazyAdapterDict()
+        assert d.get("CompletelyUnknownType12345") is None
         sentinel = object()
-        result = d.get("CompletelyUnknownType12345", sentinel)
-        assert result is sentinel
+        assert d.get("CompletelyUnknownType12345", sentinel) is sentinel
 
     def test_all_registered_models_have_adapters(self):
-        """Every entry in ELEMENT_REGISTRY should be resolvable."""
         d = LazyAdapterDict()
         for name in list(ELEMENT_REGISTRY.keys())[:5]:  # sample first 5 to keep test fast
             adapter = d.get(name)
@@ -281,13 +219,7 @@ class TestLazyAdapterDict:
         assert elem.name == "T1"
 
 
-# ---------------------------------------------------------------------------
-# validate_element_dict / _get_json_schema
-# ---------------------------------------------------------------------------
-
 class TestValidateElementDict:
-    """validate_element_dict validates against the LinkML-derived JSON Schema."""
-
     def _valid_quad_dict(self):
         return {
             "name": "QV",
@@ -299,43 +231,28 @@ class TestValidateElementDict:
         }
 
     def test_base_class_element_passes(self):
-        """An element with both required fields (name, hardware_class) satisfies the root schema."""
-        jsonschema = pytest.importorskip("jsonschema")
-        from laura.importers.yaml_loader import validate_element_dict
-        # Root schema requires 'name' and 'hardware_class'; hardware_type is an unconstrained string
+        """The root schema requires only name and hardware_class."""
+        pytest.importorskip("jsonschema")
         base_elem = {"name": "BASE_ELEM", "hardware_class": "Generic", "hardware_type": "AcceleratorElement"}
-        # Should not raise
         validate_element_dict(base_elem)
 
     def test_concrete_hardware_type_with_hardware_class_passes(self):
-        """Concrete hardware types (Quadrupole, etc.) pass validation when hardware_class is present.
-
-        The root schema does not constrain hardware_type — it accepts any string value.
-        Validation only fails if 'name' or 'hardware_class' are missing.
-        """
-        jsonschema = pytest.importorskip("jsonschema")
-        from laura.importers.yaml_loader import validate_element_dict
-        # Should not raise: name and hardware_class are both present
+        pytest.importorskip("jsonschema")
         validate_element_dict(self._valid_quad_dict())
 
     def test_missing_hardware_class_raises_validation_error(self):
-        """An element missing the required 'hardware_class' field fails validation."""
         jsonschema = pytest.importorskip("jsonschema")
-        from laura.importers.yaml_loader import validate_element_dict
-        bad = {"name": "QV", "hardware_type": "Quadrupole"}  # missing hardware_class
+        bad = {"name": "QV", "hardware_type": "Quadrupole"}
         with pytest.raises(jsonschema.ValidationError):
             validate_element_dict(bad)
 
     def test_missing_required_name_raises_validation_error(self):
-        """An element missing the required 'name' field fails validation."""
         jsonschema = pytest.importorskip("jsonschema")
-        from laura.importers.yaml_loader import validate_element_dict
-        bad = {"hardware_type": "AcceleratorElement"}  # missing 'name'
+        bad = {"hardware_type": "AcceleratorElement"}
         with pytest.raises(jsonschema.ValidationError):
             validate_element_dict(bad)
 
     def test_missing_jsonschema_raises_import_error(self):
-        from laura.importers.yaml_loader import validate_element_dict
         with patch.dict("sys.modules", {"jsonschema": None}):
             with pytest.raises(ImportError, match="jsonschema"):
                 validate_element_dict(self._valid_quad_dict())
@@ -353,34 +270,20 @@ class TestValidateElementDict:
             loader_mod._get_json_schema.cache_clear()
 
     def test_schema_is_cached_after_first_load(self):
-        from laura.importers.yaml_loader import _get_json_schema
         schema1 = _get_json_schema()
         schema2 = _get_json_schema()
         assert schema1 is schema2
 
 
-# ---------------------------------------------------------------------------
-# read_YAML_Element_File with validate=True
-# ---------------------------------------------------------------------------
-
 class TestReadYAMLElementFileWithValidation:
-    """read_YAML_Element_File(validate=True) validates before Pydantic parsing."""
-
     def test_real_element_file_passes_with_validate_true(self, tmp_path):
-        """validate=True on a concrete element file does not raise.
-
-        Element YAML files include both 'name' and 'hardware_class', satisfying
-        all root-schema requirements.  The schema accepts any hardware_type string.
-        """
         q = _make_quad("QV", "SEC")
         fpath = _write_element_yaml(str(tmp_path), q)
         pytest.importorskip("jsonschema")
-        # Should not raise: exported YAML has name + hardware_class
         elem = read_yaml_element_file(fpath, validate=True)
         assert elem is not None
 
     def test_validate_false_reads_element_successfully(self, tmp_path):
-        """validate=False (default) loads an element without schema validation."""
         q = _make_quad("QV2", "SEC")
         fpath = _write_element_yaml(str(tmp_path), q)
         elem = read_yaml_element_file(fpath, validate=False)
@@ -388,119 +291,56 @@ class TestReadYAMLElementFileWithValidation:
         assert elem.name == "QV2"
 
     def test_validate_false_does_not_raise_on_unknown_type(self, tmp_path):
-        """Without validate=True, unknown hardware_type silently returns None."""
-        bad_path = str(tmp_path / "bad.yaml")
-        with open(bad_path, "w") as fh:
-            yaml.dump({"name": "BAD", "hardware_type": "NONESUCH_XYZ123"}, fh)
+        bad_path = _write_raw(tmp_path / "bad.yaml", {"name": "BAD", "hardware_type": "NONESUCH_XYZ123"})
         result = read_yaml_element_file(bad_path, validate=False)
         assert result is None
 
 
-# ---------------------------------------------------------------------------
-# read_YAML_Combined_File with validate=True
-# ---------------------------------------------------------------------------
-
 class TestReadYAMLCombinedFileWithValidation:
-    """read_YAML_Combined_File(validate=True) validates each element dict."""
-
-    def test_real_combined_file_passes_with_validate_true(self, tmp_path):
-        """validate=True on a combined file with concrete elements does not raise.
-
-        All exported element dicts include 'name' and 'hardware_class', satisfying
-        the root-schema requirements.  The schema accepts any hardware_type string.
-        """
-        pytest.importorskip("jsonschema")
-        q = _make_quad("QC", "SEC")
-        m = _make_marker("MC", "SEC")
+    @staticmethod
+    def _summary(tmp_path):
         sections = {"sections": {"SEC": ["MC", "QC"]}}
         layouts = {"default_layout": "beam", "layouts": {"beam": ["SEC"]}}
-        machine = LAURA(element_list=[m, q], layout=layouts, section=sections)
+        machine = LAURA(element_list=[_make_marker("MC", "SEC"), _make_quad("QC", "SEC")], layout=layouts, section=sections)
         export_path = str(tmp_path / "combined")
         export_machine_combined_file(path=export_path, machine=machine)
-        summary = os.path.join(export_path, "summary.yaml")
-        # Should not raise: all elements have name + hardware_class
+        return os.path.join(export_path, "summary.yaml")
+
+    def test_real_combined_file_passes_with_validate_true(self, tmp_path):
+        pytest.importorskip("jsonschema")
+        summary = self._summary(tmp_path)
         elements = read_yaml_combined_file(summary, validate=True)
         assert len(elements) > 0
 
     def test_combined_file_loads_without_validation(self, tmp_path):
-        """validate=False (default) loads combined files normally."""
-        q = _make_quad("QD", "SEC")
-        m = _make_marker("MD", "SEC")
-        sections = {"sections": {"SEC": ["MD", "QD"]}}
-        layouts = {"default_layout": "beam", "layouts": {"beam": ["SEC"]}}
-        machine = LAURA(element_list=[m, q], layout=layouts, section=sections)
-        export_path = str(tmp_path / "comb2")
-        export_machine_combined_file(path=export_path, machine=machine)
-        summary = os.path.join(export_path, "summary.yaml")
-        elements = read_yaml_combined_file(summary, validate=False)
+        elements = read_yaml_combined_file(self._summary(tmp_path), validate=False)
         names = [e.name for e in elements if e is not None]
-        assert "QD" in names or "MD" in names
+        assert "QC" in names or "MC" in names
 
     def test_missing_name_raises_in_combined_file_validate(self, tmp_path):
-        """An element missing 'name' raises ValidationError with validate=True."""
         jsonschema = pytest.importorskip("jsonschema")
-        # Dict is missing both 'name' and 'hardware_class' (both required by root schema)
-        bad_data = {"elem1": {"hardware_type": "AcceleratorElement"}}
-        bad_path = str(tmp_path / "bad.yaml")
-        with open(bad_path, "w") as fh:
-            yaml.dump(bad_data, fh)
+        bad_path = _write_raw(tmp_path / "bad.yaml", {"elem1": {"hardware_type": "AcceleratorElement"}})
         with pytest.raises(jsonschema.ValidationError):
             read_yaml_combined_file(bad_path, validate=True)
 
 
-# ---------------------------------------------------------------------------
-# read_YAML_Element_Files (multi-file)
-# ---------------------------------------------------------------------------
-
 class TestReadYAMLElementFiles:
-    """read_YAML_Element_Files reads multiple YAML files and returns raw dicts."""
-
-    def test_returns_tuple_of_dicts_and_filenames(self, tmp_path):
-        q = _make_quad("QF", "SEC")
-        m = _make_marker("MF", "SEC")
-        fq = _write_element_yaml(str(tmp_path), q)
-        fm = _write_element_yaml(str(tmp_path), m)
-        dicts, filenames = read_yaml_element_files([fq, fm])
-        assert isinstance(dicts, list)
-        assert isinstance(filenames, list)
-        assert len(filenames) == 2
-
-    def test_dicts_contain_raw_data(self, tmp_path):
-        q = _make_quad("QF2", "SEC")
-        fq = _write_element_yaml(str(tmp_path), q)
-        dicts, _ = read_yaml_element_files([fq])
-        # First dict in a multi-doc YAML split by '---' may be None/empty
-        non_none = [d for d in dicts if d is not None]
-        names = [d.get("name") for d in non_none if isinstance(d, dict)]
-        assert "QF2" in names
-
-    def test_returns_raw_dicts_not_models(self, tmp_path):
-        q = _make_quad("QF3", "S01")
-        fq = _write_element_yaml(str(tmp_path), q)
-        dicts, _ = read_yaml_element_files([fq])
-        for d in dicts:
-            if d is not None:
-                assert isinstance(d, dict)
-
-    def test_multiple_files_returns_all(self, tmp_path):
-        elements = [_make_quad(f"Q{i}", "S01") for i in range(3)]
+    def test_returns_raw_dicts_and_filenames(self, tmp_path):
+        elements = [_make_quad(f"Q{i}", "S01") for i in range(3)] + [_make_marker("MF", "SEC")]
         fpaths = [_write_element_yaml(str(tmp_path), e) for e in elements]
         dicts, filenames = read_yaml_element_files(fpaths)
-        assert len(filenames) == 3
-        non_none = [d for d in dicts if d is not None and isinstance(d, dict)]
+        assert isinstance(dicts, list)
+        assert isinstance(filenames, list)
+        assert len(filenames) == 4
+        # the first document of a '---'-split YAML may be empty
+        non_none = [d for d in dicts if d is not None]
+        assert all(isinstance(d, dict) for d in non_none)
         names = {d.get("name") for d in non_none}
-        # Each element should appear in the raw dicts
-        for i in range(3):
-            assert f"Q{i}" in names
+        assert {e.name for e in elements} <= names
 
-
-# ---------------------------------------------------------------------------
-# element_list directory scanning
-# ---------------------------------------------------------------------------
 
 class TestElementListDirectoryScan:
-    """A directory given as element_list holds one file per element. Aggregate files
-    living alongside them must not be mistaken for elements."""
+    """Aggregate files beside per-element files must not load as elements."""
 
     @staticmethod
     def _machine(directory):
@@ -512,24 +352,52 @@ class TestElementListDirectoryScan:
 
     def test_summary_file_is_not_loaded_as_an_element(self, tmp_path):
         _write_element_yaml(str(tmp_path), _make_quad(name="Q1"))
-        # an aggregate of the whole machine, not a single-element file
-        with open(tmp_path / "summary.yaml", "w") as fh:
-            yaml.dump({"Q1": {"name": "Q1", "hardware_type": "Quadrupole"}}, fh)
+        _write_raw(tmp_path / "summary.yaml", {"Q1": {"name": "Q1", "hardware_type": "Quadrupole"}})
 
         machine = self._machine(tmp_path)
 
         assert "Q1" in machine.elements
-        # named after its filename, because fast_get_element_metadata finds no
-        # top-level name and falls back to the basename
+        # no top-level name, so it would be keyed by its basename
         assert "summary" not in machine.elements
 
     def test_real_elements_are_still_found_beside_a_summary(self, tmp_path):
         for name in ["Q1", "Q2", "Q3"]:
             _write_element_yaml(str(tmp_path), _make_quad(name=name))
-        with open(tmp_path / "summary.yaml", "w") as fh:
-            yaml.dump({"anything": 1}, fh)
+        _write_raw(tmp_path / "summary.yaml", {"anything": 1})
 
         machine = self._machine(tmp_path)
 
         assert {"Q1", "Q2", "Q3"}.issubset(set(machine.elements))
         assert len([k for k in machine.elements if k.startswith("summary")]) == 0
+
+
+class TestControlsSchemaDirectory:
+    """Schemas sit beside the elements, in ``<hardware_class>/<hardware_type>/``."""
+
+    @staticmethod
+    def _raw_quad():
+        return {
+            "name": "Q1",
+            "hardware_class": "Magnet",
+            "hardware_type": "Quadrupole",
+            "machine_area": "SEC",
+            "controls": {"identifier_pattern": "QUAD:SEC:1", "schema": "Quadrupole_schema.yaml"},
+        }
+
+    @staticmethod
+    def _write_schema(directory):
+        directory.mkdir(parents=True, exist_ok=True)
+        schema = {"variables": {"bact": {"identifier": "{name}:BACT", "dtype": "float",
+                                         "protocol": "CA", "type": "scalar"}}}
+        (directory / "Quadrupole_schema.yaml").write_text(yaml.safe_dump(schema))
+
+    def test_schema_in_the_type_directory_is_found(self, tmp_path):
+        self._write_schema(tmp_path / "Magnet" / "Quadrupole")
+        elem = interpret_yaml_element(self._raw_quad(), base_dir=str(tmp_path), strict=True)
+        assert "bact" in elem.controls.variables
+
+    def test_schema_beside_the_file_takes_precedence(self, tmp_path):
+        self._write_schema(tmp_path)
+        (tmp_path / "Magnet" / "Quadrupole").mkdir(parents=True)
+        elem = interpret_yaml_element(self._raw_quad(), base_dir=str(tmp_path), strict=True)
+        assert "bact" in elem.controls.variables

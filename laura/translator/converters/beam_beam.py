@@ -65,7 +65,7 @@ class BeamBeamTranslator(BaseElementTranslator):
             ELEGANT format.
         """
         self.start_write()
-        etype = self._convertType_Elegant(self.hardware_type)
+        etype = self._convert_type_elegant(self.hardware_type)
         string = self.name + ": " + etype
         total_charge = self.simulation.n_particles * self.simulation.charge * elementary_charge
         if total_charge:
@@ -80,12 +80,10 @@ class BeamBeamTranslator(BaseElementTranslator):
 
     def to_xsuite(self, beam_length: int) -> tuple:
         """
-        Generates an Xsuite/``xfields`` ``BeamBeamBiGaussian2D`` object based
-        on the element's properties -- the thin, single-slice weak-strong
-        model. ``xfields`` also provides ``BeamBeamBiGaussian3D`` for finite
-        bunch-length (hourglass) effects, which needs per-slice longitudinal
-        configuration this element does not currently model, so it is not
-        used here even when ``simulation.width`` is set.
+        Generates an Xsuite/``xfields`` ``BeamBeamBiGaussian2D`` object: the thin,
+        single-slice weak-strong model. ``BeamBeamBiGaussian3D`` is not used, even
+        when ``simulation.width`` is set, as it needs per-slice configuration this
+        element does not model.
 
         Both beams are assumed ultra-relativistic (``other_beam_beta0 = 1``).
 

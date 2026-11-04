@@ -1,11 +1,4 @@
-"""Tests for the MAD-X (cpymad) translator.
-
-Mirrors the pattern used for the Xsuite translator in
-``test_functional_translators.py``: build small element/lattice fixtures,
-translate them, and (where cpymad is available) actually feed the generated
-MAD-X input into a live ``cpymad.madx.Madx`` instance to verify it parses and
-behaves correctly.
-"""
+"""MAD-X translator, checked against cpymad where available."""
 
 import pytest
 
@@ -17,30 +10,28 @@ from laura.models.base_models import (  # noqa: E402
     set_resolve_functional,
 )
 from laura.models.element import (  # noqa: E402
-    Quadrupole, Dipole, RFCavity,
-    HorizontalCorrector, VerticalCorrector, CombinedCorrector,
+    CombinedCorrector,
+    Dipole,
+    HorizontalCorrector,
+    Quadrupole,
+    RFCavity,
+    VerticalCorrector,
 )
-from laura.models.physical import PhysicalElement, Position  # noqa: E402
 from laura.models.element_list import SectionLattice  # noqa: E402
-from laura.translator.converters.magnet import (  # noqa: E402
-    MagnetTranslator, DipoleTranslator, CorrectorTranslator,
-)
+from laura.models.physical import PhysicalElement, Position  # noqa: E402
 from laura.translator.converters.cavity import RFCavityTranslator  # noqa: E402
+from laura.translator.converters.magnet import (  # noqa: E402
+    CorrectorTranslator,
+    DipoleTranslator,
+    MagnetTranslator,
+)
 from laura.translator.converters.section import SectionLatticeTranslator  # noqa: E402
-
-
-@pytest.fixture(autouse=True)
-def _reset_defs():
-    set_functional_definitions({}, merge=False)
-    set_resolve_functional(False)
-    yield
-    set_functional_definitions({}, merge=False)
-    set_resolve_functional(False)
 
 
 def _quad(k1l):
     q = Quadrupole(
-        name="q1", machine_area="S02",
+        name="q1",
+        machine_area="S02",
         magnetic={"magnetic_length": 0.1, "k1l": k1l},
     )
     return MagnetTranslator.model_validate(q.model_dump())
@@ -56,12 +47,10 @@ def _dipole(**magnetic):
 def _cavity(field_amplitude, phase=0.0, structure="StandingWave"):
     cavity = {"phase": phase, "structure_Type": structure}
     if structure.lower() == "travellingwave":
-        # RFCavityElement requires a mode for travelling-wave structures. This
-        # went unnoticed while the check read `.lower ==` (comparing a bound
-        # method to a string, so never true); it is a real constraint.
         cavity |= {"mode_numerator": 2, "mode_denominator": 3}
     cav = RFCavity(
-        name="C1", machine_area="L02",
+        name="C1",
+        machine_area="L02",
         cavity=cavity,
         simulation={"field_amplitude": field_amplitude},
     )
@@ -102,13 +91,13 @@ class TestMadxElements:
         assert "angle := bend1" in dt.to_madx()
 
     def test_drift_element_is_written(self):
-        # MAD-X lattices are conventionally built with explicit drift elements
-        # rather than relying on implicit gap-filling between placed elements.
         from laura.models.element import Drift
         from laura.translator.converters.drift import DriftTranslator
 
         drift = Drift(
-            name="dr1", machine_area="S", hardware_class="Drift",
+            name="dr1",
+            machine_area="S",
+            hardware_class="Drift",
             physical={"length": 1.0},
         )
         dt = DriftTranslator.model_validate(drift.model_dump())
@@ -126,20 +115,41 @@ class TestMadxElements:
 class TestMadxCorrector:
     def test_horizontal_and_vertical_correctors(self):
         hc = HorizontalCorrector(
-            name="hc1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.02}
+            name="hc1",
+            machine_area="S",
+            magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.02},
         )
         vc = VerticalCorrector(
-            name="vc1", machine_area="S", magnetic={"magnetic_length": 0.1, "vertical_kick": 0.03}
+            name="vc1",
+            machine_area="S",
+            magnetic={"magnetic_length": 0.1, "vertical_kick": 0.03},
         )
         ht = CorrectorTranslator.model_validate(hc.model_dump())
         vt = CorrectorTranslator.model_validate(vc.model_dump())
-        assert ht.to_madx() == "hc1: hkicker, l = 0.1, kick = 0.02;\n"
-        assert vt.to_madx() == "vc1: vkicker, l = 0.1, kick = 0.03;\n"
+        # tilt is emitted for every magnet MAD-X accepts it on, correctors
+        # included -- it used to be missing from the kicker attribute lists.
+        assert ht.to_madx() == "hc1: hkicker, l = 0.1, tilt = 0.0, kick = 0.02;\n"
+        assert vt.to_madx() == "vc1: vkicker, l = 0.1, tilt = 0.0, kick = 0.03;\n"
+
+    def test_corrector_tilt_is_carried(self):
+        """MAD-X accepts TILT on the kicker family and Corrector_Magnet has one."""
+        hc = HorizontalCorrector(
+            name="hc1",
+            machine_area="S",
+            magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.02, "tilt": 0.3},
+        )
+        ht = CorrectorTranslator.model_validate(hc.model_dump())
+        assert "tilt = 0.3" in ht.to_madx()
 
     def test_combined_corrector_carries_both_planes(self):
         cc = CombinedCorrector(
-            name="cc1", machine_area="S",
-            magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.04, "vertical_kick": 0.05},
+            name="cc1",
+            machine_area="S",
+            magnetic={
+                "magnetic_length": 0.1,
+                "horizontal_kick": 0.04,
+                "vertical_kick": 0.05,
+            },
         )
         ct = CorrectorTranslator.model_validate(cc.model_dump())
         out = ct.to_madx()
@@ -150,21 +160,27 @@ class TestMadxCorrector:
     def test_symbolic_kick_is_deferred(self):
         set_functional_definitions({"hc_kick": 0.02})
         hc = HorizontalCorrector(
-            name="hc1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": "hc_kick"}
+            name="hc1",
+            machine_area="S",
+            magnetic={"magnetic_length": 0.1, "horizontal_kick": "hc_kick"},
         )
         ht = CorrectorTranslator.model_validate(hc.model_dump())
-        assert 'kick := hc_kick' in ht.to_madx()
+        assert "kick := hc_kick" in ht.to_madx()
 
     def test_cpymad_tracks_correct_plane(self):
         pytest.importorskip("cpymad")
         from cpymad.madx import Madx
 
         hc = HorizontalCorrector(
-            name="HC1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.05},
+            name="HC1",
+            machine_area="S",
+            magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.05},
             physical=PhysicalElement(length=0.1, middle=Position(x=0, y=0, z=1.0)),
         )
         vc = VerticalCorrector(
-            name="VC1", machine_area="S", magnetic={"magnetic_length": 0.1, "vertical_kick": 0.07},
+            name="VC1",
+            machine_area="S",
+            magnetic={"magnetic_length": 0.1, "vertical_kick": 0.07},
             physical=PhysicalElement(length=0.1, middle=Position(x=0, y=0, z=2.0)),
         )
         section = SectionLattice(name="S1", order=["HC1", "VC1"], elements=[hc, vc])
@@ -181,7 +197,6 @@ class TestMadxCorrector:
 
 class TestMadxCavity:
     def test_cavity_units_and_lag_convention(self):
-        # 20 MV, on-crest (phase=0 -> lag=0.25, the sine-convention crest)
         out = _cavity(20e6, phase=0.0).to_madx()
         assert "volt = 20.0" in out
         assert "lag = 0.25" in out
@@ -195,6 +210,7 @@ class TestMadxCavity:
 
     def test_travelling_wave_voltage_scaling(self):
         import numpy as np
+
         ct = _cavity(20e6, structure="TravellingWave")
         out = ct.to_madx()
         factor = abs((ct.get_cells() + 3.8) * ct.cavity.cell_length * (1 / np.sqrt(2)))
@@ -205,24 +221,30 @@ class TestMadxCavity:
 class TestMadxSection:
     def _line(self, elements, defs=None, resolve=False):
         section = SectionLattice(
-            name="S1", order=[e.name for e in elements], elements=elements,
-            functional_definitions=defs or {}, resolve_functional=resolve,
+            name="S1",
+            order=[e.name for e in elements],
+            elements=elements,
+            functional_definitions=defs or {},
+            resolve_functional=resolve,
         )
         return SectionLatticeTranslator.from_section(section).to_madx()
 
     def _magnets(self, k1l=0.3, k0l=0.1, volt=5e6):
         q = Quadrupole(
-            name="Q1", machine_area="S",
+            name="Q1",
+            machine_area="S",
             magnetic={"magnetic_length": 0.5, "k1l": k1l},
             physical=PhysicalElement(length=0.5, middle=Position(x=0, y=0, z=1.0)),
         )
         d = Dipole(
-            name="D1", machine_area="S",
+            name="D1",
+            machine_area="S",
             magnetic={"magnetic_length": 0.5, "k0l": k0l},
             physical=PhysicalElement(length=0.5, middle=Position(x=0, y=0, z=2.0)),
         )
         c = RFCavity(
-            name="C1", machine_area="S",
+            name="C1",
+            machine_area="S",
             cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": volt},
             physical=PhysicalElement(length=1.0, middle=Position(x=0, y=0, z=3.0)),
@@ -236,8 +258,6 @@ class TestMadxSection:
         assert "Q1: quadrupole" in out
         assert "D1: sbend" in out
         assert "C1: rfcavity" in out
-        # explicit drifts are written between elements, the standard way of
-        # constructing a MAD-X lattice.
         assert "S1_drift_1: drift" in out
         assert "S1_drift_2: drift" in out
 
@@ -268,10 +288,9 @@ class TestMadxSection:
         madx.beam(particle="electron", energy=1.0)
         madx.use(sequence="S1")
         tw = madx.twiss(betx=1, bety=1)
-        assert tw["s"][-1] == pytest.approx(2.7513000197245434)
+        assert tw["s"][-1] == pytest.approx(2.751570601951526)
 
     def test_resolved_mode_bakes_numbers_no_header(self):
-        pytest.importorskip("cpymad")
         defs = {"kq": 0.3, "bend1": 0.1, "Vcav": 5e6}
         out = self._line(
             self._magnets(k1l="kq", k0l="bend1", volt="Vcav"), defs=defs, resolve=True
@@ -279,3 +298,153 @@ class TestMadxSection:
         assert "kq = 0.3;" not in out
         assert ":=" not in out
         assert "k1 = 0.6" in out
+
+
+class TestDipoleFringeFields:
+    def test_fint_comes_from_the_magnet_not_the_simulation_default(self):
+        """``simulation.edge_field_integral`` overrides the magnet's only when set."""
+        dt = _dipole(k0l=0.2, gap=0.04, edge_field_integral=0.3)
+        assert "fint = 0.3" in dt.to_madx()
+
+        d = Dipole(
+            name="D1",
+            machine_area="ARC",
+            magnetic={
+                "magnetic_length": 0.5,
+                "k0l": 0.2,
+                "gap": 0.04,
+                "edge_field_integral": 0.3,
+            },
+            simulation={"edge_field_integral": 0.77},
+        )
+        override = DipoleTranslator.model_validate(d.model_dump())
+        assert "fint = 0.77" in override.to_madx()
+
+    def test_asymmetric_faces_are_folded_onto_the_single_hgap(self):
+        """MAD-X has one ``hgap``; keep the non-zero one (split bends have a 0 face)."""
+        symmetric = _dipole(k0l=0.2, gap=0.04, edge_field_integral=0.3).to_madx()
+        assert "fint = 0.3" in symmetric
+        assert "hgap = 0.02" in symmetric
+        assert "fintx" not in symmetric
+
+        entrance_half = _dipole(
+            k0l=0.2,
+            gap=0.03,
+            edge_field_integral=0.45,
+            exit_gap=0.0,
+            edge_field_integral_exit=0.0,
+        ).to_madx()
+        assert "fint = 0.45" in entrance_half
+        assert "hgap = 0.015" in entrance_half
+        assert "fintx = 0.0" in entrance_half
+
+        exit_half = _dipole(
+            k0l=0.2,
+            gap=0.0,
+            edge_field_integral=0.0,
+            exit_gap=0.03,
+            edge_field_integral_exit=0.45,
+        ).to_madx()
+        assert "fint = 0.0" in exit_half
+        assert "hgap = 0.015" in exit_half, "the exit gap must survive a zero entrance"
+        assert "fintx = 0.45" in exit_half
+
+        # only gap * fint matters, so fintx absorbs the gap ratio
+        both = _dipole(
+            k0l=0.2,
+            gap=0.04,
+            edge_field_integral=0.3,
+            exit_gap=0.02,
+            edge_field_integral_exit=0.3,
+        ).to_madx()
+        assert "hgap = 0.02" in both
+        assert "fint = 0.3" in both
+        assert "fintx = 0.15" in both
+
+
+class TestMadxUnsupportedFallback:
+    """MAD-X used to raise a bare ``KeyError`` out of ``elements_madx`` for any
+    type it had no mapping for, so a single unrepresentable element made the
+    whole lattice unexportable. It now degrades to a drift and warns, matching
+    the object-based backends."""
+
+    @staticmethod
+    def _translate(element):
+        from laura.translator.converters.converter import translate_elements
+
+        return translate_elements([element])[element.name]
+
+    def test_infrastructure_degrades_to_a_drift(self):
+        import warnings
+
+        from laura.models.element import Stage
+        from laura.models.physical import PhysicalElement
+
+        stage = Stage(
+            name="STG1", machine_area="S", physical=PhysicalElement(length=0.05)
+        )
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            output = self._translate(stage).to_madx()
+        assert "drift" in output
+        assert any("not in MAD-X" in str(w.message) for w in caught)
+
+    def test_no_element_type_breaks_the_export(self):
+        """No hardware_type may take out ``to_madx``."""
+        import warnings
+
+        from laura.models.element import ELEMENT_REGISTRY
+        from laura.models.physical import PhysicalElement
+
+        failures = []
+        for name, cls in sorted(ELEMENT_REGISTRY.items()):
+            try:
+                element = cls(
+                    name="X1", machine_area="S", physical=PhysicalElement(length=0.1)
+                )
+                translator = self._translate(element)
+            except Exception:
+                continue  # needs constructor arguments or a payload
+            try:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    translator.to_madx()
+            except Exception as exc:  # noqa: BLE001 - report every failure at once
+                failures.append(f"{name}: {type(exc).__name__}: {exc}")
+        assert not failures, "to_madx() raised for:\n  " + "\n  ".join(failures)
+
+
+class TestMadxDecapole:
+    def test_exports_as_a_thin_multipole(self):
+        """MAD-X has no DECAPOLE; a thin MULTIPOLE carries the integrated strength."""
+        from laura.models.element import Decapole
+        from laura.models.physical import PhysicalElement
+        from laura.translator.converters.converter import translate_elements
+
+        decapole = Decapole(
+            name="DEC1", machine_area="S", physical=PhysicalElement(length=0.1)
+        )
+        decapole.magnetic.length = 0.1
+        decapole.magnetic.multipoles.K4L.normal = 0.5
+        output = translate_elements([decapole])["DEC1"].to_madx()
+        assert "multipole" in output
+        # the decapole term is the fifth, dipole through decapole
+        assert "knl = {0.0, 0.0, 0.0, 0.0, 0.5}" in output
+        # MULTIPOLE is thin: the length rides on lrad, not l
+        assert "lrad = 0.1" in output
+        assert ", l = " not in output
+
+    def test_skew_uses_ksl(self):
+        from laura.models.element import Decapole
+        from laura.models.physical import PhysicalElement
+        from laura.translator.converters.converter import translate_elements
+
+        decapole = Decapole(
+            name="DEC1", machine_area="S", physical=PhysicalElement(length=0.1)
+        )
+        decapole.magnetic.length = 0.1
+        decapole.magnetic.multipoles.K4L.skew = 0.3
+        decapole.magnetic.skew = True
+        output = translate_elements([decapole])["DEC1"].to_madx()
+        assert "ksl = {0.0, 0.0, 0.0, 0.0, 0.3}" in output
+        assert "knl" not in output

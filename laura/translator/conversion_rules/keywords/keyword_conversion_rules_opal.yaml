@@ -13,6 +13,10 @@ general:
   current_bins: n_bins
   lsc_enable: lsc
   tilt_angle: tilt
+  tilt: psi
+  dx_rot: dtheta
+  dy_rot: dphi
+  dz_rot: dpsi
 dipole:
   entrance_edge_angle: e1
   exit_edge_angle: e2
