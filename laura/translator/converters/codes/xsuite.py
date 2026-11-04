@@ -51,6 +51,8 @@ xsuite_unsupported = [
     "Laser",
     "Wakefield",
     "ActivePlasmaLens",
+    "Target",
+    "Crystal",
 ]
 
 _TYPE_MAP = {

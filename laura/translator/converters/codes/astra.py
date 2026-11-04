@@ -36,6 +36,8 @@ astra_unsupported = [
     "Wiggler",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
+    "Crystal",
 ]
 
 

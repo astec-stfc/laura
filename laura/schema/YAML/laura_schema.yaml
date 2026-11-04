@@ -6,7 +6,7 @@ description: >-
   Representation of Accelerators) accelerator element model.  Covers all element
   types, their physical, magnetic, diagnostic, RF, and control-system properties.
 version: "0.1.0"
-license: Apache Software License 2.0
+license: GPL-3.0-or-later
 
 prefixes:
   linkml: https://w3id.org/linkml/
@@ -121,6 +121,10 @@ enums:
         description: Weak-strong beam-beam interaction.
       RFMultipole:
         description: RF-driven multipole kick.
+      Target:
+        description: >-
+          Material placed in the beam to interact with it: a radiator, converter
+          or foil.
 
   LaserPolarizationEnum:
     description: Polarization state of a laser beam.
@@ -546,3 +550,6 @@ classes:
         required: false
         description: >-
           Aperture of the element.
+      material:
+        range: string
+        description: Element material.

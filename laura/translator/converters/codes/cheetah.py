@@ -9,6 +9,8 @@ cheetah_unsupported = [
     "Decapole",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
+    "Crystal",
 ]
 
 _STATS = (

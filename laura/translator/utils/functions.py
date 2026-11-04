@@ -209,6 +209,38 @@ def apply_functional_fields(data: Dict, fields: Dict[str, str]) -> None:
         for key in parents:
             target = target.setdefault(key, {})
         target[leaf] = symbol
+def bdsim_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the gmad variable-declaration block assigning every functional
+    definition for the lattice, e.g.::
+
+        quad1_k1l = -2;
+        cav1_phase = 90;
+
+    The syntax matches MAD-X's, but gmad has no deferred-assignment operator:
+    expressions such as ``k1=quad1_k1l/0.1`` are evaluated when BDSIM parses
+    the file, so this block must be included *before* the component
+    definitions. :meth:`SectionLatticeTranslator.to_bdsim
+    <laura.translator.converters.section.SectionLatticeTranslator.to_bdsim>`
+    writes it to ``<section>_variables.gmad``.
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        A ``<name> = <value>;`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no header needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(f"{name} = {value};\n" for name, value in definitions.items())
 
 
 def sanitize_string(string: str) -> str:

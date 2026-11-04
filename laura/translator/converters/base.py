@@ -12,11 +12,13 @@ from laura.models.physical import PhysicalElement, Position  # noqa E402
 from laura.utils import flatten_dict
 
 from ..converters import (
+    elements_bdsim,
     elements_bmad,
     elements_elegant,
     elements_genesis,
     elements_madx,
     elements_opal,
+    keyword_conversion_rules_bdsim,
     keyword_conversion_rules_bmad,
     keyword_conversion_rules_cheetah,
     keyword_conversion_rules_elegant,
@@ -167,6 +169,9 @@ class BaseElementTranslator(PhysicalBaseElement):
     """OPAL ``TRACK`` time step [s];
     OPAL's own default until :meth:`SectionLatticeTranslator.to_opal` sets it."""
 
+    verbose: bool = True
+    """Print debug messages and warnings"""
+
     def model_post_init(self, __context):
         self.type_conversion_rules = type_conversion_rules
         hardware_type = self.hardware_type.lower()
@@ -180,6 +185,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             "opal": keyword_conversion_rules_opal,
             "bmad": keyword_conversion_rules_bmad,
             "madx": keyword_conversion_rules_madx,
+            "bdsim": keyword_conversion_rules_bdsim,
         }
         for code, rules in rules_by_code.items():
             if (code, hardware_type) not in _MERGED_RULES:
@@ -212,7 +218,11 @@ class BaseElementTranslator(PhysicalBaseElement):
         Dict[str, Any]
             A flattened dictionary containing the attributes of the element.
         """
-        data = flatten_dict({**self.model_dump()}, parent_key="", separator="_")
+        data = flatten_dict(
+            self.model_dump(exclude={"conversion_rules", "type_conversion_rules"}),
+            parent_key="",
+            separator="_",
+        )
         data.pop("magnetic_gap", None)
         defs = IgnoreExtra.functional_definitions
         if resolve and defs:
@@ -620,10 +630,11 @@ class BaseElementTranslator(PhysicalBaseElement):
         if self.hardware_type in type_conversion_rules_xsuite:
             obj = type_conversion_rules_xsuite[self.hardware_type]
         else:
-            warn(
-                f"Could not find hardware type {self.hardware_type} in xsuite conversion rules "
-                f"for element {self.name}; setting as drift"
-            )
+            if self.verbose:
+                warn(
+                    f"Could not find hardware type {self.hardware_type} in xsuite conversion rules "
+                    f"for element {self.name}; setting as drift"
+                )
             obj = type_conversion_rules_xsuite["Drift"]
         properties = {}
         from xtrack.monitors import ParticlesMonitor
@@ -896,7 +907,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         if self.hardware_type in type_conversion_rules_wake_t:
             obj = type_conversion_rules_wake_t[self.hardware_type]()
         else:
-            if "drift" not in self.hardware_type.lower():
+            if "drift" not in self.hardware_type.lower() and self.verbose:
                 warn(
                     f"Element type {self.hardware_type} not in Wake-T; setting as drift"
                 )
@@ -961,6 +972,188 @@ class BaseElementTranslator(PhysicalBaseElement):
         "plasma_",
         "laser_",
     ]
+
+    def _bdsim_keywords(
+        self, obj: type, section_aperture: Dict | None = None
+    ) -> Dict[str, Any]:
+        """
+        Build the gmad keyword dictionary for a ``pybdsim.Builder`` class.
+
+        Parameters
+        ----------
+        obj: type
+            The ``pybdsim.Builder`` class the element maps to.
+        section_aperture: dict, optional
+            Section-wide beam-pipe aperture, see
+            :func:`~laura.translator.utils.bdsim.bdsim.aperture_params`.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Keyword arguments for ``obj``.
+        """
+        import inspect
+
+        from ..utils.bdsim import aperture_params, element_aperture_params
+
+        allowed = elements_bdsim.get(obj.__name__, {})
+        keywords: Dict[str, Any] = dict(aperture_params(section_aperture))
+        keywords.update(element_aperture_params(getattr(self, "aperture", None)))
+        for key, value in self.full_dump(resolve=self._resolve_functional).items():
+            if value is None:
+                continue
+            bdsim_key = self._convert_keyword_bdsim(key, allowed)
+            if bdsim_key in allowed:
+                keywords[bdsim_key] = self._bdsim_value(bdsim_key, value)
+        if "material" in allowed and self.material is not None:
+            keywords["material"] = self.material
+        keywords["name"] = sanitize_string(self.name)
+        if "tilt" in allowed and "tilt" not in keywords and self.dz_rot:
+            # a roll error on an element with no tilt of its own
+            keywords["tilt"] = self._bdsim_value("tilt", None)
+        written = {q for q, k in (("dx", "offsetX"), ("dy", "offsetY")) if k in allowed}
+        if "tilt" in allowed and not self._curved:
+            written.add("dz_rot")
+        self._warn_dropped_misalignment("BDSIM", written)
+
+        parameters = inspect.signature(obj).parameters.values()
+        if not any(p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters):
+            named = {p.name for p in parameters}
+            keywords = {k: v for k, v in keywords.items() if k in named}
+        return keywords
+
+    def _bdsim_value(self, key: str, value: Any) -> Any:
+        """
+        Render one gmad keyword value, preserving symbolic/functional parameters.
+
+        gmad has no deferred-assignment operator, so the expression is written
+        inline and evaluated at parse time against the block from
+        :func:`~laura.translator.utils.functions.bdsim_functional_definitions`.
+
+        Values are returned as :class:`~laura.translator.utils.bdsim.bdsim.GmadExpression`.
+        """
+        from ..utils.bdsim import GmadExpression
+
+        if key == "tilt":
+            # a bend's tilt rolls its frame, so its roll error cannot go in
+            return self.roll - self.dz_rot * self._curved
+
+        expression = None
+        if not self._resolve_functional:
+            if key in ("k1", "k2", "k3", "k4", "k5", "k6"):
+                expression = self._functional_strength_expr(int(key[1]), "bdsim")
+            elif key == "angle":
+                expression = self._raw_multipole_strength(0)
+            elif key in ("e1", "e2"):
+                expression = self._raw_edge_angle(
+                    "entrance_edge_angle" if key == "e1" else "exit_edge_angle",
+                    "bdsim",
+                )
+            elif self.is_functional(value):
+                expression = value
+
+        numeric = getattr(self, key, None)
+        if isinstance(numeric, bool) or not isinstance(numeric, (int, float)):
+            numeric = value
+
+        if expression is None:
+            if isinstance(value, str) and isinstance(numeric, (int, float)):
+                return numeric
+            return value
+        resolved = IgnoreExtra.functional_definitions.get(str(expression))
+        if resolved is None:
+            resolved = numeric if isinstance(numeric, (int, float)) else 0.0
+        return GmadExpression(resolved, str(expression))
+
+    def _bdsim_type(self, section_aperture: Dict | None = None) -> type:
+        """
+        Resolve this element's ``pybdsim.Builder`` class, falling back to a drift
+        (with a warning) for a ``hardware_type`` BDSIM has no equivalent for.
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+
+        rules = bdsim_conversion.bdsim_conversion_rules
+        if self.hardware_type in rules:
+            return rules[self.hardware_type]
+        if "drift" not in self.hardware_type.lower() and self.verbose:
+            warn(f"Element type {self.hardware_type} not in BDSIM; setting as drift")
+        from pybdsim.Builder import Drift as Drift_BDSIM
+
+        return Drift_BDSIM
+
+    def _bdsim_charge_sign(
+        self,
+        obj: type,
+        keywords: Dict[str, Any],
+        charge_sign: int | float,
+        integrator_set: str = "bdsimmatrix",
+    ) -> Dict[str, Any]:
+        """
+        Negate the strengths in `keywords` that BDSIM reads as a field, for a
+        negatively charged beam particle. See
+        :data:`~laura.translator.utils.bdsim.bdsim.BDSIM_CHARGE_SIGNED_KEYWORDS`.
+
+        Parameters
+        ----------
+        obj: type
+            The pybdsim builder class the keywords are for.
+        keywords: dict
+            gmad keywords for this element; see :meth:`_bdsim_keywords`.
+        charge_sign: int or float
+            Sign of the beam particle's charge.
+        integrator_set: str
+            BDSIM ``integratorSet`` option.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The keyword dictionary, for chaining into the builder call.
+        """
+        from ..utils.bdsim import apply_charge_sign
+
+        return apply_charge_sign(keywords, charge_sign, obj.__name__, integrator_set)
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Sign of the charge of the beam particle being tracked.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option, which decides whether a
+                quadrupole's ``k1`` follows the particle's charge.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..utils.bdsim import magnet_frame_workaround
+
+        obj = self._bdsim_type(section_aperture)
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        obj, keywords = magnet_frame_workaround(obj, keywords, integrator_set)
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+
+    _KEYWORD_STRIP_PREFIXES = [
+        "",
+        "simulation_",
+        "cavity_",
+        "magnetic_",
+        "aperture_",
+        "diagnostic_",
+    ]
+    _KEYWORD_STRIP_PREFIXES_WAKE_T = _KEYWORD_STRIP_PREFIXES + ["plasma_", "laser_"]
 
     @staticmethod
     def _convert_type(etype: str, rules: dict, default):
@@ -1174,8 +1367,13 @@ class BaseElementTranslator(PhysicalBaseElement):
         return self._convert_keyword(keyword, self.conversion_rules["opal"], element)
 
     def _convert_type_madx(self, etype: str) -> str:
-        """Converts the element type to the corresponding MAD-X type using predefined rules."""
-        return self._convert_type(etype, type_conversion_rules_madx, etype)
+        """Converts the element type to the corresponding MAD-X type, with ``drift`` as a fallback."""
+        converted = self._convert_type(etype, type_conversion_rules_madx, etype)
+        if converted.lower() in elements_madx:
+            return converted
+        if self.verbose:
+            warn(f"Element type {etype} not in MAD-X; setting as drift")
+        return "drift"
 
     def _convert_keyword_madx(self, keyword: str) -> str:
         """Converts a keyword to its corresponding MAD-X keyword using predefined rules."""
@@ -1198,7 +1396,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         Returns
         -------
         str
-            The converted type of the element, or the original type if no conversion rule exists.
+            The converted MAD-X type, with ``drift`` as a fallback.
         """
         converted = self._convert_type(etype, type_conversion_rules_bmad, etype)
         return converted if converted.lower() in elements_bmad else "drift"
@@ -1214,6 +1412,13 @@ class BaseElementTranslator(PhysicalBaseElement):
             self.conversion_rules["bmad"],
             element,
             strip_prefixes=self._KEYWORD_STRIP_PREFIXES + ["physical_"],
+        )
+
+    def _convert_keyword_bdsim(self, keyword: str, allowed: Dict | None = None) -> str:
+        """Converts a keyword to its BDSIM keyword; ``allowed`` is the target
+        element's allowlist from ``elements_bdsim.yaml``."""
+        return self._convert_keyword(
+            keyword, self.conversion_rules["bdsim"], allowed or None
         )
 
     def _bmad_parameters(self, etype: str | None = None) -> Dict[str, Any]:
@@ -1640,9 +1845,10 @@ class BaseElementTranslator(PhysicalBaseElement):
                     )
                 )
             except AttributeError:
-                warn(
-                    f"field_reference_position should be (start/middle/end) not {self.simulation.field_reference_position}; returning start"
-                )
+                if self.verbose:
+                    warn(
+                        f"field_reference_position should be (start/middle/end) not {self.simulation.field_reference_position}; returning start"
+                    )
         else:
             try:
                 return np.array(
@@ -1801,7 +2007,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             )
             return os.path.basename(filename) if filename else None
         else:
-            if param:
+            if param and self.verbose:
                 warn(
                     f"param associated with {self.name} does not have a filename: {param}, it must be a `field` object"
                 )

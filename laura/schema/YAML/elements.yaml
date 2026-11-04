@@ -4,7 +4,7 @@ title: LAURA Simple Element Model Chunk
 description: >-
   Concrete element classes with no domain-specific sub-model.
 version: "0.1.0"
-license: Apache Software License 2.0
+license: GPL-3.0-or-later
 
 prefixes:
   linkml:  https://w3id.org/linkml/
@@ -29,7 +29,11 @@ imports:
 enums:
 
   ApertureShapeEnum:
-    description: Cross-sectional shape of a beam-pipe aperture.
+    description: >-
+      Cross-sectional shape of a beam-pipe aperture. `scraper` is a jaw geometry
+      rather than a pipe shape -- the extents are rectangular, but the jaws are
+      positioned independently, so it maps to ASTRA's Scr_X/Scr_Y (not Col_X/Col_Y)
+      and BDSIM's jcol (not rcol). It therefore has no gmad `apertureType`.
     permissible_values:
       circular:    {}
       rectangular: {}
@@ -231,6 +235,9 @@ classes:
         description: Downstream / outer extent [m].
         unit:
           ucum_code: m
+      material:
+        range: string
+        description: Aperture material.
 
   Valve:
     is_a: PhysicalAcceleratorElement
@@ -273,6 +280,110 @@ classes:
     slot_usage:
       hardware_type:
         equals_string: Collimator
+
+  Target:
+    is_a: PhysicalAcceleratorElement
+    description: >-
+      A block of material in the beam, which the beam passes through and interacts
+      with: a radiator, a converter, a foil. Its thickness along the beam is
+      ``physical.length``. Modelled by BDSIM; 
+      codes without material interactions treat it as a drift.
+    class_uri: laura:Target
+    slot_usage:
+      hardware_type:
+        equals_string: Target
+      material:
+        description: >-
+          Material of the block, by a name BDSIM / Geant4 knows (``tungsten``,
+          ``copper``, ``G4_W``...).
+    attributes:
+      target:
+        range: TargetElement
+        description: Transverse shape of the block.
+
+  TargetElement:
+    description: Transverse shape of a target block.
+    class_uri: laura:TargetElement
+    attributes:
+      transverse_size:
+        range: float
+        description: >-
+          Full transverse size of the block [m]: the side of a square block, or the
+          diameter of a round one. BDSIM's default if unset.
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      circular:
+        range: boolean
+        ifabsent: "false"
+        description: A round block (a cylinder along the beam) rather than a square one.
+
+  Crystal:
+    is_a: PhysicalAcceleratorElement
+    description: >-
+      A bent crystal in the beam, which channels particles along its planes (or, off
+      alignment, reflects or scatters them). Its thickness along the beam is
+      ``physical.length``, and it is centred on the beam axis.
+    class_uri: laura:Crystal
+    slot_usage:
+      hardware_type:
+        equals_string: Crystal
+      material:
+        description: >-
+          Material of the crystal, by a name Geant4 knows (``G4_Si``, ``G4_Ge``...).
+          Needed to translate it to BDSIM.
+    attributes:
+      crystal:
+        range: CrystalElement
+        description: Crystal geometry, orientation and lattice.
+
+  CrystalElement:
+    description: >-
+      Geometry, orientation and lattice of a bent crystal. The lattice defaults are
+      silicon's (diamond cubic).
+    class_uri: laura:CrystalElement
+    attributes:
+      data_file:
+        range: string
+        description: >-
+          Geant4 channelling data for the crystal and its planes: the common prefix of
+          its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``):
+          absolute, relative to the lattice, or with ``$master_lattice$``.
+      bending_angle:
+        range: float
+        description: >-
+          Horizontal bending angle of the crystal's planes over its length [rad]; the
+          angle a fully channelled particle is deflected by.
+        ifabsent: float(0.0)
+      entrance_angle:
+        range: float
+        description: >-
+          Angle of the crystal planes at its entrance to the beam axis [rad]: 0 aligns
+          them for channelling; beyond the critical angle, but within the bend, gives
+          volume reflection; beyond the bend, amorphous scattering.
+        ifabsent: float(0.0)
+      horizontal_size:
+        range: float
+        description: Full horizontal size of the crystal [m].
+        ifabsent: float(0.0005)
+        minimum_value: 0.0
+      vertical_size:
+        range: float
+        description: Full vertical size of the crystal [m].
+        ifabsent: float(0.01)
+        minimum_value: 0.0
+      lattice_constants:
+        range: float
+        multivalued: true
+        description: Unit-cell edges a, b, c [m]. Silicon's if unset.
+      lattice_angles:
+        range: float
+        multivalued: true
+        description: Unit-cell angles alpha, beta, gamma [rad]. Right angles if unset.
+      space_group:
+        range: integer
+        description: Crystallographic space group number. Silicon's (227) if unset.
+        ifabsent: int(227)
 
   Drift:
     is_a: PhysicalAcceleratorElement

@@ -9,6 +9,7 @@ from pydantic import PositiveInt
 if TYPE_CHECKING:
     from cheetah import Segment
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
+    from pybdsim.Builder import Machine
     from wake_t import Beamline
     from xtrack import Line
 
@@ -43,14 +44,17 @@ from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
 from .codes import (
     astra_unsupported,
+    bdsim_unsupported,
     bmad_unsupported,
     cheetah_unsupported,
     csrtrack_unsupported,
     elegant_unsupported,
     genesis_unsupported,
     gpt_unsupported,
+    madx_unsupported,
     ocelot_unsupported,
     opal_unsupported,
+    rftrack_unsupported,
     wake_t_unsupported,
     xsuite_unsupported,
 )
@@ -63,13 +67,16 @@ from .wake import WakefieldTranslator
 unsupported_elements = {
     "bmad": bmad_unsupported,
     "astra": astra_unsupported,
+    "bdsim": bdsim_unsupported,
     "cheetah": cheetah_unsupported,
     "csrtrack": csrtrack_unsupported,
     "elegant": elegant_unsupported,
     "genesis": genesis_unsupported,
     "gpt": gpt_unsupported,
+    "madx": madx_unsupported,
     "ocelot": ocelot_unsupported,
     "opal": opal_unsupported,
+    "rftrack": rftrack_unsupported,
     "wake_t": wake_t_unsupported,
     "xsuite": xsuite_unsupported,
 }
@@ -198,6 +205,9 @@ class SectionLatticeTranslator(SectionLattice):
                 "reference_energy": section.reference_energy,
                 "revolution_frequency": section.revolution_frequency,
                 "space_charge": section.space_charge,
+                "beampipe_aperture_type": section.beampipe_aperture_type,
+                "beampipe_size": section.beampipe_size,
+                "beampipe_material": section.beampipe_material,
             }
         )
 
@@ -216,7 +226,10 @@ class SectionLatticeTranslator(SectionLattice):
         if elements is None:
             elements = list(self.elements.elements.values())
         return translate_elements(
-            elements, master_lattice=self.master_lattice, directory=self.directory
+            elements,
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+            verbose=self.verbose,
         )
 
     @staticmethod
@@ -1150,6 +1163,7 @@ class SectionLatticeTranslator(SectionLattice):
         RF_Track.Lattice
             An RF-Track ``Lattice`` object, with elements appended in section order.
         """
+        self._check_elements_supported("rftrack")
         from ..conversion_rules.codes.rftrack_conversion import get_rftrack
 
         rft = get_rftrack()
@@ -1189,6 +1203,7 @@ class SectionLatticeTranslator(SectionLattice):
         -------
         RF_Track.Volume
         """
+        self._check_elements_supported("rftrack")
         from ..conversion_rules.codes.rftrack_conversion import get_rftrack
 
         rft = get_rftrack()
@@ -1471,7 +1486,7 @@ class SectionLatticeTranslator(SectionLattice):
                 csrtrackstr += e.to_csrtrack(n=counter[key])
                 e._warn_dropped_misalignment("CSRTrack", set())
                 counter[key] += 1
-            elif e.hardware_class != "Diagnostic":
+            elif e.hardware_class != "Diagnostic" and self.verbose:
                 warn(f"Element of type {e.hardware_type} not supported for CSRTrack")
         lastelem = list(elem_dict.values())[-1]
         lastscreen = self._end_screen(
@@ -1518,6 +1533,7 @@ class SectionLatticeTranslator(SectionLattice):
             (done here when ``beam`` is given).
         """
         self._warn_dropped_wakes("MAD-X")
+        self._check_elements_supported("madx")
         elem_dict = self._translate(self.create_drifts().values())
         svals = self.get_s_values(as_dict=True, at_entrance=True)
         exit_svals = self.get_s_values(as_dict=True, at_entrance=False)
@@ -1588,3 +1604,101 @@ class SectionLatticeTranslator(SectionLattice):
                     beamline.append(element.to_wake_t())
                     element._warn_dropped_misalignment("Wake-T", set())
         return Beamline(beamline)
+
+    def to_bdsim(
+        self,
+        save=False,
+        beam=None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+        Brho: float = 0.0,
+    ) -> "Machine":
+        """
+        Create a BDSIM-compatible Machine object based on the lattice information.
+
+        Parameters
+        ----------
+        save: bool
+            Flag to indicate whether to save the lattice to a file.
+        beam: Beam | None
+            BDSIM `Beam` object.
+        charge_sign: int or float
+            Beam particle charge sign; see
+            :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        integrator_set: str
+            BDSIM ``integratorSet`` option the lattice will be tracked with; see
+            :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        Brho: float
+            Magnetic rigidity [T*m] of the reference particle, for solenoids.
+
+        Returns
+        -------
+        Machine
+            A BDSIM `Machine` object, with its ``integratorSet`` and
+            ``buildPoleFaceGeometry=0`` options set; add to ``machine.options``
+            rather than replacing them.
+        """
+        from pybdsim.Beam import Beam
+        from pybdsim.Builder import GmadObject, Machine
+        from pybdsim.Builder import Marker as Marker_bds
+        from pybdsim.Options import Options
+
+        from ..utils.functions import bdsim_functional_definitions
+
+        self._check_elements_supported("bdsim")
+        elem_dict = self._translate(self.create_drifts().values())
+        elements = []
+        if any(
+            q is not None
+            for q in [
+                self.beampipe_aperture_type,
+                self.beampipe_size,
+                self.beampipe_material,
+            ]
+        ):
+            section_aperture = {
+                "type": self.beampipe_aperture_type,
+                "size": self.beampipe_size,
+                "material": self.beampipe_material,
+            }
+        else:
+            section_aperture = None
+
+        for d in elem_dict.values():
+            kwargs = {"Brho": Brho} if isinstance(d, SolenoidTranslator) else {}
+            built = d.to_bdsim(
+                section_aperture=section_aperture,
+                charge_sign=charge_sign,
+                integrator_set=integrator_set,
+                **kwargs,
+            )
+            # a thin multipole with skew terms comes back as several elements
+            elements.extend(built if isinstance(built, list) else [built])
+
+        machine = Machine()
+        machine.AddOptions(
+            Options(integratorSet=f'"{integrator_set}"', buildPoleFaceGeometry=0)
+        )
+        sanitized_name = self.name.replace("-", "_")
+        definitions = bdsim_functional_definitions(self.functional_definitions)
+        variables_file = f"{sanitized_name}_variables.gmad"
+        if definitions:
+            machine.AddIncludePre(variables_file)
+
+        for be in elements:
+            if isinstance(be, GmadObject):
+                # a definition an element refers to (a crystal), not part of the line
+                machine.AddObject(be)
+                continue
+            machine.Append(be)
+            if isinstance(be, Marker_bds):
+                machine.AddSampler(be.name)
+        if isinstance(beam, Beam):
+            machine.AddBeam(beam)
+        if save:
+            if definitions:
+                with open(f"{self.directory}/{variables_file}", "w") as vfile:
+                    vfile.write(definitions)
+            machine.Write(f"{self.directory}/{sanitized_name}.gmad")
+
+        return machine

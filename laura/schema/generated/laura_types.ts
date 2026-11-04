@@ -51,6 +51,7 @@ export type DipoleName = string;
 export type QuadrupoleName = string;
 export type SextupoleName = string;
 export type OctupoleName = string;
+export type DecapoleName = string;
 export type HorizontalCorrectorName = string;
 export type VerticalCorrectorName = string;
 export type CombinedCorrectorName = string;
@@ -147,7 +148,7 @@ export enum NumericDtypeEnum {
     float64 = "float64",
 };
 /**
-* Cross-sectional shape of a beam-pipe aperture.
+* Cross-sectional shape of a beam-pipe aperture. `scraper` is a jaw geometry rather than a pipe shape -- the extents are rectangular, but the jaws are positioned independently, so it maps to ASTRA's Scr_X/Scr_Y (not Col_X/Col_Y) and BDSIM's jcol (not rcol). It therefore has no gmad `apertureType`.
 */
 export enum ApertureShapeEnum {
     
@@ -167,6 +168,27 @@ export enum LatticeGeometryEnum {
     open = "open",
     /** Recirculating machine such as a storage ring, for which closed orbits and periodic Twiss parameters are computed. */
     closed = "closed",
+};
+/**
+* Cross-sectional shape of a beam-pipe aperture.
+*/
+export enum BeampipeShapeEnum {
+    
+    circular = "circular",
+    rectangular = "rectangular",
+    elliptical = "elliptical",
+};
+/**
+* How a sampled waveform behaves between the points it was sampled at.
+*/
+export enum WaveformInterpolationEnum {
+    
+    /** Straight line between neighbouring knots. What every tracking code does by default. */
+    linear = "linear",
+    /** Each knot's value holds until the next one, so the waveform is a staircase. */
+    hold = "hold",
+    /** Cubic spline through the knots, for a measured trace sampled too coarsely for straight lines. */
+    spline = "spline",
 };
 /**
 * Bending plane enum.
@@ -533,6 +555,8 @@ export interface ApertureElement {
     negative_extent?: number,
     /** Downstream / outer extent [m]. */
     positive_extent?: number,
+    /** Aperture material. */
+    material?: string,
 }
 
 
@@ -628,6 +652,12 @@ export interface SectionLattice {
     space_charge?: SpaceChargeSettings,
     /** Ordered list of element names in this section. */
     elements?: string[],
+    /** Cross-sectional beam pipe aperture shape. */
+    beampipe_aperture_type?: string,
+    /** Size of beam pipe [m]. A single value for a circular aperture, or two values (horizontal, vertical) for a rectangular or elliptical one. */
+    beampipe_size?: number,
+    /** Beam pipe material */
+    beampipe_material?: string,
 }
 
 
@@ -673,6 +703,12 @@ export interface MachineModel {
     sections?: SectionLatticeName[],
     /** All named beamline layouts. */
     layouts?: MachineLayoutName[],
+    /** Cross-sectional beam pipe aperture shape. */
+    beampipe_aperture_type?: string,
+    /** Size of beam pipe [m]. A single value for a circular aperture, or two values (horizontal, vertical) for a rectangular or elliptical one. */
+    beampipe_size?: number,
+    /** Beam pipe material */
+    beampipe_material?: string,
 }
 
 
@@ -680,6 +716,19 @@ export interface MachineModel {
  * An unconstrained serializable matrix value. The handwritten matrix model validates dense arrays and named coefficient mappings into NumPy arrays.
  */
 export interface MatrixValue {
+}
+
+
+/**
+ * A pulse shape sampled at a sparse set of points, for a device whose strength is a program rather than a constant: an injection kicker, an extraction septum, a tune exciter driven from a measured trace. Only the knots are stored, and the value between them follows ``interpolation``.
+ */
+export interface SampledWaveform {
+    /** Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as ``factor``. */
+    time?: number[],
+    /** Strength at each of the times in ``time``, as a fraction of the element's nominal strength; 1.0 is full strength. */
+    factor?: number[],
+    /** How the strength behaves between the sampled knots. */
+    interpolation?: string,
 }
 
 
@@ -693,7 +742,7 @@ export interface SimulationElement {
     lsc_bins?: number,
     /** Whether coherent synchrotron radiation effects are enabled. */
     csr_enable?: boolean,
-    /** Whether longitudinal space-charge effects are enabled. */
+    /** Whether longitudinal space-charge effects are enabled. Off by default. */
     lsc_enable?: boolean,
     /** Phase-space tracking algorithm requested from the target code. */
     tracking_method?: string,
@@ -742,10 +791,10 @@ export interface MagnetSimulationElement extends SimulationElement {
     n_slices?: number,
     /** Per-simulation override of the magnet's fringe-field integral. Absent means "use ``MagneticElement.edge_field_integral``". */
     edge_field_integral?: number,
-    /** Enable entrance-edge focussing effects. */
-    edge1_effects?: boolean,
-    /** Enable exit-edge focussing effects. */
-    edge2_effects?: boolean,
+    /** Entrance-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method. */
+    edge1_effects?: number,
+    /** Exit-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method. */
+    edge2_effects?: number,
     /** Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code. */
     fringe_model?: string,
     /** Enable synchrotron-radiation energy loss. */
@@ -758,7 +807,7 @@ export interface MagnetSimulationElement extends SimulationElement {
     nonlinear?: boolean,
     /** Half-width of the current-profile smoothing kernel. */
     smoothing_half_width?: number,
-    /** Polynomial order of the edge-field expansion. */
+    /** Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-order terms). Unset / default is second order. */
     edge_order?: number,
     /** Number of points used to smooth the field map [ASTRA]. */
     smooth_points?: number,
@@ -985,6 +1034,8 @@ export interface ACDipoleSimulationElement extends SimulationElement {
     phase?: number,
     /** Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp. */
     ramp?: number[],
+    /** Sampled pulse shape, for a device whose strength is a program rather than a sinusoid -- an injection kicker or an extraction septum. */
+    waveform?: SampledWaveform,
 }
 
 
@@ -1535,6 +1586,8 @@ export interface Screen extends Diagnostic {
  * Wire scanner: thin wires stepped through the beam to measure its transverse profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation element.
  */
 export interface WireScanner extends Diagnostic {
+    /** Instrument-specific diagnostic parameters. */
+    diagnostic?: WireScannerDiagnosticElement,
 }
 
 
@@ -1619,6 +1672,17 @@ export interface PhotonIntensityMonitorDiagnostic extends DiagnosticElement {
 export interface BLMDiagnosticElement extends DiagnosticElement {
     /** BLM type (e.g., ``CDR``). Accepted in YAML as ``blm_type``. */
     type?: string,
+}
+
+
+/**
+ * Intercepting wire-scanner diagnostic: a thin wire swept through the beam to measure its transverse profile. Distinct from a Wire element, which carries a current to act on the beam rather than to intercept it.
+ */
+export interface WireScannerDiagnosticElement extends DiagnosticElement {
+    /** Diameter of the scanning wire [m]. */
+    wire_diameter?: number,
+    /** Length of the scanning wire [m]. */
+    wire_length?: number,
 }
 
 
@@ -1953,6 +2017,20 @@ export interface Octupole extends Magnet {
 
 
 /**
+ * Decapole magnet field, principal multipole order 4.
+ */
+export interface DecapoleMagnet extends MagneticElement {
+}
+
+
+/**
+ * Decapole magnet.
+ */
+export interface Decapole extends Magnet {
+}
+
+
+/**
  * Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.
  */
 export interface CorrectorMagnet extends DipoleMagnet {
@@ -2038,6 +2116,8 @@ export interface SolenoidFields {
 export interface SolenoidMagnet {
     /** Magnetic length [m]. */
     length?: number,
+    /** Global tilt about the beam axis [rad]. */
+    tilt?: number,
     /** Principal solenoid multipole order. */
     order?: number,
     /** Nominal integrated axial field components. */
@@ -2084,6 +2164,8 @@ export interface CombinedSolenoidQuadrupole extends Magnet {
 export interface WigglerMagnet {
     /** Magnetic length [m]. */
     length?: number,
+    /** Global tilt about the beam axis [rad]. */
+    tilt?: number,
     /** Deflection parameter K. May be a functional expression. */
     strength?: number,
     /** Peak on-axis field [T]. */
@@ -2120,6 +2202,8 @@ export interface Wiggler extends Magnet {
 export interface NonLinearLensMagnet {
     /** Magnetic length [m]. */
     length?: number,
+    /** Global tilt about the beam axis [rad]. */
+    tilt?: number,
     /** Integrated lens strength (MAD-X ``knll``). May be a functional expression. */
     integrated_strength?: number,
     /** Dimensional parameter setting the transverse scale (MAD-X ``cnll``). May be a functional expression. */
@@ -2234,6 +2318,8 @@ export interface PhysicalAcceleratorElement extends Element {
     physical?: PhysicalElement,
     /** Aperture of the element. */
     aperture?: ApertureElement,
+    /** Element material. */
+    material?: string,
 }
 
 

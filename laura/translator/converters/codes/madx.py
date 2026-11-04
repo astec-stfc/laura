@@ -29,6 +29,24 @@ from .importer import (
     twiss_simulation,
 )
 
+madx_unsupported = [
+    "CombinedSolenoidQuadrupole",
+    "LaserAttenuator",
+    "LaserEnergyMeter",
+    "LaserHalfWavePlate",
+    "LaserMirror",
+    "Lighting",
+    "Low_Level_RF",
+    "PID",
+    "PowerSupply",
+    "RFHeartbeat",
+    "RFModulator",
+    "RFProtection",
+    "Stage",
+    "VacuumGauge",
+]
+
+
 _RAW_KEYS = ("k0", "k1", "k2", "k3", "angle", "l", "kick", "hkick", "vkick", "ks")
 
 _ORDER_TYPES = {order: name for name, order in magnetic_orders.items()}

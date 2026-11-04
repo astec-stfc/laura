@@ -5,7 +5,7 @@ description: >-
   Simulation-related schema classes for field maps, tracking, wakefields,
   diagnostics, plasma stages, and Twiss-matching points.
 version: "0.1.0"
-license: Apache Software License 2.0
+license: GPL-3.0-or-later
 
 prefixes:
   linkml: https://w3id.org/linkml/

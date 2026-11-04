@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import ClassVar, Optional, Union
+from typing import ClassVar, Dict, Optional, Union
 from warnings import warn
 
 import numpy as np
@@ -24,7 +24,12 @@ from ..converters import (
     elements_opal,
     keyword_conversion_rules_elegant,
 )
-from ..utils.functions import _rotation_matrix, chop, expand_substitution
+from ..utils.functions import (
+    _rotation_matrix,
+    chop,
+    expand_substitution,
+    sanitize_string,
+)
 from .base import BaseElementTranslator
 from .codes.gpt import GptCcs
 
@@ -120,7 +125,7 @@ class MultipoleStrengthTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(order) / self.magnetic.length
         except ZeroDivisionError:
-            if self._warn_zero_length:
+            if self._warn_zero_length and self.verbose:
                 warn(f"Magnet has zero length; returning k{order} = k{order}l")
             return self.magnetic.KnL(order)
 
@@ -232,9 +237,10 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         if self.hardware_type.lower() == "quadrupole":
             return self._write_astra_quadrupole(n, **kwargs)
         else:
-            warn(
-                f"Element type {self.hardware_type} of {self.name} not supported by ASTRA"
-            )
+            if self.verbose:
+                warn(
+                    f"Element type {self.hardware_type} of {self.name} not supported by ASTRA"
+                )
             return ""
 
     def to_csrtrack(self, n: int = 0, **kwargs) -> str:
@@ -256,9 +262,10 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         if self.hardware_type.lower() == "quadrupole":
             return self._write_csrtrack_quadrupole(n)
         else:
-            warn(
-                f"Element type {self.hardware_type} of {self.name} not supported by CSRTrack"
-            )
+            if self.verbose:
+                warn(
+                    f"Element type {self.hardware_type} of {self.name} not supported by CSRTrack"
+                )
             return ""
 
     def _write_astra_quadrupole(self, n: int = 0, **kwargs: dict) -> str:
@@ -874,6 +881,86 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         wholestring += ', FMAPFN = "1DPROFILE1-DEFAULT";\n'
         return wholestring
 
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+        from ..utils.bdsim import magnet_frame_workaround
+
+        # always an sbend: BDSIM's rbend takes the chord length and measures e1/e2
+        # from the chord's normal, where LAURA's are sbend (MAD-X) values
+        obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        obj, keywords = magnet_frame_workaround(obj, keywords, integrator_set)
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+
+
+class DecapoleTranslator(MagnetTranslator):
+    """
+    Translator for a :class:`~laura.models.element.Decapole`.
+
+    Only exists to give MAD-X, which has no ``DECAPOLE`` element, a faithful
+    export: a thin ``MULTIPOLE`` carrying the integrated strengths in ``knl``
+    (or ``ksl`` when the magnet is skew). Every other code has a decapole of its
+    own and uses the inherited behaviour.
+    """
+
+    def to_madx(self, at: float = None) -> str:
+        """
+        Generates a MAD-X ``MULTIPOLE`` for this decapole.
+
+        MAD-X's ``MULTIPOLE`` is a thin lens: the physical length is carried by
+        ``lrad`` (used for the synchrotron-radiation calculation) rather than
+        ``l``. Strengths are the integrated ``KnL`` values, dipole through
+        decapole, so the decapole term lands in the fifth slot.
+
+        Parameters
+        ----------
+        at: float, optional
+            S-position at which to place the element inside a MAD-X ``SEQUENCE``;
+            see :meth:`~laura.translator.converters.base.BaseElementTranslator.to_madx`.
+
+        Returns
+        -------
+        str
+            String representation of the element for MAD-X
+        """
+        self.start_write()
+        string = sanitize_string(self.name) + ": multipole"
+        if self.magnetic.length:
+            string += f", lrad = {self.magnetic.length}"
+        strengths = [self.magnetic.KnL(order) for order in range(5)]
+        keyword = "ksl" if getattr(self.magnetic, "skew", False) else "knl"
+        string += f", {keyword} = {{{', '.join(str(v) for v in strengths)}}}"
+        if self.roll:
+            string += f", tilt = {self.roll}"
+        if at is not None:
+            string += f", at = {at}"
+        return string + ";\n"
+
 
 class SolenoidTranslator(BaseElementTranslator):
     """
@@ -1185,6 +1272,50 @@ class SolenoidTranslator(BaseElementTranslator):
             )
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+        Brho: float = 0.0,
+    ) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        BDSIM's ``ks`` is normalised [1/m], so it needs the rigidity. (Its
+        ``B`` [T] alternative is mis-scaled in BDSIM 1.7.7, 1000 times too weak.)
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; unused here.
+        Brho: float, optional
+                Magnetic rigidity [T*m] of the reference particle.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+
+        self.Brho = Brho or self.Brho
+        obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        if "ks" in keywords:
+            self._check_rigidity("BDSIM")
+            if self.Brho:
+                keywords["ks"] = self.magnetic.field_amplitude / self.Brho
+            else:
+                keywords.pop("ks")
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
 
 
 class WigglerTranslator(BaseElementTranslator):

@@ -14,4 +14,6 @@ genesis_unsupported = [
     "TwissMatch",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
+    "Crystal",
 ]

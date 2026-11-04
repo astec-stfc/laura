@@ -26,6 +26,11 @@ linkml-lint "$SCHEMA" || echo "  (lint warnings above are advisory; continuing)"
 
 echo "Generating JSON Schema..."
 gen-json-schema "$SCHEMA" --indent 2 > "$OUT_DIR/laura_element.schema.json"
+# gen-json-schema emits the slot's own range as a sibling "type" next to the
+# "anyOf" it generates for an any_of slot, and JSON Schema ANDs siblings -- so
+# every branch except the one matching that type is dead. See
+# postprocess_json_schema.py.
+python "laura/schema/postprocess_json_schema.py" "$OUT_DIR/laura_element.schema.json"
 
 echo "Generating OWL ontology..."
 gen-owl "$SCHEMA" \
