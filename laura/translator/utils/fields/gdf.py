@@ -36,7 +36,13 @@ def write_gdf_field_file(self) -> str:
     str:
         The name of the GDF field file.
     """
-    gdf_file = self._output_filename(extension=".gdf")
+    travelling = (
+        self.field_type == "1DElectroDynamic" and self.cavity_type == "TravellingWave"
+    )
+    # the TW mock-up spans the whole structure, so structures sharing a map need their own file
+    gdf_file = self._output_filename(
+        extension=f"_{self.n_cells:g}cells.gdf" if travelling else ".gdf"
+    )
     blocks = None
     zdata = self.z.value.val
     if self.field_type in _GDF_BLOCKS:
@@ -46,30 +52,8 @@ def write_gdf_field_file(self) -> str:
             blocks = union(blocks)
     elif self.field_type == "1DElectroDynamic":
         ezdata = self.Ez.value.val
-        fielddata = np.array([zdata, ezdata]).transpose()
-        if self.cavity_type == "TravellingWave":
-            startpos = list(zdata).index(self.start_cell_z)
-            halfcell1 = 1.0 * fielddata[:startpos]
-            halfcell2 = 1.0 * halfcell1[::-1]
-            halfcell1[:, 1] /= max(halfcell1[:, 1])
-            halfcell2[:, 0] = halfcell2[:, 0][::-1]
-            halfcell2[:, 1] /= max(halfcell2[:, 1])
-            halfcell1end = halfcell1[-1, 0]
-            zstep = zdata[1] - zdata[0]
-            lambda_rf = speed_of_light / self.frequency
-            ncells = (self.n_cells - 1) * self.mode_numerator / self.mode_denominator
-            nsteps = int(np.floor((ncells) * lambda_rf / zstep))
-            middle_rf = np.array(
-                [
-                    [
-                        (x * zstep + halfcell1end + zstep),
-                        np.cos((2 * np.pi / lambda_rf) * (x * zstep)),
-                    ]
-                    for x in range(0, nsteps + 1)
-                ]
-            )
-            halfcell2[:, 0] += middle_rf[-1, 0] + zstep
-            zdata, ezdata = np.concatenate([halfcell1, middle_rf, halfcell2]).transpose()
+        if travelling:
+            zdata, ezdata = gpt_tw_mockup(self)
         blocks = union(
             [
                 {"name": "z", "value": zdata},
@@ -79,8 +63,53 @@ def write_gdf_field_file(self) -> str:
     else:
         warn(f"Field type {self.field_type} not supported for GPT")
     if blocks is not None:
+        # print(blocks)
+        # print(union(blocks))
         easygdf.save(gdf_file, blocks)
     return gdf_file
+
+
+def gpt_tw_mockup(self) -> tuple:
+    """
+    Build GPT's standing-wave stand-in for a travelling-wave structure: the map's
+    input coupler half-cell, ``n_cells - 1`` cells of ``cos(kz)``, then the coupler
+    mirrored, each part normalised to unit peak.
+
+    Parameters
+    ----------
+    self: :class:`~laura.translator.utils.fields.FieldMap`
+        A travelling-wave field map
+
+    Returns
+    -------
+    tuple:
+        z [m] and normalised Ez of the whole structure
+    """
+    zdata = self.z.value.val
+    fielddata = np.array([zdata, self.Ez.value.val]).transpose()
+    startpos = list(zdata).index(self.start_cell_z)
+    halfcell1 = 1.0 * fielddata[:startpos]
+    halfcell2 = 1.0 * halfcell1[::-1]
+    halfcell1[:, 1] /= max(halfcell1[:, 1])
+    halfcell2[:, 0] = halfcell2[:, 0][::-1]
+    halfcell2[:, 1] /= max(halfcell2[:, 1])
+    halfcell1end = halfcell1[-1, 0]
+    zstep = zdata[1] - zdata[0]
+    lambda_rf = speed_of_light / self.frequency
+    ncells = (self.n_cells - 1) * self.mode_numerator / self.mode_denominator
+    nsteps = int(np.floor((ncells) * lambda_rf / zstep))
+    middle_rf = np.array(
+        [
+            [
+                (x * zstep + halfcell1end + zstep),
+                np.cos((2 * np.pi / lambda_rf) * (x * zstep)),
+            ]
+            for x in range(0, nsteps + 1)
+        ]
+    )
+    halfcell2[:, 0] += middle_rf[-1, 0] + zstep
+    zdata, ezdata = np.concatenate([halfcell1, middle_rf, halfcell2]).transpose()
+    return zdata, ezdata
 
 
 def union(blocks: List) -> List:

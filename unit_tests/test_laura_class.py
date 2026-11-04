@@ -288,6 +288,55 @@ class TestDriftsAndSPos:
         spos = machine.get_elements_s_pos()
         assert spos[f"M{n - 1}"] == pytest.approx((n - 1) * gap, abs=2e-6)
 
+    def test_overlapping_elements_get_negative_drift(self):
+        # LCLS gun: SOL1 starts 39 mm inside the gun, which used to count as a +39 mm drift
+        elems = [
+            Quadrupole(
+                name="GUN", machine_area="G", magnetic={"length": 0.135, "k1l": 0.0},
+                physical={"length": 0.135, "middle": {"x": 0.0, "y": 0.0, "z": 0.0675}},
+            ),
+            Solenoid(
+                name="SOL1", machine_area="G", magnetic={"length": 0.2},
+                physical={"length": 0.2, "middle": {"x": 0.0, "y": 0.0, "z": 0.19601}},
+            ),
+            Marker(
+                name="VV01", machine_area="G", hardware_class="Marker",
+                physical={"middle": {"x": 0.0, "y": 0.0, "z": 0.37452}},
+            ),
+        ]
+        machine = LAURA(
+            element_list=elems,
+            layout={"default_layout": "line1", "layouts": {"line1": ["G"]}},
+            section={"sections": {"G": ["GUN", "SOL1", "VV01"]}},
+        )
+        drifts = machine.create_drifts()
+        assert list(drifts) == ["GUN", "drift1", "SOL1", "drift2", "VV01"]
+        assert drifts["drift1"].physical.length == pytest.approx(-0.03899)
+        assert machine.get_elements_s_pos()["VV01"] == pytest.approx(0.37452)
+        assert machine.elements["VV01"].physical.s == pytest.approx(0.37452)
+
+    @pytest.mark.parametrize("offset", [1e-10, -1e-10])
+    def test_touching_elements_do_not_get_a_negative_drift(self, offset):
+        """A step of ~1e-10 m between elements that touch is round-off: its sign must not make a negative drift."""
+        elems = [
+            Quadrupole(
+                name="Q1", machine_area="G", magnetic={"length": 0.2, "k1l": 0.0},
+                physical={"length": 0.2, "middle": {"x": 0.0, "y": 0.0, "z": 0.1}},
+            ),
+            Quadrupole(
+                name="Q2", machine_area="G", magnetic={"length": 0.2, "k1l": 0.0},
+                physical={"length": 0.2, "middle": {"x": 0.0, "y": 0.0, "z": 0.3 + offset}},
+            ),
+        ]
+        machine = LAURA(
+            element_list=elems,
+            layout={"default_layout": "line1", "layouts": {"line1": ["G"]}},
+            section={"sections": {"G": ["Q1", "Q2"]}},
+        )
+        lengths = [d.physical.length for name, d in machine.create_drifts().items() if name.startswith("drift")]
+        assert all(length >= 0 for length in lengths) and sum(lengths) < 1e-6
+
+
 
 class TestYAMLRoundTrip:
     def test_export_and_reload(self, fodo_machine, tmp_path):
