@@ -1221,12 +1221,12 @@ class SectionLatticeTranslator(SectionLattice):
         return volume
 
     @classmethod
-    def _rftrack_placements(cls, d, objs, origin, R0) -> list:
+    def _rftrack_placements(cls, d, objs, origin, R0) -> list: # noqa N803
         """``(x, y, z, roll, pitch, yaw)`` [m, rad] of each of ``d``'s RF-Track
         ``objs`` in the Volume frame;
         a list is laid end to end, but a bend's
         ``[arc, entrance edge, exit edge]`` has its edges just outside its faces."""
-        R = d.physical.rotation_matrix
+        R = d.physical.rotation_matrix # noqa N803
 
         def placed(point, rotation):
             axis = R0.T @ rotation[:, 2]

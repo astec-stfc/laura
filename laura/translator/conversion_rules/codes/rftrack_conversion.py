@@ -118,13 +118,13 @@ def autophase_volume(volume, ref, options) -> float:
     for cavity, phased in zip(cavities, probe.get_rf_elements()):
         cavity.set_t0(phased.get_t0())
     probe.track(ref, options)
-    start_z, start_P, charge = ref.get_phase_space("%Z %Pc %Q")[0]
+    start_z, start_P, charge = ref.get_phase_space("%Z %Pc %Q")[0] # noqa N803
     for screen, bunch in zip(probe.get_screens(), probe.get_bunch_at_screens()):
         magnet = magnets[int(screen.get_name())]
         if bunch.size():
-            P = bunch.get_phase_space("%Pc")[0, 0]
+            P = bunch.get_phase_space("%Pc")[0, 0] # noqa N803
         elif magnet.get_position().get_origin()[2, 0] <= start_z + 1e-6:
-            P = start_P  # at the start: the reference never crosses its screen
+            P = start_P  # noqa N803
         else:
             raise RuntimeError(
                 f"RF-Track reference particle lost before {magnet.get_name()}"
@@ -238,7 +238,7 @@ VOLUME_EDGE_LENGTH = 1e-3
 
 
 def _volume_sbend_args(t, P_Q: float) -> tuple:
-    R, R_end = t.physical.rotation_matrix, t.physical.end_rotation_matrix
+    R, R_end = t.physical.rotation_matrix, t.physical.end_rotation_matrix # noqa N803
     exit_axis = R.T @ R_end[:, 2]
     turn = float(np.arctan2(exit_axis[0], exit_axis[2]))
     return (t.physical.length, -turn, P_Q, 0.0, 0.0)
