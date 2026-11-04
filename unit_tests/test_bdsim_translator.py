@@ -16,6 +16,7 @@ silently:
 """
 
 import math
+import os
 import warnings
 
 import pytest
@@ -841,7 +842,7 @@ class TestCrystal:
     def test_a_definition_and_the_collimator_holding_it(self):
         definition, col = _translate(self._crystal()).to_bdsim()
         assert definition.objecttype == "crystal" and definition.name == "CRY_1_crystal"
-        assert 'data="/data/Si220pl"' in str(definition)
+        assert f'data="{os.path.abspath("/data/Si220pl")}"' in str(definition)
         assert definition["bendingAngleYAxis"] == 900e-6 and definition["spaceGroup"] == 227
         gmad = str(col)
         assert gmad.startswith("CRY_1: crystalcol,")
@@ -860,7 +861,7 @@ class TestCrystal:
         translator = _translate(self._crystal(data_file="crystals/Si220pl"))
         translator.master_lattice = "/lattices/CLARA"
         definition, _ = translator.to_bdsim()
-        assert "/lattices/CLARA/crystals/Si220pl" in str(definition)
+        assert os.path.abspath("/lattices/CLARA/crystals/Si220pl") in str(definition)
 
     def test_bdsim_needs_its_data_and_material(self):
         crystal = self._crystal()
