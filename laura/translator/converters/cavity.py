@@ -7,6 +7,7 @@ from laura.models.rf import RFCavityElement
 from laura.models.simulation import RFCavitySimulationElement
 from laura.translator.utils.fields import FieldMap
 from laura.translator.utils.fields.gdf import gpt_tw_mockup
+from laura.translator.utils.fields.opal import opal_tw_window
 
 from ..converters import (
     elements_bmad,
@@ -657,10 +658,12 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convert_type_opal(self.hardware_type)
-        if self.structure_type == "TravellingWave":
+        if etype == "rfcavity" and self.structure_type == "TravellingWave":
             etype = "travelingwave"
         wholestring = f"{self.name.replace('-', '_')}: {etype}"
         if etype.lower() == "drift" or self.simulation.field_definition is None:
+            return ""
+        if not self.field_amplitude:
             return ""
         for key, value in self._dump_items(
             self._convert_keyword_opal,
@@ -680,6 +683,9 @@ class RFCavityTranslator(BaseElementTranslator):
                     self.simulation.field_definition.mode_denominator
                 )
                 wholestring += f", mode = {mode}"
+                field = self.simulation.field_definition
+                if field.start_cell_z is not None:
+                    sval += opal_tw_window(field, field.frequency)[0]
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
