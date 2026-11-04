@@ -58,7 +58,7 @@ from pydantic import (
 )
 
 
-metamodel_version = "1.12.0"
+metamodel_version = "1.11.0"
 version = "0.1.0"
 
 
@@ -715,7 +715,7 @@ class _ControlVariableBase(ConfiguredBaseModel):
     value: Optional[Union[float, int, str]] = Field(default=None, description="""Last-read value. Scalar for most control types; a list for ``waveform``.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'integer'}, {'range': 'string'}],
          'domain_of': ['ControlVariable']} })
     """Last-read value. Scalar for most control types; a list for ``waveform``."""
-    control_type: Optional[ControlTypeEnum] = Field(default=ControlTypeEnum("statistical"), description="""Kind of quantity this variable carries. Accepted in YAML as ``type``.""", validation_alias=AliasChoices('control_type', 'type'), json_schema_extra = { "linkml_meta": {'aliases': ['type'],
+    control_type: Optional[ControlTypeEnum] = Field(default=ControlTypeEnum.statistical, description="""Kind of quantity this variable carries. Accepted in YAML as ``type``.""", validation_alias=AliasChoices('control_type', 'type'), json_schema_extra = { "linkml_meta": {'aliases': ['type'],
          'domain_of': ['ControlVariable'],
          'ifabsent': 'string(statistical)'} })
     """Kind of quantity this variable carries. Accepted in YAML as ``type``."""
@@ -832,8 +832,8 @@ class _CrystalElementBase(ConfiguredBaseModel):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CrystalElement',
          'from_schema': 'https://w3id.org/laura/schema/elements'})
 
-    data_file: Optional[str] = Field(default=None, description="""Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``): absolute, relative to the lattice, or with ``$master_lattice$``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement']} })
-    """Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``): absolute, relative to the lattice, or with ``$master_lattice$``."""
+    data_file: Optional[str] = Field(default=None, description="""Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``), absolute or relative to the lattice. Needed to translate it to BDSIM.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement']} })
+    """Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``), absolute or relative to the lattice. Needed to translate it to BDSIM."""
     bending_angle: float = Field(default=0.0, description="""Horizontal bending angle of the crystal's planes over its length [rad]; the angle a fully channelled particle is deflected by.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement'], 'ifabsent': 'float(0.0)'} })
     """Horizontal bending angle of the crystal's planes over its length [rad]; the angle a fully channelled particle is deflected by."""
     entrance_angle: float = Field(default=0.0, description="""Angle of the crystal planes at its entrance to the beam axis [rad]: 0 aligns them for channelling; beyond the critical angle, but within the bend, gives volume reflection; beyond the bend, amorphous scattering.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement'], 'ifabsent': 'float(0.0)'} })
@@ -971,7 +971,7 @@ class _SampledWaveformBase(ConfiguredBaseModel):
     """Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as ``factor``."""
     factor: list[float] = Field(default_factory=list, description="""Strength at each of the times in ``time``, as a fraction of the element's nominal strength; 1.0 is full strength.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SampledWaveform', 'WakefieldSimulationElement']} })
     """Strength at each of the times in ``time``, as a fraction of the element's nominal strength; 1.0 is full strength."""
-    interpolation: Optional[WaveformInterpolationEnum] = Field(default=WaveformInterpolationEnum("linear"), description="""How the strength behaves between the sampled knots.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SampledWaveform'],
+    interpolation: Optional[WaveformInterpolationEnum] = Field(default=WaveformInterpolationEnum.linear, description="""How the strength behaves between the sampled knots.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SampledWaveform'],
          'ifabsent': 'WaveformInterpolationEnum(linear)'} })
     """How the strength behaves between the sampled knots."""
 
@@ -2332,7 +2332,7 @@ class _MagneticElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0.037)',
          'unit': {'ucum_code': 'm'}} })
     """Magnet bore radius [m]."""
-    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum("Horizontal"), description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
+    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum.Horizontal, description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
     """Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."""
     width: float = Field(default=0.2, description="""Physical width of the magnet in the bending plane [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.2)',
@@ -3087,7 +3087,7 @@ class _LaserElementBase(ConfiguredBaseModel):
          'from_schema': 'https://w3id.org/laura/schema/laser_plasma',
          'in_subset': ['laser_properties']})
 
-    role: Optional[LaserRoleEnum] = Field(default=LaserRoleEnum("driver"), description="""Whether the laser drives the wake or only injects electrons into a wake driven by the beam.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'string(driver)'} })
+    role: Optional[LaserRoleEnum] = Field(default=LaserRoleEnum.driver, description="""Whether the laser drives the wake or only injects electrons into a wake driven by the beam.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'string(driver)'} })
     """Whether the laser drives the wake or only injects electrons into a wake driven by the beam."""
     a0: Optional[float] = Field(default=None, description="""Peak normalised vector potential. When set it is used as-is; otherwise it is derived from pulse_energy, waist and pulse_duration_fwhm assuming a Gaussian pulse.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement']} })
     """Peak normalised vector potential. When set it is used as-is; otherwise it is derived from pulse_energy, waist and pulse_duration_fwhm assuming a Gaussian pulse."""
@@ -3113,9 +3113,9 @@ class _LaserElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'rad'}} })
     """Carrier-envelope phase [rad]."""
-    polarization: Optional[LaserPolarizationEnum] = Field(default=LaserPolarizationEnum("linear"), description="""Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'string(linear)'} })
+    polarization: Optional[LaserPolarizationEnum] = Field(default=LaserPolarizationEnum.linear, description="""Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'string(linear)'} })
     """Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise."""
-    profile_type: Optional[LaserProfileTypeEnum] = Field(default=LaserProfileTypeEnum("gaussian"), description="""Transverse intensity profile model.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'string(gaussian)'} })
+    profile_type: Optional[LaserProfileTypeEnum] = Field(default=LaserProfileTypeEnum.gaussian, description="""Transverse intensity profile model.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'string(gaussian)'} })
     """Transverse intensity profile model."""
     laguerre_polynomial_order_p: int = Field(default=0, description="""Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'int(0)'} })
     """Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``)."""
@@ -3263,7 +3263,7 @@ class _DipoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.037)',
          'unit': {'ucum_code': 'm'}} })
     """Magnet bore radius [m]."""
-    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum("Horizontal"), description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
+    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum.Horizontal, description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
     """Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."""
     width: float = Field(default=0.2, description="""Physical width of the magnet in the bending plane [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.2)',
@@ -3342,7 +3342,7 @@ class _QuadrupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.037)',
          'unit': {'ucum_code': 'm'}} })
     """Magnet bore radius [m]."""
-    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum("Horizontal"), description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
+    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum.Horizontal, description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
     """Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."""
     width: float = Field(default=0.2, description="""Physical width of the magnet in the bending plane [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.2)',
@@ -3424,7 +3424,7 @@ class _SextupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.037)',
          'unit': {'ucum_code': 'm'}} })
     """Magnet bore radius [m]."""
-    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum("Horizontal"), description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
+    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum.Horizontal, description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
     """Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."""
     width: float = Field(default=0.2, description="""Physical width of the magnet in the bending plane [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.2)',
@@ -3506,7 +3506,7 @@ class _OctupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.037)',
          'unit': {'ucum_code': 'm'}} })
     """Magnet bore radius [m]."""
-    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum("Horizontal"), description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
+    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum.Horizontal, description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
     """Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."""
     width: float = Field(default=0.2, description="""Physical width of the magnet in the bending plane [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.2)',
@@ -3588,7 +3588,7 @@ class _DecapoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.037)',
          'unit': {'ucum_code': 'm'}} })
     """Magnet bore radius [m]."""
-    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum("Horizontal"), description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
+    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum.Horizontal, description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
     """Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."""
     width: float = Field(default=0.2, description="""Physical width of the magnet in the bending plane [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.2)',
@@ -3668,7 +3668,7 @@ class _CorrectorMagnetBase(_DipoleMagnetBase):
          'ifabsent': 'float(0.037)',
          'unit': {'ucum_code': 'm'}} })
     """Magnet bore radius [m]."""
-    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum("Horizontal"), description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
+    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum.Horizontal, description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
     """Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."""
     width: float = Field(default=0.2, description="""Physical width of the magnet in the bending plane [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.2)',
@@ -3840,7 +3840,7 @@ class _CombinedSolenoidQuadrupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.037)',
          'unit': {'ucum_code': 'm'}} })
     """Magnet bore radius [m]."""
-    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum("Horizontal"), description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
+    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum.Horizontal, description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
     """Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."""
     width: float = Field(default=0.2, description="""Physical width of the magnet in the bending plane [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.2)',
@@ -5789,7 +5789,7 @@ class _TargetBase(_PhysicalAcceleratorElementBase):
 
 class _CrystalBase(_PhysicalAcceleratorElementBase):
     """
-    A bent crystal in the beam, which channels particles along its planes (or, off alignment, reflects or scatters them). Its thickness along the beam is ``physical.length``, and it is centred on the beam axis.
+    A bent crystal in the beam, which channels particles along its planes (or, off alignment, reflects or scatters them). Its thickness along the beam is ``physical.length``, and it is centred on the beam axis. Modelled by BDSIM, as a ``crystalcol`` with Geant4 channelling (physics list ``completechannelling``); codes without material interactions treat it as a drift.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Crystal',
          'from_schema': 'https://w3id.org/laura/schema/elements',
@@ -7102,8 +7102,6 @@ class _PlasmaLensBase(_PhysicalAcceleratorElementBase):
     """Position, rotation, and length data."""
     aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
     """Aperture of the element."""
-    material: Optional[str] = Field(default=None, description="""Element material.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'PhysicalAcceleratorElement']} })
-    """Element material."""
     simulation: Optional[_PlasmaSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })

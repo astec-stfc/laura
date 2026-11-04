@@ -778,14 +778,7 @@
           ]
         },
         "shape": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ApertureShapeEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/ApertureShapeEnum",
           "description": "Cross-sectional aperture shape."
         },
         "vertical_size": {
@@ -3567,14 +3560,7 @@
           ]
         },
         "plane": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BendingPlaneEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/BendingPlaneEnum",
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -3660,14 +3646,7 @@
       "description": "A single process-variable entry mapping a logical name to a control-system PV identifier.",
       "properties": {
         "control_type": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlTypeEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/ControlTypeEnum",
           "description": "Kind of quantity this variable carries. Accepted in YAML as ``type``."
         },
         "description": {
@@ -3692,14 +3671,7 @@
           ]
         },
         "element_dtype": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/NumericDtypeEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/NumericDtypeEnum",
           "description": "Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container."
         },
         "expression": {
@@ -3991,14 +3963,7 @@
           ]
         },
         "plane": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BendingPlaneEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/BendingPlaneEnum",
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -4275,286 +4240,6 @@
         "hardware_class"
       ],
       "title": "CrabCavity",
-      "type": "object"
-    },
-    "Crystal": {
-      "additionalProperties": false,
-      "description": "A bent crystal in the beam, which channels particles along its planes (or, off alignment, reflects or scatters them). Its thickness along the beam is ``physical.length``, and it is centred on the beam axis.",
-      "properties": {
-        "alias": {
-          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "aperture": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ApertureElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Aperture of the element."
-        },
-        "controls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlsInformation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Control-system process-variable definitions."
-        },
-        "crystal": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/CrystalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Crystal geometry, orientation and lattice."
-        },
-        "downstream": {
-          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "electrical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ElectricalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Power-supply electrical limits."
-        },
-        "hardware_class": {
-          "$ref": "#/$defs/HardwareClassEnum",
-          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
-        },
-        "hardware_model": {
-          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hardware_type": {
-          "const": "Crystal",
-          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "inherits_from": {
-          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "inputs": {
-          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
-          "items": {
-            "$ref": "#/$defs/IOTypeEnum"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "machine_area": {
-          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "manufacturer": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ManufacturerElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Manufacturer and serial-number data."
-        },
-        "material": {
-          "description": "Material of the crystal, by a name Geant4 knows (``G4_Si``, ``G4_Ge``...). Needed to translate it to BDSIM.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "name": {
-          "description": "Unique element name within the machine.",
-          "type": "string"
-        },
-        "outputs": {
-          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
-          "items": {
-            "$ref": "#/$defs/IOTypeEnum"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "physical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhysicalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Position, rotation, and length data."
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ReferenceElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Links to design drawings and files."
-        },
-        "simulation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/SimulationElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Simulation / tracking attributes."
-        },
-        "subelement": {
-          "description": "If set, this element is a logical sub-component of the named parent element.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "upstream": {
-          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "virtual_name": {
-          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name",
-        "hardware_class"
-      ],
-      "title": "Crystal",
-      "type": "object"
-    },
-    "CrystalElement": {
-      "additionalProperties": false,
-      "description": "Geometry, orientation and lattice of a bent crystal. The lattice defaults are silicon's (diamond cubic).",
-      "properties": {
-        "bending_angle": {
-          "description": "Horizontal bending angle of the crystal's planes over its length [rad]; the angle a fully channelled particle is deflected by.",
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "data_file": {
-          "description": "Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``): absolute, relative to the lattice, or with ``$master_lattice$``.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "entrance_angle": {
-          "description": "Angle of the crystal planes at its entrance to the beam axis [rad]: 0 aligns them for channelling; beyond the critical angle, but within the bend, gives volume reflection; beyond the bend, amorphous scattering.",
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "horizontal_size": {
-          "description": "Full horizontal size of the crystal [m].",
-          "minimum": 0.0,
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "lattice_angles": {
-          "description": "Unit-cell angles alpha, beta, gamma [rad]. Right angles if unset.",
-          "items": {
-            "type": "number"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "lattice_constants": {
-          "description": "Unit-cell edges a, b, c [m]. Silicon's if unset.",
-          "items": {
-            "type": "number"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "space_group": {
-          "description": "Crystallographic space group number. Silicon's (227) if unset.",
-          "type": [
-            "integer",
-            "null"
-          ]
-        },
-        "vertical_size": {
-          "description": "Full vertical size of the crystal [m].",
-          "minimum": 0.0,
-          "type": [
-            "number",
-            "null"
-          ]
-        }
-      },
-      "title": "CrystalElement",
       "type": "object"
     },
     "Decapole": {
@@ -4925,14 +4610,7 @@
           ]
         },
         "plane": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BendingPlaneEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/BendingPlaneEnum",
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -5776,14 +5454,7 @@
           ]
         },
         "plane": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BendingPlaneEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/BendingPlaneEnum",
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -7150,8 +6821,7 @@
         "ACDipole",
         "Wire",
         "BeamBeam",
-        "RFMultipole",
-        "Target"
+        "RFMultipole"
       ],
       "title": "HardwareClassEnum",
       "type": "string"
@@ -8337,14 +8007,7 @@
           ]
         },
         "polarization": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/LaserPolarizationEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/LaserPolarizationEnum",
           "description": "Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise."
         },
         "polarization_angle": {
@@ -8355,14 +8018,7 @@
           ]
         },
         "profile_type": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/LaserProfileTypeEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/LaserProfileTypeEnum",
           "description": "Transverse intensity profile model."
         },
         "propagation_direction": {
@@ -8391,14 +8047,7 @@
           ]
         },
         "role": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/LaserRoleEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/LaserRoleEnum",
           "description": "Whether the laser drives the wake or only injects electrons into a wake driven by the beam."
         },
         "temporal_chirp_2nd_order": {
@@ -9652,14 +9301,7 @@
       "description": "Top-level container for a complete accelerator lattice: elements, sections, layouts, and named lattice configurations.",
       "properties": {
         "beampipe_aperture_type": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BeampipeShapeEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/BeampipeShapeEnum",
           "description": "Cross-sectional beam pipe aperture shape."
         },
         "beampipe_material": {
@@ -10359,14 +10001,7 @@
           ]
         },
         "plane": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BendingPlaneEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/BendingPlaneEnum",
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -11835,14 +11470,7 @@
           ]
         },
         "plane": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BendingPlaneEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/BendingPlaneEnum",
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -13234,13 +12862,6 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
-        "material": {
-          "description": "Element material.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -14239,14 +13860,7 @@
           ]
         },
         "plane": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BendingPlaneEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/BendingPlaneEnum",
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -16380,14 +15994,7 @@
           ]
         },
         "interpolation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/WaveformInterpolationEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/WaveformInterpolationEnum",
           "description": "How the strength behaves between the sampled knots."
         },
         "time": {
@@ -16656,14 +16263,7 @@
       "description": "An ordered list of element names defining a contiguous beamline section.",
       "properties": {
         "beampipe_aperture_type": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BeampipeShapeEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/BeampipeShapeEnum",
           "description": "Cross-sectional beam pipe aperture shape."
         },
         "beampipe_material": {
@@ -16701,14 +16301,7 @@
           ]
         },
         "geometry": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/LatticeGeometryEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/LatticeGeometryEnum",
           "description": "Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent."
         },
         "master_lattice": {
@@ -17116,14 +16709,7 @@
           ]
         },
         "plane": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BendingPlaneEnum"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/BendingPlaneEnum",
           "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
@@ -18401,237 +17987,6 @@
         "hardware_class"
       ],
       "title": "StandardElement",
-      "type": "object"
-    },
-    "Target": {
-      "additionalProperties": false,
-      "description": "A block of material in the beam, which the beam passes through and interacts with: a radiator, a converter, a foil. Its thickness along the beam is ``physical.length``. Modelled by BDSIM;  codes without material interactions treat it as a drift.",
-      "properties": {
-        "alias": {
-          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "aperture": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ApertureElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Aperture of the element."
-        },
-        "controls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlsInformation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Control-system process-variable definitions."
-        },
-        "downstream": {
-          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "electrical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ElectricalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Power-supply electrical limits."
-        },
-        "hardware_class": {
-          "$ref": "#/$defs/HardwareClassEnum",
-          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
-        },
-        "hardware_model": {
-          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hardware_type": {
-          "const": "Target",
-          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "inherits_from": {
-          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "inputs": {
-          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
-          "items": {
-            "$ref": "#/$defs/IOTypeEnum"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "machine_area": {
-          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "manufacturer": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ManufacturerElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Manufacturer and serial-number data."
-        },
-        "material": {
-          "description": "Material of the block, by a name BDSIM / Geant4 knows (``tungsten``, ``copper``, ``G4_W``...).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "name": {
-          "description": "Unique element name within the machine.",
-          "type": "string"
-        },
-        "outputs": {
-          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
-          "items": {
-            "$ref": "#/$defs/IOTypeEnum"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "physical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhysicalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Position, rotation, and length data."
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ReferenceElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Links to design drawings and files."
-        },
-        "simulation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/SimulationElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Simulation / tracking attributes."
-        },
-        "subelement": {
-          "description": "If set, this element is a logical sub-component of the named parent element.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "target": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TargetElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Transverse shape of the block."
-        },
-        "upstream": {
-          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "virtual_name": {
-          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name",
-        "hardware_class"
-      ],
-      "title": "Target",
-      "type": "object"
-    },
-    "TargetElement": {
-      "additionalProperties": false,
-      "description": "Transverse shape of a target block.",
-      "properties": {
-        "circular": {
-          "description": "A round block (a cylinder along the beam) rather than a square one.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "transverse_size": {
-          "description": "Full transverse size of the block [m]: the side of a square block, or the diameter of a round one. BDSIM's default if unset.",
-          "minimum": 0.0,
-          "type": [
-            "number",
-            "null"
-          ]
-        }
-      },
-      "title": "TargetElement",
       "type": "object"
     },
     "Trace": {
@@ -21617,9 +20972,9 @@
   },
   "$id": "https://w3id.org/laura/schema",
   "$schema": "https://json-schema.org/draft/2019-09/schema",
-  "additionalProperties": false,
+  "additionalProperties": true,
   "description": "Root base class for all LAURA accelerator elements.  Every lattice element is an instance of a concrete subclass identified by ``hardware_type``.",
-  "metamodel_version": "1.12.0",
+  "metamodel_version": "1.11.0",
   "properties": {
     "alias": {
       "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",

@@ -1,4 +1,4 @@
-# metamodel_version: 1.12.0
+# metamodel_version: 1.11.0
 # version: 0.1.0
 enum ApertureShapeEnum
   {
@@ -58,7 +58,6 @@ enum HardwareClassEnum
     Wire
     BeamBeam
     RFMultipole
-    Target
   }
 
 enum IOTypeEnum
@@ -591,44 +590,6 @@ type CrabCavity
     simulation: RFCavitySimulationElement
     cavity: RFDeflectingCavityElement
     hardwareType: String
-  }
-
-type Crystal
-  {
-    name: String!
-    hardwareClass: HardwareClassEnum!
-    hardwareModel: String
-    machineArea: String
-    virtualName: String
-    alias: [String]
-    subelement: String
-    inheritsFrom: String
-    inputs: [IOTypeEnum]
-    outputs: [IOTypeEnum]
-    upstream: [AcceleratorElement]
-    downstream: [AcceleratorElement]
-    simulation: SimulationElement
-    electrical: ElectricalElement
-    manufacturer: ManufacturerElement
-    controls: ControlsInformation
-    reference: ReferenceElement
-    physical: PhysicalElement
-    aperture: ApertureElement
-    crystal: CrystalElement
-    hardwareType: String
-    material: String
-  }
-
-type CrystalElement
-  {
-    dataFile: String
-    bendingAngle: Float
-    entranceAngle: Float
-    horizontalSize: Float
-    verticalSize: Float
-    latticeConstants: [Float]
-    latticeAngles: [Float]
-    spaceGroup: Int
   }
 
 type DegaussableElement
@@ -1594,7 +1555,6 @@ type PlasmaLens
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
-    material: String
     focusingStrength: Float
     wakefields: Boolean
     plasma: PlasmaElement
@@ -2137,38 +2097,6 @@ type StandardElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
     reference: ReferenceElement
-  }
-
-type Target
-  {
-    name: String!
-    hardwareClass: HardwareClassEnum!
-    hardwareModel: String
-    machineArea: String
-    virtualName: String
-    alias: [String]
-    subelement: String
-    inheritsFrom: String
-    inputs: [IOTypeEnum]
-    outputs: [IOTypeEnum]
-    upstream: [AcceleratorElement]
-    downstream: [AcceleratorElement]
-    simulation: SimulationElement
-    electrical: ElectricalElement
-    manufacturer: ManufacturerElement
-    controls: ControlsInformation
-    reference: ReferenceElement
-    physical: PhysicalElement
-    aperture: ApertureElement
-    target: TargetElement
-    hardwareType: String
-    material: String
-  }
-
-type TargetElement
-  {
-    transverseSize: Float
-    circular: Boolean
   }
 
 type Trace
