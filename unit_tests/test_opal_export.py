@@ -118,6 +118,23 @@ def test_opal_tw_map_is_the_two_periods_opal_reads(tmp_path, monkeypatch):
     assert opal_tw_window(field, FREQUENCY)[0] == pytest.approx(0.08 - WAVELENGTH / 2)
 
 
+@pytest.mark.parametrize("short, accepted", [(0.0005, True), (0.02, False)])
+def test_opal_tw_map_short_of_the_window_by_under_a_step_is_held_not_refused(tmp_path, monkeypatch, short, accepted):
+    """JFEL's TW map is 0.5 mm short of the window at each end, under its 2 mm sample step: the exporter refused it."""
+    monkeypatch.chdir(tmp_path)
+    lo, hi = opal_tw_window(_rf_map(np.linspace(0, 0.3, 3001), np.ones(3001), start_cell_z=0.08), FREQUENCY)
+    z = np.arange(lo + short, hi - short, 0.002)
+    field = _rf_map(z, np.ones(len(z)), start_cell_z=0.08)
+    field.filename = "tw.hdf5"
+    if accepted:
+        lines = open(field.write_field_file(code="opal")).read().split("\n")
+        zs = [float(line.split()[0]) for line in lines[2:] if line.strip()]
+        assert zs[0] == 0.0 and zs[-1] == pytest.approx(2 * WAVELENGTH, abs=0.002)
+    else:
+        with pytest.raises(ValueError, match="TW map spans"):
+            field.write_field_file(code="opal")
+
+
 def test_opal_drops_a_cavity_with_no_field(tmp_path, monkeypatch):
     """OPAL's autophaser rejects a cavity with zero amplitude."""
     monkeypatch.chdir(tmp_path)

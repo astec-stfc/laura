@@ -152,6 +152,15 @@ def test_gpt_screen_after_a_dipole_is_placed_in_its_ccs(tmp_path):
     assert z == pytest.approx(5.1, abs=0.01)
 
 
+def test_gpt_cathode_space_charge_writes_without_sample_interval():
+    """Cathode space charge read a `sample_interval` the class never had, so every
+    GPT run with space charge from a cathode raised AttributeError."""
+    from laura.translator.converters.codes.gpt import GptSpaceCharge
+
+    written = GptSpaceCharge(space_charge_mode="3D", cathode=True).write_gpt()
+    assert written == 'spacecharge3Dmesh("Cathode","RestMaxGamma",1000);\n'
+
+
 def test_gpt_magnets_after_a_cavity_see_the_raised_brho(tmp_path, monkeypatch):
     """Every magnet was scaled to the section's entrance Brho, so at the cathode
     (Brho ~ 1e-6 T m) GPT's linac quads came out at ~1e-5 T/m."""
