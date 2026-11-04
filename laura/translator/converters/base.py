@@ -165,6 +165,10 @@ class BaseElementTranslator(PhysicalBaseElement):
     some attribute conventions -- notably the solenoid ``KS``; see
     :func:`~laura.translator.converters.magnet.SolenoidTranslator.opal_ks`."""
 
+    opal_time_step: float = 1e-12
+    """OPAL ``TRACK`` time step [s];
+    OPAL's own default until :meth:`SectionLatticeTranslator.to_opal` sets it."""
+
     verbose: bool = True
     """Print debug messages and warnings"""
 
@@ -937,13 +941,21 @@ class BaseElementTranslator(PhysicalBaseElement):
         etype = self._convert_type_opal(self.hardware_type)
         if etype.lower() == "drift":
             return ""
+        brho = -(designenergy or 0) * 1e6 / 299792458.0
         wholestring = f"{self.name.replace('-', '_')}: {etype}"
         for key, value in self._dump_items(
             self._convert_keyword_opal,
             elements_opal[etype],
             overrides=self._opal_alignment(),
         ):
-            wholestring += f", {key} = {self._flag(self._angle_token(value))}"
+            value = self._angle_token(value)
+            if (
+                brho
+                and key in ("k1", "k2", "k3", "dk1", "dk2", "dk3")
+                and isinstance(value, (int, float))
+            ):
+                value = value * brho
+            wholestring += f", {key} = {self._flag(value)}"
         if etype == "monitor":
             wholestring += f', OUTFN = "{self.name}_opal"'
         wholestring += f", ELEMEDGE = {sval};\n"
@@ -1950,10 +1962,13 @@ class BaseElementTranslator(PhysicalBaseElement):
             The same parameters
         """
         if self._wakefield_active():
+            cavity = getattr(self, "cavity", None)
             wake = self.generate_field_file_name(
                 self.simulation.wakefield_definition,
                 code="bmad",
                 verbose=getattr(self, "verbose", True),
+                cell_length=self.physical.length
+                / (getattr(cavity, "n_cells", None) or 1),
             )
             if wake:
                 parameters["sr_wake"] = f"call::{wake}"
