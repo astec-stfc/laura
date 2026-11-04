@@ -361,7 +361,7 @@ class FieldMap(BaseModel):
         path = os.path.join(_output_location, pre + extension)
         try:
             return os.path.relpath(path)
-        except ValueError:  # Windows: path and cwd on different drives
+        except ValueError:
             return os.path.abspath(path)
 
     def get_field_data(self, code: str) -> np.ndarray | None:
@@ -387,7 +387,7 @@ class FieldMap(BaseModel):
             )
             return
         if code.lower() in ["astra", "ocelot"]:
-            return astra.generate_astra_field_data(self)
+            return astra.generate_astra_field_data(self, ocelot=code.lower() == "ocelot")
         return None
 
     def write_field_file(
@@ -424,7 +424,7 @@ class FieldMap(BaseModel):
         else:
             self._output_location = os.path.dirname(os.path.dirname(self.filename))
         if code.lower() in ["astra", "ocelot"]:
-            return astra.write_astra_field_file(self)
+            return astra.write_astra_field_file(self, ocelot=code.lower() == "ocelot")
         elif code.lower() in ["sdds", "elegant"]:
             return sdds.write_sdds_field_file(self)
         elif code.lower() in ["gdf", "gpt"]:

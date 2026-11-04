@@ -9,7 +9,7 @@ from .field_parameter import FieldParameter, require_rf, set_field
 d = ",!?/&-:;@'\n \t"
 
 
-def generate_astra_field_data(self) -> np.ndarray:
+def generate_astra_field_data(self, ocelot: bool = False) -> np.ndarray:
     """
     Generate ASTRA-format field data from a
     :class:`~laura.translator.utils.fields.FieldMap`, in a format set by
@@ -22,6 +22,8 @@ def generate_astra_field_data(self) -> np.ndarray:
     ----------
     self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object
+    ocelot: bool
+        Write a longitudinal wake as an Ocelot ``WakeTable``
 
     Returns
     -------
@@ -39,7 +41,8 @@ def generate_astra_field_data(self) -> np.ndarray:
     if self.field_type == "LongitudinalWake":
         wzdata = self.Wz.value.val
         preamble = np.array(
-            [
+            [[1, 0]] * ocelot
+            + [
                 [length, 0],
                 [0, 0],
                 [0, 0],
@@ -147,7 +150,7 @@ def generate_astra_field_data(self) -> np.ndarray:
     return data
 
 
-def write_astra_field_file(self) -> str:
+def write_astra_field_file(self, ocelot: bool = False) -> str:
     """
     Write the field data of a :class:`~laura.translator.utils.fields.FieldMap`
     to an ASTRA-format file at the path given by
@@ -157,14 +160,16 @@ def write_astra_field_file(self) -> str:
     ----------
     self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object
+    ocelot: bool
+        Write Ocelot's variant (see :func:`generate_astra_field_data`) to ``.ocelot``
 
     Returns
     -------
     str:
         The converted filename
     """
-    astra_file = self._output_filename(extension=".astra")
-    data = generate_astra_field_data(self)
+    astra_file = self._output_filename(extension=".ocelot" if ocelot else ".astra")
+    data = generate_astra_field_data(self, ocelot=ocelot)
     if data is not None:
         with open(f"{astra_file}", "w") as f:
             for d in data:
