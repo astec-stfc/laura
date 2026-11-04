@@ -1343,11 +1343,21 @@ class SectionLatticeTranslator(SectionLattice):
                         # Bmad pivots about the centre; xtrack defaults to the entrance
                         misalignment["rot_shift_anchor"] = element.physical.length / 2
                     properties.update(misalignment)
+                # a collimator or aperture absorbs what is outside it at both ends
+                limit = (
+                    element.xsuite_limit()
+                    if isinstance(element, ApertureTranslator)
+                    else None
+                )
+                if limit is not None:
+                    line.append(f"{element.name}_aperture_entry", limit[0](**limit[1]))
                 if any(_is_symbolic(v) for v in properties.values()):
                     env.new(element.name, component, **properties)
                     line.append(element.name)
                 else:
                     line.append(element.name, component(**properties))
+                if limit is not None and element.length > 0:
+                    line.append(f"{element.name}_aperture_exit", limit[0](**limit[1]))
                 element_types[element.name] = element.hardware_type
         line.metadata["laura_element_types"] = element_types
         line.metadata["laura_functional_definitions"] = dict(
