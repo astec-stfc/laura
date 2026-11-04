@@ -30,6 +30,7 @@ from laura.models.element import (
     Wiggler,
     Wire,
 )
+from laura.translator.utils.fields import FieldMap
 
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
@@ -139,6 +140,10 @@ def translate_elements(
             simulation = getattr(elem, "simulation", None)
             if simulation is not None:
                 payload["simulation"] = simulation.model_dump(by_alias=False, exclude_unset=True)
+                for key in ("field_definition", "wakefield_definition"):
+                    field = getattr(simulation, key, None)
+                    if isinstance(field, FieldMap):
+                        payload["simulation"][key] = field.model_copy()
             elem_dict.update({elem.name: translator.model_validate(payload)})
         except Exception:
             raise Exception(

@@ -28,7 +28,7 @@ elegant:
   APContour: apcontour
   Watch_Point: watch
   Marker: watch
-  Wakefield: wake
+  Wakefield: rfcw
   Horizontal_Corrector: hkick
   Vertical_Corrector: vkick
   Combined_Corrector: kicker
@@ -107,8 +107,8 @@ opal:
   RFCavity: rfcavity
   RFDeflectingCavity: drift
   Wakefield: drift
-  Horizontal_Corrector: hkicker
-  Vertical_Corrector: vkicker
+  Horizontal_Corrector: kicker
+  Vertical_Corrector: kicker
   Combined_Corrector: kicker
   Plasma: drift
   PlasmaLens: drift

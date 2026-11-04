@@ -865,14 +865,19 @@ def _wake_model(tmp_path):
 
 
 def test_a_short_range_wake_is_imported_as_sampled_arrays(tmp_path):
-    """Modes are sampled to a grid; a quarter-turn mode gives W(0) = amp_scale*amp."""
+    """Modes are sampled to a grid; a quarter-turn mode gives W(0) = amp_scale*amp,
+    stored per cell with z >= 0 behind the source like every other LAURA wake."""
     elements = _wake_model(tmp_path)
 
     wake = elements["C1"].simulation.wakefield_definition
+    n_cells = elements["C1"].cavity.n_cells
+    assert n_cells > 1
     assert wake.field_type == "LongitudinalWake"
-    assert wake.z.value.val[-1] == 0.0
-    assert wake.z.value.val[0] == pytest.approx(-0.01)
-    assert wake.Wz.value.val[-1] == pytest.approx(2.0e14)
+    assert wake.z.value.val[0] == 0.0
+    assert wake.z.value.val[-1] == pytest.approx(0.01)
+    assert wake.Wz.value.val[0] == pytest.approx(2.0e14 / n_cells)
+    assert wake.length == len(wake.z.value.val)
+    assert wake.reference_length == pytest.approx(2.0 / n_cells)
 
 
 def test_a_super_lord_is_imported_whole_and_keeps_its_wake(tmp_path):
@@ -882,7 +887,7 @@ def test_a_super_lord_is_imported_whole_and_keeps_its_wake(tmp_path):
     assert not [name for name in elements if name.startswith("C1#")]
     wake = elements["C1"].simulation.wakefield_definition
     assert wake is not None, "C1 lost its wake"
-    assert wake.Wz.value.val[-1] == pytest.approx(2.0e14)
+    assert wake.Wz.value.val[0] == pytest.approx(2.0e14 / elements["C1"].cavity.n_cells)
     assert elements["C1"].physical.length == pytest.approx(2.0)
     assert elements["SPLIT"].subelement == "C1"
 
@@ -893,7 +898,7 @@ def test_a_wake_on_a_marker_is_imported_too(tmp_path):
 
     wake = elements["M1"].simulation.wakefield_definition
     assert wake is not None
-    assert wake.Wz.value.val[-1] == pytest.approx(5.0e13)
+    assert wake.Wz.value.val[0] == pytest.approx(5.0e13)
 
 
 def test_an_exported_element_keeps_its_wake_beside_it(tmp_path):
@@ -910,7 +915,7 @@ def test_an_exported_element_keeps_its_wake_beside_it(tmp_path):
     sidecar = output / "M1_wake.hdf5"
     assert sidecar.is_file()
     with h5py.File(sidecar, "r") as written:
-        assert written["Wz"][-1] == pytest.approx(5.0e13)
+        assert written["Wz"][0] == pytest.approx(5.0e13)
         assert written["z"].attrs["units"] == "m"
     assert "M1_wake.hdf5" in (output / "M1.yaml").read_text()
 
@@ -973,11 +978,53 @@ def test_the_exported_wake_tracks_the_way_the_modes_it_came_from_do(
         tmp_path, _WAKE_HEADER + _to_bmad(section, particle="Electron"), "sampled.bmad"
     )
 
+    # the same per-cell wake on a standalone Wakefield, which Bmad needs as a pipe
+    from laura.models.element import Wakefield
+
+    n_cells = element.cavity.n_cells
+    pipe = Wakefield(
+        name="W1",
+        machine_area="L",
+        physical={"length": 2.0, "middle": Position(z=1.0)},
+        cavity={"n_cells": n_cells, "cell_length": 2.0 / n_cells},
+        simulation={"wakefield_definition": element.simulation.wakefield_definition},
+    )
+    piped = _write(
+        tmp_path,
+        _WAKE_HEADER
+        + _to_bmad(
+            SectionLattice(name="L", order=["W1"], elements=[pipe], geometry="open"),
+            particle="Electron",
+        ),
+        "piped.bmad",
+    )
+    assert "W1: pipe" in piped.read_text()
+
     from_modes, from_table = track(modes), track(sampled)
 
     # Point particles interpolate the table, so agreement is ~1e-7.
     assert from_table == pytest.approx(from_modes, rel=1e-6)
+    assert track(piped) == pytest.approx(from_modes, rel=1e-6)
     assert from_modes[0] < 0.0
+
+
+def test_a_wake_on_a_pipe_is_imported_as_a_wakefield(tmp_path):
+    """A Bmad drift cannot carry a wake, so LAURA's Wakefield goes out as a pipe."""
+    source = _write(
+        tmp_path,
+        _WAKE_HEADER
+        + "P1: pipe, l = 0.5, sr_wake = {z_max = 0.01, amp_scale = 1,\n"
+        "    scale_with_length = F, longitudinal = {5e13, 500, 1000, 0.25, none}}\n"
+        "Q1: quadrupole, l = 0.1, k1 = 1\n"
+        "L: line = (P1, Q1)\nuse, L\n",
+        "pipe.bmad",
+    )
+    elements = _elements(source, position_mode="s")
+
+    assert elements["P1"].hardware_type == "Wakefield"
+    wake = elements["P1"].simulation.wakefield_definition
+    assert wake.Wz.value.val[0] == pytest.approx(5.0e13)
+    assert wake.reference_length == pytest.approx(0.5)
 
 
 def test_bmad_split_bend_keeps_its_exit_fringe_field(tmp_path):

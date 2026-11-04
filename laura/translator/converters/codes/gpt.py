@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict, computed_field
 
 from laura._compat import DeprecatedMethodAliases
 
-from ...utils.classes import get_grid_size
 from ...utils.functions import chop
 
 gpt_unsupported = [
@@ -380,8 +379,6 @@ class GptSpaceCharge(GptElement):
         if not self.space_charge_enabled():
             return output
         if isinstance(self.space_charge_mode, str) and self.cathode:
-            if self.ngrids is None:
-                self.ngrids = get_grid_size(self.npart / self.sample_interval)
             output += 'spacecharge3Dmesh("Cathode","RestMaxGamma",1000);\n'
         elif (
             isinstance(self.space_charge_mode, str)
