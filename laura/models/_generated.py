@@ -990,10 +990,10 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Number of longitudinal slices for thick-lens tracking."""
     edge_field_integral: Optional[float] = Field(default=None, description="""Per-simulation override of the magnet's fringe-field integral. Absent means \"use ``MagneticElement.edge_field_integral``\".""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement']} })
     """Per-simulation override of the magnet's fringe-field integral. Absent means "use ``MagneticElement.edge_field_integral``"."""
-    edge1_effects: Optional[int] = Field(default=None, description="""Entrance-edge effects, as ELEGANT's EDGE1_EFFECTS: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
-    """Entrance-edge effects, as ELEGANT's EDGE1_EFFECTS: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method."""
-    edge2_effects: Optional[int] = Field(default=None, description="""Exit-edge effects, as ELEGANT's EDGE2_EFFECTS: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
-    """Exit-edge effects, as ELEGANT's EDGE2_EFFECTS: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method."""
+    edge1_effects: Optional[int] = Field(default=None, description="""Entrance-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
+    """Entrance-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method."""
+    edge2_effects: Optional[int] = Field(default=None, description="""Exit-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
+    """Exit-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method."""
     fringe_model: Optional[str] = Field(default=None, description="""Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
     """Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code."""
     sr_enable: Optional[bool] = Field(default=True, description="""Enable synchrotron-radiation energy loss.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'True'} })
@@ -2983,6 +2983,10 @@ class _LaserElementBase(ConfiguredBaseModel):
     """Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``)."""
     flatness: int = Field(default=6, description="""Flatness order N of a flattened-Gaussian profile (for ``profile_type = flattened-gaussian``).""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'int(6)'} })
     """Flatness order N of a flattened-Gaussian profile (for ``profile_type = flattened-gaussian``)."""
+    collision_angle: float = Field(default=0.0, description="""Angle between the particle beam's direction and the laser's axis, for a laser colliding with the beam at its focus [rad]: 0 is head-on (counter-propagating).""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'rad'}} })
+    """Angle between the particle beam's direction and the laser's axis, for a laser colliding with the beam at its focus [rad]: 0 is head-on (counter-propagating)."""
 
 
 class _LaserEnergyMeterElementBase(ConfiguredBaseModel):

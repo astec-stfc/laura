@@ -220,6 +220,14 @@ classes:
           (for ``profile_type = flattened-gaussian``).
         ifabsent: int(6)
         minimum_value: 1
+      collision_angle:
+        range: float
+        description: >-
+          Angle between the particle beam's direction and the laser's axis, for a laser
+          colliding with the beam at its focus [rad]: 0 is head-on (counter-propagating).
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: rad
 
   LaserEnergyMeterElement:
     description: Laser energy-meter sub-model (no additional fields).
