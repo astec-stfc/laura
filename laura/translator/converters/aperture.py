@@ -56,6 +56,35 @@ class ApertureTranslator(BaseElementTranslator):
             | bmad_limits(self.name, self.aperture, horizontal, vertical),
         )
 
+    def xsuite_limit(self) -> tuple | None:
+        """
+        The aperture as an Xsuite black absorber: a thin ``LimitEllipse`` (circular,
+        elliptical) or ``LimitRect`` (rectangular, planar, scraper; a plane without a
+        size is open), which
+        :meth:`~laura.translator.converters.section.SectionLattice.to_xsuite` places at
+        the element's entrance and exit. Sizes are full widths, as Bmad reads them.
+
+        Returns
+        -------
+        tuple or None
+            ``(xtrack class, properties)``, or None if the aperture has no size.
+        """
+        import xtrack as xt
+
+        shape = getattr(self.aperture.shape, "value", self.aperture.shape)
+        half_x = (self.aperture.horizontal_size or 0.0) / 2
+        half_y = (self.aperture.vertical_size or 0.0) / 2
+        if shape in ("circular", "elliptical"):
+            a = self.aperture.radius or half_x or half_y
+            b = self.aperture.radius or half_y or a
+            return (xt.LimitEllipse, {"a": a, "b": b}) if a else None
+        limits = {}
+        if half_x:
+            limits.update(min_x=-half_x, max_x=half_x)
+        if half_y:
+            limits.update(min_y=-half_y, max_y=half_y)
+        return (xt.LimitRect, limits) if limits else None
+
     def to_madx(self, at: float = None) -> str:
         """
         Generates a string representation of the object's properties in the MAD-X
