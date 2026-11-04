@@ -1206,7 +1206,7 @@ class SectionLatticeTranslator(SectionLattice):
         rft = get_rftrack()
         elem_dict = self._translate()
         first = next(iter(elem_dict.values())).physical
-        origin, R0 = np.asarray(first.start.array, dtype=float), first.rotation_matrix
+        origin, R0 = np.asarray(first.start.array, dtype=float), first.rotation_matrix # noqa N803
         volume = rft.Volume()
         placements = {}
         for name, d in elem_dict.items():
