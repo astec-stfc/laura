@@ -1052,7 +1052,7 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
                                             'name': 'field_amplitude'},
                         'integration_order': {'description': 'Order of the symplectic '
                                                              'integrator.',
-                                              'ifabsent': 'int(4)',
+                                              'ifabsent': 'int(6)',
                                               'name': 'integration_order'},
                         'n_kicks': {'description': 'Number of integration kicks.',
                                     'ifabsent': 'int(4)',
@@ -1110,9 +1110,9 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Method used to calculate the element's 6x6 transfer matrix."""
     spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Spin-tracking algorithm requested from the target code."""
-    integration_order: Optional[int] = Field(default=4, description="""Order of the symplectic integrator.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'],
+    integration_order: Optional[int] = Field(default=6, description="""Order of the symplectic integrator.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'],
          'domain_of': ['SimulationElement'],
-         'ifabsent': 'int(4)'} })
+         'ifabsent': 'int(6)'} })
     """Order of the symplectic integrator."""
     num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Number of integration steps through the element."""

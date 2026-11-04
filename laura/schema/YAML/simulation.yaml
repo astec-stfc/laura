@@ -139,7 +139,7 @@ classes:
         minimum_value: 1
       integration_order:
         description: Order of the symplectic integrator.
-        ifabsent: int(4)
+        ifabsent: int(6)
       deltaL:
         description: Longitudinal step-size override for thick-lens integration [m].
         ifabsent: float(0.0)
