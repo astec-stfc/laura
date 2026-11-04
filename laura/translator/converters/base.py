@@ -1756,10 +1756,13 @@ class BaseElementTranslator(PhysicalBaseElement):
             The same parameters
         """
         if self._wakefield_active():
+            cavity = getattr(self, "cavity", None)
             wake = self.generate_field_file_name(
                 self.simulation.wakefield_definition,
                 code="bmad",
                 verbose=getattr(self, "verbose", True),
+                cell_length=self.physical.length
+                / (getattr(cavity, "n_cells", None) or 1),
             )
             if wake:
                 parameters["sr_wake"] = f"call::{wake}"
