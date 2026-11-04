@@ -1,6 +1,6 @@
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Literal
 from warnings import warn
 
 import numpy as np
@@ -159,6 +159,12 @@ class SectionLatticeTranslator(SectionLattice):
     tw_focusing: bool = True
     """Flag to use travelling-wave focusing for TravellingWave cavities;
     see :attr:`~laura.translator.converters.cavity.RFCavityTranslator.tw_focusing`."""
+
+    cheetah_tracking_method: Literal["auto", "linear", "second_order"] = "auto"
+    """Tracking method for Cheetah's drifts, quadrupoles and dipoles. ``second_order`` is
+    better but slower. ``auto`` writes ``linear``, for
+    :func:`~laura.translator.converters.codes.cheetah.choose_cheetah_tracking_method`
+    to raise to ``second_order`` if the beam needs it."""
 
     opal_version: str = "202210"
     """Version of OPAL to write for; propagated to the elements, which use it
@@ -690,6 +696,7 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += header.write_gpt()
         elem_dict = self._translate()
         self._apply_wakefield_enable(elem_dict)
+        self._apply_tw_focusing(elem_dict)
         self.gpt_screen_positions = {}
         kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
@@ -1274,6 +1281,7 @@ class SectionLatticeTranslator(SectionLattice):
         Segment
             A Cheetah `Segment` object.
         """
+        import cheetah
         from cheetah import Segment
 
         self._check_elements_supported("cheetah")
@@ -1298,6 +1306,10 @@ class SectionLatticeTranslator(SectionLattice):
             full_segment = Segment(elements=segment, name=self.name)
         else:
             raise ValueError(f"No cheetah elements added for {self.name}")
+        method = self.cheetah_tracking_method.replace("auto", "linear")
+        for elem in full_segment.flattened().elements:
+            if isinstance(elem, (cheetah.Drift, cheetah.Quadrupole, cheetah.Dipole)):
+                elem.tracking_method = method
 
         if save:
             full_segment.to_lattice_json(filepath=f"{self.directory}/{self.name}.json")
@@ -1346,6 +1358,7 @@ class SectionLatticeTranslator(SectionLattice):
             ).items():
                 env[name] = value
         elem_dict = self._translate(self.create_drifts().values())
+        self._apply_tw_focusing(elem_dict)
 
         def _is_symbolic(val: Any) -> bool:
             if isinstance(val, str):
@@ -1360,6 +1373,7 @@ class SectionLatticeTranslator(SectionLattice):
             else 0.0
         )
         line = env.new_line()
+        p0c = particle_ref.p0c[0] if isinstance(particle_ref, xt.Particles) else None
         element_types = {}
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
@@ -1404,12 +1418,43 @@ class SectionLatticeTranslator(SectionLattice):
                         # Bmad pivots about the centre; xtrack defaults to the entrance
                         misalignment["rot_shift_anchor"] = element.physical.length / 2
                     properties.update(misalignment)
+                # a collimator or aperture absorbs what is outside it at both ends
+                limit = (
+                    element.xsuite_limit()
+                    if isinstance(element, ApertureTranslator)
+                    else None
+                )
+                if limit is not None:
+                    line.append(f"{element.name}_aperture_entry", limit[0](**limit[1]))
                 if any(_is_symbolic(v) for v in properties.values()):
                     env.new(element.name, component, **properties)
-                    line.append(element.name)
+                    obj, args = env[element.name], (element.name,)
                 else:
-                    line.append(element.name, component(**properties))
+                    obj = component(**properties)
+                    args = (element.name, obj)
+                edges = (
+                    isinstance(element, RFCavityTranslator)
+                    and isinstance(obj, xt.Cavity)
+                    and p0c is not None
+                    and obj.length > 0
+                    and element.simulation.change_p0  # a held reference (a ring's) has no gain to account for
+                )
+                if edges:
+                    entrance, increase, exit, p0c = element.xsuite_edges(obj, p0c)
+                    line.append(f"{element.name}_entrance", entrance)
+                    line.append(f"{element.name}_p0c", increase)
+                line.append(*args)
+                if edges:
+                    line.append(f"{element.name}_exit", exit)
+                if limit is not None and element.length > 0:
+                    line.append(f"{element.name}_aperture_exit", limit[0](**limit[1]))
                 element_types[element.name] = element.hardware_type
+        if p0c is None and any(
+            isinstance(e, RFCavityTranslator) for e in elem_dict.values()
+        ):
+            warn(
+                f"{self.name}: Xsuite cavities are written without edge focusing, as no particle_ref was given"
+            )
         line.metadata["laura_element_types"] = element_types
         line.metadata["laura_functional_definitions"] = dict(
             self.functional_definitions or IgnoreExtra.functional_definitions

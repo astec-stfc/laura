@@ -587,10 +587,10 @@ class RFCavityTranslator(BaseElementTranslator):
                         )
                     else:
                         value = value
-                if key == "num_kicks" and value is None and self.get_cells() > 1:
-                    value = 3 * self.get_cells()
                 if value is not None:
                     properties.update({key: value})
+        if self.get_cells() > 1 and properties.get("num_kicks") is None:
+            properties["num_kicks"] = 3 * self.get_cells()
         return self.name, obj, properties
 
     def to_bdsim(
@@ -634,6 +634,64 @@ class RFCavityTranslator(BaseElementTranslator):
             else:
                 keywords["gradient"] /= self.physical.length
         return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+
+    def xsuite_edges(self, cavity: object, p0c: float) -> tuple:
+        """
+        Transverse focusing for an Xsuite cavity, which has none of its own:
+        hard-edge (Chambers) lenses for a travelling wave, and the
+        Rosenzweig-Serafini matrix for a standing wave, or a travelling wave when
+        :attr:`~tw_focusing` is off.
+
+        Parameters
+        ----------
+        cavity: xtrack.Cavity
+            The cavity
+        p0c: float
+            Reference momentum ahead of the cavity [eV]
+
+        Returns
+        -------
+        tuple
+            (entrance map, reference energy increase, exit lens, reference momentum after)
+        """
+        import xtrack as xt
+
+        L, voltage = cavity.length, cavity.voltage  # noqa N803
+        cos_phi = np.sin(cavity.phase + np.radians(cavity.lag))
+        gain = voltage * cos_phi
+        p1 = p0c + gain
+        log_ratio = np.log1p(gain / p0c) / (gain / p0c) if gain else 1.0
+        body = np.array([[1, L * log_ratio], [0, p0c / p1]])
+        exit = np.array([[1, 0], [gain / (2 * L * p1), 1]])
+        if self.structure_type == "TravellingWave" and self.tw_focusing:
+            target = exit @ body @ np.array([[1, 0], [-gain / (2 * L * p0c), 1]])
+        else:
+            alpha = np.sqrt(0.125) * voltage / p0c * log_ratio
+            c, s = np.cos(alpha), np.sin(alpha)
+            target = np.array(
+                [
+                    [
+                        c - np.sqrt(2) * cos_phi * s,
+                        np.sinc(alpha / np.pi) * log_ratio * L,
+                    ],
+                    [
+                        -voltage / (p1 * np.sqrt(2) * L) * (0.5 + cos_phi**2) * s,
+                        p0c / p1 * (c + np.sqrt(2) * cos_phi * s),
+                    ],
+                ]
+            )
+
+        def taylor_map(m: np.ndarray) -> object:
+            m1 = np.eye(6)
+            m1[:2, :2] = m1[2:4, 2:4] = m
+            return xt.FirstOrderTaylorMap(m1=m1)
+
+        return (
+            taylor_map(np.linalg.inv(exit @ body) @ target),
+            xt.ReferenceEnergyIncrease(Delta_p0c=gain),
+            taylor_map(exit),
+            p1,
+        )
 
     def to_madx(self, at: float = None) -> str:
         """
@@ -795,8 +853,19 @@ class RFCavityTranslator(BaseElementTranslator):
         relpos, _ = self.ccs.relative_position(
             field_ref_pos, list(self.physical.global_rotation.model_dump().values())
         )
+        field = self.simulation.field_definition
+        # a real travelling wave (two standing waves) needs a map that marks its cells
+        travelling = (
+            self.structure_type == "TravellingWave"
+            and self.tw_focusing
+            and getattr(field, "field_type", None) == "1DElectroDynamic"
+            and getattr(field, "cavity_type", None) == "TravellingWave"
+            and getattr(field, "start_cell_z", None) is not None
+        )
         field_file_name = self.generate_field_file_name(
-            self.simulation.field_definition, code="gpt"
+            field,
+            code="gpt",
+            **({"tw_cells": self.get_cells()} if travelling else {}),
         )
         self.generate_field_file_name(self.simulation.wakefield_definition, code="gpt")
         """
@@ -811,12 +880,15 @@ class RFCavityTranslator(BaseElementTranslator):
                 f"w{subname} = 2*pi*f{subname};\n"
                 f"phi{subname} = {(self.cavity.crest + 90 - self.phase + 0) % 360.0!s}/deg;\n"
             )
-            if self.structure_type == "TravellingWave":
+            if self.structure_type == "TravellingWave" and not travelling:
                 output += "ffac" + subname + " = " + str(self._gpt_tw_ffac()) + ";\n"
             else:
                 output += f"ffac{subname} = {self.field_amplitude!s};\n"
 
             output += f'map1D_TM("{self.ccs.name}", {ccs_label}, {value_text}, "{field_file_name!s}", "z", "Ez", ffac{subname}, phi{subname}, w{subname});\n'
+            if travelling:
+                # Ez cos(wt + phi) - Ez_im sin(wt + phi): a forward wave in the body
+                output += f'map1D_TM("{self.ccs.name}", {ccs_label}, {value_text}, "{field_file_name!s}", "z", "Ez_im", ffac{subname}, phi{subname} + pi/2, w{subname});\n'
         else:
             output = ""
         return output
