@@ -1,6 +1,7 @@
+import json
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Literal
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, List
 from warnings import warn
 
 import numpy as np
@@ -32,12 +33,18 @@ from ..utils.bmad import (
 )
 from ..utils.fields import FieldMap
 from ..utils.functions import (
-    cavity_energy_gain,
     bmad_functional_definitions,
+    cavity_energy_gain,
     elegant_functional_definitions,
     functional_fields,
     madx_functional_definitions,
     sanitize_string,
+)
+from ..utils.pals import (
+    PalsBeamLine,
+    fold_repeated_cells,
+    pals_document,
+    pals_safe_names,
 )
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
@@ -54,6 +61,7 @@ from .codes import (
     madx_unsupported,
     ocelot_unsupported,
     opal_unsupported,
+    pals_unsupported,
     rftrack_unsupported,
     wake_t_unsupported,
     xsuite_unsupported,
@@ -62,7 +70,29 @@ from .codes.gpt import GptCcs, GptDtMinT, GptZMinMax
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
 from .magnet import MagnetTranslator, SolenoidTranslator
+from .matrix import MatrixTransformTranslator, madx_gamma
 from .wake import WakefieldTranslator
+
+
+def _s_bounds(element) -> tuple:
+    """Arc-length positions of an element's entrance and exit faces.
+
+    ``physical.s`` is the middle of the element, and is only set once
+    ``resolve_positions`` has run; before that the trajectory, or failing that
+    the raw z of the middle, is the best available answer.
+    """
+    physical = element.physical
+    middle = physical.s
+    if middle is None:
+        trajectory = getattr(physical, "_trajectory", None)
+        middle = (
+            trajectory.s_at_xyz(physical.middle)
+            if trajectory is not None
+            else physical.middle.z
+        )
+    half_length = physical.length / 2
+    return middle - half_length, middle + half_length
+
 
 unsupported_elements = {
     "bmad": bmad_unsupported,
@@ -74,9 +104,11 @@ unsupported_elements = {
     "fbpic": [],  # to_fbpic skips, with a warning, every element but plasmas, lasers and drifts
     "genesis": genesis_unsupported,
     "gpt": gpt_unsupported,
+    "impactx": [],  # impactx_conversion.to_dicts already warns per element it writes as a drift
     "madx": madx_unsupported,
     "ocelot": ocelot_unsupported,
     "opal": opal_unsupported,
+    "pals": pals_unsupported,
     "rftrack": rftrack_unsupported,
     "wake_t": wake_t_unsupported,
     "xsuite": xsuite_unsupported,
@@ -418,19 +450,7 @@ class SectionLatticeTranslator(SectionLattice):
             origin = seed.simulation
 
         by_name = {element.name: element for element in all_elements}
-
-        def s_bounds(element):
-            physical = element.physical
-            middle = physical.s
-            if middle is None:
-                trajectory = getattr(physical, "_trajectory", None)
-                middle = (
-                    trajectory.s_at_xyz(physical.middle)
-                    if trajectory is not None
-                    else physical.middle.z
-                )
-            half_length = physical.length / 2
-            return middle - half_length, middle + half_length
+        s_bounds = _s_bounds
 
         def logical_corrector_part(element):
             parent = by_name.get(element.subelement)
@@ -466,7 +486,7 @@ class SectionLatticeTranslator(SectionLattice):
         backbone_section = self.model_copy(
             update={"order": [element.name for element in backbone]}
         )
-        section = backbone_section.createDrifts(keep_diagnostic_length=True)
+        section = backbone_section.create_drifts(keep_diagnostic_length=True)
         keys = list(section)
         at = {key: index for index, key in enumerate(keys)}
         patch_definitions = ""
@@ -576,6 +596,135 @@ class SectionLatticeTranslator(SectionLattice):
             renames=renames,
         )
 
+    def _pals_beamline(self, particle: str | None = None) -> PalsBeamLine:
+        """
+        Build this section's PALS branch: its definitions and its line.
+
+        Kept apart from :meth:`to_pals` because a PALS document holds a whole
+        machine, so a layout writes one branch per section into a single
+        document rather than one document per section..
+
+        Parameters
+        ----------
+        particle: str | None
+            Reference species for the branch.
+
+        Returns
+        -------
+        PalsBeamLine
+            The branch, ready for
+            :func:`~laura.translator.utils.pals.pals_document`.
+        """
+        self._check_elements_supported("pals")
+        all_elements = list(self.elements.elements.values())
+        ordered_elements = self._get_all_elements()
+        by_name = {element.name: element for element in all_elements}
+
+        initial_twiss = None
+        begin_name = None
+        if ordered_elements and ordered_elements[0].hardware_type == "TwissMatch":
+            seed = ordered_elements[0]
+            initial_twiss = seed.simulation
+            begin_name = seed.name
+            ordered_elements = ordered_elements[1:]
+
+        if not ordered_elements:
+            raise ValueError("A PALS branch needs at least one element")
+
+        def logical_corrector_part(element) -> bool:
+            parent = by_name.get(element.subelement)
+            return (
+                parent is not None
+                and parent.hardware_type == "Combined_Corrector"
+                and element.hardware_type
+                in {"Horizontal_Corrector", "Vertical_Corrector"}
+            )
+
+        dropped = sorted(
+            element.name
+            for element in ordered_elements
+            if element.is_subelement() and not logical_corrector_part(element)
+        )
+        if dropped:
+            warn(
+                f"PALS cannot superimpose one element on another, so {', '.join(dropped)} "
+                f"could not be written into section {self.name!r}. Everything else "
+                "keeps its position."
+            )
+
+        previous_end = None
+        for element in ordered_elements:
+            if element.is_subelement():
+                continue
+            start, end = _s_bounds(element)
+            if previous_end is not None and start < previous_end - 1e-9:
+                warn(
+                    f"LAURA elements {element.name!r} and the one before it overlap; "
+                    "PALS positions an element by the lengths ahead of it, so the "
+                    "exported branch places them end to end and is longer than the "
+                    "section it came from."
+                )
+            previous_end = end
+
+        section = self.model_copy(
+            update={"order": [element.name for element in ordered_elements]}
+        ).create_drifts(
+            csr_enable=self.csr_enable,
+            lsc_enable=self.lsc_enable,
+            lsc_bins=self.lsc_bins,
+            keep_diagnostic_length=True,
+        )
+        elements = translate_elements(
+            section.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        start = max(_s_bounds(ordered_elements[0])[0], 0.0)
+
+        renames = pals_safe_names(
+            [*elements, self.name, *([begin_name] if begin_name else [])]
+        )
+        definitions: Dict[str, Any] = {}
+        line: list = []
+        for name, translator in elements.items():
+            translator.name = renames.get(name, name)
+            definitions.update(translator.to_pals())
+            line.append(translator.name)
+
+        name = renames.get(self.name, self.name)
+        sublines, line = fold_repeated_cells(name, definitions, line)
+
+        geometry = getattr(self.geometry, "value", self.geometry) or "open"
+        return PalsBeamLine(
+            name=name,
+            definitions=definitions,
+            line=line,
+            sublines=sublines,
+            periodic=str(geometry).lower() == "closed",
+            particle=particle,
+            energy=self.reference_energy,
+            twiss=initial_twiss,
+            begin_name=renames.get(begin_name, begin_name),
+            s_position=start,
+        )
+
+    def to_pals(self, particle: str | None = None) -> str:
+        """
+        Create a PALS document holding this section as a single-branch lattice.
+
+        Parameters
+        ----------
+        particle: str | None
+            Reference species for the branch.
+
+        Returns
+        -------
+        str
+            The contents of a ``*.pals.yaml`` file.
+        """
+        beamline = self._pals_beamline(particle=particle)
+        return pals_document([beamline], f"{beamline.name}_lattice")
+
     def to_astra(self) -> str:
         """
         Create an ASTRA-compatible input file based on the lattice information and
@@ -612,9 +761,9 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[
-                            key
-                        ] += f"{section_header_text_astra[key]} = True\n"
+                        element_headers[key] += (
+                            f"{section_header_text_astra[key]} = True\n"
+                        )
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
@@ -646,9 +795,9 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers[
-                                "&WAKE"
-                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
+                            element_headers["&WAKE"] += (
+                                f"{section_header_text_astra['&WAKE']} = True\n"
+                            )
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += w.astra_wake_spacing[1]
@@ -699,6 +848,7 @@ class SectionLatticeTranslator(SectionLattice):
         self._apply_wakefield_enable(elem_dict)
         self._apply_tw_focusing(elem_dict)
         self.gpt_screen_positions = {}
+        self._apply_tw_focusing(elem_dict)
         kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
@@ -711,8 +861,6 @@ class SectionLatticeTranslator(SectionLattice):
                 )
             element.ccs = ccs
             fulltext += element.to_gpt(Brho, **kwargs)
-            if not isinstance(element, MagnetTranslator):
-                element._warn_dropped_misalignment("gpt", set())
             if isinstance(element, RFCavityTranslator):
                 mc2 = electron_mass * speed_of_light**2 / elementary_charge
                 kinetic = (
@@ -721,6 +869,8 @@ class SectionLatticeTranslator(SectionLattice):
                     + cavity_energy_gain(element) * 1e6
                 )
                 Brho = np.sqrt(kinetic * (kinetic + 2 * mc2)) / speed_of_light
+            if not isinstance(element, MagnetTranslator):
+                element._warn_dropped_misalignment("gpt", set())
             if (
                 element.hardware_type.lower() == "rfcavity"
                 and isinstance(element.simulation.wakefield_definition, FieldMap)
@@ -1088,6 +1238,7 @@ class SectionLatticeTranslator(SectionLattice):
         MagneticLattice
             An Ocelot `MagneticLattice` object.
         """
+        from ocelot.cpbd.elements import Aperture as OcelotAperture
         from ocelot.cpbd.elements import Drift as OcelotDrift
         from ocelot.cpbd.elements import Octupole, Undulator
         from ocelot.cpbd.magnetic_lattice import MagneticLattice
@@ -1097,8 +1248,17 @@ class SectionLatticeTranslator(SectionLattice):
 
         self._check_elements_supported("ocelot")
 
-        method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
         elem_dict = self._translate(self.create_drifts().values())
+        helical = any(
+            getattr(getattr(d, "magnetic", None), "helical", False)
+            for d in elem_dict.values()
+            if d.hardware_type == "Wiggler"
+        )
+        method = {
+            "global": SecondTM,
+            Octupole: KickTM,
+            Undulator: SecondTM if helical else RungeKuttaTM,
+        }
         elements = []
 
         symbolic = not IgnoreExtra.resolve_functional
@@ -1112,7 +1272,9 @@ class SectionLatticeTranslator(SectionLattice):
             # an OCELOT bend's tilt rolls its frame, so it cannot take a roll error
             roll = d.roll - d.dz_rot * d._curved
             for o in objs:
-                o.dx, o.dy = d.dx, d.dy
+                # an Aperture's dx/dy are its centre, already set with its offset
+                if not isinstance(o, OcelotAperture):
+                    o.dx, o.dy = d.dx, d.dy
                 o.tilt += roll
             d._warn_dropped_misalignment("ocelot", {"dx", "dy"}, tilt=True)
             if (d.dx or d.dy) and roll:
@@ -1373,82 +1535,86 @@ class SectionLatticeTranslator(SectionLattice):
             if isinstance(particle_ref, xt.Particles)
             else 0.0
         )
+        gamma = (
+            float(particle_ref.gamma0[0])
+            if isinstance(particle_ref, xt.Particles)
+            else None
+        )
         line = env.new_line()
         p0c = particle_ref.p0c[0] if isinstance(particle_ref, xt.Particles) else None
         element_types = {}
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
                 if isinstance(element, ACDipoleTranslator):
-                    name, component, properties = element.to_xsuite(
+                    parts = element.to_xsuite(
                         beam_length=beam_length,
                         revolution_frequency=self.revolution_frequency,
                     )
                 elif isinstance(element, SolenoidTranslator):
-                    name, component, properties = element.to_xsuite(
-                        beam_length=beam_length, Brho=Brho
-                    )
+                    parts = element.to_xsuite(beam_length=beam_length, Brho=Brho)
+                elif isinstance(element, MatrixTransformTranslator):
+                    parts = element.to_xsuite(beam_length=beam_length, gamma=gamma)
                 else:
-                    name, component, properties = element.to_xsuite(
-                        beam_length=beam_length
+                    parts = element.to_xsuite(beam_length=beam_length)
+                # a thick aperture comes back as entrance limit, drift, exit limit
+                for name, component, properties in (
+                    parts if isinstance(parts, list) else [parts]
+                ):
+                    if turns > 1 and "stop_at_turn" in properties:
+                        properties["stop_at_turn"] = int(turns)
+                    if "shift_x" in getattr(component, "_xofields", ()):
+                        # rot_s_rad rolls a bend's frame (design tilt); the error rolls the field only
+                        curved = component in (xt.Bend, xt.RBend)
+                        frame = element.roll - element.dz_rot * curved
+                        angle = (
+                            element.resolve(element.magnetic.KnL(0)) if curved else 0.0
+                        )
+                        # xtrack rolls a bend about its arc midpoint, LAURA about its chord
+                        offset, rotation = to_frame(
+                            element._misalignment(),
+                            tilt=frame,
+                            rolled=False,
+                            chord=sagitta(element.physical.length, float(angle or 0.0)),
+                        )
+                        misalignment = {
+                            "shift_x": float(offset[0])
+                            + properties.get("shift_x", 0.0),
+                            "shift_y": float(offset[1])
+                            + properties.get("shift_y", 0.0),
+                            "shift_s": float(offset[2]),
+                            "rot_x_rad": -float(rotation[0]),
+                            "rot_y_rad": float(rotation[1]),
+                            "rot_s_rad": frame,
+                            "rot_s_rad_no_frame": float(rotation[2]) * curved,
+                        }
+                        misalignment = {k: v for k, v in misalignment.items() if v}
+                        if misalignment:
+                            # Bmad pivots about the centre; xtrack defaults to the entrance
+                            misalignment["rot_shift_anchor"] = (
+                                element.physical.length / 2
+                            )
+                        properties.update(misalignment)
+                    if any(_is_symbolic(v) for v in properties.values()):
+                        env.new(name, component, **properties)
+                        obj, args = env[name], (name,)
+                    else:
+                        obj = component(**properties)
+                        args = (name, obj)
+                    edges = (
+                        isinstance(element, RFCavityTranslator)
+                        and isinstance(obj, xt.Cavity)
+                        and p0c is not None
+                        and obj.length > 0
+                        # a ring's reference stays at its design momentum
+                        and element.simulation.change_p0
                     )
-                if turns > 1 and "stop_at_turn" in properties:
-                    properties["stop_at_turn"] = int(turns)
-                if "shift_x" in getattr(component, "_xofields", ()):
-                    # rot_s_rad rolls a bend's frame (design tilt); the error rolls the field only
-                    curved = component in (xt.Bend, xt.RBend)
-                    frame = element.roll - element.dz_rot * curved
-                    angle = element.resolve(element.magnetic.KnL(0)) if curved else 0.0
-                    # xtrack rolls a bend about its arc midpoint, LAURA about its chord
-                    offset, rotation = to_frame(
-                        element._misalignment(),
-                        tilt=frame,
-                        rolled=False,
-                        chord=sagitta(element.physical.length, float(angle or 0.0)),
-                    )
-                    misalignment = {
-                        "shift_x": float(offset[0]),
-                        "shift_y": float(offset[1]),
-                        "shift_s": float(offset[2]),
-                        "rot_x_rad": -float(rotation[0]),
-                        "rot_y_rad": float(rotation[1]),
-                        "rot_s_rad": frame,
-                        "rot_s_rad_no_frame": float(rotation[2]) * curved,
-                    }
-                    misalignment = {k: v for k, v in misalignment.items() if v}
-                    if misalignment:
-                        # Bmad pivots about the centre; xtrack defaults to the entrance
-                        misalignment["rot_shift_anchor"] = element.physical.length / 2
-                    properties.update(misalignment)
-                # a collimator or aperture absorbs what is outside it at both ends
-                limit = (
-                    element.xsuite_limit()
-                    if isinstance(element, ApertureTranslator)
-                    else None
-                )
-                if limit is not None:
-                    line.append(f"{element.name}_aperture_entry", limit[0](**limit[1]))
-                if any(_is_symbolic(v) for v in properties.values()):
-                    env.new(element.name, component, **properties)
-                    obj, args = env[element.name], (element.name,)
-                else:
-                    obj = component(**properties)
-                    args = (element.name, obj)
-                edges = (
-                    isinstance(element, RFCavityTranslator)
-                    and isinstance(obj, xt.Cavity)
-                    and p0c is not None
-                    and obj.length > 0
-                    and element.simulation.change_p0  # a held reference (a ring's) has no gain to account for
-                )
-                if edges:
-                    entrance, increase, exit, p0c = element.xsuite_edges(obj, p0c)
-                    line.append(f"{element.name}_entrance", entrance)
-                    line.append(f"{element.name}_p0c", increase)
-                line.append(*args)
-                if edges:
-                    line.append(f"{element.name}_exit", exit)
-                if limit is not None and element.length > 0:
-                    line.append(f"{element.name}_aperture_exit", limit[0](**limit[1]))
+                    if edges:
+                        entrance, increase, exit, p0c = element.xsuite_edges(obj, p0c)
+                        line.append(f"{name}_entrance", entrance)
+                        line.append(f"{name}_p0c", increase)
+                    line.append(*args)
+                    if edges:
+                        line.append(f"{name}_exit", exit)
                 element_types[element.name] = element.hardware_type
         if p0c is None and any(
             isinstance(e, RFCavityTranslator) for e in elem_dict.values()
@@ -1465,6 +1631,58 @@ class SectionLatticeTranslator(SectionLattice):
         if save:
             line.to_json(f"{self.directory}/{self.name}.json")
         return line
+
+    def to_impactx(
+        self,
+        model: str = "exact",
+        energy: float | None = None,
+        particle: str = "electron",
+        save: bool = False,
+        field_maps: bool = False,
+    ) -> list:
+        """
+        ImpactX elements for this section, as the dicts
+        ``KnownElementsList.from_dicts`` reads.
+
+        Parameters
+        ----------
+        model: str
+            Fidelity tier, ``"linear"``, ``"paraxial"`` or ``"exact"``; see
+            :func:`~laura.translator.conversion_rules.codes.impactx_conversion.tier`.
+        energy: float, optional
+            Total energy of the design particle [eV]; defaults to
+            :attr:`reference_energy`.
+        particle: str
+            Design particle.
+        save: bool
+            Also write ``{directory}/{name}.impactx.json``.
+        field_maps: bool
+            Thick ``RFCavity`` from standing-wave field maps; see
+            :meth:`~laura.translator.converters.base.BaseElementTranslator.to_impactx`.
+
+        Returns
+        -------
+        list[dict]
+        """
+        from ..conversion_rules.codes.impactx_conversion import reference
+
+        self._check_elements_supported("impactx")
+        energy = self.reference_energy if energy is None else energy
+        charge = abs(reference(None, particle)["charge"])
+        elements = []
+        for d in self._translate(self.create_drifts().values()).values():
+            if not d.subelement:
+                elements += d.to_impactx(
+                    model=model, energy=energy, particle=particle, field_maps=field_maps
+                )
+                if energy and d.hardware_type == "RFCavity" and d.simulation.change_p0:
+                    energy += (
+                        float(d.voltage) * charge * np.cos(np.radians(float(d.phase)))
+                    )
+        if save:
+            with open(f"{self.directory}/{self.name}.impactx.json", "w") as f:
+                json.dump(elements, f, indent=1)
+        return elements
 
     def to_csrtrack(self) -> str:
         """
@@ -1519,7 +1737,8 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         beam: dict
             A dictionary describing a beam distribution with the keys as defined in the
-            `Beam Section of the MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html#Ch7.S1>`_
+            `Beam Section of the MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html#Ch7.S1>`_.
+            Its energy converts ``MatrixTransform`` maps to MAD-X's (t, pt).
         refer: str
             Gives a reference position for element placement, related to the ``at=`` parameter.
         Brho: float
@@ -1549,6 +1768,8 @@ class SectionLatticeTranslator(SectionLattice):
                 at += d.physical.length / 2
             if isinstance(d, SolenoidTranslator):
                 fulltext += d.to_madx(at=at, Brho=Brho)
+            elif isinstance(d, MatrixTransformTranslator):
+                fulltext += d.to_madx(at=at, gamma=madx_gamma(beam))
             else:
                 fulltext += d.to_madx(at=at)
             alignment = d.madx_alignment()

@@ -573,11 +573,11 @@ class TestApertureAndOffsets:
 
         quad = _quadrupole()
         quad.aperture = ApertureElement(
-            shape="rectangular", horizontal_size=0.004, vertical_size=0.002
+            shape="rectangular", horizontal_size=0.002, vertical_size=0.001
         )
         gmad = str(_translate(quad).to_bdsim(section_aperture=self.SECTION))
         assert 'apertureType="rectangular"' in gmad
-        # LAURA's sizes are full apertures, gmad's aper1/aper2 half widths
+        # LAURA's sizes and gmad's aper1/aper2 are both half widths
         assert "aper1=0.002*m" in gmad and "aper2=0.001*m" in gmad
         assert "aper1=0.01*m" not in gmad
 
@@ -612,7 +612,7 @@ class TestApertureAndOffsets:
         from laura.models.simulation import ApertureElement
 
         quad = _quadrupole()
-        quad.aperture = ApertureElement(shape="scraper", horizontal_size=0.004)
+        quad.aperture = ApertureElement(shape="scraper", horizontal_size=0.002)
         gmad = str(_translate(quad).to_bdsim())
         assert "aper1=0.002*m" in gmad
         assert "apertureType" not in gmad
@@ -621,13 +621,13 @@ class TestApertureAndOffsets:
         "aperture, element, xsize, ysize",
         [
             ({"shape": "circular", "radius": 5e-4}, "ecol", 5e-4, 5e-4),
-            ({"shape": "elliptical", "horizontal_size": 0.004, "vertical_size": 0.002}, "ecol", 0.002, 0.001),
-            ({"shape": "rectangular", "horizontal_size": 0.004}, "rcol", 0.002, 0.002),
+            ({"shape": "elliptical", "horizontal_size": 0.002, "vertical_size": 0.001}, "ecol", 0.002, 0.001),
+            ({"shape": "rectangular", "horizontal_size": 0.002}, "rcol", 0.002, 0.002),
         ],
     )
     def test_collimator_half_apertures(self, aperture, element, xsize, ysize):
-        """gmad's xsize/ysize are half apertures: a circular collimator's radius (which
-        used to be dropped, leaving the jaws closed), or half LAURA's full sizes."""
+        """gmad's xsize/ysize are half apertures, as LAURA's sizes are: a circular
+        collimator's radius (which used to be dropped, leaving the jaws closed)."""
         from laura.models.element import Collimator
 
         col = Collimator(

@@ -732,16 +732,34 @@
       "additionalProperties": false,
       "description": "Transverse aperture geometry for drift-space checks and collimators.",
       "properties": {
+        "active": {
+          "description": "Whether the aperture is applied. False keeps the definition without checking against it.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "horizontal_offset": {
+          "description": "Horizontal position of the aperture centre on the element axis [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "horizontal_size": {
-          "description": "Full horizontal aperture [m].",
+          "description": "Horizontal half aperture, centre to edge [m].",
           "minimum": 0.0,
           "type": [
             "number",
             "null"
           ]
         },
+        "location": {
+          "$ref": "#/$defs/ApertureLocationEnum",
+          "description": "Where along the element the aperture is checked."
+        },
         "material": {
-          "description": "Aperture material.",
+          "description": "Material of the aperture jaws or collimator body.",
           "type": [
             "string",
             "null"
@@ -781,8 +799,30 @@
           "$ref": "#/$defs/ApertureShapeEnum",
           "description": "Cross-sectional aperture shape."
         },
+        "shifts_with_body": {
+          "description": "Whether the aperture follows the element's misalignment rather than staying on the design orbit.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "thickness": {
+          "description": "Longitudinal thickness of the aperture material [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical position of the aperture centre on the element axis [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "vertical_size": {
-          "description": "Full vertical aperture [m].",
+          "description": "Vertical half aperture, centre to edge [m].",
           "minimum": 0.0,
           "type": [
             "number",
@@ -792,6 +832,19 @@
       },
       "title": "ApertureElement",
       "type": "object"
+    },
+    "ApertureLocationEnum": {
+      "description": "Where along the element an aperture is checked. Following PALS ``ApertureP.location``.",
+      "enum": [
+        "entrance_end",
+        "center",
+        "exit_end",
+        "both_ends",
+        "everywhere",
+        "nowhere"
+      ],
+      "title": "ApertureLocationEnum",
+      "type": "string"
     },
     "ApertureShapeEnum": {
       "description": "Cross-sectional shape of a beam-pipe aperture. `scraper` is a jaw geometry rather than a pipe shape -- the extents are rectangular, but the jaws are positioned independently, so it maps to ASTRA's Scr_X/Scr_Y (not Col_X/Col_Y) and BDSIM's jcol (not rcol). It therefore has no gmad `apertureType`.",
@@ -3416,7 +3469,7 @@
       "description": "Combined solenoid and quadrupole magnetic field.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -3500,6 +3553,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -3805,7 +3900,7 @@
       "description": "Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -3889,6 +3984,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -4242,6 +4379,286 @@
       "title": "CrabCavity",
       "type": "object"
     },
+    "Crystal": {
+      "additionalProperties": false,
+      "description": "A bent crystal in the beam, which channels particles along its planes (or, off alignment, reflects or scatters them). Its thickness along the beam is ``physical.length``, and it is centred on the beam axis.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "crystal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CrystalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Crystal geometry, orientation and lattice."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Crystal",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Material of the crystal, by a name Geant4 knows (``G4_Si``, ``G4_Ge``...). Needed to translate it to BDSIM.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "Crystal",
+      "type": "object"
+    },
+    "CrystalElement": {
+      "additionalProperties": false,
+      "description": "Geometry, orientation and lattice of a bent crystal. The lattice defaults are silicon's (diamond cubic).",
+      "properties": {
+        "bending_angle": {
+          "description": "Horizontal bending angle of the crystal's planes over its length [rad]; the angle a fully channelled particle is deflected by.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "data_file": {
+          "description": "Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``): absolute, relative to the lattice, or with ``$master_lattice$``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entrance_angle": {
+          "description": "Angle of the crystal planes at its entrance to the beam axis [rad]: 0 aligns them for channelling; beyond the critical angle, but within the bend, gives volume reflection; beyond the bend, amorphous scattering.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "horizontal_size": {
+          "description": "Full horizontal size of the crystal [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lattice_angles": {
+          "description": "Unit-cell angles alpha, beta, gamma [rad]. Right angles if unset.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "lattice_constants": {
+          "description": "Unit-cell edges a, b, c [m]. Silicon's if unset.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "space_group": {
+          "description": "Crystallographic space group number. Silicon's (227) if unset.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "vertical_size": {
+          "description": "Full vertical size of the crystal [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "CrystalElement",
+      "type": "object"
+    },
     "Decapole": {
       "additionalProperties": false,
       "description": "Decapole magnet.",
@@ -4466,7 +4883,7 @@
       "description": "Decapole magnet field, principal multipole order 4.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -4550,6 +4967,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -5310,7 +5769,7 @@
       "description": "",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -5394,6 +5853,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -6821,7 +7322,8 @@
         "ACDipole",
         "Wire",
         "BeamBeam",
-        "RFMultipole"
+        "RFMultipole",
+        "Target"
       ],
       "title": "HardwareClassEnum",
       "type": "string"
@@ -9858,7 +10360,7 @@
       "description": "Magnetic field parameters for a beamline magnet, including multipole components, field integrals, and geometric edge parameters.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -9942,6 +10444,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -10476,7 +11020,7 @@
     },
     "MatrixTransformSimulationElement": {
       "additionalProperties": false,
-      "description": "Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.",
+      "description": "Zero- through third-order transfer-map coefficients for a matrix transform element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0.",
       "properties": {
         "apply": {
           "description": "Whether to apply the transfer map.",
@@ -11326,7 +11870,7 @@
       "description": "Octupole magnet field, principal multipole order 3.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -11410,6 +11954,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -12862,6 +13448,13 @@
           ],
           "description": "Manufacturer and serial-number data."
         },
+        "material": {
+          "description": "Element material.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
@@ -13716,7 +14309,7 @@
       "description": "",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -13800,6 +14393,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -16565,7 +17200,7 @@
       "description": "Sextupole magnet field, principal multipole order 2.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored.",
           "type": [
             "number",
             "null"
@@ -16649,6 +17284,48 @@
         },
         "fringe_field_coefficient": {
           "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k0": {
+          "description": "Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k1": {
+          "description": "Hwang-Lee fringe-field integral K1; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k3": {
+          "description": "Hwang-Lee fringe-field integral K3; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k4": {
+          "description": "Hwang-Lee fringe-field integral K4; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k5": {
+          "description": "Hwang-Lee fringe-field integral K5; see ``fringe_k0``.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fringe_k6": {
+          "description": "Hwang-Lee fringe-field integral K6; see ``fringe_k0``.",
           "type": [
             "number",
             "null"
@@ -17987,6 +18664,237 @@
         "hardware_class"
       ],
       "title": "StandardElement",
+      "type": "object"
+    },
+    "Target": {
+      "additionalProperties": false,
+      "description": "A block of material in the beam, which the beam passes through and interacts with: a radiator, a converter, a foil. Its thickness along the beam is ``physical.length``. Modelled by BDSIM;  codes without material interactions treat it as a drift.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Target",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "material": {
+          "description": "Material of the block, by a name BDSIM / Geant4 knows (``tungsten``, ``copper``, ``G4_W``...).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TargetElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Transverse shape of the block."
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "Target",
+      "type": "object"
+    },
+    "TargetElement": {
+      "additionalProperties": false,
+      "description": "Transverse shape of a target block.",
+      "properties": {
+        "circular": {
+          "description": "A round block (a cylinder along the beam) rather than a square one.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "transverse_size": {
+          "description": "Full transverse size of the block [m]: the side of a square block, or the diameter of a round one. BDSIM's default if unset.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "TargetElement",
       "type": "object"
     },
     "Trace": {

@@ -1,9 +1,12 @@
 from typing import List
-import numpy as np
-import easygdf
 from warnings import warn
-from .field_parameter import require_rf, set_field
+
+import easygdf
+import numpy as np
+
 from laura.models.constants import speed_of_light
+
+from .field_parameter import require_rf, set_field
 
 # field_type: (block names, drop repeated z samples via union)
 _GDF_BLOCKS = {

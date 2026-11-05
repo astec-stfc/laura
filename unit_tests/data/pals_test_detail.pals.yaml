@@ -1,0 +1,56 @@
+# Fixture for the components LAURA gained after the first PALS pass: the whole
+# of ApertureP, MetaP, and a transfer map carried in the LauraP extension
+# because TaylorP has no stated term format.
+PALS:
+  version: 1
+  extension_labels:
+    names:
+      LauraP: LAURA data with no PALS component
+  facility:
+    - detail_line:
+        kind: BeamLine
+        line:
+          - begin:
+              kind: BeginningEle
+              ReferenceP:
+                species_ref: "electron"
+                E_tot_ref: 1.0e9
+          - jaws:
+              kind: Mask
+              length: 0.1
+              # Off axis and asymmetric on purpose: the edges alone say both,
+              # so x_center is redundant here and is left out to check it is
+              # recovered from them.
+              ApertureP:
+                x_min: -0.004
+                x_max: 0.010
+                y_min: -0.005
+                y_max: 0.005
+                shape: RECTANGULAR
+                location: EXIT_END
+                material: tungsten
+                thickness: 0.5
+                aperture_active: false
+                aperture_shifts_with_body: false
+              MetaP:
+                alias: TCP.B6L7
+                ID: SN-00417
+                location: IR7
+          - tay1:
+              kind: Taylor
+              LauraP:
+                matrix:
+                  r: [[1.0, 2.5, 0.0, 0.0, 0.0, 0.0],
+                      [0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                      [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                      [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                      [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                      [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]]
+                  c: {"1": 0.001}
+                  t: {"1,2,2": 0.5}
+                  u: {"3,4,4,4": -0.25}
+    - lat1:
+        kind: Lattice
+        branches:
+          - detail_line
+    - use: "lat1"

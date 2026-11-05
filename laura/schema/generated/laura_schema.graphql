@@ -1,5 +1,15 @@
 # metamodel_version: 1.11.0
 # version: 0.1.0
+enum ApertureLocationEnum
+  {
+    entrance_end
+    center
+    exit_end
+    both_ends
+    everywhere
+    nowhere
+  }
+
 enum ApertureShapeEnum
   {
     circular
@@ -58,6 +68,7 @@ enum HardwareClassEnum
     Wire
     BeamBeam
     RFMultipole
+    Target
   }
 
 enum IOTypeEnum
@@ -232,11 +243,17 @@ type ApertureElement
     numberOfElements: Int
     horizontalSize: Float
     verticalSize: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     shape: ApertureShapeEnum
+    location: ApertureLocationEnum
+    material: String
+    thickness: Float
+    active: Boolean
+    shiftsWithBody: Boolean
     radius: Float
     negativeExtent: Float
     positiveExtent: Float
-    material: String
   }
 
 type BAMDiagnosticElement
@@ -590,6 +607,44 @@ type CrabCavity
     simulation: RFCavitySimulationElement
     cavity: RFDeflectingCavityElement
     hardwareType: String
+  }
+
+type Crystal
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inheritsFrom: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    aperture: ApertureElement
+    crystal: CrystalElement
+    hardwareType: String
+    material: String
+  }
+
+type CrystalElement
+  {
+    dataFile: String
+    bendingAngle: Float
+    entranceAngle: Float
+    horizontalSize: Float
+    verticalSize: Float
+    latticeConstants: [Float]
+    latticeAngles: [Float]
+    spaceGroup: Int
   }
 
 type DegaussableElement
@@ -1216,6 +1271,12 @@ type MagneticElement
     edgeFieldIntegralEntrance: Float
     edgeFieldIntegralExit: Float
     exitGap: Float
+    fringeK0: Float
+    fringeK1: Float
+    fringeK3: Float
+    fringeK4: Float
+    fringeK5: Float
+    fringeK6: Float
     fringeFieldCoefficient: Float
     gradient: Float
     angle: Float
@@ -1555,6 +1616,7 @@ type PlasmaLens
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
+    material: String
     focusingStrength: Float
     wakefields: Boolean
     plasma: PlasmaElement
@@ -2097,6 +2159,38 @@ type StandardElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
     reference: ReferenceElement
+  }
+
+type Target
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inheritsFrom: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    aperture: ApertureElement
+    target: TargetElement
+    hardwareType: String
+    material: String
+  }
+
+type TargetElement
+  {
+    transverseSize: Float
+    circular: Boolean
   }
 
 type Trace

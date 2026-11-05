@@ -1,20 +1,29 @@
 import math
-import re
 import os
 import re
-from typing import Any, Dict, Literal, Type, Union, get_args, get_origin
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    get_args,
+    get_origin,
+)
 
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
-from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.models.base_models import IgnoreExtra
 from laura.models.constants import speed_of_light
-from laura.models.element import Magnet
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, get_args, get_origin
-from .fields import FieldMap
+from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.utils.naming import number_repeated_names  # noqa: F401 (re-exported)
+
+from .fields import FieldMap
 
 
 def same_element_placement(left: Any, right: Any) -> bool:
@@ -135,9 +144,7 @@ def elegant_functional_definitions(definitions: Dict | None = None) -> str:
         # Resolution mode: values are baked in as numbers, so no rpn store needed.
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
-    return "".join(
-        f"% {value} sto {name}\n" for name, value in definitions.items()
-    )
+    return "".join(f"% {value} sto {name}\n" for name, value in definitions.items())
 
 
 def madx_functional_definitions(definitions: Dict | None = None) -> str:
@@ -170,6 +177,7 @@ def madx_functional_definitions(definitions: Dict | None = None) -> str:
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
     return "".join(f"{name} = {value};\n" for name, value in definitions.items())
+
 
 def bmad_functional_definitions(definitions: Dict | None = None) -> str:
     """Build Bmad variable assignments for symbolic lattice parameters."""
@@ -333,7 +341,11 @@ def _unwrap_optional_basemodel(annotation: Any) -> Optional[Type[BaseModel]]:
     """Return ``X`` if ``annotation`` is ``Optional[X]`` for a BaseModel ``X``, else ``None``."""
     if get_origin(annotation) is Union:
         non_none = [a for a in get_args(annotation) if a is not type(None)]
-        if len(non_none) == 1 and isinstance(non_none[0], type) and issubclass(non_none[0], BaseModel):
+        if (
+            len(non_none) == 1
+            and isinstance(non_none[0], type)
+            and issubclass(non_none[0], BaseModel)
+        ):
             return non_none[0]
     return None
 
@@ -385,7 +397,9 @@ def introspect_model_defaults(
                     inner_cls,
                     flatten=flatten,
                     parent_key=(
-                        f"{parent_key}{separator}{field_name}" if parent_key else field_name
+                        f"{parent_key}{separator}{field_name}"
+                        if parent_key
+                        else field_name
                     ),
                     separator=separator,
                     resolve_optional=resolve_optional,

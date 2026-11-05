@@ -122,7 +122,12 @@ def test_combined_function_bend(tmp_path, integrator_set, k1l, edge):
     bend.magnetic.multipoles.K0L.normal = 0.1
     bend.magnetic.multipoles.K1L.normal = k1l
     bend.magnetic.entrance_edge_angle = bend.magnetic.exit_edge_angle = edge
-    drift = Drift(name="D1", machine_area="T", physical={"length": 0.1})
+    # MAD-X places elements by position, so the drift must sit after the bend
+    end, angle = bend.physical.end, bend.magnetic.angle
+    drift = Drift(name="D1", machine_area="T", physical={
+        "length": 0.1, "rotation": {"theta": -angle},
+        "middle": {"x": end.x + 0.05 * math.sin(angle), "z": end.z + 0.05 * math.cos(angle)},
+    })
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         madx.input(section(bend, drift).to_madx(beam={"particle": "electron", "pc": P0C / 1e9}))

@@ -117,7 +117,11 @@ def _length_args(t, P_Q) -> tuple:
 
 
 def _set_phid(t) -> list:
-    return [("set_phid", t.cavity.phase)]
+    calls = [("set_phid", t.cavity.phase)]
+    if not t.simulation.field_amplitude:
+        # autophase() gives a field-free cavity t0 = NaN (RF-Track 2.7.4), losing the beam
+        calls.append(("set_t0", 0.0))
+    return calls
 
 
 def _field_types(t) -> tuple:
@@ -406,14 +410,18 @@ def build_tw_fieldmap(t, **kwargs) -> "object":
     manual's +90 degree core offset applies only to
     ``SW_Structure``/``TW_Structure``.
     """
-    rft = get_rftrack()
     args_list, phase = _tw_fieldmap_args(t)
-    elems = []
-    for args in args_list:
-        elem = rft.RF_FieldMap_1d(*args)
-        elem.set_phid(phase)
-        elems.append(elem)
-    return elems
+    return [tw_fieldmap_element(args, phase) for args in args_list]
+
+
+def tw_fieldmap_element(args: tuple, phase: float) -> "object":
+    """One ``RF_FieldMap_1d`` of :func:`build_tw_fieldmap`; a field-free segment
+    (an empty coupler) gets ``t0 = 0``, which ``autophase()`` would set to NaN."""
+    elem = get_rftrack().RF_FieldMap_1d(*args)
+    elem.set_phid(phase)
+    if not np.any(args[0]):
+        elem.set_t0(0.0)
+    return elem
 
 
 def repr_tw_fieldmap(t, **kwargs) -> list:
@@ -424,7 +432,10 @@ def repr_tw_fieldmap(t, **kwargs) -> list:
     """
     args_list, phase = _tw_fieldmap_args(t)
     return [
-        (f"RF_FieldMap_1d({_format_args(args)})", [f"{{var}}.set_phid({phase!r})"])
+        (
+            f"RF_FieldMap_1d({_format_args(args)})",
+            [f"{{var}}.set_phid({phase!r})"] + ([] if np.any(args[0]) else ["{var}.set_t0(0.0)"]),
+        )
         for args in args_list
     ]
 
@@ -436,7 +447,7 @@ def build_rf_cavity(t, **kwargs) -> "object":
     approximation) for travelling-wave; :func:`build_cavity_fieldmap` (real
     on-axis field map) for a standing-wave cavity with one resolved, else
     :func:`build_pillbox_cavity` (single-coefficient approximation)."""
-    if t.cavity.structure_type == "TravellingWave":
+    if t.structure_type in ["TravellingWave", "TravelingWave"]:
         if _tw_fieldmap_available(t):
             return build_tw_fieldmap(t, **kwargs)
         return build_tw_structure(t, **kwargs)
@@ -446,7 +457,7 @@ def build_rf_cavity(t, **kwargs) -> "object":
 
 
 def repr_rf_cavity(t, **kwargs) -> tuple:
-    if t.cavity.structure_type == "TravellingWave":
+    if t.structure_type in ["TravellingWave", "TravelingWave"]:
         if _tw_fieldmap_available(t):
             return repr_tw_fieldmap(t, **kwargs)
         return repr_tw_structure(t, **kwargs)

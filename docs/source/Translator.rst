@@ -17,6 +17,7 @@ simulation codes including:
 * `Genesis <https://github.com/svenreiche/Genesis-1.3-Version4>`_ :cite:`Genesis`
 * `MAD-X <https://cern.ch/madx>`_ :cite:`MADX`, via `cpymad <https://hibtc.github.io/cpymad/index.html>`_
 * `RF-Track <https://gitlab.cern.ch/rf-track>`_ -- see :ref:`rftrack-translator`
+* `ImpactX <https://github.com/BLAST-ImpactX/impactx>`_
 
 The translator module uses a hierarchical approach: individual elements are translated first, then combined into
 sections that can be exported as complete input files or objects for each simulation code.
@@ -61,6 +62,7 @@ Translation methods for each supported code:
 * ``to_madx(at)``: Generates a MAD-X element-definition string, for use with :py:meth:`cpymad.madx.Madx.input`.
 * ``to_rftrack(P_Q)``: Creates an RF-Track element object; see :ref:`rftrack-translator`.
 * ``to_rftrack_repr(varname, P_Q)``: Emits the Python source lines that reconstruct the same RF-Track object standalone.
+* ``to_impactx(model, energy, particle)``: Returns ImpactX element dicts.
 
 Utility methods for field and file management:
 
@@ -266,6 +268,7 @@ Translation methods for complete lattice sections:
 * ``to_wake_t()``: Produces Wake-T :py:class:`Beamline` objects.
 * ``to_madx(beam, refer, Brho)``: Creates a MAD-X ``SEQUENCE`` definition string; see :ref:`madx-translator`.
 * ``to_rftrack(P_Q, save, sc_nsteps)`` / ``to_rftrack_volume(P_Q, save)``: Builds an RF-Track ``Lattice`` or ``Volume``; see :ref:`rftrack-translator`.
+* ``to_impactx(model, energy, particle, save)``: A flat list of ImpactX element dicts; ``save`` writes ``{name}.impactx.json``.
 
 The translator automatically:
 

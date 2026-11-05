@@ -163,6 +163,19 @@ export enum ApertureShapeEnum {
     scraper = "scraper",
 };
 /**
+* Where along the element an aperture is checked. Following PALS ``ApertureP.location``.
+*/
+export enum ApertureLocationEnum {
+    
+    entrance_end = "entrance_end",
+    center = "center",
+    exit_end = "exit_end",
+    both_ends = "both_ends",
+    everywhere = "everywhere",
+    /** Defined but never checked -- distinct from ``active: false``, which switches off an aperture that is otherwise placed. */
+    nowhere = "nowhere",
+};
+/**
 * Whether the reference orbit closes on itself. Mirrors Bmad's ``parameter[geometry]``.
 */
 export enum LatticeGeometryEnum {
@@ -560,20 +573,32 @@ export interface Shutter extends PhysicalAcceleratorElement {
 export interface ApertureElement {
     /** Number of aperture sub-elements (e.g., for multi-leaf collimators). */
     number_of_elements?: number,
-    /** Full horizontal aperture [m]. */
+    /** Horizontal half aperture, centre to edge [m]. */
     horizontal_size?: number,
-    /** Full vertical aperture [m]. */
+    /** Vertical half aperture, centre to edge [m]. */
     vertical_size?: number,
+    /** Horizontal position of the aperture centre on the element axis [m]. */
+    horizontal_offset?: number,
+    /** Vertical position of the aperture centre on the element axis [m]. */
+    vertical_offset?: number,
     /** Cross-sectional aperture shape. */
     shape?: string,
+    /** Where along the element the aperture is checked. */
+    location?: string,
+    /** Material of the aperture jaws or collimator body. */
+    material?: string,
+    /** Longitudinal thickness of the aperture material [m]. */
+    thickness?: number,
+    /** Whether the aperture is applied. False keeps the definition without checking against it. */
+    active?: boolean,
+    /** Whether the aperture follows the element's misalignment rather than staying on the design orbit. */
+    shifts_with_body?: boolean,
     /** Radius for circular apertures [m]. */
     radius?: number,
     /** Upstream / inner extent [m]. */
     negative_extent?: number,
     /** Downstream / outer extent [m]. */
     positive_extent?: number,
-    /** Aperture material. */
-    material?: string,
 }
 
 
@@ -1082,7 +1107,7 @@ export interface TwissMatchSimulationElement extends SimulationElement {
 
 
 /**
- * Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+ * Zero- through third-order transfer-map coefficients for a matrix transform element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0.
  */
 export interface MatrixTransformSimulationElement extends SimulationElement {
     /** Whether to apply the transfer map. */
@@ -1296,11 +1321,23 @@ export interface MagneticElement {
     edge_field_integral_exit?: number,
     /** Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``. */
     exit_gap?: number,
+    /** Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``. */
+    fringe_k0?: number,
+    /** Hwang-Lee fringe-field integral K1; see ``fringe_k0``. */
+    fringe_k1?: number,
+    /** Hwang-Lee fringe-field integral K3; see ``fringe_k0``. */
+    fringe_k3?: number,
+    /** Hwang-Lee fringe-field integral K4; see ``fringe_k0``. */
+    fringe_k4?: number,
+    /** Hwang-Lee fringe-field integral K5; see ``fringe_k0``. */
+    fringe_k5?: number,
+    /** Hwang-Lee fringe-field integral K6; see ``fringe_k0``. */
+    fringe_k6?: number,
     /** Coefficient controlling the fringe-field roll-off rate. */
     fringe_field_coefficient?: number,
     /** Peak field gradient [T/m] (quads) or peak field [T] (dipoles). */
     gradient?: number,
-    /** Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default. */
+    /** Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored. */
     angle?: number,
 }
 

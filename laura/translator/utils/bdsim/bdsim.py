@@ -243,7 +243,7 @@ def element_aperture_params(aperture) -> dict:
     radius = getattr(aperture, "radius", None)
     horizontal = getattr(aperture, "horizontal_size", None)
     vertical = getattr(aperture, "vertical_size", None)
-    sizes = [s / 2 for s in (horizontal, vertical) if s]
+    sizes = [s for s in (horizontal, vertical) if s]
     size = (
         radius
         if radius

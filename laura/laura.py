@@ -31,7 +31,12 @@ from .importers.yaml_loader import (
 )
 from ._compat import DeprecatedMethodAliases
 from .models.element import BaseElement
-from .models.element_list import MachineModel, drift_lengths, insert_drifts
+from .models.element_list import (
+    MachineModel,
+    drift_lengths,
+    insert_drifts,
+    split_occurrence,
+)
 
 
 NON_ELEMENT_FILENAMES = {"summary.yaml", "summary.yml"}
@@ -338,8 +343,11 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
         for name in self.elements_between(
             start=start, end=end, element_class=None, path=path
         ):
-            if not self.elements[name].is_subelement():
-                elements[name] = self.elements[name]
+            element = self.elements[
+                name if name in self.elements else split_occurrence(name)[0]
+            ]
+            if not element.is_subelement():
+                elements[name] = element
         return elements
 
     def _drift_length(self, start: list[float], end: list[float]):

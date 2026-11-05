@@ -104,6 +104,19 @@ class RFCavityTranslator(BaseElementTranslator):
         """Cavity field amplitude, resolving a functional definition if set symbolically."""
         return self.resolve(self.simulation.field_amplitude)
 
+    @property
+    def voltage(self) -> float:
+        """Voltage [V] for codes that take one: :attr:`field_amplitude`, times
+        :meth:`voltage_factor`."""
+        return self.field_amplitude * self.voltage_factor()
+
+    def voltage_factor(self) -> float:
+        """1 for a standing-wave cavity; an effective length [m] turning a
+        travelling-wave cavity's gradient into a voltage."""
+        if self.structure_type != "TravellingWave":
+            return 1.0
+        return abs((self.get_cells() + 3.8) * self.cavity.cell_length / np.sqrt(2))
+
     @computed_field
     @property
     def tcolumn(self) -> str | None:
@@ -174,9 +187,7 @@ class RFCavityTranslator(BaseElementTranslator):
         )
         voltage = parameters.get("voltage")
         if voltage is not None and self.structure_type == "TravellingWave":
-            factor = abs(
-                (self.get_cells() + 3.8) * self.cavity.cell_length * (1 / np.sqrt(2))
-            )
+            factor = self.travelling_wave_voltage_factor()
             parameters["voltage"] = (
                 f"({voltage}) * {factor}"
                 if not self._resolve_functional and self.is_functional(voltage)
@@ -445,15 +456,6 @@ class RFCavityTranslator(BaseElementTranslator):
                     if hasattr(self, key) and getattr(self, key) is not None
                     else value
                 )
-                if key == "voltage":
-                    if self.structure_type == "TravellingWave":
-                        value = value * abs(
-                            (self.get_cells() + 3.8)
-                            * self.cavity.cell_length
-                            * (1 / np.sqrt(2))
-                        )
-                    else:
-                        value = value
                 if isinstance(value, float):
                     dt = float64
                     setattr(
@@ -635,31 +637,41 @@ class RFCavityTranslator(BaseElementTranslator):
                 keywords["gradient"] /= self.physical.length
         return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
 
-    def xsuite_edges(self, cavity: object, p0c: float) -> tuple:
+    def rf_focusing(
+        self,
+        length: float,
+        voltage: float,
+        cos_phi: float,
+        p0c: float,
+        p1: float | None = None,
+    ) -> tuple:
         """
-        Transverse focusing for an Xsuite cavity, which has none of its own:
-        hard-edge (Chambers) lenses for a travelling wave, and the
-        Rosenzweig-Serafini matrix for a standing wave, or a travelling wave when
-        :attr:`~tw_focusing` is off.
+        The cavity's transverse 2x2 map in (x, px), px over the local reference
+        momentum: hard-edge (Chambers) lenses about an accelerating drift for a
+        travelling wave, and the Rosenzweig-Serafini matrix for a standing wave,
+        or a travelling wave when :attr:`~tw_focusing` is off.
 
         Parameters
         ----------
-        cavity: xtrack.Cavity
-            The cavity
+        length: float
+            Cavity length [m]
+        voltage: float
+            Peak energy gain [eV]
+        cos_phi: float
+            Cosine of the phase off crest
         p0c: float
             Reference momentum ahead of the cavity [eV]
+        p1: float, optional
+            Reference momentum after it [eV]; defaults to ``p0c`` plus the gain
 
         Returns
         -------
         tuple
-            (entrance map, reference energy increase, exit lens, reference momentum after)
+            (map, accelerating-drift body, exit lens, reference momentum after)
         """
-        import xtrack as xt
-
-        L, voltage = cavity.length, cavity.voltage  # noqa N803
-        cos_phi = np.sin(cavity.phase + np.radians(cavity.lag))
+        L = length  # noqa N806
         gain = voltage * cos_phi
-        p1 = p0c + gain
+        p1 = p0c + gain if p1 is None else p1
         log_ratio = np.log1p(gain / p0c) / (gain / p0c) if gain else 1.0
         body = np.array([[1, L * log_ratio], [0, p0c / p1]])
         exit = np.array([[1, 0], [gain / (2 * L * p1), 1]])
@@ -680,6 +692,32 @@ class RFCavityTranslator(BaseElementTranslator):
                     ],
                 ]
             )
+        return target, body, exit, p1
+
+    def xsuite_edges(self, cavity: object, p0c: float) -> tuple:
+        """
+        Transverse focusing for an Xsuite cavity, which has none of its own; see
+        :meth:`rf_focusing`.
+
+        Parameters
+        ----------
+        cavity: xtrack.Cavity
+            The cavity
+        p0c: float
+            Reference momentum ahead of the cavity [eV]
+
+        Returns
+        -------
+        tuple
+            (entrance map, reference energy increase, exit lens, reference momentum after)
+        """
+        import xtrack as xt
+
+        cos_phi = np.sin(cavity.phase + np.radians(cavity.lag))
+        target, body, exit, p1 = self.rf_focusing(
+            cavity.length, cavity.voltage, cos_phi, p0c
+        )
+        gain = p1 - p0c
 
         def taylor_map(m: np.ndarray) -> object:
             m1 = np.eye(6)
@@ -803,6 +841,21 @@ class RFCavityTranslator(BaseElementTranslator):
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
+    def travelling_wave_voltage_factor(self) -> float:
+        """
+        Factor turning a travelling-wave field amplitude into a voltage.
+
+        LAURA holds a travelling-wave cavity's ``field_amplitude`` as a
+        gradient-like number rather than as the voltage a standing-wave cavity's
+        amplitude is.
+
+        Returns
+        -------
+        float
+            The effective length [m] to multiply the amplitude by.
+        """
+        return abs((self.get_cells() + 3.8) * self.cavity.cell_length / np.sqrt(2))
+
     def get_cells(self) -> int:
         """
         Get the number of cavity cells.
@@ -881,7 +934,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 f"phi{subname} = {(self.cavity.crest + 90 - self.phase + 0) % 360.0!s}/deg;\n"
             )
             if self.structure_type == "TravellingWave" and not travelling:
-                output += "ffac" + subname + " = " + str(self._gpt_tw_ffac()) + ";\n"
+                output += f"ffac{subname} = {self._gpt_tw_ffac()!s};\n"
             else:
                 output += f"ffac{subname} = {self.field_amplitude!s};\n"
 

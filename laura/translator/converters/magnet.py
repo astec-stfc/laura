@@ -21,6 +21,7 @@ from laura.translator.utils.fields import FieldMap
 
 from ..converters import (
     elements_genesis,
+    elements_madx,
     elements_opal,
     keyword_conversion_rules_elegant,
 )
@@ -128,6 +129,40 @@ class MultipoleStrengthTranslator(BaseElementTranslator):
             if self._warn_zero_length and self.verbose:
                 warn(f"Magnet has zero length; returning k{order} = k{order}l")
             return self.magnetic.KnL(order)
+
+    def to_madx(self, at: float | None = None) -> str:
+        """
+        MAD-X ignores a zero-length quadrupole, sextupole or bend, so a thin
+        magnet is written as a ``multipole``. A thick one adds its skew
+        ``k<n>s``, which no keyword rule carries.
+        """
+        multipoles = self.magnetic.multipoles
+        length = self.resolve(self.magnetic.length) or 0.0
+        if length:
+            allowed = elements_madx[self._convert_type_madx(self.hardware_type)]
+            string = super().to_madx()[: -len(";\n")]
+            for order in (1, 2, 3):
+                skew = self.resolve(multipoles.skew(order)) or 0.0
+                if skew and f"k{order}s" in allowed:
+                    string += f", k{order}s = {skew / length}"
+        else:
+            self.start_write()
+            knl, ksl = (
+                [self.resolve(part(order)) or 0.0 for order in range(5)]
+                for part in (multipoles.normal, multipoles.skew)
+            )
+            string = f"{sanitize_string(self.name)}: multipole"
+            for key, values in (("knl", knl), ("ksl", ksl)):
+                while values and not values[-1]:
+                    values.pop()
+                if values:
+                    string += f", {key} = {{{', '.join(map(str, values))}}}"
+            tilt = self.resolve(self.magnetic.tilt) or 0.0
+            if tilt:
+                string += f", tilt = {tilt}"
+        if at is not None:
+            string += f", at = {at}"
+        return string + ";\n"
 
 
 class MagnetTranslator(MultipoleStrengthTranslator):
@@ -1391,6 +1426,30 @@ class WigglerTranslator(BaseElementTranslator):
                 value /= np.sqrt(2)
             terms.append(f"{key} = {self._flag(value)}")
         return f"{index}{self.name}: {etype} = {{{', '.join(terms)}}};\n"
+
+    def to_ocelot(self) -> object:
+        """
+        Ocelot ``Undulator``, with the period, number of periods and deflection
+        parameter set -- without them Ocelot tracks it as a drift, with none of
+        the undulator's natural focusing.
+
+        ``strength`` is the peak K: a planar undulator gets ``Kx = K``, a
+        helical one ``Kx = Ky = K`` (the reverse of the Ocelot importer).
+
+        Returns
+        -------
+        object
+            Ocelot element
+        """
+        obj = super().to_ocelot()
+        m = self.magnetic
+        strength = m.resolved("strength") if m.strength is not None else 0.0
+        if m.period:
+            obj.lperiod = float(m.period)
+            obj.nperiods = int(m.num_periods or round(float(m.length) / float(m.period)))
+        obj.Kx = float(strength)
+        obj.Ky = float(strength) if m.helical else 0.0
+        return obj
 
 
 class CorrectorTranslator(BaseElementTranslator):

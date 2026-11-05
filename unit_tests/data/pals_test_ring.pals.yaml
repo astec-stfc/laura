@@ -1,0 +1,41 @@
+# Fixture for unit_tests/test_pals_importer.py: the two conversions that need
+# more than the element in front of them.
+#
+# - a cavity stating `harmon` rather than a frequency, which only means
+#   something given the revolution period of the whole periodic branch
+# - a BeamBeam, whose group holds more about the opposing bunch than LAURA can
+PALS:
+  facility:
+    - ring:
+        kind: BeamLine
+        periodic: true
+        line:
+          - begin:
+              kind: BeginningEle
+              ReferenceP:
+                species_ref: electron
+                E_tot_ref: 1.0e9
+          - d1:
+              kind: Drift
+              length: 99.0
+          - cav:
+              kind: RFCavity
+              length: 1.0
+              RFP:
+                harmon: 400
+                voltage: 1.0e6
+          - ip:
+              kind: BeamBeam
+              BeamBeamP:
+                sigma_x: 1.0e-5
+                sigma_y: 2.0e-6
+                sigma_z: 0.01
+                charge: 1.0
+                N_particle: 1.0e11
+
+    - lat1:
+        kind: Lattice
+        branches:
+          - ring
+
+    - use: lat1

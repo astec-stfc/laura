@@ -14,7 +14,12 @@ from laura.models.element_list import MachineLayout, SectionLattice
 
 from ...utils.ac_dipole import MV_PER_VOLT
 from ...utils.alignment import from_frame, sagitta
-from .importer import LatticeImporter, apply_misalignment, twiss_simulation
+from .importer import (
+    LatticeImporter,
+    apply_misalignment,
+    element_class,
+    twiss_simulation,
+)
 
 
 def xsuite_misalignment(native: Any) -> Dict[str, float]:
@@ -630,39 +635,44 @@ class XsuiteLatticeImporter(LatticeImporter):
             return {
                 "aperture": {
                     "shape": "elliptical",
-                    "horizontal_size": 2 * float(native.a),
-                    "vertical_size": 2 * float(native.b),
+                    "horizontal_size": float(native.a),
+                    "vertical_size": float(native.b),
                 }
             }
         if native_type == "LimitRect":
             return {
                 "aperture": {
                     "shape": "rectangular",
-                    "horizontal_size": float(native.max_x - native.min_x),
-                    "vertical_size": float(native.max_y - native.min_y),
+                    "horizontal_size": float(native.max_x - native.min_x) / 2,
+                    "vertical_size": float(native.max_y - native.min_y) / 2,
+                    "horizontal_offset": float(native.max_x + native.min_x) / 2,
+                    "vertical_offset": float(native.max_y + native.min_y) / 2,
                 }
             }
+        # LAURA has no racetrack or polygon, so these keep only their half span
         if native_type == "LimitRectEllipse":
             return {
                 "aperture": {
-                    "horizontal_size": 2
-                    * min(float(native.max_x), float(np.sqrt(native.a_squ))),
-                    "vertical_size": 2
-                    * min(float(native.max_y), float(np.sqrt(native.b_squ))),
+                    "horizontal_size": min(
+                        float(native.max_x), float(np.sqrt(native.a_squ))
+                    ),
+                    "vertical_size": min(
+                        float(native.max_y), float(np.sqrt(native.b_squ))
+                    ),
                 }
             }
         if native_type == "LimitRacetrack":
             return {
                 "aperture": {
-                    "horizontal_size": float(native.max_x - native.min_x),
-                    "vertical_size": float(native.max_y - native.min_y),
+                    "horizontal_size": float(native.max_x - native.min_x) / 2,
+                    "vertical_size": float(native.max_y - native.min_y) / 2,
                 }
             }
         if native_type == "LimitPolygon":
             return {
                 "aperture": {
-                    "horizontal_size": float(np.ptp(native.x_vertices)),
-                    "vertical_size": float(np.ptp(native.y_vertices)),
+                    "horizontal_size": float(np.ptp(native.x_vertices)) / 2,
+                    "vertical_size": float(np.ptp(native.y_vertices)) / 2,
                 }
             }
         return {}
@@ -735,7 +745,7 @@ class XsuiteLatticeImporter(LatticeImporter):
                 continue
             stored_type = stored_types.get(element_name)
             laura_type = (
-                getattr(laura_elements, stored_type, None) if stored_type else None
+                element_class(stored_type) if stored_type else None
             )
             if laura_type is None and native_type == "Multipole":
                 laura_type = self._multipole_type(native)
@@ -750,11 +760,6 @@ class XsuiteLatticeImporter(LatticeImporter):
                 continue
 
             warning = None if stored_type else _LOSSY_CONVERSIONS.get(native_type)
-            if native_type == "LimitRect" and (
-                not np.isclose(native.min_x, -native.max_x)
-                or not np.isclose(native.min_y, -native.max_y)
-            ):
-                warning = "the off-centre aperture offset was not represented"
             if warning:
                 warn(
                     f"Xtrack element type {native_type!r} for {element_name!r} "

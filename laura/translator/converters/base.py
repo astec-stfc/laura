@@ -26,6 +26,7 @@ from ..converters import (
     keyword_conversion_rules_madx,
     keyword_conversion_rules_ocelot,
     keyword_conversion_rules_opal,
+    keyword_conversion_rules_pals,
     keyword_conversion_rules_wake_t,
     keyword_conversion_rules_xsuite,
     keyword_conversion_rules_fbpic,
@@ -41,6 +42,7 @@ from ..utils.alignment import arc_point, sagitta, to_frame
 from ..utils.bmad import bmad_misalignment
 from ..utils.fields import FieldMap
 from ..utils.functions import check_value, expand_substitution, sanitize_string
+from ..utils.pals import pals_element_body
 
 _ASTRA_ROTATION_SIGN = {"x": -1.0, "y": -1.0, "z": 1.0}
 """Sign taking a LAURA ``Rotation`` component into ASTRA's ``*_xrot`` family."""
@@ -78,6 +80,27 @@ def ocelot_attributes(cls: type) -> frozenset:
     if cls not in _OCELOT_ATTRIBUTES:
         _OCELOT_ATTRIBUTES[cls] = frozenset(cls().element.__dict__)
     return _OCELOT_ATTRIBUTES[cls]
+
+
+def bmad_limits(name: str, aperture, horizontal: float, vertical: float) -> dict:
+    """
+    Bmad's four limits for half sizes ``horizontal``/``vertical`` centred
+    at ``aperture``'s offset; ``x1``/``y1`` are the negative sides.
+    """
+    ox, oy = aperture.horizontal_offset, aperture.vertical_offset
+    shape = getattr(aperture.shape, "value", aperture.shape)
+    if (ox or oy) and shape in ("elliptical", "circular"):
+        warn(
+            f"Bmad splits an ellipse at the element axis, so the offset "
+            f"ellipse of {name!r} is written as two half-ellipses."
+        )
+    # ponytail: an edge exactly on the axis gives a limit of 0, which Bmad reads as open
+    return {
+        "x1_limit": horizontal - ox,
+        "x2_limit": horizontal + ox,
+        "y1_limit": vertical - oy,
+        "y2_limit": vertical + oy,
+    }
 
 
 BMAD_EXACT_METHOD = "runge_kutta"
@@ -188,6 +211,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             "bmad": keyword_conversion_rules_bmad,
             "madx": keyword_conversion_rules_madx,
             "bdsim": keyword_conversion_rules_bdsim,
+            "pals": keyword_conversion_rules_pals,
         }
         for code, rules in rules_by_code.items():
             if (code, hardware_type) not in _MERGED_RULES:
@@ -709,6 +733,40 @@ class BaseElementTranslator(PhysicalBaseElement):
             properties["integrator"] = "yoshida-6" if renamed else "yoshida4"
         return self.name, obj, properties
 
+    def to_impactx(
+        self,
+        model: str = "exact",
+        energy: float | None = None,
+        particle: str = "electron",
+        field_maps: bool = False,
+    ) -> list:
+        """
+        ImpactX elements as the dicts ``element.to_dict()`` writes, dispatching
+        on ``hardware_type`` via
+        :data:`~laura.translator.conversion_rules.codes.impactx_conversion.impactx_conversion_rules`.
+
+        Parameters
+        ----------
+        model: str
+            Fidelity tier, ``"linear"``, ``"paraxial"`` or ``"exact"``.
+        energy: float, optional
+            Total energy of the design particle [eV], needed by a solenoid.
+        particle: str
+            Design particle; its mass normalises the RF voltage.
+        field_maps: bool
+            Write a cavity with a standing-wave field map as a thick
+            ``RFCavity``, rather than a thin ``ShortRF``;
+            see :func:`~laura.translator.conversion_rules.codes.impactx_conversion.field_map_cavity`.
+
+        Returns
+        -------
+        list[dict]
+        """
+        from ..conversion_rules.codes.impactx_conversion import reference, to_dicts
+
+        self.start_write()
+        return to_dicts(self, model, reference(energy, particle), field_maps)
+
     def to_genesis(self, index: int) -> str:
         """
         Generates a string representation of the object's properties in the Genesis format.
@@ -842,11 +900,11 @@ class BaseElementTranslator(PhysicalBaseElement):
             lines += [s.format(var=vn) for s in post_stmts]
         return lines, varnames
 
-    def _rftrack_aperture_params(self):
+    def _rftrack_aperture_params(self, code: str = "RF-Track"):
         """
         Resolve this element's aperture (if any) into the ``(Rx, Ry, shape)``
         arguments of RF-Track's ``set_aperture``; RF-Track has no standalone
-        aperture element.
+        aperture element. ``code`` names the target in the offset warning.
 
         Returns
         -------
@@ -856,18 +914,22 @@ class BaseElementTranslator(PhysicalBaseElement):
         aperture = getattr(self, "aperture", None)
         if aperture is None or not getattr(aperture, "shape", None):
             return None
+        if aperture.horizontal_offset or aperture.vertical_offset:
+            warn(
+                f"{code} apertures are centred; the offset of {self.name!r} was dropped."
+            )
         shape = aperture.shape
         if shape in ("circular", "elliptical"):
             if aperture.radius is not None:
                 rx = ry = aperture.radius
             else:
-                rx = (aperture.horizontal_size or 0.0) / 2
-                ry = (aperture.vertical_size or 0.0) / 2 or rx
+                rx = aperture.horizontal_size or 0.0
+                ry = aperture.vertical_size or rx
             if rx > 0 or ry > 0:
                 return (rx, ry, "circular")
         elif shape in ("planar", "rectangular", "scraper"):
-            rx = (aperture.horizontal_size or 0.0) / 2
-            ry = (aperture.vertical_size or 0.0) / 2
+            rx = aperture.horizontal_size or 0.0
+            ry = aperture.vertical_size or 0.0
             if rx > 0 or ry > 0:
                 return (rx, ry, "rectangular")
         return None
@@ -957,8 +1019,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         etype = self._convert_type_opal(self.hardware_type)
         if etype.lower() == "drift":
             return ""
-        brho = -(designenergy or 0) * 1e6 / 299792458.0
         wholestring = f"{self.name.replace('-', '_')}: {etype}"
+        brho = -(designenergy or 0) * 1e6 / 299792458.0
         for key, value in self._dump_items(
             self._convert_keyword_opal,
             elements_opal[etype],
@@ -1546,12 +1608,11 @@ class BaseElementTranslator(PhysicalBaseElement):
             return
         if "x1_limit" not in element:
             return
-        horizontal = aperture.radius or (aperture.horizontal_size or 0.0) / 2
-        vertical = aperture.radius or (aperture.vertical_size or 0.0) / 2
+        horizontal = aperture.radius or aperture.horizontal_size or 0.0
+        vertical = aperture.radius or aperture.vertical_size or 0.0
         if not horizontal and not vertical:
             return
-        parameters["x1_limit"] = parameters["x2_limit"] = horizontal
-        parameters["y1_limit"] = parameters["y2_limit"] = vertical
+        parameters.update(bmad_limits(self.name, aperture, horizontal, vertical))
         shape = getattr(aperture.shape, "value", aperture.shape)
         if shape in ("elliptical", "circular"):
             parameters["aperture_type"] = "elliptical"
@@ -1670,6 +1731,19 @@ class BaseElementTranslator(PhysicalBaseElement):
         of one element can be compared on the values that reached the file.
         """
         return dict((self.__pydantic_private__ or {}).get("_bmad_written", {}))
+
+    def to_pals(self) -> Dict[str, Any]:
+        """
+        Generate the PALS facility entry for this element.
+
+        Returns
+        -------
+        dict
+            ``{name: body}``, where the body holds the element's PALS ``kind``,
+            its ``length`` and its parameter groups.
+        """
+        self.start_write()
+        return {self.name: pals_element_body(self)}
 
     def _write_astra_dictionary(self, d: dict, n: int | None = 1) -> str:
         """
@@ -1807,7 +1881,11 @@ class BaseElementTranslator(PhysicalBaseElement):
         if not any(errors.values()):
             return {}
         curved = self._curved
-        if not curved and hasattr(getattr(self, "magnetic", None), "tilt"):
+        if (
+            not curved
+            and hasattr(getattr(self, "magnetic", None), "tilt")
+            and "tilt" in elements_madx[self._convert_type_madx(self.hardware_type)]
+        ):
             errors["dz_rot"] = 0.0
         length = self.physical.length or 0.0
         angle = float(self.resolve(self.magnetic.KnL(0))) if curved else 0.0

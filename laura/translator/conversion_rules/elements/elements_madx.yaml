@@ -202,13 +202,13 @@ collimator:
 
 ecollimator:
   l: double
-  xsize: double
-  ysize: double
+  apertype: string
+  aperture: double_array
 
 rcollimator:
   l: double
-  xsize: double
-  ysize: double
+  apertype: string
+  aperture: double_array
 
 beambeam:
   charge: double

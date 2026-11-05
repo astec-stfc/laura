@@ -352,6 +352,21 @@ class ApertureShapeEnum(str, Enum):
     """
 
 
+class ApertureLocationEnum(str, Enum):
+    """
+    Where along the element an aperture is checked. Following PALS ``ApertureP.location``.
+    """
+    entrance_end = "entrance_end"
+    center = "center"
+    exit_end = "exit_end"
+    both_ends = "both_ends"
+    everywhere = "everywhere"
+    nowhere = "nowhere"
+    """
+    Defined but never checked -- distinct from ``active: false``, which switches off an aperture that is otherwise placed.
+    """
+
+
 class LatticeGeometryEnum(str, Enum):
     """
     Whether the reference orbit closes on itself. Mirrors Bmad's ``parameter[geometry]``.
@@ -791,16 +806,34 @@ class _ApertureElementBase(ConfiguredBaseModel):
 
     number_of_elements: int = Field(default=0, description="""Number of aperture sub-elements (e.g., for multi-leaf collimators).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'ifabsent': 'int(0)'} })
     """Number of aperture sub-elements (e.g., for multi-leaf collimators)."""
-    horizontal_size: float = Field(default=0.0, description="""Full horizontal aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'CrystalElement'],
+    horizontal_size: float = Field(default=0.0, description="""Horizontal half aperture, centre to edge [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'CrystalElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
-    """Full horizontal aperture [m]."""
-    vertical_size: float = Field(default=0.0, description="""Full vertical aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'CrystalElement'],
+    """Horizontal half aperture, centre to edge [m]."""
+    vertical_size: float = Field(default=0.0, description="""Vertical half aperture, centre to edge [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'CrystalElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
-    """Full vertical aperture [m]."""
+    """Vertical half aperture, centre to edge [m]."""
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal position of the aperture centre on the element axis [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal position of the aperture centre on the element axis [m]."""
+    vertical_offset: float = Field(default=0.0, description="""Vertical position of the aperture centre on the element axis [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical position of the aperture centre on the element axis [m]."""
     shape: Optional[ApertureShapeEnum] = Field(default=None, description="""Cross-sectional aperture shape.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable', 'ApertureElement']} })
     """Cross-sectional aperture shape."""
+    location: Optional[ApertureLocationEnum] = Field(default=ApertureLocationEnum.everywhere, description="""Where along the element the aperture is checked.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'ifabsent': 'string(everywhere)'} })
+    """Where along the element the aperture is checked."""
+    material: Optional[str] = Field(default=None, description="""Material of the aperture jaws or collimator body.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'PhysicalAcceleratorElement']} })
+    """Material of the aperture jaws or collimator body."""
+    thickness: Optional[float] = Field(default=None, description="""Longitudinal thickness of the aperture material [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'unit': {'ucum_code': 'm'}} })
+    """Longitudinal thickness of the aperture material [m]."""
+    active: Optional[bool] = Field(default=True, description="""Whether the aperture is applied. False keeps the definition without checking against it.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'ifabsent': 'true'} })
+    """Whether the aperture is applied. False keeps the definition without checking against it."""
+    shifts_with_body: Optional[bool] = Field(default=True, description="""Whether the aperture follows the element's misalignment rather than staying on the design orbit.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'ifabsent': 'true'} })
+    """Whether the aperture follows the element's misalignment rather than staying on the design orbit."""
     radius: Optional[float] = Field(default=None, description="""Radius for circular apertures [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'Multipole', 'CameraMask'],
          'unit': {'ucum_code': 'm'}} })
     """Radius for circular apertures [m]."""
@@ -808,8 +841,6 @@ class _ApertureElementBase(ConfiguredBaseModel):
     """Upstream / inner extent [m]."""
     positive_extent: Optional[float] = Field(default=None, description="""Downstream / outer extent [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'unit': {'ucum_code': 'm'}} })
     """Downstream / outer extent [m]."""
-    material: Optional[str] = Field(default=None, description="""Aperture material.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'PhysicalAcceleratorElement']} })
-    """Aperture material."""
 
 
 class _TargetElementBase(ConfiguredBaseModel):
@@ -832,8 +863,8 @@ class _CrystalElementBase(ConfiguredBaseModel):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CrystalElement',
          'from_schema': 'https://w3id.org/laura/schema/elements'})
 
-    data_file: Optional[str] = Field(default=None, description="""Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``), absolute or relative to the lattice. Needed to translate it to BDSIM.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement']} })
-    """Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``), absolute or relative to the lattice. Needed to translate it to BDSIM."""
+    data_file: Optional[str] = Field(default=None, description="""Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``): absolute, relative to the lattice, or with ``$master_lattice$``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement']} })
+    """Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``): absolute, relative to the lattice, or with ``$master_lattice$``."""
     bending_angle: float = Field(default=0.0, description="""Horizontal bending angle of the crystal's planes over its length [rad]; the angle a fully channelled particle is deflected by.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement'], 'ifabsent': 'float(0.0)'} })
     """Horizontal bending angle of the crystal's planes over its length [rad]; the angle a fully channelled particle is deflected by."""
     entrance_angle: float = Field(default=0.0, description="""Angle of the crystal planes at its entrance to the beam axis [rad]: 0 aligns them for channelling; beyond the critical angle, but within the bend, gives volume reflection; beyond the bend, amorphous scattering.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CrystalElement'], 'ifabsent': 'float(0.0)'} })
@@ -1016,11 +1047,11 @@ class _SimulationElementBase(ConfiguredBaseModel):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Smoothing control for field or wake interpolation."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -1132,11 +1163,11 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth)."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -1243,11 +1274,11 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Cavity smoothing parameter.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Cavity smoothing parameter."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -1350,11 +1381,11 @@ class _WakefieldSimulationElementBase(_SimulationElementBase):
          'domain_of': ['SimulationElement'],
          'ifabsent': 'float(0.25)'} })
     """Smoothing parameter for Gaussian interpolation."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -1430,11 +1461,11 @@ class _DriftSimulationElementBase(_SimulationElementBase):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Smoothing control for field or wake interpolation."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -1492,11 +1523,11 @@ class _DiagnosticSimulationElementBase(_SimulationElementBase):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Smoothing control for field or wake interpolation."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -1600,11 +1631,11 @@ class _PlasmaSimulationElementBase(_SimulationElementBase):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Smoothing control for field or wake interpolation."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -1678,11 +1709,11 @@ class _TwissMatchSimulationElementBase(_SimulationElementBase):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Smoothing control for field or wake interpolation."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -1700,7 +1731,7 @@ class _TwissMatchSimulationElementBase(_SimulationElementBase):
 
 class _MatrixTransformSimulationElementBase(_SimulationElementBase):
     """
-    Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+    Zero- through third-order transfer-map coefficients for a matrix transform element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MatrixTransformSimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation'})
@@ -1750,11 +1781,11 @@ class _MatrixTransformSimulationElementBase(_SimulationElementBase):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Smoothing control for field or wake interpolation."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -1830,11 +1861,11 @@ class _ElectrostaticSeparatorSimulationElementBase(_SimulationElementBase):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Smoothing control for field or wake interpolation."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -1929,11 +1960,11 @@ class _ACDipoleSimulationElementBase(_SimulationElementBase):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Smoothing control for field or wake interpolation."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -1997,11 +2028,11 @@ class _WireSimulationElementBase(_SimulationElementBase):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Smoothing control for field or wake interpolation."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -2073,11 +2104,11 @@ class _BeamBeamSimulationElementBase(_SimulationElementBase):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Smoothing control for field or wake interpolation."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -2174,11 +2205,11 @@ class _RFMultipoleSimulationElementBase(_SimulationElementBase):
     smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
          'domain_of': ['SimulationElement']} })
     """Smoothing control for field or wake interpolation."""
-    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    horizontal_offset: float = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Horizontal simulation offset from the reference orbit [m]."""
-    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+    vertical_offset: float = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
@@ -2354,6 +2385,18 @@ class _MagneticElementBase(ConfiguredBaseModel):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -3285,6 +3328,18 @@ class _DipoleMagnetBase(_MagneticElementBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -3364,6 +3419,18 @@ class _QuadrupoleMagnetBase(_MagneticElementBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -3446,6 +3513,18 @@ class _SextupoleMagnetBase(_MagneticElementBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -3528,6 +3607,18 @@ class _OctupoleMagnetBase(_MagneticElementBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -3610,6 +3701,18 @@ class _DecapoleMagnetBase(_MagneticElementBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -3690,6 +3793,18 @@ class _CorrectorMagnetBase(_DipoleMagnetBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -3862,6 +3977,18 @@ class _CombinedSolenoidQuadrupoleMagnetBase(_MagneticElementBase):
     """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
     exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
     """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_k0: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``."""
+    fringe_k1: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K1; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K1; see ``fringe_k0``."""
+    fringe_k3: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K3; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K3; see ``fringe_k0``."""
+    fringe_k4: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K4; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K4; see ``fringe_k0``."""
+    fringe_k5: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K5; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K5; see ``fringe_k0``."""
+    fringe_k6: Optional[float] = Field(default=None, description="""Hwang-Lee fringe-field integral K6; see ``fringe_k0``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Hwang-Lee fringe-field integral K6; see ``fringe_k0``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -5789,7 +5916,7 @@ class _TargetBase(_PhysicalAcceleratorElementBase):
 
 class _CrystalBase(_PhysicalAcceleratorElementBase):
     """
-    A bent crystal in the beam, which channels particles along its planes (or, off alignment, reflects or scatters them). Its thickness along the beam is ``physical.length``, and it is centred on the beam axis. Modelled by BDSIM, as a ``crystalcol`` with Geant4 channelling (physics list ``completechannelling``); codes without material interactions treat it as a drift.
+    A bent crystal in the beam, which channels particles along its planes (or, off alignment, reflects or scatters them). Its thickness along the beam is ``physical.length``, and it is centred on the beam axis.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Crystal',
          'from_schema': 'https://w3id.org/laura/schema/elements',
@@ -7102,6 +7229,8 @@ class _PlasmaLensBase(_PhysicalAcceleratorElementBase):
     """Position, rotation, and length data."""
     aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
     """Aperture of the element."""
+    material: Optional[str] = Field(default=None, description="""Element material.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'PhysicalAcceleratorElement']} })
+    """Element material."""
     simulation: Optional[_PlasmaSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })

@@ -205,6 +205,14 @@ class SddsParams:
                         f"{param} = {v['ParameterValueString'][i]}; "
                         f"check path, file format and column data"
                     )
+            if "aperture" in sfconvert[k]:
+                values = dict(zip(map(str.lower, v["ElementParameter"]), v["ParameterValue"]))
+                elliptical = elemtype == "ecol" or (
+                    elemtype == "maxamp" and values.get("elliptical")
+                )
+                sfconvert[k]["aperture"]["shape"] = (
+                    "elliptical" if elliptical else "rectangular"
+                )
         return sfconvert, filenames
 
 
