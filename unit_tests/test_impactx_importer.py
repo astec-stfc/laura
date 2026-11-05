@@ -112,6 +112,16 @@ def test_export_reads_back_to_the_same_export(model):
             assert after[key] == pytest.approx(value, abs=1e-12), (before["name"], key)
 
 
+def test_a_gradient_bend_keeps_its_cartesian_sextupole():
+    with quiet():
+        dicts = section(bend(k1l=0.3, k2l=1.0)).to_impactx(model="exact", energy=E)
+    (body,) = [d for d in dicts if d["type"] == "ExactCFbend"]
+    assert body["k_normal"][2] == pytest.approx(1.0 + 0.3 * 0.2)  # k2 + k1 / rc
+    (b,) = ImpactXLatticeImporter(lattice=dicts, energy=E).create_laura_element_dictionary().values()
+    m = b.magnetic.multipoles
+    assert (m.K0L.normal, m.K1L.normal, m.K2L.normal) == pytest.approx((0.2, 0.3, 1.0))
+
+
 def test_native_edges_merge_into_their_bend_and_names_repeat():
     edge = {"type": "DipEdge", "name": "edge", "psi": 0.1, "rc": 5.0, "g": 0.0}
     sbend = {"type": "Sbend", "name": "sb", "ds": 1.0, "rc": 5.0}

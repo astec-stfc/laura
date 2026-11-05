@@ -320,7 +320,11 @@ class ImpactXLatticeImporter(LatticeImporter):
             if d.get("B"):  # B sets the radius and only the sign of the angle
                 angle = copysign(angle, d["B"] / self._ref("brho", data["name"]))
         elif kind == "ExactCFbend":
-            normal = [k * scale * length for k in d["k_normal"]]
+            kn = [k * scale for k in d["k_normal"]]
+            if len(kn) > 2:
+                # drop the curvilinear gradient's sextupole, k1/rc, to give LAURA's Cartesian K2
+                kn[2] -= kn[1] * kn[0]
+            normal = [k * length for k in kn]
             skew = [k * scale * length for k in d["k_skew"]]
             angle = normal[0]
         else:
