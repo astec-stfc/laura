@@ -164,14 +164,18 @@ def build_dipole(t, model, ref) -> list:
     normal, skew = _strengths(t)
     k_normal = [1 / rc] + [k / length for k in normal[1:]]
     k_skew = [k / length for k in skew]
+    # ExactCFbend's gradient is curvilinear, By = k1 rc ln(1 + x/rc) on the midplane, so it
+    # carries a sextupole -k1/rc that a Cartesian K1 (MAD-X, ELEGANT, Bmad) does not: add it back
+    exact_normal = (k_normal + [0.0, 0.0])[: max(3, len(k_normal))]
+    exact_normal[2] += exact_normal[1] / rc
     exact = {
         "type": "ExactCFbend",
         "name": t.name,
         "ds": length,
         "unit": 0,
         "int_order": _INT_ORDER,
-        "k_normal": k_normal,
-        "k_skew": k_skew,
+        "k_normal": exact_normal,
+        "k_skew": (k_skew + [0.0] * len(exact_normal))[: len(exact_normal)],
     }
     if any(skew) or any(normal[2:]):
         bodies = {"exact": exact}
@@ -197,7 +201,8 @@ def build_dipole(t, model, ref) -> list:
             },
         }
     magnetic, simulation = t.magnetic, t.simulation
-    parts = [bodies[tier(bodies, model)]]
+    # one step is too coarse for a strong gradient, and CSR kicks once a slice (VBC: ~5 to converge)
+    parts = [{**bodies[tier(bodies, model)], "nslice": simulation.n_slices}]
     if simulation.edge1_effects != 0:
         fint = magnetic.edge_field_integral_entrance
         parts.insert(0, _edge(t, "entry", float(t.e1), rc, fint, magnetic.gap, model))

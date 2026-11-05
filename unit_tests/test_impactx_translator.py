@@ -346,6 +346,15 @@ def test_hard_edge_without_fint():
     assert body["type"] == "ExactSbend"
 
 
+def test_gradient_bend_gets_a_cartesian_sextupole_and_slices():
+    _, body, _ = translator(bend(k1l=0.3)).to_impactx(model="exact")
+    assert body["type"] == "ExactCFbend" and body["nslice"] == 4
+    assert translator(bend()).to_impactx()[1]["nslice"] == 4  # CSR kicks once a slice
+    # the curvilinear gradient's own sextupole, -k1/rc, is cancelled: k2 = 0 + 0.3 * 0.2
+    assert body["k_normal"][2] == pytest.approx(0.06)
+    assert len(body["k_skew"]) == len(body["k_normal"])
+
+
 def test_bend_roll_error_is_dropped_with_a_warning():
     b = bend(physical={"error": {"rotation": {"psi": 0.01}}}, tilt=0.3)
     with pytest.warns(UserWarning, match="ImpactX"):
