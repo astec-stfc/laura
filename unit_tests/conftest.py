@@ -1,4 +1,12 @@
+import os
+import sys
+from pathlib import Path
+
 import pytest
+
+# In a conda env, test against its own libtao, not a ~/Documents/bmad-ecosystem build.
+if (Path(sys.prefix) / "lib" / "libtao.so").exists():
+    os.environ.setdefault("LAURA_LIBTAO", str(Path(sys.prefix) / "lib" / "libtao.so"))
 
 try:
     # RF-Track's import-time update check segfaults in its bundled libssl once

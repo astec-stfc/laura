@@ -1,0 +1,42 @@
+# conda env create -f environment.yml
+# Simulation codes come from conda-forge where it has them (compiled ones especially);
+# the rest are pulled in by pip through the [conversion] extra.
+name: laura
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  # core
+  - pydantic>=2
+  - pyyaml>=6
+  - numpy>=1.26
+  - scipy>=1.15
+  - munch>=4
+  - h5py
+  - easygdf
+  - openpmd-beamphysics>=0.14.1
+  # simulation codes
+  - bmad
+  - pytao>=1.0
+  - elegant
+  - wake-t>=0.8
+  - impactx
+  - mpi=*=openmpi
+  - pytorch  # the translator imports it; keeps pip from fetching CUDA wheels via cheetah
+  # tests
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  - rdflib>=7
+  - sqlalchemy>=2
+  - jsonschema>=4
+  - openpyxl
+  - pip
+  - pip:
+      # soliday.sdds, xsuite, cpymad, ocelot-desy, cheetah-accelerator, pybdsim: PyPI only.
+      # BDSIM itself is not on conda-forge; its tracking tests skip here.
+      - -e .[conversion,bdsim]
+variables:
+  # keep source-built ROOT/Bmad/MPI outside the env from shadowing the conda ones
+  PYTHONPATH: ""
+  LD_LIBRARY_PATH: ""
