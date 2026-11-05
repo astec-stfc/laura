@@ -631,12 +631,38 @@ class TestApertureAndOffsets:
         from laura.models.element import Collimator
 
         col = Collimator(
-            name="COL", machine_area="A", aperture=aperture,
+            name="COL", machine_area="A", aperture=aperture, material="G4_Cu",
             physical={"length": 0.1, "middle": {"x": 0.0, "y": 0.0, "z": 0.5}},
         )
         gmad = str(_translate(col).to_bdsim())
         assert gmad.startswith(f"COL: {element},")
         assert f"xsize={xsize}," in gmad and f"ysize={ysize}" in gmad
+        assert 'material="G4_Cu"' in gmad
+
+    def test_a_collimator_with_its_material_on_the_aperture_keeps_it(self):
+        from laura.models.element import Collimator
+
+        col = Collimator(
+            name="COL", machine_area="A",
+            aperture={"shape": "circular", "radius": 5e-4, "material": "G4_W"},
+            physical={"length": 0.1, "middle": {"x": 0.0, "y": 0.0, "z": 0.5}},
+        )
+        assert 'material="G4_W"' in str(_translate(col).to_bdsim())
+
+    def test_a_collimator_without_material_becomes_a_drift_with_its_aperture(self):
+        """BDSIM stops on a collimator with no material ("has no material specified")."""
+        from laura.models.element import Collimator
+
+        col = Collimator(
+            name="COL", machine_area="A",
+            aperture={"shape": "elliptical", "horizontal_size": 0.01, "vertical_size": 0.005},
+            physical={"length": 0.35, "middle": {"x": 0.0, "y": 0.0, "z": 0.5}},
+        )
+        with pytest.warns(UserWarning, match="no material"):
+            gmad = str(_translate(col).to_bdsim())
+        assert gmad.startswith("COL: drift,")
+        assert 'apertureType="elliptical"' in gmad
+        assert "aper1=0.01*m" in gmad and "aper2=0.005*m" in gmad
 
     def test_transverse_alignment_errors_become_offsets(self):
         quad = _quadrupole()
