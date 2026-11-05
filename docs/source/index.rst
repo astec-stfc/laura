@@ -73,6 +73,25 @@ works out of the box. Support for individual target codes is pulled in through e
    `RF-Track <https://gitlab.cern.ch/rf-track>`_ is not distributed on PyPI, so it has no extra --
    install its wheel manually into the same environment to use :ref:`rftrack-translator`.
 
+Conda environment
+^^^^^^^^^^^^^^^^^
+
+For development, ``environment.yml`` in the repository root builds a conda environment with the
+compiled codes from conda-forge (Bmad/PyTao, ELEGANT, ImpactX, Wake-T, PyTorch), the remaining
+backends from PyPI, and LAURA itself as an editable install:
+
+.. code-block:: bash
+
+   conda env create -f environment.yml
+   conda activate laura
+   pytest unit_tests -n 4
+
+Activating it blanks ``PYTHONPATH`` and ``LD_LIBRARY_PATH``, so separately built copies of ROOT, Bmad
+or MPI cannot shadow the conda ones. Known gaps:
+
+- BDSIM is not on conda-forge, so the BDSIM tracking tests skip.
+- ELEGANT needs ``RPN_DEFNS`` pointing at a ``defns.rpn`` file; the conda package does not ship one.
+
 Documentation
 -------------
 

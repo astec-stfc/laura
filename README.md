@@ -154,6 +154,15 @@ Or add to your `requirements.txt`:
 laura-accelerator
 ```
 
+For development, a conda environment with LAURA (editable) and the simulation codes:
+
+```bash
+conda env create -f environment.yml
+conda activate laura
+```
+
+See the [installation docs](https://laura-accelerator.readthedocs.io/) for what it includes and its gaps.
+
 ## Documentation
 
 - [Element Definition](docs/source/Architecture/Element.rst)
