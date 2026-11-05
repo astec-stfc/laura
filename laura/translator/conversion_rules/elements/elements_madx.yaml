@@ -87,6 +87,7 @@ nllens:
   l: double
   knll: double
   cnll: double
+  tilt: double
 
 hkicker:
   l: double

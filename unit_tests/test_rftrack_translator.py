@@ -25,6 +25,9 @@ class _FakeElement:
     def set_phid(self, phid):
         self.phid = phid
 
+    def set_t0(self, t0):
+        self.t0 = t0
+
 
 class _FakeLattice:
     def __init__(self):
@@ -607,6 +610,18 @@ class TestRealRFTrackFieldMap:
         )
         return field_obj
 
+    def test_a_switched_off_cavity_survives_autophase(self, rft):
+        t = _fake_translator(
+            simulation=SimpleNamespace(field_definition=None, field_amplitude=0.0),
+            cavity=SimpleNamespace(frequency=3e9, phase=0.0, n_cells=1, cell_length=0.05),
+        )
+        t.physical = SimpleNamespace(length=0.05)
+        lattice = rft.Lattice()
+        lattice.append(rftrack_conversion.build_pillbox_cavity(t))
+        B0 = rft.Bunch6d(rft.electronmass, 1e9, -1, np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 5.0]]))
+        lattice.autophase(B0)
+        assert lattice.track(B0).get_info().transmission == pytest.approx(1e9)
+
     def test_tw_fieldmap_1d_tracks_and_accelerates(self, rft):
         """Unlike SW, ``direction`` matters for the TW core; couplers and core share
         ``set_phid`` (checked against CLARA L01 data).
@@ -625,12 +640,11 @@ class TestRealRFTrackFieldMap:
             )
             lattice = rft.Lattice()
             for args in args_list:
-                fm = rft.RF_FieldMap_1d(*args)
-                fm.set_phid(phase)
-                lattice.append(fm)
+                lattice.append(rftrack_conversion.tw_fieldmap_element(args, phase))
             B0 = rft.Bunch6d(
                 rft.electronmass, 1e9, -1, np.array([[0.0, 0.0, 0.0, 0.0, 0.0, start_pz]])
             )
+            lattice.autophase(B0)  # as the section export does; RF-Track 2.7.4 needs t0 set
             return lattice.track(B0).get_info()
 
         info_fwd = _track(direction=1)

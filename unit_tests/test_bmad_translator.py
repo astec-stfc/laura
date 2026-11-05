@@ -100,7 +100,7 @@ def test_bmad_rule_coverage_matches_the_element_registry():
         for source, target in type_conversion_rules_bmad.items()
         if target not in elements_bmad
     } == {}
-    assert set(type_conversion_rules_bmad) - set(ELEMENT_REGISTRY) == {"Decapole"}
+    assert set(type_conversion_rules_bmad) - set(ELEMENT_REGISTRY) == set()
     assert set(ELEMENT_REGISTRY) - set(type_conversion_rules_bmad) == set(
         bmad_unsupported
     )

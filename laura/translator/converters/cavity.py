@@ -1,3 +1,4 @@
+from typing import Dict
 from warnings import warn
 
 import numpy as np
@@ -362,7 +363,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 ):
                     value = 3 * self.get_cells()
 
-                if key == "n_bins" and not functional and value > 0:
+                if key == "n_bins" and not functional and value > 0 and self.verbose:
                     print(
                         "WARNING: Cavity n_bins is not zero - check log file to ensure correct behaviour!"
                     )
@@ -593,6 +594,48 @@ class RFCavityTranslator(BaseElementTranslator):
         if self.get_cells() > 1 and properties.get("num_kicks") is None:
             properties["num_kicks"] = 3 * self.get_cells()
         return self.name, obj, properties
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; unused here.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; unused here.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+
+        obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        if "phase" in keywords:
+            keywords["phase"] = self.cavity.phase * np.pi / 180
+        if "gradient" in keywords:
+            if self.structure_type == "TravellingWave":
+                keywords["gradient"] *= abs(
+                    (self.get_cells() + 3.8)
+                    * self.cavity.cell_length
+                    * (1 / np.sqrt(2))
+                    / self.physical.length
+                )
+            else:
+                keywords["gradient"] /= self.physical.length
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
 
     def rf_focusing(
         self,

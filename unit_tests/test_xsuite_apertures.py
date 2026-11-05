@@ -17,15 +17,22 @@ def _limit(**aperture):
 def test_round_and_elliptical_apertures_are_ellipses():
     cls, props = _limit(shape="circular", radius=1e-3)
     assert cls is xt.LimitEllipse and props == {"a": 1e-3, "b": 1e-3}
-    cls, props = _limit(shape="elliptical", horizontal_size=2e-3, vertical_size=4e-3)
+    cls, props = _limit(shape="elliptical", horizontal_size=1e-3, vertical_size=2e-3)
     assert cls is xt.LimitEllipse and props == {"a": 1e-3, "b": 2e-3}
 
 
 def test_slits_limit_only_the_planes_with_a_size():
-    cls, props = _limit(shape="planar", horizontal_size=2e-3)
+    cls, props = _limit(shape="planar", horizontal_size=1e-3)
     assert cls is xt.LimitRect and props == {"min_x": -1e-3, "max_x": 1e-3}
-    cls, props = _limit(shape="rectangular", horizontal_size=2e-3, vertical_size=4e-3)
+    cls, props = _limit(shape="rectangular", horizontal_size=1e-3, vertical_size=2e-3)
     assert props == {"min_x": -1e-3, "max_x": 1e-3, "min_y": -2e-3, "max_y": 2e-3}
+
+
+def test_a_slit_in_the_line_leaves_the_other_plane_open():
+    col = Collimator(name="col", machine_area="S", aperture={"shape": "planar", "horizontal_size": 1e-3},
+                     physical={"length": 0.1, "middle": {"z": 0.5}})
+    _, cls, props = translate_elements([col])["col"].to_xsuite(beam_length=1)[0]
+    assert cls is xt.LimitRect and props["max_x"] == 1e-3 and props["max_y"] == 1e10
 
 
 def test_an_aperture_without_a_size_has_no_limit():

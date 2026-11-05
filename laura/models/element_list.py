@@ -13,8 +13,10 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    NonNegativeFloat,
     PositiveInt,
     PrivateAttr,
+    ValidationInfo,
     field_validator,
     model_validator,
 )
@@ -589,6 +591,19 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
 
     reference_energy: float | None = None
     """Reference total energy of the design particle [eV], if known."""
+
+    beampipe_aperture_type: Literal["elliptical", "circular", "rectangular"] | None = (
+        None
+    )
+    """Beam pipe aperture shape [optional]"""
+
+    beampipe_size: NonNegativeFloat | List[NonNegativeFloat] | None = None
+    """Size of beam pipe [optional]"""
+
+    beampipe_material: Optional[str] = None
+    """Beam pipe material [optional]; see `BDSIM manual`_ for more details.
+
+    .. _BDSIM manual: https://bdsim-collaboration.github.io/bdsim/sphinx/index.html#"""
 
     # other_elements: ElementList = ElementList(elements={})
     # TODO should we put this back in?
@@ -2097,6 +2112,19 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
     particle: str | None = None
     """Machine-wide design particle species, overridable per layout."""
 
+    beampipe_aperture_type: Literal["elliptical", "circular", "rectangular"] | None = (
+        None
+    )
+    """Beam pipe aperture shape [optional]"""
+
+    beampipe_size: NonNegativeFloat | List[NonNegativeFloat] | None = None
+    """Size of beam pipe [optional]"""
+
+    beampipe_material: Optional[str] = None
+    """Beam pipe material [optional]; see `BDSIM manual`_ for more details.
+
+    .. _BDSIM manual: https://bdsim-collaboration.github.io/bdsim/sphinx/index.html#"""
+
     functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
     """Mapping of functional-parameter names to their numeric values, or a path
     to a YAML file holding such a mapping. Resolved at construction and shared
@@ -2121,6 +2149,56 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
     _layout_passes: Dict[str, list] = {}
 
     _default_path: str = None
+
+    @field_validator("beampipe_size", mode="after")
+    @classmethod
+    def validate_beampipe_size(
+        cls,
+        v: NonNegativeFloat | List[NonNegativeFloat] | None,
+        info: ValidationInfo,
+    ) -> NonNegativeFloat | List[NonNegativeFloat] | None:
+        beampipe_aperture_type = info.data.get("beampipe_aperture_type")
+        if beampipe_aperture_type is None and v is not None:
+            warn("beampipe_aperture_type not defined; cannot set beampipe_size")
+            return None
+        if beampipe_aperture_type == "circular":
+            if isinstance(v, float):
+                return v
+            elif isinstance(v, list):
+                warn(
+                    "Multiple beampipe_size found for circular beampipe_aperture_type; setting first value"
+                )
+                return v[0]
+            else:
+                warn("beampipe_size not defined")
+                return None
+        elif beampipe_aperture_type == "elliptical":
+            if isinstance(v, float):
+                warn(
+                    "Single beampipe_size found for elliptical beampipe_aperture_type; setting circular radius"
+                )
+                return v
+            elif isinstance(v, list):
+                return v
+            else:
+                warn("beampipe_size not defined")
+                return None
+        elif beampipe_aperture_type == "rectangular":
+            if isinstance(v, float):
+                warn(
+                    "Single beampipe_size found for rectangular beampipe_aperture_type; setting square aperture"
+                )
+                return v
+            elif isinstance(v, list):
+                return v
+            else:
+                warn("beampipe_size not defined")
+                return None
+        elif isinstance(beampipe_aperture_type, str):
+            warn(
+                f"beampipe_aperture_type {beampipe_aperture_type} not recognised; cannot set beampipe_size"
+            )
+        return None
 
     @staticmethod
     def _normalise_section_definitions(
@@ -2594,6 +2672,9 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
                 master_lattice=self.master_lattice,
                 functional_definitions=self.functional_definitions,
                 resolve_functional=self.resolve_functional,
+                beampipe_aperture_type=self.beampipe_aperture_type,
+                beampipe_size=self.beampipe_size,
+                beampipe_material=self.beampipe_material,
             )
 
             if not self._section_definitions or area not in self._section_definitions:
@@ -2668,6 +2749,9 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
                     master_lattice=self.master_lattice,
                     functional_definitions=self.functional_definitions,
                     resolve_functional=self.resolve_functional,
+                    beampipe_aperture_type=self.beampipe_aperture_type,
+                    beampipe_size=self.beampipe_size,
+                    beampipe_material=self.beampipe_material,
                 )
                 self.sections[area]._authored_order = section_definition.get("authored")
             return
@@ -2701,6 +2785,9 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
                             master_lattice=self.master_lattice,
                             functional_definitions=self.functional_definitions,
                             resolve_functional=self.resolve_functional,
+                            beampipe_aperture_type=self.beampipe_aperture_type,
+                            beampipe_size=self.beampipe_size,
+                            beampipe_material=self.beampipe_material,
                         )
                         self.sections[area]._authored_order = self._section_definitions[
                             area

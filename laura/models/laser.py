@@ -16,36 +16,53 @@ from ._generated import (
 class LaserElement(_LaserElementBase):
     """Laser info model."""
 
-    @computed_field
     @property
-    def amplitude(self) -> float:
+    def pulse_duration_1e_field(self) -> float:
         """
-        Laser amplitude: ((e*lambda0)/(pi*m_e*c**2*w0)) * np.sqrt( E/(pi*epsilon_0*c*tau_FWHM) )
+        Pulse duration as the 1/e half-width of the *field* envelope, in seconds.
 
         Returns
         -------
         float
-            Laser amplitude (dimensionless); 0, with a warning, if any of the
-            required parameters is non-positive.
+            Field 1/e half-width [s]
         """
-        if (
-            any(
-                [
-                    self.wavelength,
-                    self.waist,
-                    self.pulse_energy,
-                    self.pulse_duration_fwhm,
-                ]
-            )
-            <= 0
-        ):
+        return self.pulse_duration_fwhm / np.sqrt(2 * np.log(2))
+
+    @computed_field
+    @property
+    def amplitude(self) -> float:
+        """
+        Peak normalised vector potential a0.
+
+        :attr:`~a0` if it is set. Otherwise it is derived from the pulse energy
+        for a Gaussian pulse, whose peak power is
+        ``P = 2*sqrt(ln2/pi) * E / tau_FWHM`` and peak intensity
+        ``I = 2*P/(pi*w0**2)``, giving
+        ``a0 = (e*lambda0/(pi*m_e*c**2*w0)) * sqrt(P/(pi*epsilon_0*c))``.
+
+        Returns
+        -------
+        float
+            Laser amplitude (dimensionless); 0, with a warning, if a0 is not
+            set and any of the parameters it is derived from is non-positive.
+        """
+        if self.a0 is not None:
+            return self.a0
+        params = [
+            self.wavelength,
+            self.waist,
+            self.pulse_energy,
+            self.pulse_duration_fwhm,
+        ]
+        if any(p is None or p <= 0 for p in params):
             warn(
-                "Wavelength, waist, pulse enegy and pulse duration must be positive "
-                "to compute laser amplitude."
+                "Set a0, or a positive wavelength, waist, pulse energy and pulse "
+                "duration, to compute laser amplitude."
             )
             return 0
+        peak_power = 2 * np.sqrt(np.log(2) / pi) * self.pulse_energy / self.pulse_duration_fwhm
         return ((e * self.wavelength) / (pi * m_e * c**2 * self.waist)) * np.sqrt(
-            self.pulse_energy / (pi * epsilon_0 * c * self.pulse_duration_fwhm)
+            peak_power / (pi * epsilon_0 * c)
         )
 
     @property
@@ -68,6 +85,26 @@ class LaserElement(_LaserElementBase):
                 "Wavelength must be positive to compute laser angular frequency."
             )
         return 2 * pi * c / self.wavelength
+
+    @property
+    def _is_few_cycle(self) -> bool:
+        """
+        Check if the laser is a few-cycle pulse, which is the case if :attr:`~pulse_duration_fwhm` *
+        :attr:`~angular_frequency` is not greater than 10.
+
+        Returns
+        -------
+        bool
+            True if laser is a few-cycle pulse, False otherwise
+
+        Raises
+        ------
+        ValueError
+            If wavelength is not set or non-positive
+        """
+        if self.wavelength <= 0:
+            raise ValueError("Wavelength must be positive to compute laser angular frequency.")
+        return self.angular_frequency * self.pulse_duration_fwhm <= 10
 
 
 class LaserHalfWavePlateElement(_LaserHalfWavePlateElementBase):

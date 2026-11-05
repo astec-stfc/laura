@@ -47,6 +47,7 @@ aggregates every element and cannot be recognised by content
 
 
 
+
 def flatten(xss):
     """Flatten a list of lists."""
     return list(chain.from_iterable(xss))

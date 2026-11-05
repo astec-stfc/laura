@@ -142,6 +142,15 @@ keyword_conversion_rules_opal = LazyDict(
     )
 )
 
+keyword_conversion_rules_bdsim = LazyDict(
+    lambda: _load_yaml_file(
+        "../conversion_rules/keywords/keyword_conversion_rules_bdsim.yaml"
+    )
+)
+elements_bdsim = LazyDict(
+    lambda: _load_yaml_file("../conversion_rules/elements/elements_bdsim.yaml")
+)
+
 keyword_conversion_rules_xsuite = LazyDict(
     lambda: _load_yaml_file(
         "../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml"
@@ -155,6 +164,11 @@ keyword_conversion_rules_wake_t = LazyDict(
 keyword_conversion_rules_genesis = LazyDict(
     lambda: _load_yaml_file(
         "../conversion_rules/keywords/keyword_conversion_rules_genesis.yaml"
+    )
+)
+keyword_conversion_rules_fbpic = LazyDict(
+    lambda: _load_yaml_file(
+        "../conversion_rules/keywords/keyword_conversion_rules_fbpic.yaml"
     )
 )
 elements_genesis = LazyDict(

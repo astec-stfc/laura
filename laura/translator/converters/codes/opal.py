@@ -10,14 +10,18 @@ from ...utils.classes import get_grid_size
 opal_unsupported = [
     "Laser",
     "Plasma",
+    "PlasmaLens",
     "Decapole",
     "RFDeflectingCavity",
     "Plasma",
+    "PlasmaLens",
     "TwissMatch",
     "MatrixTransform",
     "ActivePlasmaLens",
     "CrabCavity",
     "Wiggler",
+    "Target",
+    "Crystal",
 ]
 
 

@@ -1,5 +1,12 @@
 import pytest
 
+try:
+    # RF-Track's import-time update check segfaults in its bundled libssl once
+    # pybdsim's libraries are loaded, so it must be imported first.
+    import RF_Track  # noqa: F401
+except ImportError:
+    pass
+
 from laura.models.base_models import set_functional_definitions, set_resolve_functional
 
 

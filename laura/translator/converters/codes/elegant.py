@@ -30,9 +30,12 @@ from .importer import (
 
 elegant_unsupported = [
     "Plasma",
+    "PlasmaLens",
     "Decapole",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
+    "Crystal",
 ]
 
 
@@ -365,10 +368,11 @@ class ElegantLatticeImporter(LatticeImporter):
         for name, data in self.elegant_data.items():
             expressions = self._expressions_for(name)
             simulation = data.get("simulation", {})
-            if self.uniform_integration and self.source_file:
+            if self.source_file:
                 stated = self._from_source(self._source_parameters, name)
-                if "edge_order" not in stated:
+                if self.uniform_integration and "edge_order" not in stated:
                     simulation.pop("edge_order", None)
+                # ELEGANT's own default (1 slice) is not something the lattice asked for
                 if not {"n_slices", "n_kicks"} & stated:
                     simulation.pop("n_slices", None)
             if "n_slices" in simulation:

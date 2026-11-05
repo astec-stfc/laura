@@ -180,8 +180,8 @@ def test_elegant_emits_one_line_per_pass(flat):
 
 def test_elegant_defines_each_pass_separately(flat):
     out = str(flat.to_elegant()).replace("&\n", "")
-    assert "LIN_Q.1: quad" in out
-    assert "LIN_Q.2: quad" in out
+    assert "LIN_Q.1: kquad" in out
+    assert "LIN_Q.2: kquad" in out
 
 
 def test_a_single_pass_layout_exports_as_before():

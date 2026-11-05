@@ -5,10 +5,13 @@ cheetah_unsupported = [
     "TwissMatch",
     "Laser",
     "Plasma",
+    "PlasmaLens",
     "Wakefield",
     "Decapole",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
+    "Crystal",
 ]
 
 _STATS = (

@@ -1,6 +1,6 @@
 elegant:
   Dipole: csrcsbend
-  Quadrupole: quad
+  Quadrupole: kquad
   Sextupole: ksext
   Octupole: koct
   Decapole: mult
@@ -36,6 +36,9 @@ elegant:
   Laser: drift
   TwissMatch: twiss
   Plasma: drift
+  PlasmaLens: drift
+  Target: drift
+  Crystal: drift
   Photon_Monitor: watch
   CrabCavity: rfdf
   MatrixTransform: ematrix
@@ -80,6 +83,9 @@ genesis:
   Vertical_Corrector: corrector
   Combined_Corrector: corrector
   Plasma: drift
+  PlasmaLens: drift
+  Target: drift
+  Crystal: drift
   TwissMatch: drift
   Laser: drift
   CrabCavity: drift
@@ -109,6 +115,9 @@ opal:
   Vertical_Corrector: kicker
   Combined_Corrector: kicker
   Plasma: drift
+  PlasmaLens: drift
+  Target: drift
+  Crystal: drift
   TwissMatch: drift
   Laser: drift
   Aperture: monitor
@@ -121,6 +130,7 @@ madx:
   Quadrupole: quadrupole
   Sextupole: sextupole
   Octupole: octupole
+  Decapole: multipole
   Beam_Position_Monitor: monitor
   Beam_Arrival_Monitor: instrument
   Bunch_Length_Monitor: instrument
@@ -143,6 +153,9 @@ madx:
   NonLinearLens: nllens
   Wiggler: drift
   Plasma: drift
+  PlasmaLens: drift
+  Target: drift
+  Crystal: drift
   TwissMatch: marker
   Laser: drift
   Aperture: rcollimator
