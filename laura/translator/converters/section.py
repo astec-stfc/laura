@@ -940,6 +940,10 @@ class SectionLatticeTranslator(SectionLattice):
         Each RF cavity raises the design energy by
         :func:`~laura.translator.utils.functions.cavity_energy_gain`, an estimate.
 
+        The section starts at s = 0, where OPAL puts the beam: ``ELEMEDGE`` is the distance from
+        the entrance of the first element (a leading drift counts), and ``ZSTOP`` is the length
+        of the section, wherever it is in the machine.
+
         Parameters
         ----------
         energy: float
@@ -972,6 +976,10 @@ class SectionLatticeTranslator(SectionLattice):
         elem_dict = self._translate()
         written = []
         svals = self.get_resolved_s_values(as_dict=True, at_entrance=True)
+        # OPAL starts the beam at s = 0 and tracks until ZSTOP, so the section must start there:
+        # the entrance of its first element (a leading drift counts) is s0, z0, not the machine's 0.
+        s0 = min(svals.values(), default=0.0)
+        z0 = min((d.physical.start.z for d in elem_dict.values()), default=0.0)
         dt = self.opal_headers["track"].DT
         # with staged steps, the longest one fits a thin element into every stage
         dt = max(dt) if isinstance(dt, (list, tuple)) else dt
@@ -983,15 +991,19 @@ class SectionLatticeTranslator(SectionLattice):
             if d.subelement:
                 phys = d.physical
                 traj = getattr(phys, "_trajectory", None)
-                sval = traj.s_at_xyz(phys.start) if traj is not None else phys.start.z
+                sval = (
+                    traj.s_at_xyz(phys.start) - s0
+                    if traj is not None
+                    else phys.start.z - z0
+                )
             else:
-                sval = svals[d.name]
+                sval = svals[d.name] - s0
             stnew = d.to_opal(sval=sval, designenergy=energy)
             if len(stnew) > 0:
                 written.append(d.name)
                 fulltext += stnew
             zstops.append(d.physical.end.z)
-        zstop = max(zstops)
+        zstop = max(zstops) - z0
         self.opal_headers["track"].ZSTOP = zstop
         fulltext += "\n" + self.name + ": LINE=("
         for e, element in list(elem_dict.items()):
