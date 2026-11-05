@@ -12,6 +12,11 @@ from .base import BaseElementTranslator, bmad_limits, elegant_line
 SILICON_LATTICE_CONSTANT = 5.431e-10
 """Silicon's cubic lattice constant [m], the default unit cell of a :class:`CrystalTranslator`."""
 
+OPAL_THIN_APERTURE_LENGTH = 0.01
+"""Length [m] OPAL gives an aperture that has none. OPAL removes only the particles it
+finds inside a collimator, and stops unless the length is more than ten time steps of
+drift (6 mm at ``DT`` = 2 ps)."""
+
 
 class ApertureTranslator(BaseElementTranslator):
     """Apertures and collimators. Every code gets a local aperture of the
@@ -208,6 +213,17 @@ class ApertureTranslator(BaseElementTranslator):
             radius = self.aperture.vertical_size
         else:
             radius = 1
+        if (
+            self.aperture.radius is None
+            and self.aperture.horizontal_size > 0
+            and self.aperture.vertical_size > 0
+            and self.aperture.horizontal_size != self.aperture.vertical_size
+        ):
+            warn(
+                f"ASTRA has no elliptical aperture (its aperture file is a radius "
+                f"against z): {self.name!r} is written as a circle of the smaller "
+                f"half axis, {radius} m."
+            )
         dic["Ap_R"] = {"value": 1e3 * radius}
         return self._write_astra_common(dic)
 
@@ -343,7 +359,9 @@ class ApertureTranslator(BaseElementTranslator):
         return elegant_line(self.name + ": " + etype, terms)
 
     def _opal_alignment(self) -> Dict[str, float]:
-        """The OPAL alignment with the aperture offset added, plus the sizes."""
+        """The OPAL alignment with the aperture offset added, plus the sizes and
+        the length: OPAL removes only the particles it finds inside a
+        collimator's length, so a zero-length aperture gets a thin one."""
         alignment = super()._opal_alignment()
         horizontal, vertical = self._half_sizes()
         ox, oy = self._offsets()
@@ -352,6 +370,7 @@ class ApertureTranslator(BaseElementTranslator):
             "dy": alignment["dy"] + oy,
             "xsize": horizontal,
             "ysize": vertical,
+            "l": self.length or OPAL_THIN_APERTURE_LENGTH,
         }
 
     def to_ocelot(self) -> object:
