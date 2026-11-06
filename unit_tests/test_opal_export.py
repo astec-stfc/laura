@@ -106,6 +106,30 @@ def test_opal_solenoid_map_starts_at_its_field_reference(tmp_path, monkeypatch):
     assert float(re.search(r"ELEMEDGE = ([^;]+)", written).group(1)) == pytest.approx(1.1)
 
 
+@pytest.mark.parametrize("reference", [None, "middle", "end"])
+def test_a_solenoid_without_a_map_gets_a_current_sheet(tmp_path, monkeypatch, reference):
+    """OPAL stopped on a solenoid without FMAPFN ("No field map file specified", laura#53)
+    and ASTRA's writer raised; both now get the map of a thin current sheet, which
+    tracked a hard-edge solenoid to 0.2% of the beam size in ASTRA and OPAL."""
+    monkeypatch.chdir(tmp_path)
+    element = Solenoid(name="SOL", machine_area="S", physical={"length": 0.2, "middle": [0, 0, 1.0]},
+                       magnetic={"length": 0.2, "fields": {"S0L": 0.15}},
+                       simulation={"field_reference_position": reference})
+    solenoid = translate(element)
+    solenoid.directory = str(tmp_path)
+    offset = 1.0 - solenoid.get_field_reference_position()[2]
+    for code in ("astra", "opal"):
+        with pytest.warns(UserWarning, match=f"{code.upper()} needs a field map and 'SOL' has none"):
+            field = solenoid._field_map(code)
+        z, bz = field.z.value.val, field.Bz.value.val
+        assert z[np.argmax(bz)] == pytest.approx(offset, abs=1e-3)  # centred on the middle
+        # scaled to the sheet's peak, the field integral is S0L
+        assert np.trapezoid(bz, z) * solenoid._map_amplitude(code) == pytest.approx(0.15, rel=1e-4)
+    assert 'fmapfn = "SOL_solenoid.opal"' in solenoid.to_opal(sval=0.9, designenergy=100.0)
+    assert "FILE_BFieLD(1) = 'SOL_solenoid.astra'" in solenoid.to_astra(n=1)
+    assert (tmp_path / "SOL_solenoid.opal").exists() and (tmp_path / "SOL_solenoid.astra").exists()
+
+
 def test_opal_tw_map_is_the_two_periods_opal_reads(tmp_path, monkeypatch):
     """OPAL takes the period as half the map, so ASTRA's longer couplers gave the wrong cells."""
     monkeypatch.chdir(tmp_path)
