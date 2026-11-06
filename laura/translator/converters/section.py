@@ -978,7 +978,10 @@ class SectionLatticeTranslator(SectionLattice):
         svals = self.get_resolved_s_values(as_dict=True, at_entrance=True)
         # OPAL starts the beam at s = 0 and tracks until ZSTOP, so the section must start there:
         # the entrance of its first element (a leading drift counts) is s0, z0, not the machine's 0.
-        s0 = min(svals.values(), default=0.0)
+        # Only the elements written count for s0: the drifts LAURA puts between them have no s of their
+        # own, they are projected onto one trajectory, and in a section that begins with an element of its
+        # neighbour (the chicane, from the last element before it) that is the neighbour's, which ends there.
+        s0 = min((svals[n] for n in elem_dict if n in svals), default=0.0)
         z0 = min((d.physical.start.z for d in elem_dict.values()), default=0.0)
         dt = self.opal_headers["track"].DT
         # with staged steps, the longest one fits a thin element into every stage
@@ -1002,8 +1005,13 @@ class SectionLatticeTranslator(SectionLattice):
             if len(stnew) > 0:
                 written.append(d.name)
                 fulltext += stnew
-            zstops.append(d.physical.end.z)
-        zstop = max(zstops) - z0
+            # ZSTOP is a path length, like ELEMEDGE: after a bend the path is longer than z
+            phys = d.physical
+            if not d.subelement and phys.s is not None:
+                zstops.append(phys.s + phys.length / 2.0 - s0)
+            else:
+                zstops.append(phys.end.z - z0)
+        zstop = max(zstops)
         self.opal_headers["track"].ZSTOP = zstop
         fulltext += "\n" + self.name + ": LINE=("
         for e, element in list(elem_dict.items()):

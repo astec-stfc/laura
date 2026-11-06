@@ -9,8 +9,8 @@ import re
 
 import pytest
 
-from laura.models.element import Collimator, Drift
-from laura.models.element_list import ElementList, SectionLattice
+from laura.models.element import Collimator, Dipole, Drift, Marker
+from laura.models.element_list import ElementList, MachineModel, SectionLattice
 from laura.translator.converters.codes.opal import (
     OpalBeam,
     OpalDistribution,
@@ -20,6 +20,7 @@ from laura.translator.converters.codes.opal import (
     OpalTrack,
 )
 from laura.translator.converters.section import SectionLatticeTranslator
+from unit_tests.helpers import quiet
 
 SIZE = {"shape": "rectangular", "horizontal_size": 0.01, "vertical_size": 0.01}
 
@@ -46,6 +47,10 @@ def opal_deck(*elements):
         name="line", order=list(registry), elements=ElementList(elements=registry)
     )
     lattice.resolve_positions(lattice.elements.elements)
+    return deck_of(lattice)
+
+
+def deck_of(lattice):
     section = SectionLatticeTranslator.from_section(lattice)
     section.opal_headers = {
         "option": OpalOption(),
@@ -82,3 +87,46 @@ def test_a_leading_drift_is_part_of_the_section():
     deck = opal_deck(drift("d0", 20.5, 1.0), collimator("c1", 22.05))  # the drift is 20 to 21 m
     assert edges(deck) == pytest.approx([2.0])
     assert zstop(deck) == pytest.approx(2.1 + 0.1)
+
+
+def neighbours_block(*sections, names):
+    """A block of elements taken across sections, each placed with its own section (as the chicane is,
+    from the last element of the section before it to the first of the one after)."""
+    with quiet():
+        machine = MachineModel(
+            elements={e.name: e for section in sections for e in section},
+            section={"sections": {f"S{i}": [e.name for e in s] for i, s in enumerate(sections)}},
+            layout={"layouts": {"L": [f"S{i}" for i in range(len(sections))]}, "default_layout": "L"},
+        )
+    registry = {n: machine.elements[n] for n in names}
+    return SectionLattice(
+        name="line", order=list(registry), elements=ElementList(elements=registry)
+    )
+
+
+def test_a_block_that_starts_with_the_last_element_of_the_section_before_it():
+    """The drifts between the elements are projected onto the trajectory of the first element, which is the
+    section before's and ends there, so they were all at its end, upstream of the first element written:
+    the elements were put that much too far downstream and ZSTOP stopped short of the last one."""
+    marker = Marker(name="m", machine_area="S", physical={"s": 5.0, "length": 0.0})
+    block = neighbours_block(
+        [collimator("a", 3.05), marker],
+        [collimator("c1", 6.05), collimator("c2", 8.05)],
+        names=["m", "c1", "c2"],
+    )
+    deck = deck_of(block)
+    assert edges(deck) == pytest.approx([0.0, 1.0, 3.0])
+    assert zstop(deck) == pytest.approx(3.1 + 0.1)
+
+
+def test_zstop_follows_the_path_of_a_bend_as_elemedge_does():
+    """A bend makes the path longer than z; ZSTOP in z would stop OPAL short of the last element."""
+    bend = Dipole(
+        name="b", machine_area="S", physical={"length": 1.0},
+        magnetic={"length": 1.0, "k0l": 0.5},
+    )
+    gap = Drift(name="d", hardware_class="Drift", machine_area="S", physical={"length": 1.0})
+    last = Collimator(name="c", machine_area="S", physical={"length": 0.1}, aperture=SIZE)
+    deck = deck_of(neighbours_block([bend, gap, last], names=["b", "d", "c"]))
+    assert edges(deck)[-1] == pytest.approx(2.0)  # along the path: the bend and the drift
+    assert zstop(deck) == pytest.approx(2.1 + 0.1)  # the collimator's length and OPAL's margin
