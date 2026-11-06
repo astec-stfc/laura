@@ -228,6 +228,11 @@ def build_solenoid(t, **kwargs) -> "object":
     :func:`_magnetic_fieldmap_available`."""
     if _magnetic_fieldmap_available(t):
         return build_solenoid_fieldmap(t, **kwargs)
+    if getattr(t.magnetic, "coil_radius", None):
+        warn(
+            f"RF-Track tracks {t.name!r}, which has no field map, as a hard-edge solenoid: "
+            f"its coil_radius ({t.magnetic.coil_radius} m) changes no particle."
+        )
     return _build_solenoid(t, **kwargs)
 
 

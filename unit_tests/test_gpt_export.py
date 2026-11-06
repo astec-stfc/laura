@@ -278,15 +278,19 @@ def test_gpt_skips_a_decapole_with_a_warning(tmp_path):
     assert all(line.startswith(("screen", "Zminmax")) for line in written.splitlines())
 
 
-@pytest.mark.parametrize("coil_radius, radius", [(None, 0.2e-3), (0.03, 0.03)])
-def test_gpt_solenoid_without_a_map_is_a_bzsolenoid(tmp_path, coil_radius, radius):
+@pytest.mark.parametrize(
+    "coil_radius, radius, stands_for",
+    [(None, 0.2e-3, "a hard edge"), (1e-5, 0.2e-3, "its coil"), (0.03, 0.03, "its coil")],
+)
+def test_gpt_solenoid_without_a_map_is_a_bzsolenoid(tmp_path, coil_radius, radius, stands_for):
     """A solenoid with no field map raised AttributeError (laura#62). A current sheet's
-    field integral is mu0 nI L whatever its radius; unset, the radius is L / 1000."""
+    field integral is mu0 nI L whatever its radius, which is at least L / 1000."""
     solenoid = Solenoid(
         name="SOL", machine_area="S", physical={"length": 0.2, "middle": [0, 0, 6.0]},
         magnetic={"length": 0.2, "fields": {"S0L": 0.15}, "coil_radius": coil_radius},
     )
-    written = _gpt([solenoid], tmp_path)
+    with pytest.warns(UserWarning, match=f"writing a bzsolenoid.*for {stands_for}"):
+        written = _gpt([solenoid], tmp_path)
     args = written.split('bzsolenoid("wcs", "z", 6.0, ')[1].split(")")[0].split(", ")
     assert [float(a) for a in args] == pytest.approx(
         [radius, 0.2, 0.15 / 0.2 / (4e-7 * np.pi)], rel=1e-9

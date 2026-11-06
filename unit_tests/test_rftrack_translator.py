@@ -564,8 +564,12 @@ class TestSolenoidFieldMapDispatch:
         assert obj.cls_name == "Solenoid"
         # R = 0 loses every particle; unset, the sheet radius is L / 1000
         assert obj.args == pytest.approx((0.2, 0.5, 0.2e-3))
-        t.magnetic.coil_radius = 0.03
-        assert rftrack_conversion.build_solenoid(t).args == pytest.approx((0.2, 0.5, 0.03))
+        t.name, t.magnetic.coil_radius = "X", 0.03
+        with pytest.warns(UserWarning, match="tracks 'X', which has no field map, as a hard-edge"):
+            assert rftrack_conversion.build_solenoid(t).args == pytest.approx((0.2, 0.5, 0.03))
+        t.magnetic.coil_radius = 1e-5  # below the least radius
+        with pytest.warns(UserWarning, match="hard-edge"):
+            assert rftrack_conversion.build_solenoid(t).args == pytest.approx((0.2, 0.5, 0.2e-3))
 
 
 class TestRealRFTrackFieldMap:

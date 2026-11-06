@@ -37,13 +37,14 @@ from .codes.gpt import GptCcs
 GPT_HARD_EDGE_B1 = 300.0
 
 HARD_EDGE_SOLENOID_RADIUS = 1e-3
-"""Current-sheet radius, as a fraction of its length, of a solenoid with neither a
-field map nor a ``coil_radius``."""
+"""Least current-sheet radius, as a fraction of its length, of a solenoid without a field
+map (GPT ``bzsolenoid``, RF-Track ``Solenoid``); unless ``coil_radius`` is larger, the
+radius used, a hard edge to about half of it."""
 
 
 def solenoid_sheet_radius(magnetic, length: float) -> float:
-    """``magnetic.coil_radius``, else :data:`HARD_EDGE_SOLENOID_RADIUS` of ``length``."""
-    return getattr(magnetic, "coil_radius", None) or HARD_EDGE_SOLENOID_RADIUS * length
+    """``magnetic.coil_radius``, at least :data:`HARD_EDGE_SOLENOID_RADIUS` of ``length``."""
+    return max(getattr(magnetic, "coil_radius", None) or 0.0, HARD_EDGE_SOLENOID_RADIUS * length)
 
 BEND_ANGLE_PER_KICK = 0.01
 """Largest angle [rad] one integration step of a bend may turn through when
@@ -1248,14 +1249,18 @@ class SolenoidTranslator(BaseElementTranslator):
 
     def _gpt_bzsolenoid(self) -> str:
         """
-        GPT's ``bzsolenoid``, a current sheet of radius ``magnetic.coil_radius``. Its
+        GPT's ``bzsolenoid``, a current sheet of radius :func:`solenoid_sheet_radius`. Its
         on-axis field integral is ``mu0 nI L`` for any radius, so ``nI = S0L / (mu0 L)``.
-        Unset, the radius is :data:`HARD_EDGE_SOLENOID_RADIUS` of the length.
         """
         length = self.magnetic.length
         if not length:
             raise NotImplementedError(f"GPT has no thin solenoid; see element {self.name}")
         radius = solenoid_sheet_radius(self.magnetic, length)
+        stands_for = "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        warn(
+            f"GPT: {self.name!r} has no field map: writing a bzsolenoid, the analytic field "
+            f"of a current sheet of radius {radius:.3g} m, for {stands_for}."
+        )
         field = expand_substitution(self, self.get_field_amplitude / length)
         n_i = field * vacuum_permittivity * speed_of_light**2  # B / mu0
         ccs_label, value_text = self.ccs.ccs_text(
