@@ -8,7 +8,6 @@ from laura._compat import DeprecatedMethodAliases
 from ...utils.functions import chop, space_charge_dimension
 
 gpt_unsupported = [
-    "Octupole",
     "Decapole",
     "TwissMatch",
     "Plasma",

@@ -2,6 +2,7 @@ import math
 from typing import Dict
 from warnings import warn
 
+from laura.models.constants import speed_of_light
 from laura.models.element import CrystalElement, TargetElement
 from laura.models.simulation import ApertureElement
 
@@ -142,6 +143,58 @@ class ApertureTranslator(BaseElementTranslator):
         horizontal = self.aperture.radius or self.aperture.horizontal_size or 0.0
         vertical = self.aperture.radius or self.aperture.vertical_size or horizontal
         return horizontal, vertical
+
+    def to_gpt(self, Brho: float = 0.0, *args, aperture_dtmax: bool = False, **kwargs) -> str:
+        """
+        GPT's ``xymax`` for a rectangle, ``rmax`` for a circle. GPT has no ellipse,
+        so one is written as a circle of the smaller half axis.
+
+        With ``aperture_dtmax`` the aperture is followed by a ``dtmaxt`` that holds
+        the step to half its length while the bunch passes, timed by GPT variables
+        the caller must define:
+
+        - ``bunch_t_head``: time [s] the head of the bunch would pass s = 0 at c
+        - ``bunch_t_tail``: time [s] the tail would pass s = 0 at ``bunch_v_min``
+        - ``bunch_v_min``: lowest speed [m/s] of the bunch in the section
+
+        Returns
+        -------
+        str
+            String representation of the element for GPT
+        """
+        self.start_write()
+        output = self._gpt_aperture()
+        if not aperture_dtmax:
+            return output
+        length = self.physical.length or OPAL_THIN_APERTURE_LENGTH
+        s = self.physical.s
+        if s is None:
+            s = self.physical.middle.z
+        else:
+            s += {"start": 0.5, "middle": 0.0, "end": -0.5}[self.physical.s_point] * length
+        return output + (
+            f"dtmaxt(bunch_t_head + {s - length / 2}/{speed_of_light}, "
+            f"bunch_t_tail + {s + length / 2}/bunch_v_min, {length / 2 / speed_of_light});\n"
+        )
+
+    def _gpt_aperture(self) -> str:
+        ox, oy = self._offsets()
+        ccs_label, value_text = self.ccs.ccs_text(
+            list(self.physical.middle.model_dump().values()),
+            list(self.ccs.rotation),
+            offset=(self.dx + ox, self.dy + oy, self.dz),
+        )
+        hx, hy = self._half_sizes()
+        length = self.physical.length or OPAL_THIN_APERTURE_LENGTH
+        ecs = f'"{self.ccs.name}", {ccs_label}, {value_text}'
+        if not self._elliptical:
+            return f"xymax({ecs}, {2 * hx}, {2 * hy}, {length});\n"
+        if hx != hy:
+            warn(
+                f"GPT has no elliptical aperture: {self.name!r} is written as a "
+                f"circle of the smaller half axis, {min(hx, hy)} m."
+            )
+        return f"rmax({ecs}, {min(hx, hy)}, {length});\n"
 
     def _write_astra_common(self, dic: dict, min_length: float = 1e-3) -> dict:
         """

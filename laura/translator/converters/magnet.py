@@ -5,7 +5,7 @@ from warnings import warn
 import numpy as np
 from pydantic import computed_field, field_validator, model_validator
 
-from laura.models.constants import speed_of_light
+from laura.models.constants import speed_of_light, vacuum_permittivity
 from laura.models.magnetic import (
     CombinedCorrectorMagnet,
     CombinedSolenoidQuadrupoleMagnet,
@@ -35,6 +35,16 @@ from .base import BaseElementTranslator
 from .codes.gpt import GptCcs
 
 GPT_HARD_EDGE_B1 = 300.0
+
+HARD_EDGE_SOLENOID_RADIUS = 1e-3
+"""Least current-sheet radius, as a fraction of its length, of a solenoid without a field
+map (GPT ``bzsolenoid``, RF-Track ``Solenoid``); unless ``coil_radius`` is larger, the
+radius used, a hard edge to about half of it."""
+
+
+def solenoid_sheet_radius(magnetic, length: float) -> float:
+    """``magnetic.coil_radius``, at least :data:`HARD_EDGE_SOLENOID_RADIUS` of ``length``."""
+    return max(getattr(magnetic, "coil_radius", None) or 0.0, HARD_EDGE_SOLENOID_RADIUS * length)
 
 BEND_ANGLE_PER_KICK = 0.01
 """Largest angle [rad] one integration step of a bend may turn through when
@@ -431,6 +441,9 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         self.start_write()
         if "corrector" in self.hardware_type.lower():
             return ""
+        if self.hardware_type.lower() not in ("quadrupole", "sextupole", "octupole"):
+            warn(f"GPT has no {self.hardware_type}; {self.name!r} is not written.")
+            return ""
         # GPT "X" is minus Bmad's y_pitch, "Y" its x_pitch (GPT manual; not run)
         rotation = list(self.ccs.rotation)
         rotation[0] += self.dy_rot
@@ -445,6 +458,19 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         kn = self.magnetic.KnL() / length if length else self.magnetic.KnL()
         if self.hardware_type.lower() == "sextupole":
             kn = kn / 2
+        if self.hardware_type.lower() == "octupole":
+            aperture = self.aperture
+            bore = max(
+                (aperture.radius or 0, aperture.horizontal_size or 0, aperture.vertical_size or 0)
+                if aperture
+                else (0,)
+            )
+            b1 = min(GPT_HARD_EDGE_B1, np.pi / bore) if bore else GPT_HARD_EDGE_B1
+            octupole = charge_sign * Brho * kn / 6
+            return (
+                f'Bmultipole("{self.ccs.name}", {ccs_label}, {value_text}, {length!s}, '
+                f"0, 0, 0, 0, 0, 0, 0, 0, 0, {octupole!s}, 0, {b1!s});\n"
+            )
         output = f'{self.hardware_type.lower()!s}("{self.ccs.name}", {ccs_label}, {value_text}, {length!s}, {charge_sign * Brho * kn!s});\n'
         return output
 
@@ -1175,10 +1201,8 @@ class SolenoidTranslator(BaseElementTranslator):
 
     def to_gpt(self, Brho: float = 0.0, *args, **kwargs) -> str:
         """
-        Write a string representation of the solenoid for GPT. Note that only solenoids with
-        field maps are currently supported.
-
-        # TODO include solenoids w/o field maps.
+        Write a string representation of the solenoid for GPT: its field map, or
+        without one a ``bzsolenoid`` (see :meth:`_gpt_bzsolenoid`).
 
         Parameters
         ----------
@@ -1191,6 +1215,8 @@ class SolenoidTranslator(BaseElementTranslator):
             String representation of the magnet for GPT.
         """
         self.start_write()
+        if self.simulation.field_definition is None:
+            return self._gpt_bzsolenoid()
         field_ref_pos = self.get_field_reference_position()
         field_file_name = self.generate_field_file_name(
             self.simulation.field_definition, code="gpt"
@@ -1220,6 +1246,30 @@ class SolenoidTranslator(BaseElementTranslator):
                 f"Solenoid field type {self.field_type} not supported for GPT; see {self.name}"
             )
         return output
+
+    def _gpt_bzsolenoid(self) -> str:
+        """
+        GPT's ``bzsolenoid``, a current sheet of radius :func:`solenoid_sheet_radius`. Its
+        on-axis field integral is ``mu0 nI L`` for any radius, so ``nI = S0L / (mu0 L)``.
+        """
+        length = self.magnetic.length
+        if not length:
+            raise NotImplementedError(f"GPT has no thin solenoid; see element {self.name}")
+        radius = solenoid_sheet_radius(self.magnetic, length)
+        stands_for = "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        warn(
+            f"GPT: {self.name!r} has no field map: writing a bzsolenoid, the analytic field "
+            f"of a current sheet of radius {radius:.3g} m, for {stands_for}."
+        )
+        field = expand_substitution(self, self.get_field_amplitude / length)
+        n_i = field * vacuum_permittivity * speed_of_light**2  # B / mu0
+        ccs_label, value_text = self.ccs.ccs_text(
+            list(self.physical.middle.model_dump().values()), list(self.ccs.rotation)
+        )
+        return (
+            f'bzsolenoid("{self.ccs.name}", {ccs_label}, {value_text}, '
+            f"{radius!s}, {length!s}, {n_i!s});\n"
+        )
 
     def is_opalx(self) -> bool:
         """

@@ -290,6 +290,14 @@ classes:
         range: integer
         ifabsent: int(0)
         description: Principal solenoid multipole order.
+      coil_radius:
+        range: float
+        description: >-
+          Radius of the coil [m], which sets the length of the fringe fields.
+          Unset means a hard-edge solenoid.
+        minimum_value: 0
+        unit:
+          ucum_code: m
       fields:
         range: SolenoidFields
         description: Nominal integrated axial field components.
