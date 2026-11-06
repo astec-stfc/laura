@@ -703,12 +703,13 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
 
     def _collective_default(self, flag: str) -> bool:
         """Whether synthesised drifts should carry ``flag``: only if some real
-        element already has it on.
+        element already has it on. For ``csr_enable`` only the dipoles count:
+        every element defaults it on, so switching it off on them is switching it off.
         """
-        return any(
-            getattr(element.simulation, flag, False)
-            for element in self._get_all_elements()
-        )
+        elements = self._get_all_elements()
+        if flag == "csr_enable":
+            elements = [e for e in elements if str(getattr(e, "hardware_type", "")).lower() == "dipole"]
+        return any(getattr(element.simulation, flag, False) for element in elements)
 
     def create_drifts(
         self,

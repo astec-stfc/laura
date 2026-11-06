@@ -143,7 +143,7 @@ class ApertureTranslator(BaseElementTranslator):
         vertical = self.aperture.radius or self.aperture.vertical_size or horizontal
         return horizontal, vertical
 
-    def _write_astra_common(self, dic: dict) -> dict:
+    def _write_astra_common(self, dic: dict, min_length: float = 1e-3) -> dict:
         """
         Creates the part of the ASTRA element dictionary common to all apertures in ASTRA
 
@@ -151,6 +151,9 @@ class ApertureTranslator(BaseElementTranslator):
         ----------
         dic: dict
             Dictionary containing the parameters for the aperture
+        min_length: float
+            Shortest aperture written [m], from its start; ASTRA checks apertures only
+            at its time steps, so a shorter one could be stepped over
 
         Returns
         -------
@@ -168,8 +171,8 @@ class ApertureTranslator(BaseElementTranslator):
         else:
             end = (
                 self.physical.end.z + self.dz
-                if self.physical.end.z >= (self.physical.start.z + 1e-3)
-                else self.physical.start.z + self.dz + 1e-3
+                if self.physical.end.z >= (self.physical.start.z + min_length)
+                else self.physical.start.z + self.dz + min_length
             )
             dic["Ap_Z2"] = {"value": end, "default": 0}
         ox, oy = self._offsets()
@@ -192,9 +195,14 @@ class ApertureTranslator(BaseElementTranslator):
         }
         return dic
 
-    def _write_astra_circular(self) -> dict:
+    def _write_astra_circular(self, min_length: float = 1e-3) -> dict:
         """
         Creates the part of the ASTRA element dictionary relevant to circular apertures in ASTRA
+
+        Parameters
+        ----------
+        min_length: float
+            See :meth:`_write_astra_common`
 
         Returns
         -------
@@ -225,9 +233,9 @@ class ApertureTranslator(BaseElementTranslator):
                 f"half axis, {radius} m."
             )
         dic["Ap_R"] = {"value": 1e3 * radius}
-        return self._write_astra_common(dic)
+        return self._write_astra_common(dic, min_length)
 
-    def _write_astra_planar(self, plane, width) -> dict:
+    def _write_astra_planar(self, plane, width, min_length: float = 1e-3) -> dict:
         """
         Creates the ASTRA element dictionary for one plane of a planar aperture.
 
@@ -237,6 +245,8 @@ class ApertureTranslator(BaseElementTranslator):
             ASTRA ``File_Aperture`` value, ``"Col_X"`` or ``"Col_Y"``
         width: float
             Aperture half-width written as ``Ap_R`` [mm]
+        min_length: float
+            See :meth:`_write_astra_common`
 
         Returns
         -------
@@ -246,7 +256,7 @@ class ApertureTranslator(BaseElementTranslator):
         dic = dict()
         dic["File_Aperture"] = {"value": plane}
         dic["Ap_R"] = {"value": width}
-        return self._write_astra_common(dic)
+        return self._write_astra_common(dic, min_length)
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
@@ -257,7 +267,8 @@ class ApertureTranslator(BaseElementTranslator):
         n: int
             Element index number
         **kwargs: dict
-            Keyword args
+            Keyword args; ``min_length`` [m] is the shortest aperture written
+            (see :meth:`_write_astra_common`), 1 mm if not given
 
         Returns
         -------
@@ -271,9 +282,10 @@ class ApertureTranslator(BaseElementTranslator):
         """
         self.start_write()
         self.aperture.number_of_elements = 0
+        min_length = kwargs.get("min_length", 1e-3)
         if self.aperture.shape in ["elliptical", "circular"]:
             self.aperture.number_of_elements += 1
-            dic = self._write_astra_circular()
+            dic = self._write_astra_circular(min_length)
             return self._write_astra_dictionary(dic, n)
         elif self.aperture.shape in ["planar", "rectangular"]:
             text = ""
@@ -282,7 +294,7 @@ class ApertureTranslator(BaseElementTranslator):
                 and self.aperture.horizontal_size > 0
             ):
                 dic = self._write_astra_planar(
-                    "Col_X", 1e3 * self.aperture.horizontal_size
+                    "Col_X", 1e3 * self.aperture.horizontal_size, min_length
                 )
                 text += self._write_astra_dictionary(dic, n)
                 self.aperture.number_of_elements += 1
@@ -291,7 +303,7 @@ class ApertureTranslator(BaseElementTranslator):
                 and self.aperture.vertical_size > 0
             ):
                 dic = self._write_astra_planar(
-                    "Col_Y", 1e3 * self.aperture.vertical_size
+                    "Col_Y", 1e3 * self.aperture.vertical_size, min_length
                 )
                 if self.aperture.number_of_elements > 0:
                     self.aperture.number_of_elements += 1
@@ -306,7 +318,7 @@ class ApertureTranslator(BaseElementTranslator):
                 and self.aperture.horizontal_size > 0
             ):
                 dic = self._write_astra_planar(
-                    "Scr_X", 1e3 * self.aperture.horizontal_size
+                    "Scr_X", 1e3 * self.aperture.horizontal_size, min_length
                 )
                 text += self._write_astra_dictionary(dic, n)
                 self.aperture.number_of_elements += 1
@@ -315,7 +327,7 @@ class ApertureTranslator(BaseElementTranslator):
                 and self.aperture.vertical_size > 0
             ):
                 dic = self._write_astra_planar(
-                    "Scr_Y", 1e3 * self.aperture.vertical_size
+                    "Scr_Y", 1e3 * self.aperture.vertical_size, min_length
                 )
                 if self.aperture.number_of_elements > 0:
                     self.aperture.number_of_elements += 1

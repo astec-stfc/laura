@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, computed_field
 
 from laura._compat import DeprecatedMethodAliases
 
-from ...utils.functions import chop
+from ...utils.functions import chop, space_charge_dimension
 
 gpt_unsupported = [
     "Octupole",
@@ -354,27 +354,14 @@ class GptSpaceCharge(GptElement):
     def space_charge_enabled(self) -> bool:
         """
         Whether space charge should be written at all.
-
-        ``space_charge_mode`` is a string, so spellings such as ``"None"`` and
-        ``"off"`` must count as off rather than as truthy.
+        Off as for every code; see :func:`~laura.translator.utils.functions.space_charge_dimension`.
 
         Returns
         -------
         bool
             True if space charge is requested.
         """
-        mode = self.space_charge_mode
-        if mode is None or mode is False:
-            return False
-        if isinstance(mode, str) and mode.strip().lower() in (
-            "",
-            "none",
-            "false",
-            "off",
-            "0",
-        ):
-            return False
-        return True
+        return bool(space_charge_dimension(self.space_charge_mode))
 
     def write_gpt(self, *args, **kwargs) -> str:
         output = ""

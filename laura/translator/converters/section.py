@@ -754,6 +754,8 @@ class SectionLatticeTranslator(SectionLattice):
         astrastr = ""
         for h in self.astra_headers.values():
             astrastr += h.write_astra()
+        h_max = next((h.h_max for h in self.astra_headers.values() if getattr(h, "h_max", None)), 0.0)
+        aperture_min_length = max(1e-3, 1e-9 * speed_of_light * h_max)
         for e in elem_dict.values():
             for key, count in counter.items():
                 if (key == "&APERTURE" and isinstance(e, ApertureTranslator)) or (
@@ -765,7 +767,10 @@ class SectionLatticeTranslator(SectionLattice):
                             f"{section_header_text_astra[key]} = True\n"
                         )
                         written.append(key)
-                    element_headers[key] += e.to_astra(n=count)
+                    if isinstance(e, ApertureTranslator):
+                        element_headers[key] += e.to_astra(n=count, min_length=aperture_min_length)
+                    else:
+                        element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
                         counter[key] += e.aperture.number_of_elements
                     elif isinstance(e, WakefieldTranslator):

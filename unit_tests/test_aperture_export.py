@@ -179,3 +179,20 @@ def test_ocelot_round_trip_keeps_shape_size_and_offset():
     assert aperture.shape == "elliptical"
     assert [aperture.horizontal_size, aperture.vertical_size] == pytest.approx([0.01, 0.02])
     assert aperture.horizontal_offset == pytest.approx(0.002)
+
+
+@pytest.mark.parametrize("h_max, length", [(None, 1e-3), (0.001, 1e-3), (0.007, 2.0985e-3)])
+def test_astra_cannot_step_over_a_thin_aperture(h_max, length):
+    """ASTRA checks apertures only at its time steps: a thin one is written at least one step (c H_max) long."""
+    import re
+
+    from laura.translator.converters.codes.astra import AstraNewRun
+
+    thin = Aperture(name="a1", machine_area="S", physical={"s": 1.0, "length": 0.0},
+                    aperture={"shape": "rectangular", **RECT_SIZE})
+    lattice = section(thin)
+    lattice.astra_headers = {} if h_max is None else {"newrun": AstraNewRun(h_max=h_max, input_particle_definition="T.astra", output_particle_definition="T.astra")}
+    text = quiet(lattice.to_astra)
+    z1 = float(re.search(r"Ap_Z1\(1\) = ([-\d.eE]+)", text).group(1))
+    z2 = float(re.search(r"Ap_Z2\(1\) = ([-\d.eE]+)", text).group(1))
+    assert z2 - z1 == pytest.approx(length, rel=1e-3)
