@@ -7,6 +7,7 @@ csrtrack_unsupported = [
     "MatrixTransform",
     "Laser",
     "Plasma",
+    "PlasmaLens",
     "Sextupole",
     "Octupole",
     "Decapole",
@@ -22,6 +23,8 @@ csrtrack_unsupported = [
     "Wakefield",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
+    "Crystal",
 ]
 
 class CsrTrackElement(DeprecatedMethodAliases, BaseModel):

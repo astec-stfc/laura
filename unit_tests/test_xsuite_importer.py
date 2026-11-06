@@ -135,9 +135,10 @@ def test_xsuite_importer_maps_monitors_and_transverse_limits():
     assert elements["particles"].hardware_type == "Screen"
     assert elements["ellipse"].hardware_type == "Collimator"
     assert elements["ellipse"].aperture.shape == "elliptical"
-    assert elements["ellipse"].aperture.horizontal_size == pytest.approx(0.04)
-    assert elements["rect"].aperture.horizontal_size == pytest.approx(0.04)
-    assert elements["polygon"].aperture.vertical_size == pytest.approx(0.03)
+    assert elements["ellipse"].aperture.horizontal_size == pytest.approx(0.02)
+    assert elements["rect"].aperture.horizontal_size == pytest.approx(0.02)
+    assert elements["rect"].aperture.horizontal_offset == pytest.approx(-0.01)
+    assert elements["polygon"].aperture.vertical_size == pytest.approx(0.015)
     assert "long" not in elements
 
     messages = [str(item.message) for item in caught]

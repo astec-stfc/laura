@@ -1,0 +1,27 @@
+general:
+  length: length
+plasma:
+  min_longitudinal_position: zmin
+  max_longitudinal_position: zmax
+  plasma_min_longitudinal_position: p_zmin
+  plasma_max_longitudinal_position: p_zmax
+  r_max: rmax
+  r_max_plasma: p_rmax
+  n_longitudinal: Nz
+  n_radial: Nr
+  particles_per_radial_cell: p_nr
+  particles_per_longitudinal_cell: p_nz
+  particles_per_angular_cell: p_nt
+laser:
+  initial_position: z0
+  waist: waist
+  pulse_duration_fwhm: tau
+  wavelength: lambda0
+  focal_position: zf
+  laguerre_polynomial_order_p: p
+  laguerre_polynomial_order_m: m
+  flatness: N
+  polarization_angle: theta_pol
+  temporal_chirp_2nd_order: phi2_chirp
+dipole:
+  angle: theta

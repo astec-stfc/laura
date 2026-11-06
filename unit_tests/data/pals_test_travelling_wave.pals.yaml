@@ -1,0 +1,33 @@
+# A travelling-wave cavity, kept out of `pals_test_lattice.pals.yaml` for two
+# reasons. The reference `palsparserpy.to_bmad`, which the differential test in
+# `test_pals_translator.py` runs over that lattice, raises outright on an `RFP`
+# stating a `gradient` ("not yet supported"), so a travelling-wave cavity there
+# would take the differential test down with it. And PALS's own bookkeeper
+# derives `voltage = gradient * L_active`, so this document deliberately states
+# the gradient *alone* -- both keys arrive at the importer either way, which is
+# the whole point of the amplitude test.
+PALS:
+  facility:
+    - begin:
+        kind: BeginningEle
+        ReferenceP:
+          species_ref: "electron"
+          E_tot_ref: 1.0e9
+    - cav_tw:
+        kind: RFCavity
+        length: 1.0
+        RFP:
+          frequency: 2998.5e6
+          gradient: 1.0e7
+          num_cells: 9
+          cavity_type: TRAVELING_WAVE
+    - main_line:
+        kind: BeamLine
+        line:
+          - begin
+          - cav_tw
+    - lat1:
+        kind: Lattice
+        branches:
+          - main_line
+    - use: "lat1"

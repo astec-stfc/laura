@@ -100,6 +100,7 @@ type_conversion_rules_genesis = LazyDict(lambda: type_conversion_rules["genesis"
 type_conversion_rules_opal = LazyDict(lambda: type_conversion_rules["opal"])
 type_conversion_rules_madx = LazyDict(lambda: type_conversion_rules["madx"])
 type_conversion_rules_bmad = LazyDict(lambda: type_conversion_rules["bmad"])
+type_conversion_rules_pals = LazyDict(lambda: type_conversion_rules["pals"])
 type_conversion_rules_names = LazyDict(lambda: type_conversion_rules["name"])
 type_conversion_rules_aliases = LazyDict(
     lambda: type_conversion_rules["aliases"]["elegant"]
@@ -141,6 +142,15 @@ keyword_conversion_rules_opal = LazyDict(
     )
 )
 
+keyword_conversion_rules_bdsim = LazyDict(
+    lambda: _load_yaml_file(
+        "../conversion_rules/keywords/keyword_conversion_rules_bdsim.yaml"
+    )
+)
+elements_bdsim = LazyDict(
+    lambda: _load_yaml_file("../conversion_rules/elements/elements_bdsim.yaml")
+)
+
 keyword_conversion_rules_xsuite = LazyDict(
     lambda: _load_yaml_file(
         "../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml"
@@ -154,6 +164,11 @@ keyword_conversion_rules_wake_t = LazyDict(
 keyword_conversion_rules_genesis = LazyDict(
     lambda: _load_yaml_file(
         "../conversion_rules/keywords/keyword_conversion_rules_genesis.yaml"
+    )
+)
+keyword_conversion_rules_fbpic = LazyDict(
+    lambda: _load_yaml_file(
+        "../conversion_rules/keywords/keyword_conversion_rules_fbpic.yaml"
     )
 )
 elements_genesis = LazyDict(
@@ -179,6 +194,12 @@ keyword_conversion_rules_bmad = LazyDict(
 )
 elements_bmad = LazyDict(
     lambda: _load_yaml_file("../conversion_rules/elements/elements_bmad.yaml")
+)
+
+keyword_conversion_rules_pals = LazyDict(
+    lambda: _load_yaml_file(
+        "../conversion_rules/keywords/keyword_conversion_rules_pals.yaml"
+    )
 )
 
 # ---------------------------------------------------------------------------

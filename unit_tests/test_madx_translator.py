@@ -126,8 +126,20 @@ class TestMadxCorrector:
         )
         ht = CorrectorTranslator.model_validate(hc.model_dump())
         vt = CorrectorTranslator.model_validate(vc.model_dump())
-        assert ht.to_madx() == "hc1: hkicker, l = 0.1, kick = 0.02;\n"
-        assert vt.to_madx() == "vc1: vkicker, l = 0.1, kick = 0.03;\n"
+        # tilt is emitted for every magnet MAD-X accepts it on, correctors
+        # included -- it used to be missing from the kicker attribute lists.
+        assert ht.to_madx() == "hc1: hkicker, l = 0.1, tilt = 0.0, kick = 0.02;\n"
+        assert vt.to_madx() == "vc1: vkicker, l = 0.1, tilt = 0.0, kick = 0.03;\n"
+
+    def test_corrector_tilt_is_carried(self):
+        """MAD-X accepts TILT on the kicker family and Corrector_Magnet has one."""
+        hc = HorizontalCorrector(
+            name="hc1",
+            machine_area="S",
+            magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.02, "tilt": 0.3},
+        )
+        ht = CorrectorTranslator.model_validate(hc.model_dump())
+        assert "tilt = 0.3" in ht.to_madx()
 
     def test_combined_corrector_carries_both_planes(self):
         cc = CombinedCorrector(
@@ -348,3 +360,91 @@ class TestDipoleFringeFields:
         assert "hgap = 0.02" in both
         assert "fint = 0.3" in both
         assert "fintx = 0.15" in both
+
+
+class TestMadxUnsupportedFallback:
+    """MAD-X used to raise a bare ``KeyError`` out of ``elements_madx`` for any
+    type it had no mapping for, so a single unrepresentable element made the
+    whole lattice unexportable. It now degrades to a drift and warns, matching
+    the object-based backends."""
+
+    @staticmethod
+    def _translate(element):
+        from laura.translator.converters.converter import translate_elements
+
+        return translate_elements([element])[element.name]
+
+    def test_infrastructure_degrades_to_a_drift(self):
+        import warnings
+
+        from laura.models.element import Stage
+        from laura.models.physical import PhysicalElement
+
+        stage = Stage(
+            name="STG1", machine_area="S", physical=PhysicalElement(length=0.05)
+        )
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            output = self._translate(stage).to_madx()
+        assert "drift" in output
+        assert any("not in MAD-X" in str(w.message) for w in caught)
+
+    def test_no_element_type_breaks_the_export(self):
+        """No hardware_type may take out ``to_madx``."""
+        import warnings
+
+        from laura.models.element import ELEMENT_REGISTRY
+        from laura.models.physical import PhysicalElement
+
+        failures = []
+        for name, cls in sorted(ELEMENT_REGISTRY.items()):
+            try:
+                element = cls(
+                    name="X1", machine_area="S", physical=PhysicalElement(length=0.1)
+                )
+                translator = self._translate(element)
+            except Exception:
+                continue  # needs constructor arguments or a payload
+            try:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    translator.to_madx()
+            except Exception as exc:  # noqa: BLE001 - report every failure at once
+                failures.append(f"{name}: {type(exc).__name__}: {exc}")
+        assert not failures, "to_madx() raised for:\n  " + "\n  ".join(failures)
+
+
+class TestMadxDecapole:
+    def test_exports_as_a_thin_multipole(self):
+        """MAD-X has no DECAPOLE; a thin MULTIPOLE carries the integrated strength."""
+        from laura.models.element import Decapole
+        from laura.models.physical import PhysicalElement
+        from laura.translator.converters.converter import translate_elements
+
+        decapole = Decapole(
+            name="DEC1", machine_area="S", physical=PhysicalElement(length=0.1)
+        )
+        decapole.magnetic.length = 0.1
+        decapole.magnetic.multipoles.K4L.normal = 0.5
+        output = translate_elements([decapole])["DEC1"].to_madx()
+        assert "multipole" in output
+        # the decapole term is the fifth, dipole through decapole
+        assert "knl = {0.0, 0.0, 0.0, 0.0, 0.5}" in output
+        # MULTIPOLE is thin: the length rides on lrad, not l
+        assert "lrad = 0.1" in output
+        assert ", l = " not in output
+
+    def test_skew_uses_ksl(self):
+        from laura.models.element import Decapole
+        from laura.models.physical import PhysicalElement
+        from laura.translator.converters.converter import translate_elements
+
+        decapole = Decapole(
+            name="DEC1", machine_area="S", physical=PhysicalElement(length=0.1)
+        )
+        decapole.magnetic.length = 0.1
+        decapole.magnetic.multipoles.K4L.skew = 0.3
+        decapole.magnetic.skew = True
+        output = translate_elements([decapole])["DEC1"].to_madx()
+        assert "ksl = {0.0, 0.0, 0.0, 0.0, 0.3}" in output
+        assert "knl" not in output

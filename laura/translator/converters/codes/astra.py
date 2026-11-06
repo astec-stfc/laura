@@ -27,6 +27,7 @@ astra_unsupported = [
     "MatrixTransform",
     "Laser",
     "Plasma",
+    "PlasmaLens",
     "Sextupole",
     "Octupole",
     "Decapole",
@@ -36,6 +37,8 @@ astra_unsupported = [
     "Wiggler",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
+    "Crystal",
 ]
 
 

@@ -1,9 +1,12 @@
-import numpy as np
-from .sdds import write_sdds_field_file
-from warnings import warn
 from collections import Counter
-from .field_parameter import require_rf, set_field
+from warnings import warn
+
+import numpy as np
+
 from laura.models.constants import speed_of_light
+
+from .field_parameter import require_rf, set_field
+from .sdds import write_sdds_field_file
 
 d = ",!?/&-:;@'\n \t"
 
@@ -148,7 +151,6 @@ def write_opal_field_file(
                     dat = [dat]
                 f.write(" ".join([str(x) for x in dat]) + "\n")
     return opal_file
-
 
 def read_opal_field_file(
     self,

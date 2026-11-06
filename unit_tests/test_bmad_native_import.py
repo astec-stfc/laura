@@ -668,13 +668,14 @@ def test_bmad_misalignments_survive_the_round_trip(tmp_path):
 
 
 def test_bmad_collimator_apertures_survive_the_round_trip(tmp_path):
-    """LAURA sizes are full widths, Bmad limits half; ``radius`` is already half."""
+    """LAURA sizes and Bmad limits are both half widths; unequal limits are an offset."""
     source, exported, _ = _roundtrip(
         tmp_path,
         _OPEN + _TWISS + "R1: rcollimator, l = 0.1, x_limit = 0.01, y_limit = 0.02\n"
         "E1: ecollimator, l = 0.05, x_limit = 0.003, y_limit = 0.003\n"
+        "A1: rcollimator, l = 0.1, x1_limit = 0.008, x2_limit = 0.012, y_limit = 0.02\n"
         "D1: drift, l = 0.5\n"
-        "L: line = (R1, D1, E1)\n"
+        "L: line = (R1, D1, E1, D1, A1)\n"
         "use, L\n",
     )
 
@@ -689,7 +690,7 @@ def test_bmad_collimator_apertures_survive_the_round_trip(tmp_path):
     before = apertures(source)
     after = apertures(exported)
 
-    for name in ("R1", "E1"):
+    for name in ("R1", "E1", "A1"):
         for key in limits:
             assert after[name][key] == pytest.approx(before[name][key]), (
                 f"{name}[{key}]"
@@ -697,6 +698,7 @@ def test_bmad_collimator_apertures_survive_the_round_trip(tmp_path):
     assert after["R1"]["X1_LIMIT"] == pytest.approx(0.01)
     assert after["R1"]["Y1_LIMIT"] == pytest.approx(0.02)
     assert after["E1"]["X1_LIMIT"] == pytest.approx(0.003)
+    assert after["A1"]["X2_LIMIT"] == pytest.approx(0.012)
 
     # Tao reports no ``aperture_type``, so the class is the only record of shape.
     assert after["E1"]["key"] == "ECollimator"
@@ -717,7 +719,6 @@ def test_bmad_aperture_survives_on_an_element_that_is_not_a_collimator(tmp_path)
     )
     found = {name: gen for name, (_, gen) in _tao_elements(exported).items()}
 
-    # LAURA full width -> Bmad half width.
     assert found["Q1"]["X1_LIMIT"] == pytest.approx(0.016)
     assert found["Q1"]["Y2_LIMIT"] == pytest.approx(0.016)
     assert found["D1"]["X1_LIMIT"] == pytest.approx(0.02)

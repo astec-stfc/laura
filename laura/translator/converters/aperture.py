@@ -1,39 +1,69 @@
+import math
+from typing import Dict
+from warnings import warn
+
+from laura.models.constants import speed_of_light
+from laura.models.element import CrystalElement, TargetElement
 from laura.models.simulation import ApertureElement
 
 from ..converters import elements_elegant, elements_madx
 from ..utils.functions import sanitize_string
-from .base import BaseElementTranslator, elegant_line
+from .base import BaseElementTranslator, bmad_limits, elegant_line
+
+SILICON_LATTICE_CONSTANT = 5.431e-10
+"""Silicon's cubic lattice constant [m], the default unit cell of a :class:`CrystalTranslator`."""
+
+OPAL_THIN_APERTURE_LENGTH = 0.01
+"""Length [m] OPAL gives an aperture that has none. OPAL removes only the particles it
+finds inside a collimator, and stops unless the length is more than ten time steps of
+drift (6 mm at ``DT`` = 2 ps)."""
 
 
 class ApertureTranslator(BaseElementTranslator):
+    """Apertures and collimators. Every code gets a local aperture of the
+    LAURA shape; a code with only thin apertures gets one at each end of a
+    drift, which is exact for a convex aperture."""
+
     aperture: ApertureElement
+
+    @property
+    def _elliptical(self) -> bool:
+        shape = getattr(self.aperture.shape, "value", self.aperture.shape)
+        return shape in ("elliptical", "circular")
+
+    def _offsets(self) -> tuple:
+        return self.aperture.horizontal_offset, self.aperture.vertical_offset
+
+    def _warn_dropped_offset(self, code: str) -> None:
+        if any(self._offsets()):
+            warn(
+                f"{code} apertures are centred; the offset of {self.name!r} was dropped."
+            )
+
+    def _convert_type_madx(self, etype: str) -> str:
+        return "ecollimator" if self._elliptical else "rcollimator"
+
+    def _convert_type_elegant(self, etype: str) -> str:
+        return "ecol" if self._elliptical else "rcol"
+
+    def _convert_type_opal(self, etype: str) -> str:
+        return "ecollimator" if self._elliptical else "rcollimator"
 
     def to_bmad(self) -> str:
         """
-        Generate a native Bmad collimator with symmetric aperture limits.
+        Generate a native Bmad collimator.
 
         Returns
         -------
         str
             String representation of the element for Bmad
         """
-        shape = getattr(self.aperture.shape, "value", self.aperture.shape)
-        etype = "ecollimator" if shape in ("elliptical", "circular") else "rcollimator"
-        horizontal = self.aperture.radius or (self.aperture.horizontal_size or 0.0) / 2
-        vertical = (
-            self.aperture.radius
-            or (self.aperture.vertical_size or 0.0) / 2
-            or horizontal
-        )
+        etype = "ecollimator" if self._elliptical else "rcollimator"
+        horizontal, vertical = self._half_sizes()
         return self._format_bmad(
             etype,
-            {
-                "l": self.length,
-                "x1_limit": horizontal,
-                "x2_limit": horizontal,
-                "y1_limit": vertical,
-                "y2_limit": vertical,
-            },
+            {"l": self.length}
+            | bmad_limits(self.name, self.aperture, horizontal, vertical),
         )
 
     def xsuite_limit(self) -> tuple | None:
@@ -42,7 +72,7 @@ class ApertureTranslator(BaseElementTranslator):
         elliptical) or ``LimitRect`` (rectangular, planar, scraper; a plane without a
         size is open), which
         :meth:`~laura.translator.converters.section.SectionLattice.to_xsuite` places at
-        the element's entrance and exit. Sizes are full widths, as Bmad reads them.
+        the element's entrance and exit. Sizes are half widths.
 
         Returns
         -------
@@ -52,8 +82,8 @@ class ApertureTranslator(BaseElementTranslator):
         import xtrack as xt
 
         shape = getattr(self.aperture.shape, "value", self.aperture.shape)
-        half_x = (self.aperture.horizontal_size or 0.0) / 2
-        half_y = (self.aperture.vertical_size or 0.0) / 2
+        half_x = self.aperture.horizontal_size or 0.0
+        half_y = self.aperture.vertical_size or 0.0
         if shape in ("circular", "elliptical"):
             a = self.aperture.radius or half_x or half_y
             b = self.aperture.radius or half_y or a
@@ -87,8 +117,6 @@ class ApertureTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convert_type_madx(self.hardware_type)
-        if self.aperture.shape in ["elliptical", "circular"] and etype == "rcollimator":
-            etype = "ecollimator"
         string = sanitize_string(self.name) + ": " + etype
         for key, value in self._dump_items(
             self._convert_keyword_madx,
@@ -97,9 +125,76 @@ class ApertureTranslator(BaseElementTranslator):
         ):
             deferred = not self._resolve_functional and self.is_functional(value)
             string += f", {key} {':=' if deferred else '='} {self._flag(value)}"
+        horizontal, vertical = self._half_sizes()
+        if horizontal:
+            apertype = "ellipse" if etype == "ecollimator" else "rectangle"
+            string += (
+                f", apertype = {apertype}, aperture = {{{horizontal}, {vertical}}}"
+            )
+        if any(self._offsets()):
+            ox, oy = self._offsets()
+            string += f", aper_offset = {{{ox}, {oy}}}"
         if at is not None:
             string += f", at = {at}"
         return string + ";\n"
+
+    def _half_sizes(self) -> tuple:
+        """Horizontal and vertical half apertures; a missing vertical copies the horizontal."""
+        horizontal = self.aperture.radius or self.aperture.horizontal_size or 0.0
+        vertical = self.aperture.radius or self.aperture.vertical_size or horizontal
+        return horizontal, vertical
+
+    def to_gpt(self, Brho: float = 0.0, *args, aperture_dtmax: bool = False, **kwargs) -> str:
+        """
+        GPT's ``xymax`` for a rectangle, ``rmax`` for a circle. GPT has no ellipse,
+        so one is written as a circle of the smaller half axis.
+
+        With ``aperture_dtmax`` the aperture is followed by a ``dtmaxt`` that holds
+        the step to half its length while the bunch passes, timed by GPT variables
+        the caller must define:
+
+        - ``bunch_t_head``: time [s] the head of the bunch would pass s = 0 at c
+        - ``bunch_t_tail``: time [s] the tail would pass s = 0 at ``bunch_v_min``
+        - ``bunch_v_min``: lowest speed [m/s] of the bunch in the section
+
+        Returns
+        -------
+        str
+            String representation of the element for GPT
+        """
+        self.start_write()
+        output = self._gpt_aperture()
+        if not aperture_dtmax:
+            return output
+        length = self.physical.length or OPAL_THIN_APERTURE_LENGTH
+        s = self.physical.s
+        if s is None:
+            s = self.physical.middle.z
+        else:
+            s += {"start": 0.5, "middle": 0.0, "end": -0.5}[self.physical.s_point] * length
+        return output + (
+            f"dtmaxt(bunch_t_head + {s - length / 2}/{speed_of_light}, "
+            f"bunch_t_tail + {s + length / 2}/bunch_v_min, {length / 2 / speed_of_light});\n"
+        )
+
+    def _gpt_aperture(self) -> str:
+        ox, oy = self._offsets()
+        ccs_label, value_text = self.ccs.ccs_text(
+            list(self.physical.middle.model_dump().values()),
+            list(self.ccs.rotation),
+            offset=(self.dx + ox, self.dy + oy, self.dz),
+        )
+        hx, hy = self._half_sizes()
+        length = self.physical.length or OPAL_THIN_APERTURE_LENGTH
+        ecs = f'"{self.ccs.name}", {ccs_label}, {value_text}'
+        if not self._elliptical:
+            return f"xymax({ecs}, {2 * hx}, {2 * hy}, {length});\n"
+        if hx != hy:
+            warn(
+                f"GPT has no elliptical aperture: {self.name!r} is written as a "
+                f"circle of the smaller half axis, {min(hx, hy)} m."
+            )
+        return f"rmax({ecs}, {min(hx, hy)}, {length});\n"
 
     def _write_astra_common(self, dic: dict) -> dict:
         """
@@ -130,8 +225,9 @@ class ApertureTranslator(BaseElementTranslator):
                 else self.physical.start.z + self.dz + 1e-3
             )
             dic["Ap_Z2"] = {"value": end, "default": 0}
-        dic["A_xoff"] = {"value": self.dx, "default": 0, "type": "not_zero"}
-        dic["A_yoff"] = {"value": self.dy, "default": 0, "type": "not_zero"}
+        ox, oy = self._offsets()
+        dic["A_xoff"] = {"value": self.dx + ox, "default": 0, "type": "not_zero"}
+        dic["A_yoff"] = {"value": self.dy + oy, "default": 0, "type": "not_zero"}
         dic["A_xrot"] = {
             "value": self._astra_rotation("x"),
             "default": 0,
@@ -170,6 +266,17 @@ class ApertureTranslator(BaseElementTranslator):
             radius = self.aperture.vertical_size
         else:
             radius = 1
+        if (
+            self.aperture.radius is None
+            and self.aperture.horizontal_size > 0
+            and self.aperture.vertical_size > 0
+            and self.aperture.horizontal_size != self.aperture.vertical_size
+        ):
+            warn(
+                f"ASTRA has no elliptical aperture (its aperture file is a radius "
+                f"against z): {self.name!r} is written as a circle of the smaller "
+                f"half axis, {radius} m."
+            )
         dic["Ap_R"] = {"value": 1e3 * radius}
         return self._write_astra_common(dic)
 
@@ -285,10 +392,355 @@ class ApertureTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convert_type_elegant(self.hardware_type)
+        horizontal, vertical = self._half_sizes()
+        ox, oy = self._offsets()
+        # elegant's DX/DY move the collimator, which is the aperture offset too
+        overrides = {
+            "x_max": horizontal,
+            "y_max": vertical,
+            "dx": self.dx + ox,
+            "dy": self.dy + oy,
+        }
         terms = [
             f"{key} = {self._flag(value)}"
             for key, value in self._dump_items(
-                self._convert_keyword_elegant, elements_elegant[etype]
+                self._convert_keyword_elegant,
+                elements_elegant[etype],
+                overrides=overrides,
             )
         ]
         return elegant_line(self.name + ": " + etype, terms)
+
+    def _opal_alignment(self) -> Dict[str, float]:
+        """The OPAL alignment with the aperture offset added, plus the sizes and
+        the length: OPAL removes only the particles it finds inside a
+        collimator's length, so a zero-length aperture gets a thin one."""
+        alignment = super()._opal_alignment()
+        horizontal, vertical = self._half_sizes()
+        ox, oy = self._offsets()
+        return alignment | {
+            "dx": alignment["dx"] + ox,
+            "dy": alignment["dy"] + oy,
+            "xsize": horizontal,
+            "ysize": vertical,
+            "l": self.length or OPAL_THIN_APERTURE_LENGTH,
+        }
+
+    def to_ocelot(self) -> object:
+        """An OCELOT ``Aperture``, or a drift between two for a thick element."""
+        from ocelot.cpbd.elements import Aperture, Drift
+
+        self.start_write()
+        horizontal, vertical = self._half_sizes()
+        ox, oy = self._offsets()
+
+        def aperture(eid):
+            # OCELOT's dx/dy place the aperture centre: offset plus misalignment
+            return Aperture(
+                xmax=horizontal or math.inf,
+                ymax=vertical or math.inf,
+                dx=self.dx + ox,
+                dy=self.dy + oy,
+                type="ellipt" if self._elliptical else "rect",
+                eid=eid,
+            )
+
+        if not self.length:
+            return aperture(self.name)
+        return [
+            aperture(f"{self.name}_entry"),
+            Drift(l=self.length, eid=self.name),
+            aperture(f"{self.name}_exit"),
+        ]
+
+    def to_cheetah(self) -> object:
+        """A Cheetah ``Aperture``, or a drift between two for a thick element."""
+        from cheetah.accelerator import Aperture, Drift, Segment
+        from torch import float64, tensor
+
+        self.start_write()
+        self._warn_dropped_offset("Cheetah")
+        horizontal, vertical = self._half_sizes()
+
+        def aperture(name):
+            return Aperture(
+                x_max=tensor(horizontal or math.inf, dtype=float64),
+                y_max=tensor(vertical or math.inf, dtype=float64),
+                shape="elliptical" if self._elliptical else "rectangular",
+                name=name,
+                sanitize_name=True,
+                dtype=float64,
+            )
+
+        if not self.length:
+            return aperture(self.name)
+        drift = Drift(
+            length=tensor(self.length, dtype=float64),
+            name=f"{self.name}_drift",
+            sanitize_name=True,
+            dtype=float64,
+        )
+        return Segment(
+            elements=[
+                aperture(f"{self.name}_entry"),
+                drift,
+                aperture(f"{self.name}_exit"),
+            ],
+            name=self.name,
+            sanitize_name=True,
+        )
+
+    def to_xsuite(self, beam_length: int) -> tuple | list:
+        """An Xtrack limit, or a drift between two for a thick element."""
+        import xtrack as xt
+
+        self.start_write()
+        horizontal, vertical = self._half_sizes()
+        if self.aperture.shape == "planar":
+            # a slit: the unsized plane stays open rather than copying the other
+            vertical = self.aperture.vertical_size
+        ox, oy = self._offsets()
+        # an unset plane is open; 1e10 is xtrack's own "unlimited"
+        horizontal, vertical = horizontal or 1e10, vertical or 1e10
+        if self._elliptical:
+            component = xt.LimitEllipse
+            properties = {"a": horizontal, "b": vertical, "shift_x": ox, "shift_y": oy}
+        else:
+            component = xt.LimitRect
+            properties = {
+                "min_x": ox - horizontal,
+                "max_x": ox + horizontal,
+                "min_y": oy - vertical,
+                "max_y": oy + vertical,
+            }
+        if not self.length:
+            return self.name, component, properties
+        return [
+            (f"{self.name}_entry", component, dict(properties)),
+            (self.name, xt.Drift, {"length": self.length}),
+            (f"{self.name}_exit", component, dict(properties)),
+        ]
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; unused here.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; unused here.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+
+        def get_bdsim_drift(name) -> object:
+            if self.verbose:
+                warn(
+                    f"Aperture type not defined for {name} or not provided for BDSIM; setting as drift"
+                )
+            from pybdsim.Builder import Drift as Drift_BDSIM
+
+            return Drift_BDSIM
+
+        type_conversion_rules_bdsim = bdsim_conversion.bdsim_conversion_rules
+        if self.hardware_type in type_conversion_rules_bdsim:
+            if hasattr(self, "aperture"):
+                if self.aperture.shape in ["elliptical", "circular"]:
+                    from pybdsim.Builder import ECol
+
+                    obj = ECol
+                elif self.aperture.shape in ["planar", "rectangular"]:
+                    from pybdsim.Builder import RCol
+
+                    obj = RCol
+                elif self.aperture.shape == "scraper":
+                    from pybdsim.Builder import JCol
+
+                    obj = JCol
+                else:
+                    obj = get_bdsim_drift(self.name)
+            else:
+                obj = get_bdsim_drift(self.name)
+        else:
+            obj = get_bdsim_drift(self.name)
+        material = self.material or getattr(
+            getattr(self, "aperture", None), "material", None
+        )
+        if obj.__name__ in ("ECol", "RCol", "JCol") and not material:
+            warn(
+                f"{self.name} has no material, which a BDSIM collimator needs; writing a drift with its aperture"
+            )
+            from pybdsim.Builder import Drift
+
+            obj = Drift
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        if obj.__name__ in ("ECol", "RCol", "JCol"):
+            keywords["material"] = material
+            keywords["xsize"] = (
+                self.aperture.radius or self.aperture.horizontal_size or 0.0
+            )
+            keywords["ysize"] = (
+                self.aperture.radius or self.aperture.vertical_size or 0.0
+            )
+            if obj.__name__ != "JCol" and not keywords["ysize"]:
+                keywords["ysize"] = keywords["xsize"]  # round, or square
+        return obj(
+            **self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set)
+        )
+
+
+class TargetTranslator(BaseElementTranslator):
+    """A block of material in the beam: BDSIM's ``target``; a drift elsewhere."""
+
+    target: TargetElement | None = None
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> object:
+        """
+        BDSIM ``target``: ``l`` and ``material``, its full transverse size as
+        ``horizontalWidth`` and, for a round block, ``apertureType="circular"``
+        (which is all that keyword means for a target: its outer shape).
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+            Unused: the beam pipe's aperture is not the block's shape.
+        charge_sign: int or float, optional
+            Unused.
+        integrator_set: str, optional
+            Unused.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes.bdsim_conversion import Target as TargetBDSIM
+
+        if not self.material:
+            raise ValueError(f"Target {self.name} has no material, which BDSIM needs")
+        keywords = self._bdsim_keywords(TargetBDSIM, None)
+        for key in [
+            k for k in keywords if k.startswith("aper") or k == "beampipeMaterial"
+        ]:
+            del keywords[key]
+        keywords.pop("apertureType", None)
+        target = self.target or TargetElement()
+        if target.transverse_size:
+            keywords["horizontalWidth"] = target.transverse_size
+        if target.circular:
+            keywords["apertureType"] = "circular"
+        return TargetBDSIM(**keywords)
+
+
+class CrystalTranslator(BaseElementTranslator):
+    """A bent crystal centred on the beam: BDSIM's ``crystalcol``; a drift elsewhere."""
+
+    crystal: CrystalElement | None = None
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> list:
+        """
+        A gmad ``crystal`` definition and the ``crystalcol`` holding it.
+
+        The crystal is centred on the beam axis (the collimator's half gap is minus half
+        its width) and turned by half its bending angle, which aligns its planes with
+        the beam at its entrance, plus :attr:`entrance_angle`.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+            Unused: the container is sized to the crystal.
+        charge_sign: int or float, optional
+            Unused.
+        integrator_set: str, optional
+            Unused.
+
+        Returns
+        -------
+        list
+            ``[pybdsim.Builder.Crystal, pybdsim.Builder.CrystalCol]``; the section adds
+            the first as an object and the second to the line.
+        """
+        import math
+        import os
+
+        from pybdsim.Builder import Crystal as CrystalBDSIM
+        from pybdsim.Builder import CrystalCol
+
+        from ..utils.functions import expand_substitution
+
+        crystal = self.crystal or CrystalElement()
+        if not self.material:
+            raise ValueError(f"Crystal {self.name} has no material, which BDSIM needs")
+        if not crystal.data_file:
+            raise ValueError(
+                f"Crystal {self.name} has no channelling data_file, which BDSIM needs"
+            )
+        data = expand_substitution(self, crystal.data_file, self.master_lattice or "./")
+        if not os.path.isabs(data) and self.master_lattice:
+            data = os.path.join(self.master_lattice, data)
+        angle = crystal.bending_angle / 2 + crystal.entrance_angle
+        thickness = (self.length - 2e-9 - 1e-8) / (1 + abs(math.tan(angle)))
+        if thickness <= 0:
+            raise ValueError(
+                f"Crystal {self.name} is too short ({self.length} m) to model"
+            )
+        a, b, c = crystal.lattice_constants or [SILICON_LATTICE_CONSTANT] * 3
+        alpha, beta, gamma = crystal.lattice_angles or [math.pi / 2] * 3
+        name = sanitize_string(self.name)
+        definition = CrystalBDSIM(
+            f"{name}_crystal",
+            material=self.material,
+            data=os.path.abspath(data),
+            shape="box",
+            lengthX=crystal.horizontal_size,
+            lengthY=crystal.vertical_size,
+            lengthZ=thickness,
+            sizeA=a,
+            sizeB=b,
+            sizeC=c,
+            alpha=alpha,
+            beta=beta,
+            gamma=gamma,
+            spaceGroup=crystal.space_group,
+            bendingAngleYAxis=crystal.bending_angle,
+            bendingAngleZAxis=0,
+        )
+        keywords = self._bdsim_keywords(CrystalCol, None)
+        for key in [
+            k for k in keywords if k.startswith("aper") or k == "beampipeMaterial"
+        ]:
+            del keywords[key]
+        keywords.update(
+            xsize=-crystal.horizontal_size / 2,
+            material=self.material,
+            crystalLeft=f"{name}_crystal",
+            crystalAngleYAxisLeft=angle,
+            apertureType="rectangular",
+            aper1=crystal.horizontal_size,
+            aper2=crystal.vertical_size,
+        )
+        return [definition, CrystalCol(**keywords)]

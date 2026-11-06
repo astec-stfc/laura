@@ -58,6 +58,18 @@ class ContainerTranslator:
     def to_cheetah(self, save: bool = False, Brho: float = 0.0) -> Dict[str, Any]:
         return self._fan_out("to_cheetah", save=save, Brho=Brho)
 
+    def to_bdsim(
+        self,
+        save: bool = False,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+        Brho: float = 0.0,
+    ) -> Dict[str, Any]:
+        return self._fan_out(
+            "to_bdsim", save=save, charge_sign=charge_sign,
+            integrator_set=integrator_set, Brho=Brho,
+        )
+
     def to_xsuite(
         self,
         beam_length: int,
@@ -71,6 +83,42 @@ class ContainerTranslator:
             env=env,
             particle_ref=particle_ref,
             save=save,
+        )
+
+    def to_impactx(
+        self,
+        model: str = "exact",
+        energy: float | None = None,
+        particle: str = "electron",
+        save: bool = False,
+        field_maps: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        One list of ImpactX element dicts per section; see
+        :meth:`~laura.translator.converters.section.SectionLatticeTranslator.to_impactx`.
+        A container's own ``particle`` wins over ``particle``.
+
+        Parameters
+        ----------
+        model: str
+            Fidelity tier: ``"linear"``, ``"paraxial"`` or ``"exact"``
+        energy: float, optional
+            Beam energy [eV] for this section; defaults to
+            :attr:`reference_energy`.
+        particle: str
+            Particle species
+        save: bool, optional
+            Also write ``{directory}/{name}.impactx.json``.
+        field_maps: bool
+            Thick ``RFCavity`` from standing-wave field maps.
+        """
+        return self._fan_out(
+            "to_impactx",
+            model=model,
+            energy=energy,
+            particle=self.particle or particle,
+            save=save,
+            field_maps=field_maps,
         )
 
     def to_bmad(

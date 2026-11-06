@@ -6,6 +6,8 @@ from laura.models.element import (
     BeamBeam,
     CombinedCorrector,
     CrabCavity,
+    Crystal,
+    Decapole,
     Diagnostic,
     Dipole,
     Drift,
@@ -18,30 +20,34 @@ from laura.models.element import (
     MatrixTransform,
     NonLinearLens,
     Plasma,
+    PlasmaLens,
     RFCavity,
     RFDeflectingCavity,
     RFMultipole,
     Screen,
     Solenoid,
+    Target,
     TwissMatch,
     VerticalCorrector,
     Wakefield,
     Wiggler,
     Wire,
+    WireScanner,
 )
 from laura.translator.utils.fields import FieldMap
 
 from .ac_dipole import ACDipoleTranslator
-from .aperture import ApertureTranslator
+from .aperture import ApertureTranslator, CrystalTranslator, TargetTranslator
 from .base import BaseElementTranslator
 from .beam_beam import BeamBeamTranslator
 from .cavity import RFCavityTranslator
-from .diagnostic import DiagnosticTranslator
+from .diagnostic import DiagnosticTranslator, WireScannerTranslator
 from .drift import DriftTranslator
 from .electrostatic_separator import ElectrostaticSeparatorTranslator
 from .laser import LaserTranslator
 from .magnet import (
     CorrectorTranslator,
+    DecapoleTranslator,
     DipoleTranslator,
     MagnetTranslator,
     NonLinearLensTranslator,
@@ -49,7 +55,7 @@ from .magnet import (
     WigglerTranslator,
 )
 from .matrix import MatrixTransformTranslator
-from .plasma import PlasmaTranslator
+from .plasma import PlasmaLensTranslator, PlasmaTranslator
 from .rf_multipole import RFMultipoleTranslator
 from .twiss import TwissMatchTranslator
 from .wake import WakefieldTranslator
@@ -60,6 +66,7 @@ def translate_elements(
     elements: List[Element],
     master_lattice: str = None,
     directory: str = ".",
+    verbose: bool = True,
 ) -> Dict[str, BaseElementTranslator]:
     """
     Function for translating a list of elements into their respective Translator classes.
@@ -72,6 +79,8 @@ def translate_elements(
         Directory containing lattice/data files including field/wakefield files.
     directory: str
         Directory to which files will be written.
+    verbose: bool
+        Print debug messages and warnings.
 
     Returns
     -------
@@ -90,6 +99,8 @@ def translate_elements(
                 VerticalCorrector,
             ]:
                 translator = CorrectorTranslator
+            elif isinstance(elem, Decapole):
+                translator = DecapoleTranslator
             elif isinstance(elem, Dipole):
                 translator = DipoleTranslator
             elif isinstance(elem, Wiggler):
@@ -102,6 +113,8 @@ def translate_elements(
             translator = RFCavityTranslator
         elif isinstance(elem, Drift):
             translator = DriftTranslator
+        elif isinstance(elem, WireScanner):
+            translator = WireScannerTranslator
         elif (
             isinstance(elem, Diagnostic)
             or isinstance(elem, Marker)
@@ -110,6 +123,12 @@ def translate_elements(
             translator = DiagnosticTranslator
         elif isinstance(elem, Aperture):
             translator = ApertureTranslator
+        elif isinstance(elem, PlasmaLens):
+            translator = PlasmaLensTranslator
+        elif isinstance(elem, Target):
+            translator = TargetTranslator
+        elif isinstance(elem, Crystal):
+            translator = CrystalTranslator
         elif isinstance(elem, Plasma):
             translator = PlasmaTranslator
         elif isinstance(elem, Laser):

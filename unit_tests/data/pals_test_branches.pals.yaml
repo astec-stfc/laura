@@ -1,0 +1,76 @@
+# Fixture for unit_tests/test_pals_importer.py: the lattice-level constructs the
+# LAURA PALS importer has to cope with, rather than the element-level ones that
+# pals_test_lattice.pals.yaml covers.
+#
+# - a periodic root beamline, which LAURA reads as a closed geometry
+# - a sub-line spliced in twice, so the same element names arrive twice and have
+#   to be numbered apart
+# - a Fork, which makes a second branch (`dump`) out of a second beamline, with
+#   its own reference species and energy
+PALS:
+  extension_labels:
+    names:
+      BmadP: Bmad element data with no PALS equivalent
+  facility:
+    - a_cell:
+        kind: BeamLine
+        line:
+          - qf:
+              kind: Quadrupole
+              length: 0.5
+              MagneticMultipoleP:
+                Kn1: 1.2
+          - d:
+              kind: Drift
+              length: 1.0
+          - qd:
+              kind: Quadrupole
+              length: 0.5
+              MagneticMultipoleP:
+                Kn1: -1.2
+          - b:
+              kind: Bend
+              length: 2.0
+              BendP:
+                angle_ref: 0.7853981633974483
+
+    - ring:
+        kind: BeamLine
+        periodic: true
+        line:
+          - begin:
+              kind: BeginningEle
+              ReferenceP:
+                species_ref: proton
+                E_tot_ref: 2.0e9
+          - a_cell:
+              repeat: 2
+          - to_dump:
+              kind: Fork
+              ForkP:
+                to_line: dump_line
+                destination_element: dump_begin
+                new_branch: dump
+                propagate_reference: true
+
+    - dump_line:
+        kind: BeamLine
+        line:
+          - dump_begin:
+              kind: Marker
+          - dump_quad:
+              kind: Quadrupole
+              length: 0.3
+              MagneticMultipoleP:
+                Kn1: 0.4
+          - dump_screen:
+              kind: Instrument
+              BmadP:
+                Bmad_key: Monitor
+
+    - lat1:
+        kind: Lattice
+        branches:
+          - ring
+
+    - use: lat1

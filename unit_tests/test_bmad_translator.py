@@ -100,7 +100,7 @@ def test_bmad_rule_coverage_matches_the_element_registry():
         for source, target in type_conversion_rules_bmad.items()
         if target not in elements_bmad
     } == {}
-    assert set(type_conversion_rules_bmad) - set(ELEMENT_REGISTRY) == {"Decapole"}
+    assert set(type_conversion_rules_bmad) - set(ELEMENT_REGISTRY) == set()
     assert set(ELEMENT_REGISTRY) - set(type_conversion_rules_bmad) == set(
         bmad_unsupported
     )
@@ -350,8 +350,7 @@ _STANDING_WAVE = {
             (),
             id="ecollimator",
         ),
-        # LAURA sizes are full apertures, Bmad limits half widths; ``radius`` is
-        # already a half width.
+        # LAURA sizes and Bmad limits are both half widths.
         pytest.param(
             Aperture,
             {
@@ -363,8 +362,8 @@ _STANDING_WAVE = {
                     "vertical_size": 0.0085,
                 },
             },
-            "A2: rcollimator, l = 0.0, x1_limit = 0.0085, "
-            "x2_limit = 0.0085, y1_limit = 0.00425, y2_limit = 0.00425\n",
+            "A2: rcollimator, l = 0.0, x1_limit = 0.017, "
+            "x2_limit = 0.017, y1_limit = 0.0085, y2_limit = 0.0085\n",
             (),
             id="rcollimator",
         ),
@@ -734,8 +733,8 @@ def test_bmad_fringe_model_reaches_bmad_and_nowhere_it_would_be_misread():
 
 
 def test_bmad_element_aperture_is_written_without_a_collimator_standing_in():
-    """LAURA widths are full, Bmad limits half; rectangular is Bmad's default shape."""
-    bore = {"horizontal_size": 0.032, "vertical_size": 0.032}
+    """LAURA sizes and Bmad limits are both half widths; rectangular is Bmad's default shape."""
+    bore = {"horizontal_size": 0.016, "vertical_size": 0.016}
     quadrupole = Quadrupole(
         name="QA01",
         machine_area="S",

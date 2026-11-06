@@ -1,5 +1,9 @@
 """Exports of the less common element types."""
 
+import subprocess
+from shutil import which
+
+import numpy as np
 import pytest
 
 pytest.importorskip("easygdf")
@@ -345,6 +349,36 @@ class TestMatrixTransformAndCrabCavityDispatch:
         for i in range(1, 7):
             assert f"R{i}{i} = 1.0" in out
 
+    @pytest.mark.skipif(which("elegant") is None, reason="elegant is not installed")
+    def test_matrix_transform_elegant_r56_is_bmads(self, tmp_path):
+        """Bmad's z is positive ahead, elegant's c*t positive behind: with R56 > 0
+        a particle with more energy arrives earlier."""
+        mt = MatrixTransform(name="mt1", machine_area="S", simulation={"r_matrix": {"r56": 1.0}})
+        (tmp_path / "lat.lte").write_text(
+            translate_elements([mt])["mt1"].to_elegant() + "LN: line=(mt1)\n"
+        )
+        pc = 250 / 0.51099895
+        (tmp_path / "beam.sdds").write_text(
+            "SDDS1\n"
+            + "".join(
+                f"&column name={n}, units={u}, type=double &end\n"
+                for n, u in (("x", "m"), ("xp", '""'), ("y", "m"), ("yp", '""'), ("t", "s"), ("p", '""'))
+            )
+            + "&column name=particleID, type=long &end\n"
+            f"&data mode=ascii, no_row_counts=1 &end\n0 0 0 0 0 {pc} 1\n0 0 0 0 0 {pc * 1.001} 2\n"
+        )
+        (tmp_path / "run.ele").write_text(
+            f"&run_setup lattice=lat.lte, use_beamline=LN, p_central={pc}, output=out.sdds &end\n"
+            "&run_control &end\n&sdds_beam input=beam.sdds &end\n&track &end\n"
+        )
+        subprocess.run(["elegant", "run.ele"], cwd=tmp_path, check=True, capture_output=True)
+        output = subprocess.run(
+            ["sdds2stream", "-col=particleID,t", "out.sdds"],
+            cwd=tmp_path, check=True, capture_output=True, text=True,
+        ).stdout
+        (_, t1), (_, t2) = sorted([*map(float, row.split())] for row in output.splitlines())
+        assert t2 - t1 == pytest.approx(-1e-3 / 299792458.0, rel=1e-4)
+
     def test_crab_cavity_elegant_uses_rfdf_not_rfca(self):
         out = translate_elements([_crab()])["cc1"].to_elegant()
         assert "cc1: rfdf" in out
@@ -448,6 +482,66 @@ class TestMadxCavityAndAperture:
         tr.tw_focusing = False
         assert "body_focus_model = SRS" in tr.to_elegant()
         assert tr.to_cheetah().cavity_type == "standing_wave"
+
+    @staticmethod
+    def _tws_map(tmp_path, frequency=3e9):
+        """ASTRA TWS map: quarter-wave couplers either side of one RF period of
+        the pure fundamental, three 2pi/3 cells."""
+        from laura.translator.utils.fields import FieldMap
+
+        lam = 299792458.0 / frequency
+        z1, z2 = 0.02, 0.02 + lam
+        z = np.round(np.arange(0, z2 + 0.02, 1e-4), 9)
+        body = np.cos(2 * np.pi * (z - z1) / lam)
+        ez = np.where(z < z1, np.sin(np.pi / 2 * z / z1),
+                      np.where(z <= z2, body, np.cos(np.pi / 2 * (z - z2) / 0.02)))
+        path = tmp_path / "tws.astra"
+        with open(path, "w") as f:
+            f.write(f"{z1} {z2} 1 3\n")
+            np.savetxt(f, np.c_[z, ez])
+        fm = FieldMap()
+        fm.read_field_file(str(path), field_type="1DElectroDynamic",
+                           cavity_type="TravellingWave", frequency=frequency)
+        fm.filename = str(path)
+        return fm, lam / 3
+
+    def test_gpt_tw_field_is_a_forward_wave(self, tmp_path):
+        from laura.translator.utils.fields.gdf import gpt_tw_field
+
+        fm, cell = self._tws_map(tmp_path)
+        z, t, s = gpt_tw_field(fm, 6)
+        z1, z2 = fm.start_cell_z, fm.end_cell_z
+        assert z[-1] == pytest.approx(fm.z.value.val[-1] + 6 * cell - (z2 - z1))
+        assert np.all(np.diff(z) > 0)
+        body = (z >= z1) & (z < z1 + 6 * cell - 1e-4)
+        # T cos(wt) - S sin(wt) = cos(wt - kz): a forward wave of constant amplitude
+        assert np.hypot(t, s)[body] == pytest.approx(1, abs=1e-3)
+        assert s[body] == pytest.approx(-np.sin(2 * np.pi * (z[body] - z1) / (3 * cell)), abs=1e-3)
+        assert not s[(z < z1) | (z > z1 + 6 * cell)].any()
+
+    def test_gpt_tw_cavity_is_two_standing_waves(self, tmp_path):
+        fm, cell = self._tws_map(tmp_path)
+        cav = RFCavity(
+            name="c1", machine_area="S", physical={"length": 0.04 + 6 * cell},
+            cavity={"structure_type": "TravellingWave", "phase": 0.0, "frequency": 3e9,
+                    "n_cells": 6, "mode_numerator": 1, "mode_denominator": 3},
+            simulation={"field_amplitude": 20e6, "field_definition": fm},
+        )
+        tr = translate_elements([cav])["c1"]
+        tr.directory = str(tmp_path)
+        lines = tr.to_gpt().splitlines()
+        maps = [line for line in lines if line.startswith("map1D_TM")]
+        assert len(maps) == 2
+        assert '"tws_tw6cells.gdf", "z", "Ez",' in maps[0]
+        assert '"Ez_im"' in maps[1] and "+ pi/2" in maps[1]
+        assert any(line.startswith("ffac") and line.endswith("= 20000000.0;") for line in lines)
+        assert (tmp_path / "tws_tw6cells.gdf").exists()
+        # without TW focusing, the full-length standing-wave mock-up, gain set from the map
+        tr.tw_focusing = False
+        tr.simulation.field_definition.n_cells = 6
+        out = tr.to_gpt()
+        assert out.count("map1D_TM") == 1 and "Ez_im" not in out
+        assert f"= {tr._gpt_tw_ffac()};" in out and "1.007" not in out
 
     def test_standing_wave_cavity_elegant_uses_default_body_focus_model(self):
         cav = RFCavity(

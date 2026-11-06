@@ -8,15 +8,17 @@ from laura._compat import DeprecatedMethodAliases
 from ...utils.functions import chop
 
 gpt_unsupported = [
-    "Octupole",
     "Decapole",
     "TwissMatch",
     "Plasma",
+    "PlasmaLens",
     "Laser",
     "Wiggler",
     "MatrixTransform",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
+    "Crystal",
 ]
 
 

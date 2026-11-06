@@ -80,6 +80,8 @@ xsuite_conversion_rules = {
     "RFCavity": Cavity_xs,
     "RFDeflectingCavity": CrabCavity_xs,
     "Aperture": Drift_xs,
+    "Target": Drift_xs,
+    "Crystal": Drift_xs,
     "Shutter": Drift_xs,
     "Valve": Drift_xs,
     "Bellows": Drift_xs,
