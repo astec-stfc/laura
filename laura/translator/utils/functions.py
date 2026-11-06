@@ -25,6 +25,32 @@ from laura.utils.naming import number_repeated_names  # noqa: F401 (re-exported)
 
 from .fields import FieldMap
 
+SPACE_CHARGE_OFF = ("", "false", "none", "off", "0", "no")
+"""``space_charge_mode`` spellings, lower-cased, that mean no space charge."""
+
+
+def space_charge_dimension(mode: Any) -> str:
+    """
+    ``space_charge_mode`` as ``"2d"``, ``"3d"``, or ``""`` for off, the same for every code.
+    Off is ``None``, ``False`` or any of :data:`SPACE_CHARGE_OFF`, in any case.
+
+    Raises
+    ------
+    ValueError
+        For anything else, rather than guessing at a solver.
+    """
+    if mode is None or mode is False:
+        return ""
+    text = str(mode).strip().lower()
+    if text in SPACE_CHARGE_OFF:
+        return ""
+    if text in ("2d", "3d"):
+        return text
+    raise ValueError(
+        f"space_charge_mode {mode!r} is not one of '2d', '3d' or off "
+        f"(False, None, {', '.join(repr(s) for s in SPACE_CHARGE_OFF[1:])})"
+    )
+
 
 def same_element_placement(left: Any, right: Any) -> bool:
     """True if two :class:`~laura.models.element.Element` objects occupy the

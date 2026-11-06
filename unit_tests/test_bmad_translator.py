@@ -603,6 +603,7 @@ def test_bmad_section_layout_and_model_export():
     )
     translator = SectionLatticeTranslator.from_section(section)
     translator.lsc_enable = False
+    translator.csr_enable = True  # no bend here, so it would follow the elements to off
     text = translator.to_bmad(
         particle="electron",
         space_charge_n_bin=64,
@@ -652,7 +653,8 @@ def test_bmad_section_layout_and_model_export():
         space_charge_n_bin=32,
     )
     assert "parameter[particle] = electron" in model_text["L_1"]["S_1"]
-    assert "bmad_com[csr_and_space_charge_on] = T" in model_text["L_1"]["S_1"]
+    # no bend, so CSR follows the elements to off (only a dipole's csr_enable counts)
+    assert "bmad_com[csr_and_space_charge_on] = F" in model_text["L_1"]["S_1"]
     assert "space_charge_com[n_bin] = 32" in model_text["L_1"]["S_1"]
 
 
