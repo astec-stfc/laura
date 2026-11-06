@@ -115,7 +115,7 @@ def test_astra_numbers_and_places_every_wake_once(tmp_path, monkeypatch):
 
 def test_gpt_wakes_sit_on_their_cells_per_metre_and_decelerate(tmp_path):
     """GPT's wakes were half a cell upstream, cell_length times too weak and accelerating,
-    and a cavity's were placed in absolute z rather than in the section's frame."""
+    and a cavity's were placed in a different frame from its field map."""
     path = _wake_file(tmp_path)
     section = _section(
         [_cavity("C", 1.0, field_amplitude=0.0, wakefield_definition=path), _wakefield(path, 2.0),
@@ -127,8 +127,8 @@ def test_gpt_wakes_sit_on_their_cells_per_metre_and_decelerate(tmp_path):
         warnings.simplefilter("ignore")
         written = section.to_gpt(startz=0.0, endz=3.5, Brho=0.02)
     wakes = re.findall(r'wakefield\("wcs", "z", ([^,]+), 0.1, .*"FieldFactorWz", ([^)]+)\);', written)
-    # the section's frame starts at C, at 0.85 m
-    assert [float(z) for z, _ in wakes] == pytest.approx([0.05, 0.15, 0.25, 1.05, 1.15, 1.25])
+    # absolute z, as the screens (laura#55); C starts at 0.85 m
+    assert [float(z) for z, _ in wakes] == pytest.approx([0.9, 1.0, 1.1, 1.9, 2.0, 2.1])
     assert [float(f) for _, f in wakes] == pytest.approx([-10.0] * 6)
 
 

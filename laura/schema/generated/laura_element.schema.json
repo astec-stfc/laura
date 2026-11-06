@@ -18157,6 +18157,14 @@
       "additionalProperties": false,
       "description": "Solenoid field model, including systematic and random field errors and the current-to-field calibration.",
       "properties": {
+        "coil_radius": {
+          "description": "Radius of the coil [m], which sets the length of the fringe fields. Unset means a hard-edge solenoid.",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_integral_coefficients": {
           "anyOf": [
             {

@@ -2295,6 +2295,8 @@ export interface SolenoidMagnet {
     tilt?: number,
     /** Principal solenoid multipole order. */
     order?: number,
+    /** Radius of the coil [m], which sets the length of the fringe fields. Unset means a hard-edge solenoid. */
+    coil_radius?: number,
     /** Nominal integrated axial field components. */
     fields?: SolenoidFields,
     /** Systematic field errors. */
