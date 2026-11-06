@@ -316,7 +316,8 @@ Example workflow:
    Some simulation codes require additional parameters for proper translation:
 
    * GPT requires magnetic rigidity (``Brho``) for dipole elements
-   * RF-Track requires the reference momentum-over-charge (``P_Q``, in MV/c) for dipole elements
+   * RF-Track takes the reference momentum-over-charge (``P_Q``, in MV/c) for dipole elements,
+     or sets it in ``autophase()`` when left unset
    * OPAL requires beam energy for proper dipole field calculations
    * Xsuite requires the number of particles for monitor elements
    * ASTRA and CSRTrack use specialized headers for configuration
@@ -415,9 +416,8 @@ RF-Track Translator
 -------------------
 
 `RF-Track <https://gitlab.cern.ch/rf-track>`_ (CERN, A. Latina) is a tracking code whose
-lattices are Python objects rather than text files, like Ocelot, Cheetah and Xsuite. It is not
-distributed on PyPI, so :mod:`LAURA` has no extra for it -- install the wheel manually into the
-same environment.
+lattices are Python objects rather than text files, like Ocelot, Cheetah and Xsuite;
+install it yourself with ``pip install rf_track``.
 
 Unlike the other object-based codes, RF-Track conversion is not implemented as a per-category
 override on each translator class. :py:meth:`BaseElementTranslator.to_rftrack
@@ -438,15 +438,24 @@ RF-Track offers two integration environments, and :mod:`LAURA` can produce eithe
   returns a ``Lattice`` -- the space-integration environment, tracked with a ``Bunch6d``. Space
   charge is applied as ``sc_nsteps`` evenly-spaced kicks per element.
 * :py:meth:`to_rftrack_volume <laura.translator.converters.section.SectionLatticeTranslator.to_rftrack_volume>`
-  wraps that ``Lattice`` in a ``Volume`` at the origin -- the time-integration environment,
-  tracked with a ``Bunch6dT``. This is what RF-Track recommends for space-charge-dominated and
+  places every element in a ``Volume`` -- the time-integration environment, tracked with a
+  ``Bunch6dT``. This is what RF-Track recommends for space-charge-dominated and
   cathode regimes. Space charge here is driven by the ``sc_dt_mm`` tracking option rather than
   per-element kicks, so ``sc_nsteps`` is not applied.
 
 ``P_Q``, the beam reference momentum-over-charge in MV/c, is threaded down to every element in
-the same way ``Brho`` is for GPT. It matters for dipoles: RF-Track's ``SBend``, unlike its
-``Quadrupole`` and ``Multipole``, cannot defer this to ``autophase()``, and an unset value
-silently produces zero transmission.
+the same way ``Brho`` is for GPT, but only dipoles use it. Left unset (NaN), RF-Track's
+``SBend`` takes the bunch's own P/Q, set at each bend by ``autophase()`` as for quadrupoles, so
+it follows any acceleration upstream; a fixed ``P_Q`` is kept as given.
+
+Without a field map, an ``RFCavity``'s ``field_amplitude`` is its voltage, as Elegant, Ocelot
+and Xsuite read it; the ``Pillbox_Cavity`` gets the uniform field giving that voltage at
+``beta = 1``. A travelling-wave ``TW_Structure`` spans the element's length and gains the
+voltage Elegant and Bmad give it, ``field_amplitude * (cells + 3.8) * cell_length / sqrt(2)``.
+With a field map it is the peak on-axis field, as ASTRA's ``MaxE``. A cavity with
+no field becomes a ``Drift``, since RF-Track loses every particle in a zero-field RF element.
+``SBend`` carries the fringe-field integral and half gap (``set_fint``/``set_hgap``) of the
+edge focusing; the entrance one is used.
 
 .. code-block:: python
 
@@ -479,7 +488,7 @@ Supported elements
 
    * - :mod:`LAURA` element
      - RF-Track object
-   * - ``Drift``, ``Aperture``, ``Collimator``, ``Marker``
+   * - ``Drift``, ``Aperture``, ``Collimator``
      - ``Drift``
    * - ``Quadrupole``
      - ``Quadrupole``
@@ -497,16 +506,15 @@ Supported elements
      - ``RF_FieldMap_1d`` from a real field map where one is resolved, otherwise the analytic ``TW_Structure`` or ``Pillbox_Cavity``
    * - ``Beam_Position_Monitor``
      - ``Bpm``
-   * - ``Screen``
-     - ``Screen``
+   * - ``Screen``, ``Marker``
+     - ``Screen`` (zero length; each keeps a copy of the bunch passing it)
 
 .. note::
 
-   A few builders -- notably the stitched travelling-wave field map
-   (``build_tw_fieldmap``: input coupler, complex core, output coupler) -- return a *list* of
-   RF-Track objects rather than one. These are flattened into the caller's own ``Lattice`` as
-   siblings rather than nested in a sub-lattice, because nesting a ``Lattice`` inside a
-   ``Lattice`` inside a ``Volume`` breaks ``Volume.autophase()`` for the inner elements.
+   A travelling-wave field map (ASTRA TWS style) becomes one ``RF_FieldMap_1d``: input coupler,
+   tiled periodic core and output coupler on one mesh, made complex as a whole. Real couplers
+   joined to a complex core would make the quadrature field jump at the joins, growing
+   the emittance.
 
 .. warning::
 

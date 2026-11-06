@@ -1328,6 +1328,12 @@ class SectionLatticeTranslator(SectionLattice):
 
         return maglat
 
+    @staticmethod
+    def _rftrack_roll(d) -> float:
+        """Roll [rad] to append ``d`` with: its ``tilt`` plus roll error, but only
+        the ``tilt`` on a bend, whose roll error would roll its frame too."""
+        return d.roll - d.dz_rot * d._curved
+
     def to_rftrack(
         self, P_Q: float = float("nan"), save: bool = False, sc_nsteps: int = 0
     ) -> object:
@@ -1338,7 +1344,7 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         P_Q: float
             Beam reference momentum-over-charge [MV/c], forwarded to every
-            element; required for correct dipole bending (see
+            element; only dipoles use it, and NaN leaves it to ``autophase()`` (see
             :meth:`BaseElementTranslator.to_rftrack <laura.translator.converters.base.BaseElementTranslator.to_rftrack>`).
         save: bool
             If ``True``, also write a standalone Python script reconstructing
@@ -1363,11 +1369,15 @@ class SectionLatticeTranslator(SectionLattice):
         lattice = rft.Lattice()
         for d in elem_dict.values():
             elem = d.to_rftrack(P_Q=P_Q)
-            d._warn_dropped_misalignment("RF-Track", set())
+            d._warn_dropped_misalignment("RF-Track", set(), tilt=True)
+            roll = self._rftrack_roll(d)
             for e in elem if isinstance(elem, list) else [elem]:
                 if sc_nsteps > 0:
                     e.set_sc_nsteps(sc_nsteps)
-                lattice.append(e)
+                if roll:
+                    lattice.append(e, 0.0, 0.0, 0.0, roll, 0.0, 0.0, "center")
+                else:
+                    lattice.append(e)
         if save:
             self._save_rftrack_py_file(elem_dict, P_Q, sc_nsteps)
         return lattice
@@ -1376,11 +1386,14 @@ class SectionLatticeTranslator(SectionLattice):
         self, P_Q: float = float("nan"), save: bool = False
     ) -> object:
         """
-        Create an RF-Track ``Volume`` (time-integration environment) wrapping the
-        ``Lattice`` from :func:`to_rftrack` at the origin, for space-charge-dominated
-        and cathode regimes.
+        Create an RF-Track ``Volume`` (time-integration environment) for
+        space-charge-dominated and cathode regimes, with every element placed at
+        its own position, so overlapping fields (a solenoid around a gun) add up.
 
-        No ``sc_nsteps`` is applied: Volume space charge is driven by the
+        The Volume frame has its origin at the first element's entrance and +z
+        along it. Field maps start at their first sample, measured from the field
+        reference position (as ASTRA's ``C_pos``/``S_pos``); other elements
+        start at their entrance. Volume space charge is driven by the
         ``sc_dt_mm`` tracking option, set by the tracking driver.
 
         Parameters
@@ -1388,8 +1401,8 @@ class SectionLatticeTranslator(SectionLattice):
         P_Q: float
             Beam reference momentum-over-charge [MV/c]; see :func:`to_rftrack`.
         save: bool
-            Forwarded to :func:`to_rftrack` (writes the standalone lattice
-            script); the Volume wrapper itself is not separately serialised.
+            If ``True``, also write a standalone Python script reconstructing
+            this Volume to ``{self.directory}/{self.name}.py``.
 
         Returns
         -------
@@ -1399,13 +1412,60 @@ class SectionLatticeTranslator(SectionLattice):
         from ..conversion_rules.codes.rftrack_conversion import get_rftrack
 
         rft = get_rftrack()
-        lattice = self.to_rftrack(P_Q=P_Q, save=save, sc_nsteps=0)
+        elem_dict = self._translate()
+        first = next(iter(elem_dict.values())).physical
+        origin, R0 = np.asarray(first.start.array, dtype=float), first.rotation_matrix # noqa N803
         volume = rft.Volume()
-        volume.add(lattice, 0.0, 0.0, 0.0)
+        placements = {}
+        for name, d in elem_dict.items():
+            elem = d.to_rftrack(P_Q=P_Q, volume=True)
+            objs = elem if isinstance(elem, list) else [elem]
+            d._warn_dropped_misalignment("RF-Track", set(), tilt=True)
+            placements[name] = self._rftrack_placements(d, objs, origin, R0)
+            for e, p in zip(objs, placements[name]):
+                volume.add(e, *p, "entrance")
+        if save:
+            self._save_rftrack_py_file(elem_dict, P_Q, placements=placements)
         return volume
 
+    @classmethod
+    def _rftrack_placements(cls, d, objs, origin, R0) -> list: # noqa N803
+        """``(x, y, z, roll, pitch, yaw)`` [m, rad] of each of ``d``'s RF-Track
+        ``objs`` in the Volume frame;
+        a list is laid end to end, but a bend's
+        ``[arc, entrance edge, exit edge]`` has its edges just outside its faces."""
+        R = d.physical.rotation_matrix # noqa N803
+
+        def placed(point, rotation):
+            axis = R0.T @ rotation[:, 2]
+            yaw = float(np.arctan2(axis[0], axis[2]))
+            return (*map(float, R0.T @ (point - origin)), roll, 0.0, yaw)
+
+        roll = cls._rftrack_roll(d)
+        start = np.asarray(d.physical.start.array, dtype=float)
+        if type(objs[0]).__name__ == "SBend":
+            _, edge, _ = objs
+            end = np.asarray(d.physical.end.array, dtype=float)
+            return [
+                placed(start, R),
+                placed(start - R[:, 2] * edge.get_length(), R),
+                placed(end, d.physical.end_rotation_matrix),
+            ]
+        if type(objs[0]).__name__ in ("RF_FieldMap_1d", "Static_Magnetic_FieldMap_1d"):
+            z0 = float(d.simulation.field_definition.z_values[0])
+            start = d.get_field_reference_position() + R[:, 2] * z0
+        placements = []
+        for o in objs:
+            placements.append(placed(start, R))
+            start = start + R[:, 2] * o.get_length()
+        return placements
+
     def _save_rftrack_py_file(
-        self, elem_dict: dict, P_Q: float, sc_nsteps: int = 0
+        self,
+        elem_dict: dict,
+        P_Q: float,
+        sc_nsteps: int = 0,
+        placements: Optional[dict] = None,
     ) -> None:
         """
         Write a standalone Python script to ``{self.directory}/{self.name}.py``
@@ -1421,23 +1481,41 @@ class SectionLatticeTranslator(SectionLattice):
         sc_nsteps: int
             Per-element space-charge kicks to emit as ``set_sc_nsteps`` calls;
             see :func:`to_rftrack`.
+        placements: dict, optional
+            Element-name -> per-object ``(x, y, z, roll, pitch, yaw)``, as
+            built by :func:`to_rftrack_volume`; if given, the script builds a
+            ``volume`` instead of a ``lattice``.
         """
         import re
 
         lines = ["import numpy as np", "import RF_Track as rft", ""]
-        all_varnames = []
+        appends = []
         for name, d in elem_dict.items():
             varname = "el_" + re.sub(r"\W", "_", name)
-            elem_lines, varnames = d.to_rftrack_repr(varname, P_Q=P_Q)
+            elem_lines, varnames = d.to_rftrack_repr(
+                varname, P_Q=P_Q, volume=placements is not None
+            )
             lines += elem_lines
             if sc_nsteps > 0:
                 for vn in varnames:
                     lines.append(f"{vn}.set_sc_nsteps({sc_nsteps})")
-            all_varnames += varnames
+            if placements is not None:
+                appends += [
+                    f"volume.add({vn}, {', '.join(map(repr, p))}, 'entrance')"
+                    for vn, p in zip(varnames, placements[name])
+                ]
+                lines.append("")
+                continue
+            roll = self._rftrack_roll(d)
+            rolled = f", 0.0, 0.0, 0.0, {roll!r}, 0.0, 0.0, 'center'" if roll else ""
+            appends += [f"lattice.append({vn}{rolled})" for vn in varnames]
             lines.append("")
-        lines.append("lattice = rft.Lattice()")
-        for vn in all_varnames:
-            lines.append(f"lattice.append({vn})")
+        lines.append(
+            "volume = rft.Volume()"
+            if placements is not None
+            else "lattice = rft.Lattice()"
+        )
+        lines += appends
         with open(f"{self.directory}/{self.name}.py", "w") as f:
             f.write("\n".join(lines) + "\n")
 
