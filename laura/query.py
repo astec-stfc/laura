@@ -1,6 +1,6 @@
 """SPARQL query interface for LAURA machine models.
 
-Wraps a :class:`~laura.models.elementList.MachineModel` in an in-memory
+Wraps a :class:`~laura.models.element_list.MachineModel` in an in-memory
 rdflib graph and exposes SPARQL SELECT queries over it via
 :meth:`LAURAQuery.sparql`, along with convenience helpers for common lookups.
 
@@ -33,7 +33,7 @@ class LAURAQuery:
     Parameters
     ----------
     machine:
-        :class:`~laura.models.elementList.MachineModel` to query.
+        :class:`~laura.models.element_list.MachineModel` to query.
     machine_name:
         Logical accelerator name used when building element IRIs.
         Default ``"machine"``.

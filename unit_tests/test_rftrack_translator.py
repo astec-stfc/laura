@@ -1,13 +1,4 @@
-"""Tests for laura.translator.converters.*.to_rftrack() and the RF-Track
-conversion-rule builder functions.
-
-RF-Track is not installed in CI/dev environments by default (it is not on
-PyPI). Tests that need the real package are guarded with
-``pytest.importorskip("RF_Track")`` and will skip until it is installed.
-Everything else here uses a lightweight fake ``RF_Track`` module (monkeypatched
-into ``rftrack_conversion``) so the conversion logic itself — argument values,
-units, dispatch — is covered without the real dependency.
-"""
+"""RF-Track tests; RF_Track isn't on PyPI, so most use a fake module."""
 
 import pytest
 
@@ -17,10 +8,6 @@ from laura.translator.converters.converter import translate_elements
 from laura.translator.converters.section import SectionLatticeTranslator
 from laura.translator.conversion_rules.codes import rftrack_conversion
 
-
-# ---------------------------------------------------------------------------
-# Fake RF_Track module — captures constructor calls without the real package
-# ---------------------------------------------------------------------------
 
 class _FakeElement:
     def __init__(self, cls_name, *args):
@@ -37,6 +24,9 @@ class _FakeElement:
 
     def set_phid(self, phid):
         self.phid = phid
+
+    def set_t0(self, t0):
+        self.t0 = t0
 
 
 class _FakeLattice:
@@ -56,44 +46,10 @@ class _FakeLattice:
 
 
 class _FakeRFTrack:
-    def Drift(self, *args):
-        return _FakeElement("Drift", *args)
-
-    def Quadrupole(self, *args):
-        return _FakeElement("Quadrupole", *args)
-
-    def SBend(self, *args):
-        return _FakeElement("SBend", *args)
-
-    def Corrector(self, *args):
-        return _FakeElement("Corrector", *args)
-
-    def Solenoid(self, *args):
-        return _FakeElement("Solenoid", *args)
-
-    def Undulator(self, *args):
-        return _FakeElement("Undulator", *args)
-
-    def Multipole(self, *args):
-        return _FakeElement("Multipole", *args)
-
-    def Bpm(self, *args):
-        return _FakeElement("Bpm", *args)
-
-    def Screen(self, *args):
-        return _FakeElement("Screen", *args)
-
-    def Pillbox_Cavity(self, *args):
-        return _FakeElement("Pillbox_Cavity", *args)
-
-    def TW_Structure(self, *args):
-        return _FakeElement("TW_Structure", *args)
-
-    def RF_FieldMap_1d(self, *args):
-        return _FakeElement("RF_FieldMap_1d", *args)
-
-    def Static_Magnetic_FieldMap_1d(self, *args):
-        return _FakeElement("Static_Magnetic_FieldMap_1d", *args)
+    def __getattr__(self, cls_name):
+        if cls_name.startswith("_"):
+            raise AttributeError(cls_name)
+        return lambda *args: _FakeElement(cls_name, *args)
 
     def Lattice(self):
         return _FakeLattice()
@@ -107,9 +63,11 @@ def fake_rftrack(monkeypatch):
     return fake
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
+@pytest.fixture
+def rft():
+    """The real RF_Track package; skips the test when it is not installed."""
+    return pytest.importorskip("RF_Track")
+
 
 @pytest.fixture
 def sample_quad():
@@ -141,10 +99,6 @@ def sample_drift():
     )
 
 
-# ---------------------------------------------------------------------------
-# rftrack_conversion_rules dict
-# ---------------------------------------------------------------------------
-
 class TestConversionRulesTable:
     @pytest.mark.parametrize(
         "hardware_type",
@@ -166,10 +120,6 @@ class TestConversionRulesTable:
             rftrack_conversion.get_rftrack()
 
 
-# ---------------------------------------------------------------------------
-# Element-level to_rftrack()
-# ---------------------------------------------------------------------------
-
 class TestElementToRFTrack:
     def test_quadrupole(self, sample_quad, fake_rftrack):
         translated = translate_elements([sample_quad])["Q1"]
@@ -177,7 +127,7 @@ class TestElementToRFTrack:
         assert obj.cls_name == "Quadrupole"
         length, p_q, k1 = obj.args
         assert length == pytest.approx(0.3)
-        assert p_q != p_q  # NaN check (P_Q deferred to autophase)
+        assert p_q != p_q  # NaN: P_Q deferred to autophase
         assert k1 == pytest.approx(-1.5 / 0.3)
         assert obj.name == "Q1"
 
@@ -190,14 +140,9 @@ class TestElementToRFTrack:
         length, angle, p_q, e1, e2 = obj.args
         assert length == pytest.approx(0.5)
         assert angle == pytest.approx(0.1)
+        assert p_q == 1.0  # placeholder when no P_Q is supplied
         assert e1 == pytest.approx(0.05)
         assert e2 == pytest.approx(0.05)
-
-    def test_dipole_without_p_q_warns_and_uses_placeholder(self, sample_dipole, fake_rftrack):
-        translated = translate_elements([sample_dipole])["D1"]
-        with pytest.warns(UserWarning, match="No P_Q"):
-            obj = translated.to_rftrack()
-        assert obj.args[2] == 1.0
 
     def test_dipole_with_p_q_uses_supplied_value(self, sample_dipole, fake_rftrack):
         translated = translate_elements([sample_dipole])["D1"]
@@ -205,7 +150,6 @@ class TestElementToRFTrack:
         assert obj.args[2] == pytest.approx(-100.0)
 
     def test_quadrupole_p_q_always_nan_regardless_of_caller(self, sample_quad, fake_rftrack):
-        """Quadrupole should ignore any caller-supplied P_Q and always defer to autophase()."""
         translated = translate_elements([sample_quad])["Q1"]
         obj = translated.to_rftrack(P_Q=-100.0)
         p_q = obj.args[1]
@@ -242,10 +186,6 @@ class TestElementToRFTrack:
         assert obj.aperture == (0.02, 0.02, "circular")
 
 
-# ---------------------------------------------------------------------------
-# Section-level to_rftrack()
-# ---------------------------------------------------------------------------
-
 class TestSectionToRFTrack:
     def test_builds_lattice_with_all_elements(
         self, sample_drift, sample_quad, sample_dipole, fake_rftrack
@@ -266,13 +206,8 @@ class TestSectionToRFTrack:
         assert sbend.args[2] == pytest.approx(-100.0)
 
 
-# ---------------------------------------------------------------------------
-# Real RF_Track integration (skipped unless installed)
-# ---------------------------------------------------------------------------
-
 class TestRealRFTrack:
-    def test_quadrupole_real(self, sample_quad):
-        pytest.importorskip("RF_Track")
+    def test_quadrupole_real(self, sample_quad, rft):
         translated = translate_elements([sample_quad])["Q1"]
         obj = translated.to_rftrack()
         assert obj.get_name() == "Q1"
@@ -288,14 +223,10 @@ class TestRealRFTrack:
         bunch = rft.Bunch6d(rft.electronmass, 1e9, Q, Pref, twiss, 100)
         return lattice.track(bunch)
 
-    def test_dipole_without_p_q_gives_wrong_trajectory_but_no_loss(self, sample_dipole):
-        """Regression test for a real, verified finding: passing a raw NaN
-        P_Q to RF-Track's SBend (unlike Quadrupole/Multipole, which support
-        deferring to autophase()) silently produces zero transmission. Our
-        placeholder-of-1.0 fallback (with a warning) avoids that total loss,
-        but still gives the WRONG bend trajectory for a real ~100 MeV/c beam
-        -- confirming P_Q genuinely affects the physics, not just reporting."""
-        rft = pytest.importorskip("RF_Track")
+    def test_dipole_without_p_q_gives_wrong_trajectory_but_no_loss(self, sample_dipole, rft):
+        """RF-Track's SBend loses the whole beam on a NaN P_Q; the 1.0 placeholder keeps
+        it but bends it wrongly.
+        """
         translated = translate_elements([sample_dipole])["D1"]
         with pytest.warns(UserWarning, match="No P_Q"):
             sbend_no_p_q = translated.to_rftrack()
@@ -306,25 +237,10 @@ class TestRealRFTrack:
         tracked_correct = self._track_dipole(rft, sbend_correct)
         assert tracked_correct.get_info().transmission == pytest.approx(1e9)
 
-        # Same beam, same dipole geometry, different P_Q -> different bend.
         assert tracked_wrong.get_info().mean_x != pytest.approx(
             tracked_correct.get_info().mean_x
         )
 
-    def test_dipole_with_p_q_preserves_transmission(self, sample_dipole):
-        rft = pytest.importorskip("RF_Track")
-        translated = translate_elements([sample_dipole])["D1"]
-        Pref = 100.0
-        Q = -1
-        sbend = translated.to_rftrack(P_Q=Pref / Q)
-        tracked = self._track_dipole(rft, sbend, Pref=Pref, Q=Q)
-        assert tracked.get_info().transmission == pytest.approx(1e9)
-
-
-# ---------------------------------------------------------------------------
-# Field maps (laura.translator.utils.fields.rftrack) -- pure arg-building,
-# no RF_Track import required.
-# ---------------------------------------------------------------------------
 
 from types import SimpleNamespace  # noqa: E402
 import numpy as np  # noqa: E402
@@ -346,22 +262,21 @@ def _fake_field(field_type, cavity_type=None, z=None, Ez=None, Bz=None, **tw_kwa
         end_cell_z=tw_kwargs.get("end_cell_z"),
         mode_numerator=tw_kwargs.get("mode_numerator"),
         mode_denominator=tw_kwargs.get("mode_denominator"),
+        read=True,
     )
+
+
+def _tw_without_preamble():
+    """A travelling-wave field with no start/end cell markers."""
+    return _fake_field("1DElectroDynamic", cavity_type="TravellingWave", z=[0, 1], Ez=[0, 1])
 
 
 def _make_tws_field(
     n_points_per_cell=21, in_points=10, out_points=10,
     mode_numerator=1, mode_denominator=3,
 ):
-    """
-    Build a fake ASTRA-TWS-style field: an input coupler, one periodic
-    repeat block spanning ``mode_denominator`` physical cells between
-    z1=1.0/z2=1.3, and an output coupler -- mirrors the structure
-    ``astra.read_astra_field_file``'s ``TravellingWave`` branch parses from
-    a real TWS file. The core genuinely oscillates in sign (phase advance
-    ``mode_numerator*2*pi/mode_denominator`` per cell, i.e. exactly
-    ``mode_numerator`` full periods across the whole block) -- matching real
-    ASTRA/CLARA field-map data, unlike a smooth single-hump envelope.
+    """Fake ASTRA TWS field: coupler, a ``mode_denominator``-cell block (z 1.0-1.3)
+    oscillating ``mode_numerator`` periods, coupler.
     """
     z1, z2 = 1.0, 1.3
     z_in = np.linspace(z1 - 0.1, z1, in_points, endpoint=False)
@@ -377,7 +292,6 @@ def _make_tws_field(
         start_cell_z=z1, end_cell_z=z2,
         mode_numerator=mode_numerator, mode_denominator=mode_denominator,
     )
-    field_obj.read = True
     return field_obj
 
 
@@ -434,12 +348,7 @@ class TestFieldMapUtils:
 
 
 class TestTravellingWaveFieldMapArgs:
-    """Tests for :func:`rf_fieldmap_1d_travelling_wave_args_list`, which
-    returns a list of 1-3 ``RF_FieldMap_1d`` arg-tuples: real input coupler,
-    complex core, real output coupler (in that order, omitting an empty
-    coupler region) -- ``_make_tws_field``'s fixture always has both
-    couplers, so the list is always length 3 here, with the core at
-    index 1."""
+    """Args are [input coupler, complex core, output coupler]; the fixture has both."""
 
     def test_stitches_n_cells_with_no_gap(self):
         field_obj = _make_tws_field()
@@ -467,12 +376,7 @@ class TestTravellingWaveFieldMapArgs:
         assert np.abs(ez_big).max() == pytest.approx(2 * np.abs(ez_small).max())
 
     def test_core_tiles_without_extra_rotation(self):
-        """Every tile of the periodic block is identical (see module
-        docstring -- an earlier version rotated per tile by
-        ``exp(i*i*dphi)``, which summed to exactly zero every
-        ``mode_denominator`` replicas); tiling 2 periods vs 1 period should
-        therefore give the same peak envelope magnitude, just over double
-        the length."""
+        """Identical tiles: 2 periods give 1 period's peak over double the length."""
         field_obj = _make_tws_field()
         args_1 = fields_rftrack.rf_fieldmap_1d_travelling_wave_args_list(
             field_obj, amplitude=1.0, frequency=3e9, n_cells=3
@@ -486,9 +390,7 @@ class TestTravellingWaveFieldMapArgs:
         assert len(ez_2) * hz_2 == pytest.approx(2 * len(ez_1) * hz_1, rel=0.05)
 
     def test_missing_preamble_raises(self):
-        field_obj = _fake_field(
-            "1DElectroDynamic", cavity_type="TravellingWave", z=[0, 1], Ez=[0, 1]
-        )
+        field_obj = _tw_without_preamble()
         with pytest.raises(ValueError, match="start_cell_z"):
             fields_rftrack.rf_fieldmap_1d_travelling_wave_args_list(
                 field_obj, amplitude=1.0, frequency=3e9, n_cells=3
@@ -503,12 +405,22 @@ class TestTravellingWaveFieldMapArgs:
             )
 
 
-# ---------------------------------------------------------------------------
-# Cavity/solenoid field-map dispatch (rftrack_conversion.py)
-# ---------------------------------------------------------------------------
-
 def _fake_translator(simulation, cavity=None, magnetic=None):
-    return SimpleNamespace(simulation=simulation, cavity=cavity, magnetic=magnetic)
+    # RFCavityTranslator.structure_type, which also accepts Bmad's "TravelingWave"
+    structure = str(getattr(cavity, "structure_type", "StandingWave"))
+    structure = "TravellingWave" if structure.lower() in ("travellingwave", "travelingwave") else structure
+    return SimpleNamespace(
+        simulation=simulation, cavity=cavity, magnetic=magnetic, structure_type=structure
+    )
+
+
+@pytest.mark.parametrize(
+    "available",
+    ["_cavity_fieldmap_available", "_tw_fieldmap_available", "_magnetic_fieldmap_available"],
+)
+def test_fieldmap_unavailable_without_field_definition(available):
+    t = _fake_translator(simulation=SimpleNamespace(field_definition=None))
+    assert getattr(rftrack_conversion, available)(t) is False
 
 
 class TestCavityFieldMapDispatch:
@@ -516,7 +428,6 @@ class TestCavityFieldMapDispatch:
         z = np.linspace(0, 0.5, 26)
         ez_norm = np.sin(np.pi * z / 0.5)
         field_obj = _fake_field("1DElectroDynamic", cavity_type="StandingWave", z=z, Ez=ez_norm)
-        field_obj.read = True
         return field_obj
 
     def test_available_when_resolved_standing_wave_field(self):
@@ -524,13 +435,8 @@ class TestCavityFieldMapDispatch:
         t = _fake_translator(simulation=SimpleNamespace(field_definition=field_obj))
         assert rftrack_conversion._cavity_fieldmap_available(t) is True
 
-    def test_unavailable_when_no_field_definition(self):
-        t = _fake_translator(simulation=SimpleNamespace(field_definition=None))
-        assert rftrack_conversion._cavity_fieldmap_available(t) is False
-
     def test_unavailable_when_travelling_wave(self):
-        field_obj = _fake_field("1DElectroDynamic", cavity_type="TravellingWave", z=[0, 1], Ez=[0, 1])
-        field_obj.read = True
+        field_obj = _tw_without_preamble()
         t = _fake_translator(simulation=SimpleNamespace(field_definition=field_obj))
         assert rftrack_conversion._cavity_fieldmap_available(t) is False
 
@@ -543,9 +449,7 @@ class TestCavityFieldMapDispatch:
         obj = rftrack_conversion.build_cavity_fieldmap(t)
         assert obj.cls_name == "RF_FieldMap_1d"
         ez, hz, length, freq, direction, p_map, p_actual = obj.args
-        # Discrete peak of a 26-point sine sampling isn't exactly the
-        # continuous peak, so compare against the source shape's own max
-        # (self-consistent) rather than assuming amplitude is hit exactly.
+        # 26 samples miss the continuous peak, so compare against the source's own max.
         assert ez.max() == pytest.approx(field_obj.Ez.value.val.max() * 1e6)
         assert freq == pytest.approx(3e9)
         assert obj.phid == pytest.approx(30.0)
@@ -580,28 +484,13 @@ class TestTravellingWaveFieldMapDispatch:
         t = _fake_translator(simulation=SimpleNamespace(field_definition=field_obj))
         assert rftrack_conversion._tw_fieldmap_available(t) is True
 
-    def test_unavailable_when_no_field_definition(self):
-        t = _fake_translator(simulation=SimpleNamespace(field_definition=None))
-        assert rftrack_conversion._tw_fieldmap_available(t) is False
-
     def test_unavailable_when_preamble_missing(self):
-        field_obj = _fake_field(
-            "1DElectroDynamic", cavity_type="TravellingWave", z=[0, 1], Ez=[0, 1]
-        )
-        field_obj.read = True
+        field_obj = _tw_without_preamble()
         t = _fake_translator(simulation=SimpleNamespace(field_definition=field_obj))
         assert rftrack_conversion._tw_fieldmap_available(t) is False
 
     def test_build_tw_fieldmap(self, fake_rftrack):
-        """``build_tw_fieldmap`` returns a **list** of a real input coupler,
-        complex core, and real output coupler (mirrors manual §4.3.6's own
-        SW+TW+SW chaining) -- a flat list, not wrapped in their own
-        sub-``Lattice``, so ``SectionLatticeTranslator.to_rftrack`` can
-        append each as a direct sibling of the section's own top-level
-        Lattice (verified against the real package: a nested Lattice-in-
-        Lattice-in-Volume breaks ``Volume.autophase()`` for the inner
-        elements, see :func:`build_tw_fieldmap` docstring); every element
-        gets the same ``set_phid``."""
+        """Flat: nested Lattices break ``Volume.autophase()``; one ``set_phid``."""
         field_obj = _make_tws_field()
         t = _fake_translator(
             simulation=SimpleNamespace(field_definition=field_obj, field_amplitude=1e6),
@@ -629,10 +518,7 @@ class TestTravellingWaveFieldMapDispatch:
         assert elems[1].cls_name == "RF_FieldMap_1d"
 
     def test_build_rf_cavity_falls_back_to_tw_structure_without_preamble(self, fake_rftrack):
-        field_obj = _fake_field(
-            "1DElectroDynamic", cavity_type="TravellingWave", z=[0, 1], Ez=[0, 1]
-        )
-        field_obj.read = True
+        field_obj = _tw_without_preamble()
         t = _fake_translator(
             simulation=SimpleNamespace(field_definition=field_obj, field_amplitude=1e6),
             cavity=SimpleNamespace(
@@ -651,16 +537,11 @@ class TestSolenoidFieldMapDispatch:
         z = np.linspace(-0.1, 0.1, 21)
         bz_norm = np.exp(-(z / 0.03) ** 2)
         field_obj = _fake_field("1DMagnetoStatic", z=z, Bz=bz_norm)
-        field_obj.read = True
         return field_obj
 
     def test_available_when_resolved_magnetostatic_field(self):
         t = _fake_translator(simulation=SimpleNamespace(field_definition=self._resolved_field()))
         assert rftrack_conversion._magnetic_fieldmap_available(t) is True
-
-    def test_unavailable_when_no_field_definition(self):
-        t = _fake_translator(simulation=SimpleNamespace(field_definition=None))
-        assert rftrack_conversion._magnetic_fieldmap_available(t) is False
 
     def test_build_solenoid_dispatches_to_fieldmap(self, fake_rftrack):
         t = _fake_translator(
@@ -681,58 +562,64 @@ class TestSolenoidFieldMapDispatch:
         t.physical = SimpleNamespace(length=0.2)
         obj = rftrack_conversion.build_solenoid(t)
         assert obj.cls_name == "Solenoid"
-        assert obj.args == (0.2, 0.5, 0.0)
+        # R = 0 loses every particle; unset, the sheet radius is L / 1000
+        assert obj.args == pytest.approx((0.2, 0.5, 0.2e-3))
+        t.name, t.magnetic.coil_radius = "X", 0.03
+        with pytest.warns(UserWarning, match="tracks 'X', which has no field map, as a hard-edge"):
+            assert rftrack_conversion.build_solenoid(t).args == pytest.approx((0.2, 0.5, 0.03))
+        t.magnetic.coil_radius = 1e-5  # below the least radius
+        with pytest.warns(UserWarning, match="hard-edge"):
+            assert rftrack_conversion.build_solenoid(t).args == pytest.approx((0.2, 0.5, 0.2e-3))
 
-
-# ---------------------------------------------------------------------------
-# Real RF_Track field-map integration (skipped unless installed)
-# ---------------------------------------------------------------------------
 
 class TestRealRFTrackFieldMap:
-    def test_rf_fieldmap_1d_tracks(self):
-        rft = pytest.importorskip("RF_Track")
+    @staticmethod
+    def _track_one(rft, element):
+        lattice = rft.Lattice()
+        lattice.append(element)
+        B0 = rft.Bunch6d(rft.electronmass, 0.0, -1, np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 5.0]]))
+        return lattice.track(B0)
+
+    def test_a_solenoid_without_a_map_keeps_the_beam_and_is_hard_edge(self, rft):
+        """With R = 0 RF-Track lost every particle, even on axis."""
+        from laura.models.element import Solenoid
+
+        solenoid = translate_elements([Solenoid(
+            name="SOL", machine_area="S", physical={"length": 0.2, "middle": [0, 0, 0.1]},
+            magnetic={"length": 0.2, "fields": {"S0L": 0.15}},
+        )])["SOL"]
+        lattice = rft.Lattice()
+        lattice.append(rftrack_conversion.build_solenoid(solenoid))
+        bunch = rft.Bunch6d(rft.electronmass, 0.0, -1, np.array([[1.0, 0.0, 0.5, 0.0, 0.0, 100.0]]))
+        x, xp, y, yp = lattice.track(bunch).get_phase_space("%x %xp %y %yp")[0]
+        # hard-edge solenoid matrix, K = q B / 2p for an electron [1/m]; mm and mrad
+        K, L = -0.75 / 2 / (100e6 / 299792458.0), 0.2
+        c, s = np.cos(K * L), np.sin(K * L)
+        expected = [c * c * 1.0 + s * c * 0.5, -K * s * c * 1.0 - K * s * s * 0.5,
+                    -s * c * 1.0 + c * c * 0.5, K * s * s * 1.0 - K * s * c * 0.5]
+        assert [x, xp, y, yp] == pytest.approx(expected, rel=1e-6)
+
+    def test_rf_fieldmap_1d_tracks(self, rft):
         z = np.linspace(0, 0.2, 41)
         ez_norm = np.sin(np.pi * z / 0.2)
         field_obj = _fake_field("1DElectroDynamic", cavity_type="StandingWave", z=z, Ez=ez_norm)
         args = fields_rftrack.rf_fieldmap_1d_args(field_obj, amplitude=1e6, frequency=3e9)
-        fm = rft.RF_FieldMap_1d(*args)
-        lattice = rft.Lattice()
-        lattice.append(fm)
-        B0 = rft.Bunch6d(rft.electronmass, 0.0, -1, np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 5.0]]))
-        B1 = lattice.track(B0)
+        B1 = self._track_one(rft, rft.RF_FieldMap_1d(*args))
         assert B1.get_info().transmission >= 0.0
 
-    def test_static_magnetic_fieldmap_1d_tracks(self):
-        rft = pytest.importorskip("RF_Track")
+    def test_static_magnetic_fieldmap_1d_tracks(self, rft):
         z = np.linspace(-0.1, 0.1, 41)
         bz_norm = np.exp(-(z / 0.03) ** 2)
         field_obj = _fake_field("1DMagnetoStatic", z=z, Bz=bz_norm)
         args = fields_rftrack.static_magnetic_fieldmap_1d_args(field_obj, amplitude=0.5)
-        fm = rft.Static_Magnetic_FieldMap_1d(*args)
-        lattice = rft.Lattice()
-        lattice.append(fm)
-        B0 = rft.Bunch6d(rft.electronmass, 0.0, -1, np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 5.0]]))
-        B1 = lattice.track(B0)
+        B1 = self._track_one(rft, rft.Static_Magnetic_FieldMap_1d(*args))
         assert B1.get_info().transmission >= 0.0
 
     @staticmethod
     def _tws_field_realistic(frequency=2998.5e6, mode_numerator=1, mode_denominator=3):
-        """A realistic S-band-like TWS periodic block (spanning
-        ``mode_denominator`` physical cells) with input/output couplers
-        either side, for a real end-to-end tracking check -- deliberately
-        much finer/larger than ``_make_tws_field()`` (which only needs to
-        exercise the arg-building math). The core genuinely oscillates in
-        sign (``mode_numerator`` full periods across the whole block,
-        matching real ASTRA/CLARA field-map data), unlike a smooth
-        single-hump envelope.
-
-        ``z2 - z1 = mode_numerator * c / frequency`` -- the phase-velocity-
-        equals-c synchronism condition a real travelling-wave structure
-        satisfies (verified: an arbitrary block length gives ~40x less gain,
-        since the field's spatial phase advance per cell no longer matches
-        how far a relativistic beam travels per RF cycle; real ASTRA/CLARA
-        field files satisfy this automatically since they come from an
-        actual simulated structure)."""
+        """S-band-like TWS block. ``z2 - z1 = mode_numerator * c / frequency`` is the
+        v_phase = c synchronism condition; otherwise gain drops ~40x.
+        """
         c = 299792458.0
         z1 = 0.0
         z2 = mode_numerator * c / frequency
@@ -747,28 +634,24 @@ class TestRealRFTrackFieldMap:
             start_cell_z=z1, end_cell_z=z2,
             mode_numerator=mode_numerator, mode_denominator=mode_denominator,
         )
-        field_obj.read = True
         return field_obj
 
-    def test_tw_fieldmap_1d_tracks_and_accelerates(self):
-        """Regression test for two real, verified findings, using the actual
-        three-element (real input coupler + complex core + real output
-        coupler) architecture :func:`build_tw_fieldmap` builds:
+    def test_a_switched_off_cavity_survives_autophase(self, rft):
+        t = _fake_translator(
+            simulation=SimpleNamespace(field_definition=None, field_amplitude=0.0),
+            cavity=SimpleNamespace(frequency=3e9, phase=0.0, n_cells=1, cell_length=0.05),
+        )
+        t.physical = SimpleNamespace(length=0.05)
+        lattice = rft.Lattice()
+        lattice.append(rftrack_conversion.build_pillbox_cavity(t))
+        B0 = rft.Bunch6d(rft.electronmass, 1e9, -1, np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 5.0]]))
+        lattice.autophase(B0)
+        assert lattice.track(B0).get_info().transmission == pytest.approx(1e9)
 
-        1. ``direction`` is NOT cosmetic for the complex core -- unlike the
-           standing-wave case (manual §4.4.1's own note that direction is
-           interchangeable there), a relativistic forward-moving beam stays
-           in phase with a ``direction=1`` (forward) wave over many cells and
-           gains substantial energy, but is largely out of phase with a
-           ``direction=-1`` (backward) wave and gains much less.
-        2. The couplers and core all take the same ``set_phid`` -- verified
-           against real CLARA L01 data (this module's ``rf_fieldmap_1d_
-           travelling_wave_args_list`` docstring) that this (not the manual's
-           own +90 degree core-vs-coupler offset, specific to the analytic
-           ``SW_Structure``/``TW_Structure`` pair) is correct for
-           ``RF_FieldMap_1d``.
+    def test_tw_fieldmap_1d_tracks_and_accelerates(self, rft):
+        """Unlike SW, ``direction`` matters for the TW core; couplers and core share
+        ``set_phid`` (checked against CLARA L01 data).
         """
-        rft = pytest.importorskip("RF_Track")
         field_obj = self._tws_field_realistic()
         n_cells = 21  # whole multiple of mode_denominator=3
         amplitude = 20e6  # V/m, realistic S-band gradient
@@ -783,12 +666,11 @@ class TestRealRFTrackFieldMap:
             )
             lattice = rft.Lattice()
             for args in args_list:
-                fm = rft.RF_FieldMap_1d(*args)
-                fm.set_phid(phase)
-                lattice.append(fm)
+                lattice.append(rftrack_conversion.tw_fieldmap_element(args, phase))
             B0 = rft.Bunch6d(
                 rft.electronmass, 1e9, -1, np.array([[0.0, 0.0, 0.0, 0.0, 0.0, start_pz]])
             )
+            lattice.autophase(B0)  # as the section export does; RF-Track 2.7.4 needs t0 set
             return lattice.track(B0).get_info()
 
         info_fwd = _track(direction=1)
@@ -798,5 +680,5 @@ class TestRealRFTrackFieldMap:
         assert info_bwd.transmission == pytest.approx(1e9)
         gain_fwd = info_fwd.mean_P - start_pz
         gain_bwd = info_bwd.mean_P - start_pz
-        assert gain_fwd > 1.0  # substantial acceleration, forward-travelling
-        assert gain_fwd > 5 * gain_bwd  # forward wave stays in phase far better
+        assert gain_fwd > 1.0
+        assert gain_fwd > 5 * gain_bwd

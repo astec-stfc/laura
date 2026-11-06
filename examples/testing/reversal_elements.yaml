@@ -1,0 +1,66 @@
+# One installed arc, traversed by two beams in opposite directions.
+#
+# The companion to ``reversal_sections.yaml`` and ``reversal_layouts.yaml``.
+# There is exactly one of each magnet here: one quadrupole pair, one dipole.
+# They are the hardware. Two beam paths run through them, and one of those
+# paths runs backwards -- which is the shape of counter-rotating beams sharing
+# interaction-region magnets, or of a recirculating pass back down a line.
+#
+# Nothing here says anything about direction. Direction belongs to the beam
+# path, so it lives in the layouts file; an element cannot know which way a
+# beam happens to be going through it.
+#
+# Positions are left to the section order (see ``sequential_elements.yaml``),
+# so the arc is defined by lengths alone.
+
+QUAD_A:
+  name: QUAD_A
+  hardware_class: Magnet
+  hardware_type: Quadrupole
+  machine_area: ARC
+  physical:
+    length: 0.2
+  magnetic:
+    length: 0.2
+    magnet_type: quadrupole
+    k1l: 0.6          # focuses horizontally for a forward beam
+
+DRIFT_IN:
+  name: DRIFT_IN
+  hardware_class: Drift
+  hardware_type: Drift
+  machine_area: ARC
+  physical:
+    length: 0.5
+
+BEND:
+  name: BEND
+  hardware_class: Magnet
+  hardware_type: Dipole
+  machine_area: ARC
+  physical:
+    length: 1.0
+  magnetic:
+    length: 1.0
+    magnet_type: dipole
+    k0l: 0.25         # bends one way forwards, the other way backwards
+
+DRIFT_OUT:
+  name: DRIFT_OUT
+  hardware_class: Drift
+  hardware_type: Drift
+  machine_area: ARC
+  physical:
+    length: 0.8
+
+QUAD_B:
+  name: QUAD_B
+  hardware_class: Magnet
+  hardware_type: Quadrupole
+  machine_area: ARC
+  physical:
+    length: 0.2
+  magnetic:
+    length: 0.2
+    magnet_type: quadrupole
+    k1l: -0.6

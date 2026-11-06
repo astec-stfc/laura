@@ -43,8 +43,6 @@ rfcavity:
   length: length
 rfdeflectingcavity:
   field_amplitude: voltage
-solenoid:
-  field_amplitude: k
 scatter:
   horizontal_scatter: x
   vertical_scatter: y

@@ -1,0 +1,4 @@
+default_layout: INJ_LAYOUT
+layouts:
+  INJ_LAYOUT:
+    - INJ_LINE

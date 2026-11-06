@@ -8,6 +8,8 @@ wiggler:
   num_periods: nwig
   period: lambdau
   strength: aw
+  dx: ax
+  dy: ay
 fel_modulator:
   horizontal_relative_transverse_gradient: gradx
   vertical_relative_transverse_gradient: grady
@@ -16,6 +18,8 @@ fel_modulator:
   number_of_periods: nwig
   period_length: lambdau
   strength: aw
+  dx: ax
+  dy: ay
 quadrupole:
   k1l: k1
 horizontal_corrector:

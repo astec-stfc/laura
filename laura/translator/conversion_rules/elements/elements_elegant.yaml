@@ -197,6 +197,9 @@ csbend:
   dz: double
   fse: double
   etilt: double
+  epitch: double
+  eyaw: double
+  malign_method: long
   n_kicks: long
   n_slices: long
   nonlinear: long
@@ -891,6 +894,9 @@ koct:
   dx: double
   dy: double
   dz: double
+  pitch: double
+  yaw: double
+  malign_method: long
   fse: double
   n_kicks: long
   n_slices: long
@@ -924,6 +930,7 @@ kquad:
   dx: double
   dy: double
   dz: double
+  malign_method: long
   fse: double
   hkick: double
   vkick: double
@@ -1020,6 +1027,9 @@ ksext:
   dx: double
   dy: double
   dz: double
+  pitch: double
+  yaw: double
+  malign_method: long
   fse: double
   hkick: double
   vkick: double
@@ -1398,6 +1408,9 @@ quad:
   dx: double
   dy: double
   dz: double
+  pitch: double
+  yaw: double
+  malign_method: long
   fse: double
   hkick: double
   vkick: double
@@ -2390,3 +2403,9 @@ ztransverse:
   bunched_beam_mode: long
   allow_long_beam: long
   group: string
+beambeam:
+  charge: double
+  xcenter: double
+  ycenter: double
+  xsize: double
+  ysize: double

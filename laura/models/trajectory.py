@@ -17,7 +17,7 @@ class Trajectory:
     Stores a sequence of (s, position, rotation_matrix) samples and
     provides interpolation/projection for bidirectional s ↔ xyz mapping.
 
-    Built automatically by :meth:`~laura.models.elementList.SectionLattice.resolve_positions`
+    Built automatically by :meth:`~laura.models.element_list.SectionLattice.resolve_positions`
     and stored on each :class:`~laura.models.physical.PhysicalElement` via its
     ``_trajectory`` private attribute.
     """

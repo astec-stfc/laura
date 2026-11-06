@@ -1,0 +1,39 @@
+# A line written once and repeated, and a line built out of another line.
+#
+# ``fodo_cell`` is a line, not a section of the machine: it is defined here but
+# ``repeats_layouts.yaml`` never lists it, so it exists only to be spliced into
+# ``fodo_channel``. A name in an element list that matches another section is a
+# nested line and is expanded in place; anything else is an element name.
+#
+# ``repeat: 3`` writes the cell out three times. Expansion runs at load, so the
+# machine holds the same fifteen placements it would have held had the channel
+# been typed out in full — and, because these elements state no positions, the
+# repeated names are then given one copy each (drift1.1, drift1.2, ...) by
+# sequential placement, exactly as a hand-written repeat would be.
+#
+# A line may be referenced before it is defined; a line that includes itself is
+# an error rather than an infinite lattice.
+#
+# A negative count reverses the entry before repeating it, as MAD-X's -LINE
+# does, so a mirror-symmetric line comes from one cell definition:
+#
+#   mirrored:
+#     - fodo_cell
+#     - fodo_cell: {repeat: -1}
+#
+# That reverses the order only. Every element is still entered at its own
+# entrance face, so it is the mirror image of the line, not the line traversed
+# backwards -- reversing the traversal would flip the sign of every magnetic
+# element's effect in the beam frame, which LAURA does not model.
+
+sections:
+  fodo_channel:
+    - fodo_cell:
+        repeat: 3
+
+  fodo_cell:
+    - drift1
+    - quad1
+    - drift2
+    - quad2
+    - drift1

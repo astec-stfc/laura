@@ -1,10 +1,23 @@
 import os
+
 import yaml
 
 try:
     _FastLoader = yaml.CSafeLoader
 except AttributeError:
     _FastLoader = yaml.SafeLoader
+
+GPT_FIXES = frozenset(
+    {
+        "magnet_strength",
+        "dipole_b1",
+        "face_sign",
+        "ccs_placement",
+        "handedness",
+        "end_screen",
+        "csr1d_options",
+    }
+)
 
 
 class LazyDict(dict):
@@ -86,6 +99,8 @@ type_conversion_rules_elegant = LazyDict(lambda: type_conversion_rules["elegant"
 type_conversion_rules_genesis = LazyDict(lambda: type_conversion_rules["genesis"])
 type_conversion_rules_opal = LazyDict(lambda: type_conversion_rules["opal"])
 type_conversion_rules_madx = LazyDict(lambda: type_conversion_rules["madx"])
+type_conversion_rules_bmad = LazyDict(lambda: type_conversion_rules["bmad"])
+type_conversion_rules_pals = LazyDict(lambda: type_conversion_rules["pals"])
 type_conversion_rules_names = LazyDict(lambda: type_conversion_rules["name"])
 type_conversion_rules_aliases = LazyDict(
     lambda: type_conversion_rules["aliases"]["elegant"]
@@ -127,6 +142,15 @@ keyword_conversion_rules_opal = LazyDict(
     )
 )
 
+keyword_conversion_rules_bdsim = LazyDict(
+    lambda: _load_yaml_file(
+        "../conversion_rules/keywords/keyword_conversion_rules_bdsim.yaml"
+    )
+)
+elements_bdsim = LazyDict(
+    lambda: _load_yaml_file("../conversion_rules/elements/elements_bdsim.yaml")
+)
+
 keyword_conversion_rules_xsuite = LazyDict(
     lambda: _load_yaml_file(
         "../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml"
@@ -140,6 +164,11 @@ keyword_conversion_rules_wake_t = LazyDict(
 keyword_conversion_rules_genesis = LazyDict(
     lambda: _load_yaml_file(
         "../conversion_rules/keywords/keyword_conversion_rules_genesis.yaml"
+    )
+)
+keyword_conversion_rules_fbpic = LazyDict(
+    lambda: _load_yaml_file(
+        "../conversion_rules/keywords/keyword_conversion_rules_fbpic.yaml"
     )
 )
 elements_genesis = LazyDict(
@@ -156,6 +185,21 @@ keyword_conversion_rules_madx = LazyDict(
 )
 elements_madx = LazyDict(
     lambda: _load_yaml_file("../conversion_rules/elements/elements_madx.yaml")
+)
+
+keyword_conversion_rules_bmad = LazyDict(
+    lambda: _load_yaml_file(
+        "../conversion_rules/keywords/keyword_conversion_rules_bmad.yaml"
+    )
+)
+elements_bmad = LazyDict(
+    lambda: _load_yaml_file("../conversion_rules/elements/elements_bmad.yaml")
+)
+
+keyword_conversion_rules_pals = LazyDict(
+    lambda: _load_yaml_file(
+        "../conversion_rules/keywords/keyword_conversion_rules_pals.yaml"
+    )
 )
 
 # ---------------------------------------------------------------------------

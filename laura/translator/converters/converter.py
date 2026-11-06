@@ -1,12 +1,13 @@
 from typing import Dict, List
 
-from laura.models._generated import HardwareClassEnum
 from laura.models.element import (
     ACDipole,
     Aperture,
     BeamBeam,
     CombinedCorrector,
     CrabCavity,
+    Crystal,
+    Decapole,
     Diagnostic,
     Dipole,
     Drift,
@@ -19,28 +20,34 @@ from laura.models.element import (
     MatrixTransform,
     NonLinearLens,
     Plasma,
+    PlasmaLens,
     RFCavity,
     RFDeflectingCavity,
     RFMultipole,
     Screen,
     Solenoid,
+    Target,
     TwissMatch,
     VerticalCorrector,
+    Wakefield,
     Wiggler,
     Wire,
+    WireScanner,
 )
+from laura.translator.utils.fields import FieldMap
 
 from .ac_dipole import ACDipoleTranslator
-from .aperture import ApertureTranslator
+from .aperture import ApertureTranslator, CrystalTranslator, TargetTranslator
 from .base import BaseElementTranslator
 from .beam_beam import BeamBeamTranslator
 from .cavity import RFCavityTranslator
-from .diagnostic import DiagnosticTranslator
+from .diagnostic import DiagnosticTranslator, WireScannerTranslator
 from .drift import DriftTranslator
 from .electrostatic_separator import ElectrostaticSeparatorTranslator
 from .laser import LaserTranslator
 from .magnet import (
     CorrectorTranslator,
+    DecapoleTranslator,
     DipoleTranslator,
     MagnetTranslator,
     NonLinearLensTranslator,
@@ -48,9 +55,10 @@ from .magnet import (
     WigglerTranslator,
 )
 from .matrix import MatrixTransformTranslator
-from .plasma import PlasmaTranslator
+from .plasma import PlasmaLensTranslator, PlasmaTranslator
 from .rf_multipole import RFMultipoleTranslator
 from .twiss import TwissMatchTranslator
+from .wake import WakefieldTranslator
 from .wire import WireTranslator
 
 
@@ -58,6 +66,7 @@ def translate_elements(
     elements: List[Element],
     master_lattice: str = None,
     directory: str = ".",
+    verbose: bool = True,
 ) -> Dict[str, BaseElementTranslator]:
     """
     Function for translating a list of elements into their respective Translator classes.
@@ -68,8 +77,10 @@ def translate_elements(
         List of :class:`~laura.models.element.Element` objects.
     master_lattice: str
         Directory containing lattice/data files including field/wakefield files.
-    directory:
+    directory: str
         Directory to which files will be written.
+    verbose: bool
+        Print debug messages and warnings.
 
     Returns
     -------
@@ -88,6 +99,8 @@ def translate_elements(
                 VerticalCorrector,
             ]:
                 translator = CorrectorTranslator
+            elif isinstance(elem, Decapole):
+                translator = DecapoleTranslator
             elif isinstance(elem, Dipole):
                 translator = DipoleTranslator
             elif isinstance(elem, Wiggler):
@@ -100,6 +113,8 @@ def translate_elements(
             translator = RFCavityTranslator
         elif isinstance(elem, Drift):
             translator = DriftTranslator
+        elif isinstance(elem, WireScanner):
+            translator = WireScannerTranslator
         elif (
             isinstance(elem, Diagnostic)
             or isinstance(elem, Marker)
@@ -108,6 +123,12 @@ def translate_elements(
             translator = DiagnosticTranslator
         elif isinstance(elem, Aperture):
             translator = ApertureTranslator
+        elif isinstance(elem, PlasmaLens):
+            translator = PlasmaLensTranslator
+        elif isinstance(elem, Target):
+            translator = TargetTranslator
+        elif isinstance(elem, Crystal):
+            translator = CrystalTranslator
         elif isinstance(elem, Plasma):
             translator = PlasmaTranslator
         elif isinstance(elem, Laser):
@@ -126,29 +147,24 @@ def translate_elements(
             translator = BeamBeamTranslator
         elif isinstance(elem, RFMultipole):
             translator = RFMultipoleTranslator
+        elif isinstance(elem, Wakefield):
+            translator = WakefieldTranslator
         else:
             translator = BaseElementTranslator
-        dump = elem.model_dump(by_alias=False)
-        if dump.get("hardware_class") not in set(HardwareClassEnum):
-            # Legacy/incorrectly-authored lattice data (seen in FERMI/ISIS/
-            # UKXFEL, not CLARA): hardware_class was set to the specific
-            # hardware_type instead of its coarse category (e.g. "RFCavity"
-            # instead of "RF"), which fails the stricter Translator schema's
-            # enum below even though the looser Element model accepted it at
-            # load time (hardware_class is a plain, unconstrained `str`
-            # there -- `frozen=True` on some subclasses only blocks a LATER
-            # reassignment, not an explicit constructor override, which is
-            # how the bad value got in to begin with). The owning Element
-            # subclass's own declared default is the correct category
-            # regardless of what literal value the YAML explicitly overrode
-            # it with.
-            dump["hardware_class"] = type(elem).model_fields["hardware_class"].default
         try:
-            elem_dict.update({elem.name: translator.model_validate(dump)})
-        except Exception as exc:
+            payload = elem.model_dump(by_alias=False)
+            simulation = getattr(elem, "simulation", None)
+            if simulation is not None:
+                payload["simulation"] = simulation.model_dump(by_alias=False, exclude_unset=True)
+                for key in ("field_definition", "wakefield_definition"):
+                    field = getattr(simulation, key, None)
+                    if isinstance(field, FieldMap):
+                        payload["simulation"][key] = field.model_copy()
+            elem_dict.update({elem.name: translator.model_validate(payload)})
+        except Exception:
             raise Exception(
-                f"Element {elem.name} failed validation: {dump.keys()}"
-            ) from exc
+                f"Element {elem.name} failed validation: {elem.model_dump().keys()}"
+            )
         elem_dict[elem.name].master_lattice = master_lattice
         elem_dict[elem.name].directory = directory
     return elem_dict

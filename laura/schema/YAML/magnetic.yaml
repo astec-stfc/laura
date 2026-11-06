@@ -4,18 +4,18 @@ title: LAURA Magnetic Model Chunk
 description: >-
   Magnetic, aperture, and degauss-related schema classes.
 version: "0.1.0"
-license: Apache Software License 2.0
+license: GPL-3.0-or-later
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
 
 default_prefix: laura
 default_range: string
@@ -26,7 +26,7 @@ imports:
 enums:
   BendingPlaneEnum:
     description: >-
-        Bending plane enum.
+      Bending plane enum.
     permissible_values:
       Horizontal:
         description: Horizontal bending plane.
@@ -277,9 +277,7 @@ classes:
         description: >-
           Enge fringe-field integral parameter (dimensionless), used as the
           single combined value by codes that only support one edge focussing
-          keyword. Unset (None) by default -- rather than forcing a laura
-          default into every output, an unset value is simply omitted from
-          the written file so the target code's own built-in default applies.
+          keyword. Unset (None) by default.
           If given, it also becomes the default for any of
           edge_field_integral_entrance/edge_field_integral_exit that are
           themselves not given (see MagneticElement.resolve_edge_field_integrals).
@@ -297,6 +295,42 @@ classes:
           Fringe-field integral for exit-edge focussing. Unset (None) by
           default unless edge_field_integral is given; always overrides
           edge_field_integral when set explicitly.
+      exit_gap:
+        range: float
+        required: false
+        description: >-
+          Full gap between pole faces at the exit face [m]. Absent means the
+          same as ``gap``. See ``edge_field_integral_exit``.
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      fringe_k0:
+        range: float
+        required: false
+        description: >-
+          Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401,
+          eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is
+          ``edge_field_integral``.
+      fringe_k1:
+        range: float
+        required: false
+        description: Hwang-Lee fringe-field integral K1; see ``fringe_k0``.
+      fringe_k3:
+        range: float
+        required: false
+        description: Hwang-Lee fringe-field integral K3; see ``fringe_k0``.
+      fringe_k4:
+        range: float
+        required: false
+        description: Hwang-Lee fringe-field integral K4; see ``fringe_k0``.
+      fringe_k5:
+        range: float
+        required: false
+        description: Hwang-Lee fringe-field integral K5; see ``fringe_k0``.
+      fringe_k6:
+        range: float
+        required: false
+        description: Hwang-Lee fringe-field integral K6; see ``fringe_k0``.
       fringe_field_coefficient:
         ifabsent: float(0.0)
         range: float
@@ -311,12 +345,7 @@ classes:
         description: >-
           Integrated bending angle [rad]. Dipoles only. Part of the data model
           (lattice YAML may set it), but derived from multipoles.K0L rather than
-          stored: the MagneticElement wrapper implements it as a read/write
-          property so a symbolic bend angle survives round-tripping and reads
-          follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS
-          in generate_pydantic.py so the generated base does not also declare it
-          as a field, which would make pydantic treat the property object as the
-          field default.
+          stored.
         unit:
           ucum_code: rad
 

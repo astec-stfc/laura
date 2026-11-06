@@ -15,6 +15,8 @@ export type ValveName = string;
 export type MarkerName = string;
 export type ApertureName = string;
 export type CollimatorName = string;
+export type TargetName = string;
+export type CrystalName = string;
 export type DriftName = string;
 export type LightingName = string;
 export type PowerSupplyName = string;
@@ -36,12 +38,14 @@ export type BeamArrivalMonitorName = string;
 export type BunchLengthMonitorName = string;
 export type CameraName = string;
 export type ScreenName = string;
+export type WireScannerName = string;
 export type ChargeDiagnosticName = string;
 export type WallCurrentMonitorName = string;
 export type FaradayCupMonitorName = string;
 export type IntegratedCurrentTransformerName = string;
 export type PhotonMonitorName = string;
 export type PlasmaName = string;
+export type PlasmaLensName = string;
 export type LaserEnergyMeterName = string;
 export type LaserHalfWavePlateName = string;
 export type LaserMirrorName = string;
@@ -50,10 +54,12 @@ export type DipoleName = string;
 export type QuadrupoleName = string;
 export type SextupoleName = string;
 export type OctupoleName = string;
+export type DecapoleName = string;
 export type HorizontalCorrectorName = string;
 export type VerticalCorrectorName = string;
 export type CombinedCorrectorName = string;
 export type SolenoidName = string;
+export type CombinedSolenoidQuadrupoleName = string;
 export type WigglerName = string;
 export type NonLinearLensName = string;
 export type AcceleratorElementName = string;
@@ -119,7 +125,7 @@ export enum ControlTypeEnum {
     statistical = "statistical",
 };
 /**
-* Numeric storage type of a control variable's value, or of an individual element of a waveform's array. Not every protocol carries every type -- Channel Access has no native unsigned integer channels, for instance -- so a consumer is expected to reject the combinations it cannot represent.
+* Numeric storage type of a control variable's value, or of an individual element of a waveform's array.
 */
 export enum NumericDtypeEnum {
     
@@ -145,7 +151,7 @@ export enum NumericDtypeEnum {
     float64 = "float64",
 };
 /**
-* Cross-sectional shape of a beam-pipe aperture.
+* Cross-sectional shape of a beam-pipe aperture. `scraper` is a jaw geometry rather than a pipe shape -- the extents are rectangular, but the jaws are positioned independently, so it maps to ASTRA's Scr_X/Scr_Y (not Col_X/Col_Y) and BDSIM's jcol (not rcol). It therefore has no gmad `apertureType`.
 */
 export enum ApertureShapeEnum {
     
@@ -153,7 +159,52 @@ export enum ApertureShapeEnum {
     rectangular = "rectangular",
     elliptical = "elliptical",
     planar = "planar",
+    /** Scraper jaws rather than a fixed pipe cross-section. */
     scraper = "scraper",
+};
+/**
+* Where along the element an aperture is checked. Following PALS ``ApertureP.location``.
+*/
+export enum ApertureLocationEnum {
+    
+    entrance_end = "entrance_end",
+    center = "center",
+    exit_end = "exit_end",
+    both_ends = "both_ends",
+    everywhere = "everywhere",
+    /** Defined but never checked -- distinct from ``active: false``, which switches off an aperture that is otherwise placed. */
+    nowhere = "nowhere",
+};
+/**
+* Whether the reference orbit closes on itself. Mirrors Bmad's ``parameter[geometry]``.
+*/
+export enum LatticeGeometryEnum {
+    
+    /** Single-pass beamline such as a linac or transfer line. Twiss parameters propagate from a specified starting condition. */
+    open = "open",
+    /** Recirculating machine such as a storage ring, for which closed orbits and periodic Twiss parameters are computed. */
+    closed = "closed",
+};
+/**
+* Cross-sectional shape of a beam-pipe aperture.
+*/
+export enum BeampipeShapeEnum {
+    
+    circular = "circular",
+    rectangular = "rectangular",
+    elliptical = "elliptical",
+};
+/**
+* How a sampled waveform behaves between the points it was sampled at.
+*/
+export enum WaveformInterpolationEnum {
+    
+    /** Straight line between neighbouring knots. What every tracking code does by default. */
+    linear = "linear",
+    /** Each knot's value holds until the next one, so the waveform is a staircase. */
+    hold = "hold",
+    /** Cubic spline through the knots, for a measured trace sampled too coarsely for straight lines. */
+    spline = "spline",
 };
 /**
 * Bending plane enum.
@@ -208,6 +259,18 @@ export enum HardwareClassEnum {
     Monitor = "Monitor",
     /** Simulation element. */
     Simulation = "Simulation",
+    /** Electrostatic deflecting separator. */
+    ElectrostaticSeparator = "ElectrostaticSeparator",
+    /** AC dipole / tune exciter. */
+    ACDipole = "ACDipole",
+    /** Current-carrying wire for beam-beam compensation. */
+    Wire = "Wire",
+    /** Weak-strong beam-beam interaction. */
+    BeamBeam = "BeamBeam",
+    /** RF-driven multipole kick. */
+    RFMultipole = "RFMultipole",
+    /** Material placed in the beam to interact with it: a radiator, converter or foil. */
+    Target = "Target",
 };
 /**
 * Polarization state of a laser beam.
@@ -225,8 +288,20 @@ export enum LaserProfileTypeEnum {
     
     gaussian = "gaussian",
     laguerre_gaussian = "laguerre-gaussian",
+    /** Donut-like Laguerre-Gaussian mode, in which a single azimuthal mode is kept rather than the cosine combination of +m and -m. */
+    laguerre_gaussian_donut = "laguerre-gaussian-donut",
     flattened_gaussian = "flattened-gaussian",
     file = "file",
+};
+/**
+* What a laser attached to a plasma stage is for.
+*/
+export enum LaserRoleEnum {
+    
+    /** Drives the plasma wake (laser wakefield acceleration). */
+    driver = "driver",
+    /** Injects electrons into a wake driven by something else, e.g. by ionizing a dopant inside a beam-driven wake (plasma photocathode). It does not drive the wake, so codes neither boost to its frame nor follow it with the moving window. */
+    injector = "injector",
 };
 
 
@@ -244,14 +319,14 @@ export interface Position {
 
 
 /**
- * Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi].
+ * Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi]. The composition is Rz(psi) . Rx(phi) . Ry(theta), as implemented by laura.utils.rotation_matrix.euler_angles_to_rotation_matrix; each angle below names the axis that factor turns about. psi and theta were described the other way round until 2026-09-01, which is how the Bmad importer came to read x_pitch (a rotation about y) into psi.
  */
 export interface Rotation {
     /** Rotation about the horizontal (x) axis [rad]. */
     phi?: number,
-    /** Rotation about the vertical (y) axis [rad]. */
-    psi?: number,
     /** Rotation about the longitudinal (z) axis [rad]. */
+    psi?: number,
+    /** Rotation about the vertical (y) axis [rad]. */
     theta?: number,
 }
 
@@ -348,9 +423,9 @@ export interface ControlVariable {
     target?: string,
     /** Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``. */
     expression?: string,
-    /** Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container: ``dtype: float`` does not say ``float32`` or ``float64``. ``shape`` is what makes a variable an array, not this. */
+    /** Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container. */
     element_dtype?: string,
-    /** Maximum array dimensions of a waveform, in NumPy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those (i.e. ``diagnostic.sensor.y_pixels * diagnostic.sensor.x_pixels``). */
+    /** Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those. */
     shape?: string[],
     /** Mapping of state name to underlying control-system value, for ``control_type: state``. */
     states?: string,
@@ -498,12 +573,26 @@ export interface Shutter extends PhysicalAcceleratorElement {
 export interface ApertureElement {
     /** Number of aperture sub-elements (e.g., for multi-leaf collimators). */
     number_of_elements?: number,
-    /** Full horizontal aperture [m]. */
+    /** Horizontal half aperture, centre to edge [m]. */
     horizontal_size?: number,
-    /** Full vertical aperture [m]. */
+    /** Vertical half aperture, centre to edge [m]. */
     vertical_size?: number,
+    /** Horizontal position of the aperture centre on the element axis [m]. */
+    horizontal_offset?: number,
+    /** Vertical position of the aperture centre on the element axis [m]. */
+    vertical_offset?: number,
     /** Cross-sectional aperture shape. */
     shape?: string,
+    /** Where along the element the aperture is checked. */
+    location?: string,
+    /** Material of the aperture jaws or collimator body. */
+    material?: string,
+    /** Longitudinal thickness of the aperture material [m]. */
+    thickness?: number,
+    /** Whether the aperture is applied. False keeps the definition without checking against it. */
+    active?: boolean,
+    /** Whether the aperture follows the element's misalignment rather than staying on the design orbit. */
+    shifts_with_body?: boolean,
     /** Radius for circular apertures [m]. */
     radius?: number,
     /** Upstream / inner extent [m]. */
@@ -546,6 +635,58 @@ export interface Collimator extends Aperture {
 
 
 /**
+ * A block of material in the beam, which the beam passes through and interacts with: a radiator, a converter, a foil. Its thickness along the beam is ``physical.length``. Modelled by BDSIM;  codes without material interactions treat it as a drift.
+ */
+export interface Target extends PhysicalAcceleratorElement {
+    /** Transverse shape of the block. */
+    target?: TargetElement,
+}
+
+
+/**
+ * Transverse shape of a target block.
+ */
+export interface TargetElement {
+    /** Full transverse size of the block [m]: the side of a square block, or the diameter of a round one. BDSIM's default if unset. */
+    transverse_size?: number,
+    /** A round block (a cylinder along the beam) rather than a square one. */
+    circular?: boolean,
+}
+
+
+/**
+ * A bent crystal in the beam, which channels particles along its planes (or, off alignment, reflects or scatters them). Its thickness along the beam is ``physical.length``, and it is centred on the beam axis.
+ */
+export interface Crystal extends PhysicalAcceleratorElement {
+    /** Crystal geometry, orientation and lattice. */
+    crystal?: CrystalElement,
+}
+
+
+/**
+ * Geometry, orientation and lattice of a bent crystal. The lattice defaults are silicon's (diamond cubic).
+ */
+export interface CrystalElement {
+    /** Geant4 channelling data for the crystal and its planes: the common prefix of its ``_pot``/``_efx``/``_efy``/``_atd``/``_eld`` files (e.g. ``data/Si220pl``): absolute, relative to the lattice, or with ``$master_lattice$``. */
+    data_file?: string,
+    /** Horizontal bending angle of the crystal's planes over its length [rad]; the angle a fully channelled particle is deflected by. */
+    bending_angle?: number,
+    /** Angle of the crystal planes at its entrance to the beam axis [rad]: 0 aligns them for channelling; beyond the critical angle, but within the bend, gives volume reflection; beyond the bend, amorphous scattering. */
+    entrance_angle?: number,
+    /** Full horizontal size of the crystal [m]. */
+    horizontal_size?: number,
+    /** Full vertical size of the crystal [m]. */
+    vertical_size?: number,
+    /** Unit-cell edges a, b, c [m]. Silicon's if unset. */
+    lattice_constants?: number[],
+    /** Unit-cell angles alpha, beta, gamma [rad]. Right angles if unset. */
+    lattice_angles?: number[],
+    /** Crystallographic space group number. Silicon's (227) if unset. */
+    space_group?: number,
+}
+
+
+/**
  * Field-free drift space between elements.
  */
 export interface Drift extends PhysicalAcceleratorElement {
@@ -569,6 +710,27 @@ export interface PowerSupply extends StandardElement {
 
 
 /**
+ * How finely a code should resolve CSR and space charge over one section.
+On the section: a bunch compressor is run with one binning and the linac around it with another.  The switches that turn the effects on stay per-element, as they can vary.
+All fields is optional; absence means "use the code's defaults".
+ */
+export interface SpaceChargeSettings {
+    /** Longitudinal bins the bunch is divided into to build the collective field. */
+    number_of_bins?: number,
+    /** Distance between collective-field recalculations. */
+    step_size?: number,
+    /** Full height of the vacuum chamber for CSR shielding. */
+    chamber_height?: number,
+    /** Number of image charges to sum when modelling wall shielding. */
+    shield_images?: number,
+    /** Width of a particle's deposition kernel, counted in bins. */
+    bin_span?: number,
+    /** Transverse beam size below which a slice is treated as having none. */
+    sigma_cutoff?: number,
+}
+
+
+/**
  * An ordered list of element names defining a contiguous beamline section.
  */
 export interface SectionLattice {
@@ -576,8 +738,33 @@ export interface SectionLattice {
     name: string,
     /** Name of the master lattice this section belongs to. */
     master_lattice?: string,
+    /** Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent. */
+    geometry?: string,
+    /** Reference total energy of the design particle [eV]. */
+    reference_energy?: number,
+    /** Resolution of the collective-field calculation over this section. */
+    space_charge?: SpaceChargeSettings,
     /** Ordered list of element names in this section. */
     elements?: string[],
+    /** Cross-sectional beam pipe aperture shape. */
+    beampipe_aperture_type?: string,
+    /** Size of beam pipe [m]. A single value for a circular aperture, or two values (horizontal, vertical) for a rectangular or elliptical one. */
+    beampipe_size?: number,
+    /** Beam pipe material */
+    beampipe_material?: string,
+}
+
+
+/**
+ * One traversal of one section by one beam path.
+ */
+export interface LayoutPass {
+    /** Name of the section traversed on this pass. */
+    section: string,
+    /** 1 if this pass traverses the section forwards, -1 if backwards. A property of the path, not of the section. */
+    direction?: number,
+    /** Multipass occurrence number, counting from 1. Absent for an ordinary single traversal and for repetition, where each occurrence is a separate device with its own section. */
+    number?: number,
 }
 
 
@@ -589,8 +776,12 @@ export interface MachineLayout {
     name: string,
     /** Name of the master lattice this layout belongs to. */
     master_lattice?: string,
+    /** Design particle species for this layout, overriding the machine-wide value. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles. */
+    particle?: string,
     /** Ordered list of section names. */
     sections?: string[],
+    /** The beam order, one entry per section traversal. Distinct from sections, which is keyed by name and so cannot express a section entered twice. */
+    passes?: LayoutPass[],
 }
 
 
@@ -598,12 +789,20 @@ export interface MachineLayout {
  * Top-level container for a complete accelerator lattice: elements, sections, layouts, and named lattice configurations.
  */
 export interface MachineModel {
+    /** Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles. */
+    particle?: string,
     /** All elements in the machine, keyed by name. */
     elements?: AcceleratorElementName[],
     /** All named beamline sections. */
     sections?: SectionLatticeName[],
     /** All named beamline layouts. */
     layouts?: MachineLayoutName[],
+    /** Cross-sectional beam pipe aperture shape. */
+    beampipe_aperture_type?: string,
+    /** Size of beam pipe [m]. A single value for a circular aperture, or two values (horizontal, vertical) for a rectangular or elliptical one. */
+    beampipe_size?: number,
+    /** Beam pipe material */
+    beampipe_material?: string,
 }
 
 
@@ -615,9 +814,54 @@ export interface MatrixValue {
 
 
 /**
- * Base simulation attributes: field-map files and reference positions for tracking codes.
+ * A pulse shape sampled at a sparse set of points, for a device whose strength is a program rather than a constant: an injection kicker, an extraction septum, a tune exciter driven from a measured trace. Only the knots are stored, and the value between them follows ``interpolation``.
+ */
+export interface SampledWaveform {
+    /** Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as ``factor``. */
+    time?: number[],
+    /** Strength at each of the times in ``time``, as a fraction of the element's nominal strength; 1.0 is full strength. */
+    factor?: number[],
+    /** How the strength behaves between the sampled knots. */
+    interpolation?: string,
+}
+
+
+/**
+ * Base simulation attributes: field-map files, reference positions, and optional tracking controls for simulation codes.
  */
 export interface SimulationElement {
+    /** Number of integration kicks. */
+    n_kicks?: number,
+    /** Number of bins used in longitudinal space-charge calculations. */
+    lsc_bins?: number,
+    /** Whether coherent synchrotron radiation effects are enabled. */
+    csr_enable?: boolean,
+    /** Whether longitudinal space-charge effects are enabled. Off by default. */
+    lsc_enable?: boolean,
+    /** Phase-space tracking algorithm requested from the target code. */
+    tracking_method?: string,
+    /** Method used to calculate the element's 6x6 transfer matrix. */
+    mat6_calc_method?: string,
+    /** Spin-tracking algorithm requested from the target code. */
+    spin_tracking_method?: string,
+    /** Order of the target code's integration formula. */
+    integration_order?: number,
+    /** Number of integration steps through the element. */
+    num_steps?: number,
+    /** Longitudinal integration step size [m]. */
+    deltaL?: number,
+    /** Coherent-synchrotron-radiation tracking method. */
+    csr_method?: string,
+    /** Space-charge tracking method. */
+    space_charge_method?: string,
+    /** Longitudinal step size between CSR kicks [m]. */
+    csrdz?: number,
+    /** Smoothing control for field or wake interpolation. */
+    smooth?: number,
+    /** Horizontal simulation offset from the reference orbit [m]. */
+    horizontal_offset?: number,
+    /** Vertical simulation offset from the reference orbit [m]. */
+    vertical_offset?: number,
     /** Path to the 3-D field-map file. */
     field_definition?: string,
     /** Path to the wakefield impedance file. */
@@ -635,36 +879,30 @@ export interface SimulationElement {
  * Simulation attributes specific to magnets: integrator settings, fringe-field model, and radiation flags.
  */
 export interface MagnetSimulationElement extends SimulationElement {
-    /** Number of integration kicks. */
-    n_kicks?: number,
     /** Field amplitude scaling for magnet tracking. */
     field_amplitude?: number,
     /** Number of longitudinal slices for thick-lens tracking. */
     n_slices?: number,
-    /** Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth). */
-    smooth?: number,
-    /** Enable entrance-edge focussing effects. */
-    edge1_effects?: boolean,
-    /** Enable exit-edge focussing effects. */
-    edge2_effects?: boolean,
+    /** Per-simulation override of the magnet's fringe-field integral. Absent means "use ``MagneticElement.edge_field_integral``". */
+    edge_field_integral?: number,
+    /** Entrance-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method. */
+    edge1_effects?: number,
+    /** Exit-edge effects: 0 off, 1 on (raised to 3 for second-order edges), 2 or 3 that ELEGANT method. */
+    edge2_effects?: number,
+    /** Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code. */
+    fringe_model?: string,
     /** Enable synchrotron-radiation energy loss. */
     sr_enable?: boolean,
     /** Enable incoherent synchrotron-radiation emittance growth. */
     isr_enable?: boolean,
-    /** Enable coherent synchrotron radiation. */
-    csr_enable?: boolean,
     /** Number of longitudinal bins for the CSR mesh. */
     csr_bins?: number,
-    /** Order of the symplectic integrator. */
-    integration_order?: number,
     /** Include higher-order (sextupole+) field components. */
     nonlinear?: boolean,
     /** Half-width of the current-profile smoothing kernel. */
     smoothing_half_width?: number,
-    /** Polynomial order of the edge-field expansion. */
+    /** Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-order terms). Unset / default is second order. */
     edge_order?: number,
-    /** Longitudinal step-size override for thick-lens integration [m]. */
-    deltaL?: number,
     /** Number of points used to smooth the field map [ASTRA]. */
     smooth_points?: number,
 }
@@ -684,10 +922,6 @@ export interface RFCavitySimulationElement extends SimulationElement {
     wy_column?: string,
     /** Longitudinal wake column in the wake file. */
     wz_column?: string,
-    /** Number of cavity kicks to apply. */
-    n_kicks?: number,
-    /** Number of longitudinal space-charge bins. */
-    lsc_bins?: number,
     /** Flag indicating whether the cavity changes reference momentum. */
     change_p0?: number,
     /** Apply entrance focusing. */
@@ -702,8 +936,6 @@ export interface RFCavitySimulationElement extends SimulationElement {
     interpolate_current_bins?: number,
     /** Flag indicating current-bin smoothing. */
     smooth_current_bins?: number,
-    /** Cavity smoothing parameter. */
-    smooth?: number,
     /** Peak longitudinal electric field. */
     ez_peak?: number,
     /** Cavity field file name. */
@@ -761,8 +993,6 @@ export interface WakefieldSimulationElement extends SimulationElement {
     equal_grid?: number,
     /** Interpolation method for ASTRA. */
     interpolation_method?: number,
-    /** Smoothing parameter for Gaussian interpolation. */
-    smooth?: number,
     /** Sub-binning parameter. */
     subbins?: number,
 }
@@ -772,18 +1002,10 @@ export interface WakefieldSimulationElement extends SimulationElement {
  * Simulation attributes for field-free drift sections.
  */
 export interface DriftSimulationElement extends SimulationElement {
-    /** Number of bins for LSC calculations. */
-    lsc_bins?: number,
     /** Flag to allow interpolation of computed LSC wake. */
     lsc_interpolate?: number,
-    /** Enable CSR drift calculations. */
-    csr_enable?: boolean,
-    /** Enable LSC drift calculations. */
-    lsc_enable?: boolean,
     /** Use Stupakov formula. */
     use_stupakov?: number,
-    /** Step size for CSR calculations. */
-    csrdz?: number,
     /** High-frequency cutoff start for LSC. */
     lsc_high_frequency_cutoff_start?: number,
     /** High-frequency cutoff end for LSC. */
@@ -816,24 +1038,46 @@ export interface PlasmaSimulationElement extends SimulationElement {
     dt_bunch?: string,
     /** Number of distribution dumps during the plasma stage. */
     n_out?: number,
-    /** Minimum longitudinal position [m]. */
+    /** Minimum longitudinal position of the simulation box [m]. */
     min_longitudinal_position?: number,
-    /** Maximum longitudinal position [m]. */
+    /** Maximum longitudinal position of the simulation box [m]. */
     max_longitudinal_position?: number,
+    /** Lower z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box lower edge. Plasma injected later by the moving window is bounded only by the density profile. */
+    plasma_min_longitudinal_position?: number,
+    /** Upper z bound of the plasma loaded at t = 0 in a PIC code such as FBPIC [m]; defaults to the box upper edge. Plasma injected later by the moving window is bounded only by the density profile. */
+    plasma_max_longitudinal_position?: number,
     /** Number of grid points in the longitudinal direction. */
     n_longitudinal?: number,
     /** Number of grid points in the radial direction. */
     n_radial?: number,
-    /** Number of plasma particles per cell. */
-    plasma_particles_per_cell?: number,
+    /** Number of plasma particles per radial cell. */
+    particles_per_radial_cell?: number,
+    /** Number of plasma particles per longitudinal cell. */
+    particles_per_longitudinal_cell?: number,
+    /** Number of plasma particles per angular cell. */
+    particles_per_angular_cell?: number,
     /** Radial extent of the simulation box [m]. */
     r_max?: number,
     /** Maximum radial extension of the plasma column. */
     r_max_plasma?: number,
+    /** Minimum radial extension of the plasma column [m]. Non-zero gives a hollow channel, with no plasma inside this radius. Codes that assume a filled column ignore it. */
+    r_min_plasma?: number,
+    /** Radial extent of the ionizable species in a PIC code [m]; defaults to that of the plasma. Restricting it to where the driver or injection laser can ionize saves macroparticles. */
+    r_max_ionizable?: number,
     /** Interval for plasma wakefield updates. */
     dz_fields?: number,
     /** Pusher used to evolve the plasma in time. */
     plasma_pusher?: string,
+    /** Whether the driver is evolved by a laser-envelope solver as the stage is tracked, rather than held at its initial profile. Applies to codes that model the laser as an envelope; a full PIC code such as FBPIC always resolves the laser on the grid and ignores this. */
+    laser_evolution?: boolean,
+    /** Number of envelope-solver steps taken per wakefield step. Raise it where the envelope evolves faster than the wake it drives. */
+    laser_envelope_substeps?: number,
+    /** Number of longitudinal grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_longitudinal. */
+    laser_envelope_n_longitudinal?: number,
+    /** Number of radial grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_radial. */
+    laser_envelope_n_radial?: number,
+    /** Whether the envelope solver carries an explicit phase term, which allows a coarser longitudinal grid at the cost of a more expensive step. */
+    laser_envelope_use_phase?: boolean,
 }
 
 
@@ -863,7 +1107,7 @@ export interface TwissMatchSimulationElement extends SimulationElement {
 
 
 /**
- * Zero-, first-, and second-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+ * Zero- through third-order transfer-map coefficients for a matrix transform element (x, px, y, py, z, pz): z = -beta c dt, and pz = dp/p0.
  */
 export interface MatrixTransformSimulationElement extends SimulationElement {
     /** Whether to apply the transfer map. */
@@ -874,6 +1118,10 @@ export interface MatrixTransformSimulationElement extends SimulationElement {
     r_matrix?: MatrixValue,
     /** T-matrix (second-order transfer tensor). */
     t_matrix?: MatrixValue,
+    /** U-matrix (third-order transfer tensor). */
+    u_matrix?: MatrixValue,
+    /** Sparse quaternion Taylor terms. Each term stores a quaternion component index, coefficient, and six orbital exponents. */
+    spin_taylor?: MatrixValue,
 }
 
 
@@ -902,6 +1150,8 @@ export interface ACDipoleSimulationElement extends SimulationElement {
     phase?: number,
     /** Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp. */
     ramp?: number[],
+    /** Sampled pulse shape, for a device whose strength is a program rather than a sinusoid -- an injection kicker or an extraction septum. */
+    waveform?: SampledWaveform,
 }
 
 
@@ -913,10 +1163,6 @@ export interface WireSimulationElement extends SimulationElement {
     current?: number,
     /** Effective interaction length [m]. */
     interaction_length?: number,
-    /** Horizontal wire offset from the reference orbit [m]. */
-    horizontal_offset?: number,
-    /** Vertical wire offset from the reference orbit [m]. */
-    vertical_offset?: number,
 }
 
 
@@ -928,10 +1174,6 @@ export interface BeamBeamSimulationElement extends SimulationElement {
     charge?: number,
     /** Number of particles in the opposing bunch. */
     n_particles?: number,
-    /** Horizontal opposing-bunch centroid offset [m]. */
-    horizontal_offset?: number,
-    /** Vertical opposing-bunch centroid offset [m]. */
-    vertical_offset?: number,
     /** Horizontal RMS size of the opposing bunch [m]. */
     horizontal_sigma?: number,
     /** Vertical RMS size of the opposing bunch [m]. */
@@ -1071,17 +1313,31 @@ export interface MagneticElement {
     width?: number,
     /** Global tilt about the beam axis [rad]. */
     tilt?: number,
-    /** Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default -- rather than forcing a laura default into every output, an unset value is simply omitted from the written file so the target code's own built-in default applies. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals). */
+    /** Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals). */
     edge_field_integral?: number,
     /** Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly. */
     edge_field_integral_entrance?: number,
     /** Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly. */
     edge_field_integral_exit?: number,
+    /** Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``. */
+    exit_gap?: number,
+    /** Hwang-Lee fringe-field integral K0 (dimensionless; PRAB 18, 122401, eqs. 28-34), both faces. Absent means a tanh profile's value. K2 is ``edge_field_integral``. */
+    fringe_k0?: number,
+    /** Hwang-Lee fringe-field integral K1; see ``fringe_k0``. */
+    fringe_k1?: number,
+    /** Hwang-Lee fringe-field integral K3; see ``fringe_k0``. */
+    fringe_k3?: number,
+    /** Hwang-Lee fringe-field integral K4; see ``fringe_k0``. */
+    fringe_k4?: number,
+    /** Hwang-Lee fringe-field integral K5; see ``fringe_k0``. */
+    fringe_k5?: number,
+    /** Hwang-Lee fringe-field integral K6; see ``fringe_k0``. */
+    fringe_k6?: number,
     /** Coefficient controlling the fringe-field roll-off rate. */
     fringe_field_coefficient?: number,
     /** Peak field gradient [T/m] (quads) or peak field [T] (dipoles). */
     gradient?: number,
-    /** Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default. */
+    /** Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored. */
     angle?: number,
 }
 
@@ -1455,6 +1711,15 @@ export interface Screen extends Diagnostic {
 
 
 /**
+ * Wire scanner: thin wires stepped through the beam to measure its transverse profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation element.
+ */
+export interface WireScanner extends Diagnostic {
+    /** Instrument-specific diagnostic parameters. */
+    diagnostic?: WireScannerDiagnosticElement,
+}
+
+
+/**
  * Base class for charge-measurement diagnostics.
  */
 export interface ChargeDiagnostic extends Diagnostic {
@@ -1535,6 +1800,17 @@ export interface PhotonIntensityMonitorDiagnostic extends DiagnosticElement {
 export interface BLMDiagnosticElement extends DiagnosticElement {
     /** BLM type (e.g., ``CDR``). Accepted in YAML as ``blm_type``. */
     type?: string,
+}
+
+
+/**
+ * Intercepting wire-scanner diagnostic: a thin wire swept through the beam to measure its transverse profile. Distinct from a Wire element, which carries a current to act on the beam rather than to intercept it.
+ */
+export interface WireScannerDiagnosticElement extends DiagnosticElement {
+    /** Diameter of the scanning wire [m]. */
+    wire_diameter?: number,
+    /** Length of the scanning wire [m]. */
+    wire_length?: number,
 }
 
 
@@ -1676,13 +1952,26 @@ export interface CameraDiagnosticElement extends DiagnosticElement {
 
 
 /**
- * Laser-driven plasma-accelerator stage.
+ * Plasma-accelerator stage, driven either by the laser defined in ``laser`` or, if there is none, by the incoming particle beam.
  */
 export interface Plasma extends PhysicalAcceleratorElement {
     /** Plasma channel parameters. */
     plasma?: PlasmaElement,
-    /** Laser driving the plasma stage. */
+    /** Laser driving the plasma stage. Leave unset for a beam-driven stage, where the driver is part of the incoming beam. */
     laser?: LaserElement,
+}
+
+
+/**
+ * Active plasma lens: a discharge capillary whose current produces an azimuthal magnetic field that focuses the beam in both planes.
+ */
+export interface PlasmaLens extends PhysicalAcceleratorElement {
+    /** Focusing gradient of the lens field [T/m]. */
+    focusing_strength?: number,
+    /** Whether the plasma wakefields excited by the beam in the capillary are also modelled; needs ``plasma.density`` and the grid settings in ``simulation``. */
+    wakefields?: boolean,
+    /** Capillary plasma, used only when ``wakefields`` is True. */
+    plasma?: PlasmaElement,
 }
 
 
@@ -1758,7 +2047,11 @@ export interface LaserAttenuator extends StandardElement {
  * Laser-beam parameters (wavelength, pulse energy, profile, etc.) for a laser element or laser-driven plasma stage.
  */
 export interface LaserElement {
-    /** Initial longitudinal position of the laser pulse [m]. */
+    /** Whether the laser drives the wake or only injects electrons into a wake driven by the beam. */
+    role?: string,
+    /** Peak normalised vector potential. When set it is used as-is; otherwise it is derived from pulse_energy, waist and pulse_duration_fwhm assuming a Gaussian pulse. */
+    a0?: number,
+    /** Initial longitudinal position of the laser pulse centre [m], in the co-moving frame in which the bunch centroid (or reference particle) sits at zero. */
     initial_position?: number,
     /** Laser beam waist (1/e^2 radius) [m]. */
     waist?: number,
@@ -1772,14 +2065,22 @@ export interface LaserElement {
     focal_position?: number,
     /** Carrier-envelope phase [rad]. */
     cep_phase?: number,
-    /** Laser polarization state. */
+    /** Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise. */
     polarization?: string,
     /** Transverse intensity profile model. */
     profile_type?: string,
     /** Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``). */
     laguerre_polynomial_order_p?: number,
+    /** Azimuthal order of Laguerre-Gaussian polynomial mode (for ``profile_type = laguerre-gaussian``). */
+    laguerre_polynomial_order_m?: number,
     /** Flatness order N of a flattened-Gaussian profile (for ``profile_type = flattened-gaussian``). */
     flatness?: number,
+    /** Laser propagation direction; +1 means laser  and particles co-propagate, -1 means they counter-propagate. */
+    propagation_direction?: number,
+    /** Laser polarization angle with respect to the x-axis. */
+    polarization_angle?: number,
+    /** The amount of temporal chirp, at focus (in the lab frame). */
+    temporal_chirp_2nd_order?: number,
 }
 
 
@@ -1798,7 +2099,7 @@ export interface LaserHalfWavePlateElement {
 
 
 /**
- * Plasma channel parameters for a laser-driven plasma-accelerator stage.
+ * Plasma parameters for a laser- or beam-driven plasma stage or plasma lens.
  */
 export interface PlasmaElement {
     /** Plasma (electron) number density [m^-^3]. */
@@ -1813,10 +2114,32 @@ export interface PlasmaElement {
     ramp_down?: number,
     /** Exponential decay length of the density ramp [m]. */
     ramp_decay_length?: number,
-    /** If True, use a user-defined profile; if False, use a flat-top model. */
+    /** If True, use the longitudinal profile chosen by density_profile_type; if False, the density is uniform along the stage. Either way it is multiplied by any parabolic channel. */
     density_profile?: boolean,
-    /** Parabolic coefficient for a transverse density profile. */
+    /** Longitudinal position at which the density profile begins [m]. ramp_up, plateau and ramp_down are measured from here, and the density is zero upstream of it. */
+    density_profile_start?: number,
+    /** Shape of the longitudinal density profile used when density_profile is True. ``decaying`` is a 1/(1 + dz/ramp_decay_length)^2 ramp either side of the plateau; ``linear`` ramps linearly over ramp_up and ramp_down; ``tabulated`` interpolates density_profile_positions against density_profile_values; ``custom`` calls density_profile_function. */
+    density_profile_type?: string,
+    /** Dotted path to a callable ``f(z, r) -> relative density``, written as ``package.module:function`` or ``package.module.function``. Used when density_profile_type is ``custom``. */
+    density_profile_function?: string,
+    /** Longitudinal positions [m] of a tabulated density profile, used when density_profile_type is ``tabulated``. */
+    density_profile_positions?: number[],
+    /** Density values at density_profile_positions, relative to density, used when density_profile_type is ``tabulated``. */
+    density_profile_values?: number[],
+    /** Parabolic coefficient of a transverse density channel [m^-^2]. The longitudinal profile is multiplied by ``1 + parabolic_coefficient * r^2``. */
     parabolic_coefficient?: number,
+    /** Initial temperature of the plasma species [eV], assumed isotropic and Maxwellian. Zero means a cold plasma, which is the usual assumption for a laser-wakefield stage; a finite value matters where the initial momentum spread competes with the wake, as in a plasma lens or a low-amplitude wake. */
+    temperature?: number,
+    /** Whether a further, ionizable species is present alongside the plasma defined above, with electrons freed from it by the driver field as the stage is tracked. This is what makes ionization injection possible; the plasma above is then the pre-ionized background, and may have zero density if the whole gas is to be ionized by the driver. Only PIC codes that model ionization use it. */
+    ionizable?: boolean,
+    /** Atomic symbol of the ionizable species, e.g. ``N`` or ``He`` (not ``Nitrogen``). Required when ionizable is True. */
+    ionization_element?: string,
+    /** Number density of the ionizable species [m^-^3], counting atoms rather than electrons. Defaults to density. A dopant is typically a small fraction of the background. */
+    ionization_density?: number,
+    /** Ionization level the atoms start at; 0 for a neutral atom. Starting part-way up avoids spending macroparticles on levels the driver ionizes far ahead of the wake, as with the first five levels of nitrogen. */
+    ionization_initial_level?: number,
+    /** Highest ionization level the atoms may reach. Defaults to the physical limit for the element. */
+    ionization_max_level?: number,
 }
 
 
@@ -1869,18 +2192,26 @@ export interface Octupole extends Magnet {
 
 
 /**
- * Steering-corrector field, expressed as horizontal and vertical kicks rather than multipole coefficients.
+ * Decapole magnet field, principal multipole order 4.
  */
-export interface CorrectorMagnet {
-    /** Magnetic length [m]. */
-    length?: number,
-    /** Multipole order (0, a dipole field). */
-    order?: number,
-    /** Roll of the corrector about the beam axis [rad]. */
-    tilt?: number,
-    /** Horizontal deflection [rad]. May be a functional expression. */
+export interface DecapoleMagnet extends MagneticElement {
+}
+
+
+/**
+ * Decapole magnet.
+ */
+export interface Decapole extends Magnet {
+}
+
+
+/**
+ * Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.
+ */
+export interface CorrectorMagnet extends DipoleMagnet {
+    /** Horizontal deflection [rad]. May be a functional expression. Derived from multipoles.K0L.normal. */
     horizontal_kick?: number,
-    /** Vertical deflection [rad]. May be a functional expression. */
+    /** Vertical deflection [rad]. May be a functional expression. Derived from multipoles.K0L.skew. */
     vertical_kick?: number,
 }
 
@@ -1896,6 +2227,17 @@ export interface HorizontalCorrector extends Dipole {
  * Vertical steering corrector.
  */
 export interface VerticalCorrector extends Dipole {
+}
+
+
+/**
+ * The pair of steering-corrector fields inside one combined corrector.
+ */
+export interface CombinedCorrectorMagnet {
+    /** Horizontal-plane corrector field, with its own calibration. */
+    horizontal?: CorrectorMagnet,
+    /** Vertical-plane corrector field, with its own calibration. */
+    vertical?: CorrectorMagnet,
 }
 
 
@@ -1949,8 +2291,12 @@ export interface SolenoidFields {
 export interface SolenoidMagnet {
     /** Magnetic length [m]. */
     length?: number,
+    /** Global tilt about the beam axis [rad]. */
+    tilt?: number,
     /** Principal solenoid multipole order. */
     order?: number,
+    /** Radius of the coil [m], which sets the length of the fringe fields. Unset means a hard-edge solenoid. */
+    coil_radius?: number,
     /** Nominal integrated axial field components. */
     fields?: SolenoidFields,
     /** Systematic field errors. */
@@ -1974,11 +2320,29 @@ export interface Solenoid extends Magnet {
 
 
 /**
+ * Combined solenoid and quadrupole magnetic field.
+ */
+export interface CombinedSolenoidQuadrupoleMagnet extends MagneticElement {
+    /** Nominal integrated axial solenoid field components. */
+    solenoid_fields?: SolenoidFields,
+}
+
+
+/**
+ * Magnet combining coaxial solenoid and quadrupole fields.
+ */
+export interface CombinedSolenoidQuadrupole extends Magnet {
+}
+
+
+/**
  * Periodic wiggler/undulator field.
  */
 export interface WigglerMagnet {
     /** Magnetic length [m]. */
     length?: number,
+    /** Global tilt about the beam axis [rad]. */
+    tilt?: number,
     /** Deflection parameter K. May be a functional expression. */
     strength?: number,
     /** Peak on-axis field [T]. */
@@ -2015,6 +2379,8 @@ export interface Wiggler extends Magnet {
 export interface NonLinearLensMagnet {
     /** Magnetic length [m]. */
     length?: number,
+    /** Global tilt about the beam axis [rad]. */
+    tilt?: number,
     /** Integrated lens strength (MAD-X ``knll``). May be a functional expression. */
     integrated_strength?: number,
     /** Dimensional parameter setting the transverse scale (MAD-X ``cnll``). May be a functional expression. */
@@ -2084,6 +2450,8 @@ export interface AcceleratorElement {
     alias?: string[],
     /** If set, this element is a logical sub-component of the named parent element. */
     subelement?: string,
+    /** If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one. */
+    inherits_from?: string,
     /** Signal types this element consumes (e.g. ``[current, voltage]``). */
     inputs?: string,
     /** Signal types this element produces (e.g. ``[power, phase]``). */
@@ -2125,6 +2493,10 @@ export interface Element extends StandardElement {
 export interface PhysicalAcceleratorElement extends Element {
     /** Position, rotation, and length data. */
     physical?: PhysicalElement,
+    /** Aperture of the element. */
+    aperture?: ApertureElement,
+    /** Element material. */
+    material?: string,
 }
 
 

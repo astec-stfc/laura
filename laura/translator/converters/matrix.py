@@ -1,12 +1,60 @@
+from itertools import combinations_with_replacement, permutations
+from typing import Dict
 from warnings import warn
 
 import numpy as np
-from torch import float64, tensor
 
 from laura.models.simulation import MatrixTransformSimulationElement
 
 from ..utils.functions import sanitize_string
-from .base import BaseElementTranslator
+from .base import BaseElementTranslator, elegant_line
+
+MADX_MASS = {
+    "positron": 0.51099895e-3,
+    "electron": 0.51099895e-3,
+    "proton": 0.93827208816,
+    "antiproton": 0.93827208816,
+    "posmuon": 0.1056583755,
+    "negmuon": 0.1056583755,
+}
+"""Rest mass [GeV] of MAD-X's named particles."""
+
+
+def madx_gamma(beam: dict | None) -> float | None:
+    """The Lorentz factor of a MAD-X ``BEAM`` given as a dict, if it sets one."""
+    beam = {k.lower(): v for k, v in (beam or {}).items()}
+    mass = beam.get(
+        "mass", MADX_MASS.get(str(beam.get("particle", "positron")).lower())
+    )
+    if "gamma" in beam:
+        return float(beam["gamma"])
+    if mass and "energy" in beam:
+        return float(beam["energy"]) / mass
+    if mass and "pc" in beam:
+        return float(np.hypot(1, float(beam["pc"]) / mass))
+    return None
+
+
+def _compose(outer: tuple, inner: tuple) -> tuple:
+    """``outer`` after ``inner``, each a ``(C, R, T)`` map, to second order."""
+    c2, r2, t2 = outer
+    c1, r1, t1 = inner
+    t2c = np.einsum("ijk,j->ik", t2, c1) + np.einsum("ijk,k->ij", t2, c1)
+    return (
+        c2 + r2 @ c1 + np.einsum("ijk,j,k->i", t2, c1, c1),
+        (r2 + t2c) @ r1,
+        np.einsum("ij,jkl->ikl", r2 + t2c, t1)
+        + np.einsum("ijk,jl,km->ilm", t2, r1, r1),
+    )
+
+
+def _bdsim_rmatrix(r_matrix) -> Dict:
+    """
+    Build the ``r11``..``r44`` keywords for ``pybdsim.Builder.Rmat``.
+    """
+    return {
+        f"r{i + 1}{j + 1}": float(r_matrix[i][j]) for i in range(4) for j in range(4)
+    }
 
 
 class MatrixTransformTranslator(BaseElementTranslator):
@@ -18,6 +66,40 @@ class MatrixTransformTranslator(BaseElementTranslator):
     simulation: MatrixTransformSimulationElement
     """Matrix transform simulation element"""
 
+    def _taylor_map(self, code: str, gamma: float | None) -> tuple:
+        """
+        C, R and T in Xsuite or MAD-X format, to second order.
+        Based off LAURA/Bmad convention.
+        """
+        sim = self.simulation
+        c, r, t = (
+            np.asarray(m, dtype=float)
+            for m in (sim.c_matrix, sim.r_matrix, sim.t_matrix)
+        )
+        if gamma is None:
+            off_diagonal = r - np.diag(np.diag(r))
+            beta_terms = code == "MAD-X" and (
+                off_diagonal[4:].any() or off_diagonal[:, 4:].any()
+            )
+            if t.any() or c[4:].any() or beta_terms:
+                warn(
+                    f"{self.name}: no energy given; the {code} matrix assumes beta = 1."
+                )
+            gamma = np.inf
+        beta = np.sqrt(1 - gamma**-2)
+        d = np.array([1, 1, 1, 1, 1 / beta, beta]) if code == "MAD-X" else np.ones(6)
+        q = np.zeros((6, 6, 6))
+        q[4, 4, 5] = q[4, 5, 4] = -0.5 / gamma**2
+        q[5, 5, 5] = 0.5 / gamma**2
+        q = d[:, None, None] * q
+        to = (np.zeros(6), np.diag(d), q)
+        back = (
+            np.zeros(6),
+            np.diag(1 / d),
+            -np.einsum("i,ijk,j,k->ijk", 1 / d, q, 1 / d, 1 / d),
+        )
+        return _compose(to, _compose((c, r, t), back))
+
     def to_elegant(self) -> str:
         """
         Generates a string representation of the object's properties in the Elegant format.
@@ -28,39 +110,70 @@ class MatrixTransformTranslator(BaseElementTranslator):
             A formatted string representing the object's properties in Elegant format.
         """
         self.start_write()
-        wholestring = ""
-        etype = self._convertType_Elegant(self.hardware_type)
-        string = self.name + ": " + etype
-
-        def split_lines(fullstr: str, string: str, linestr: str) -> tuple:
-            if len(string + linestr) > 76:
-                fullstr += string + ",&\n"
-                string = linestr[2::]
-            else:
-                string += linestr
-            return fullstr, string
-
-        if not np.array_equal(self.simulation.c_matrix, np.zeros(6)):
-            for i, val in enumerate(self.simulation.c_matrix):
+        etype = self._convert_type_elegant(self.hardware_type)
+        terms = [f"L = {self.length}"] if self.length else []
+        s = np.array([1, 1, 1, 1, -1, 1])
+        c_matrix = s * self.simulation.c_matrix
+        r_matrix = np.einsum("i,j,ij->ij", s, s, self.simulation.r_matrix)
+        t_matrix = np.einsum("i,j,k,ijk->ijk", s, s, s, self.simulation.t_matrix)
+        if not np.array_equal(c_matrix, np.zeros(6)):
+            for i, val in enumerate(c_matrix):
                 if val != 0:
-                    wholestring, string = split_lines(wholestring, string, f", C{i + 1} = {val}")
-        if not np.array_equal(self.simulation.r_matrix, np.eye(6)):
-            for i, row in enumerate(self.simulation.r_matrix):
-                for j, val in enumerate(row):
-                    if val != (1.0 if i == j else 0.0):
-                        wholestring, string = split_lines(wholestring, string, f", R{i + 1}{j + 1} = {val}")
-        if not np.array_equal(self.simulation.t_matrix, np.zeros((6, 6, 6))):
-            for i, plane in enumerate(self.simulation.t_matrix):
+                    terms.append(f"C{i + 1} = {val}")
+        for i, row in enumerate(r_matrix):
+            for j, val in enumerate(row):
+                if val != 0.0:
+                    terms.append(f"R{i + 1}{j + 1} = {val}")
+        if not np.array_equal(t_matrix, np.zeros((6, 6, 6))):
+            for i, plane in enumerate(t_matrix):
                 for j, row in enumerate(plane):
                     for k, val in enumerate(row):
                         if val != 0:
-                            wholestring, string = split_lines(
-                                wholestring, string, f", T{i + 1}{j + 1}{k + 1} = {val}"
-                            )
-        wholestring += string + ";\n"
-        return wholestring
+                            terms.append(f"T{i + 1}{j + 1}{k + 1} = {val}")
+        return elegant_line(self.name + ": " + etype, terms)
 
-    def to_madx(self, at: float = None) -> str:
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad Taylor map through third order.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        terms = [f"l = {self.length}"]
+        terms.extend(
+            f"{key} = {value}" for key, value in self._bmad_common_parameters().items()
+        )
+        for output, value in enumerate(self.simulation.c_matrix, 1):
+            if value:
+                terms.append(f"{{{output}: {value} |}}")
+        for output, row in enumerate(self.simulation.r_matrix, 1):
+            for index, value in enumerate(row, 1):
+                if value:
+                    terms.append(f"{{{output}: {value} |{index}}}")
+        for matrix, degree in (
+            (self.simulation.t_matrix, 2),
+            (self.simulation.u_matrix, 3),
+        ):
+            for output in range(6):
+                for indices in combinations_with_replacement(range(6), degree):
+                    coefficient = sum(
+                        matrix[(output, *order)] for order in set(permutations(indices))
+                    )
+                    if coefficient:
+                        suffix = "".join(str(index + 1) for index in indices)
+                        terms.append(f"{{{output + 1}: {coefficient} |{suffix}}}")
+        components = ("S1", "Sx", "Sy", "Sz")
+        for term in self.simulation.spin_taylor:
+            suffix = "".join(
+                str(index) * int(term[f"exp{index}"]) for index in range(1, 7)
+            )
+            terms.append(f"{{{components[term['index']]}: {term['coef']} |{suffix}}}")
+        return f"{sanitize_string(self.name)}: taylor, " + ", ".join(terms) + "\n"
+
+    def to_madx(self, at: float = None, gamma: float | None = None) -> str:
         """
         Generates a string representation of the object's properties in the MAD-X
         format, as a MAD-X ``MATRIX`` element (an explicit, arbitrary transfer
@@ -73,6 +186,9 @@ class MatrixTransformTranslator(BaseElementTranslator):
         at: float, optional
             S-position at which to place the element inside a MAD-X ``SEQUENCE``;
             see :meth:`~laura.translator.converters.base.BaseElementTranslator.to_madx`.
+        gamma: float, optional
+            Lorentz factor of the reference particle, to convert to MAD-X's
+            (t, pt); without it, beta = 1.
 
         Returns
         -------
@@ -82,26 +198,26 @@ class MatrixTransformTranslator(BaseElementTranslator):
         self.start_write()
         etype = self._convert_type_madx(self.hardware_type)
         string = sanitize_string(self.name) + ": " + etype + f", l = {self.length}"
-        if not np.array_equal(self.simulation.c_matrix, np.zeros(6)):
-            for i, val in enumerate(self.simulation.c_matrix):
-                if val != 0:
-                    string += f", kick{i + 1} = {val}"
-        if not np.array_equal(self.simulation.r_matrix, np.eye(6)):
-            for i, row in enumerate(self.simulation.r_matrix):
-                for j, val in enumerate(row):
-                    if val != (1.0 if i == j else 0.0):
-                        string += f", rm{i + 1}{j + 1} = {val}"
-        if not np.array_equal(self.simulation.t_matrix, np.zeros((6, 6, 6))):
-            for i, plane in enumerate(self.simulation.t_matrix):
-                for j, row in enumerate(plane):
-                    for k, val in enumerate(row):
-                        if val != 0:
-                            string += f", tm{i + 1}{j + 1}{k + 1} = {val}"
+        c_matrix, r_matrix, t_matrix = self._taylor_map("MAD-X", gamma)
+        # MAD-X's TRACK refuses a MATRIX with T terms, so keep a linear map linear
+        t_matrix = t_matrix * bool(np.any(self.simulation.t_matrix))
+        for i, val in enumerate(c_matrix):
+            if val != 0:
+                string += f", kick{i + 1} = {val}"
+        for i, row in enumerate(r_matrix):
+            for j, val in enumerate(row):
+                if val != (1.0 if i == j else 0.0):
+                    string += f", rm{i + 1}{j + 1} = {val}"
+        for i, plane in enumerate(t_matrix):
+            for j, row in enumerate(plane):
+                for k, val in enumerate(row):
+                    if val != 0:
+                        string += f", tm{i + 1}{j + 1}{k + 1} = {val}"
         if at is not None:
             string += f", at = {at}"
         return string + ";\n"
 
-    def to_xsuite(self, beam_length: int) -> tuple:
+    def to_xsuite(self, beam_length: int, gamma: float | None = None) -> tuple:
         """
         Generates an Xsuite object based on the element's properties and type.
 
@@ -109,6 +225,9 @@ class MatrixTransformTranslator(BaseElementTranslator):
         ----------
         beam_length: int
             Number of macroparticles in the beam
+        gamma: float, optional
+            Lorentz factor of the reference particle, for the second-order
+            terms of (zeta, pzeta); without it, beta = 1.
 
         Returns
         -------
@@ -120,12 +239,12 @@ class MatrixTransformTranslator(BaseElementTranslator):
         type_conversion_rules_xsuite = xsuite_conversion.xsuite_conversion_rules
         self.start_write()
         obj = type_conversion_rules_xsuite[self.hardware_type]
+        k, r, t = self._taylor_map("Xsuite", gamma)
         properties = {
-            "name": self.name,
             "length": self.length,
-            "k": self.simulation.c_matrix,
-            "R": self.simulation.r_matrix,
-            "T": self.simulation.t_matrix,
+            "k": k,
+            "R": r,
+            "T": t,
         }
         return self.name, obj, properties
 
@@ -156,13 +275,18 @@ class MatrixTransformTranslator(BaseElementTranslator):
         Returns
         -------
         object
-            An Cheetah object representing the element, initialized with its properties.
+            A Cheetah object representing the element, initialized with its properties.
         """
+        from torch import float64, tensor
+
         from ..conversion_rules.codes import cheetah_conversion
 
         type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
-        warn(f"WARNING! Only 1st-order transfer maps implemented for cheetah, {self.name}")
+        if self.verbose:
+            warn(
+                f"WARNING! Only 1st-order transfer maps implemented for cheetah, {self.name}"
+            )
         obj = type_conversion_rules_cheetah[self.hardware_type](
             name=self.name,
             length=tensor(self.physical.length, dtype=float64),
@@ -170,3 +294,43 @@ class MatrixTransformTranslator(BaseElementTranslator):
             sanitize_name=True,
         )
         return obj
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; unused here.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; unused here.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+
+        if not self.physical.length:
+            from pybdsim.Builder import ThinRmat
+
+            obj = ThinRmat
+        else:
+            obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        keywords.update(_bdsim_rmatrix(self.simulation.r_matrix))
+        if self.verbose:
+            warn(
+                f"WARNING! Only 1st-order transfer maps implemented for BDSIM, {self.name}"
+            )
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))

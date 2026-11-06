@@ -55,10 +55,9 @@ bash laura/schema/generate.sh
 | `generated/element-er-auto.md` | `gen-erdiagram` | Auto-generated ER skeleton (incomplete for multi-file schemas) |
 | `docs/source/Architecture/element-er.md` | *hand-maintained* | Full Mermaid `classDiagram` of the element hierarchy |
 
-`gen-doc` writes but never prunes, so the generation scripts clear
-`docs/source/schema/*.md` before running it — a renamed class would otherwise
-leave its old page behind for the Sphinx build to pick up. Do not put anything
-hand-written in that directory.
+`docs/source/schema/` is not committed: `docs/source/conf.py` regenerates it on
+every Sphinx build through `postprocess_docs.generate`, which clears the
+directory first. Do not put anything hand-written in it.
 
 ## Using validation in Python
 

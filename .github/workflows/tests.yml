@@ -48,8 +48,32 @@ jobs:
       - name: Install
         run: pip install -e ".[full,test]"
 
+      # -m "" overrides the `not slow` deselection in pyproject's addopts. Without
+      # it CI inherits the local default and test_sql_exporter.py runs nowhere.
       - name: Run tests
-        run: pytest unit_tests -v
+        run: pytest unit_tests -v -m ""
+
+  import-without-extras:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # setuptools_scm needs history to derive a version
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install without any extra
+        run: pip install -e .
+
+      - name: Import the translator with no backend installed
+        run: |
+          python -c "import laura"
+          python -c "from laura.translator.converters.converter import translate_elements"
+          python -c "import laura.translator.converters.codes"
+          python -c "import laura.translator.converters.section"
 
   downstream-simba:
     runs-on: ubuntu-latest

@@ -1,14 +1,119 @@
-import re
+import math
 import os
+import re
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    get_args,
+    get_origin,
+)
+
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
-from laura.models.element import Magnet
-from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.models.base_models import IgnoreExtra
-from typing import Any, Dict, Type, get_args, get_origin, Union, Literal
+from laura.models.constants import speed_of_light
+from laura.utils.dict_utils import numpy_scalar_to_python
+from laura.utils.naming import number_repeated_names  # noqa: F401 (re-exported)
+
 from .fields import FieldMap
+
+
+def same_element_placement(left: Any, right: Any) -> bool:
+    """True if two :class:`~laura.models.element.Element` objects occupy the
+    same physical placement (position, orientation, length).
+
+    Used by ``create_machine_model`` on the reverse-direction importers to
+    tell a genuine shared element from a name collision across layouts.
+    """
+    a, b = left.physical, right.physical
+    if (a.middle is None) != (b.middle is None):
+        return False
+    middle_matches = a.middle is None or all(
+        math.isclose(x, y, abs_tol=1e-9) for x, y in zip(a.middle.array, b.middle.array)
+    )
+    s_matches = (a.s is None and b.s is None) or (
+        a.s is not None and b.s is not None and math.isclose(a.s, b.s, abs_tol=1e-9)
+    )
+    return (
+        middle_matches
+        and s_matches
+        and math.isclose(a.length, b.length, abs_tol=1e-12)
+        and all(
+            math.isclose(x, y, abs_tol=1e-12)
+            for x, y in zip(a.rotation_matrix.flat, b.rotation_matrix.flat)
+        )
+        and all(
+            math.isclose(x, y, abs_tol=1e-12)
+            for x, y in zip(a.end_rotation_matrix.flat, b.end_rotation_matrix.flat)
+        )
+    )
+
+
+def merge_layout_elements(
+    elements: Dict[str, Any],
+    section_definitions: Dict[str, List[str]],
+    section_name: str,
+    members: Iterable[Tuple[str, Any]],
+    order: List[str],
+    suffix: str,
+) -> None:
+    """Merge one section's elements into a cross-layout ``elements`` dict,
+    mutating both ``elements`` and ``section_definitions[section_name]``.
+
+    Shared by the reverse-direction importers' ``create_machine_model``. An
+    element already present under the same name is reused when it occupies
+    the same placement (:func:`same_element_placement`); otherwise it is
+    copied as ``name__suffix`` (numbered on repeat collisions), because
+    :class:`~laura.models.element_list.MachineModel` stores one placement per
+    name. A subelement whose parent was renamed is renamed to match (only
+    Bmad's Kicker H/V-corrector split sets ``subelement``).
+
+    Parameters
+    ----------
+    members:
+        Every element to consider for merging, in no particular order
+        (``(name, element)`` pairs) -- for Bmad this includes subelements
+        excluded from ``order``.
+    order:
+        The section's visible element order (the names that end up in
+        ``section_definitions[section_name]``, translated through any
+        rename).
+    suffix:
+        Appended (as ``name__suffix``) to a renamed copy's name -- typically
+        the layout/universe/sequence name.
+    """
+    renamed: Dict[str, str] = {}
+    for element_name, element in members:
+        existing = elements.get(element_name)
+        parent_renamed = (
+            element.subelement in renamed
+            and renamed[element.subelement] != element.subelement
+        )
+        if existing is None or (
+            same_element_placement(existing, element) and not parent_renamed
+        ):
+            output_name = element_name
+            elements.setdefault(output_name, element)
+        else:
+            output_name = f"{element_name}__{suffix}"
+            index = 2
+            while output_name in elements:
+                output_name = f"{element_name}__{suffix}_{index}"
+                index += 1
+            updates = {"name": output_name}
+            if parent_renamed:
+                updates["subelement"] = renamed[element.subelement]
+            elements[output_name] = element.model_copy(update=updates)
+        renamed[element_name] = output_name
+    section_definitions[section_name] = [renamed[name] for name in order]
 
 
 def elegant_functional_definitions(definitions: Dict | None = None) -> str:
@@ -39,9 +144,7 @@ def elegant_functional_definitions(definitions: Dict | None = None) -> str:
         # Resolution mode: values are baked in as numbers, so no rpn store needed.
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
-    return "".join(
-        f"% {value} sto {name}\n" for name, value in definitions.items() if value
-    )
+    return "".join(f"% {value} sto {name}\n" for name, value in definitions.items())
 
 
 def madx_functional_definitions(definitions: Dict | None = None) -> str:
@@ -73,9 +176,79 @@ def madx_functional_definitions(definitions: Dict | None = None) -> str:
         # Resolution mode: values are baked in as numbers, so no header needed.
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
-    return "".join(
-        f"{name} = {value};\n" for name, value in definitions.items() if value
-    )
+    return "".join(f"{name} = {value};\n" for name, value in definitions.items())
+
+
+def bmad_functional_definitions(definitions: Dict | None = None) -> str:
+    """Build Bmad variable assignments for symbolic lattice parameters."""
+    if IgnoreExtra.resolve_functional:
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(f"{name} = {value}\n" for name, value in definitions.items())
+
+
+def functional_fields(element: BaseModel) -> Dict[str, str]:
+    """``{"magnetic.multipoles.K1L.normal": "kx", ...}`` for every field of
+    ``element`` naming a functional definition.
+
+    For codes with no expression system (Ocelot), so the symbols can ride on
+    the native object and :func:`apply_functional_fields` can restore them.
+    """
+    found = {}
+    if not IgnoreExtra.functional_definitions:
+        return found
+
+    def walk(value: Any, path: str) -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                walk(item, f"{path}.{key}" if path else str(key))
+        elif isinstance(value, str) and value in IgnoreExtra.functional_definitions:
+            found[path] = value
+
+    walk(element.model_dump(), "")
+    return found
+
+
+def apply_functional_fields(data: Dict, fields: Dict[str, str]) -> None:
+    """Write :func:`functional_fields` output back into an element dict."""
+    for path, symbol in fields.items():
+        *parents, leaf = path.split(".")
+        target = data
+        for key in parents:
+            target = target.setdefault(key, {})
+        target[leaf] = symbol
+def bdsim_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the gmad variable-declaration block assigning every functional
+    definition for the lattice, e.g.::
+
+        quad1_k1l = -2;
+        cav1_phase = 90;
+
+    The syntax matches MAD-X's, but gmad has no deferred-assignment operator:
+    expressions such as ``k1=quad1_k1l/0.1`` are evaluated when BDSIM parses
+    the file, so this block must be included *before* the component
+    definitions. :meth:`SectionLatticeTranslator.to_bdsim
+    <laura.translator.converters.section.SectionLatticeTranslator.to_bdsim>`
+    writes it to ``<section>_variables.gmad``.
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        A ``<name> = <value>;`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no header needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(f"{name} = {value};\n" for name, value in definitions.items())
 
 
 def sanitize_string(string: str) -> str:
@@ -164,13 +337,37 @@ def get_field_default(fiel: FieldInfo) -> Any:
     return None
 
 
+def _unwrap_optional_basemodel(annotation: Any) -> Optional[Type[BaseModel]]:
+    """Return ``X`` if ``annotation`` is ``Optional[X]`` for a BaseModel ``X``, else ``None``."""
+    if get_origin(annotation) is Union:
+        non_none = [a for a in get_args(annotation) if a is not type(None)]
+        if (
+            len(non_none) == 1
+            and isinstance(non_none[0], type)
+            and issubclass(non_none[0], BaseModel)
+        ):
+            return non_none[0]
+    return None
+
+
 def introspect_model_defaults(
     model_cls: Type[BaseModel],
     flatten: bool = False,
     parent_key: str = "",
     separator: str = "_",
+    resolve_optional: bool = False,
 ) -> Dict[str, Any]:
-    """Recursively introspect a Pydantic model class, extracting default values (including nested)."""
+    """Recursively introspect a Pydantic model class, extracting default values (including nested).
+
+    Parameters
+    ----------
+    resolve_optional: bool
+        A field typed ``Optional[SomeModel]`` with no ``default_factory`` (e.g.
+        A field typed ``Optional[SomeModel]`` with no ``default_factory``
+        has a class-level default of ``None``. When ``False`` (default) its
+        entry is ``None``; when ``True``, ``SomeModel`` is unwrapped and its
+        own field defaults are introspected.
+    """
     result = {}
 
     for field_name, fiel in model_cls.model_fields.items():
@@ -185,18 +382,40 @@ def introspect_model_defaults(
                     f"{parent_key}{separator}{field_name}" if parent_key else field_name
                 ),
                 separator=separator,
+                resolve_optional=resolve_optional,
             )
             if flatten:
                 result.update(nested)
             else:
                 result[field_name] = nested
-        else:
-            key = (
-                f"{parent_key}{separator}{field_name}"
-                if (flatten and parent_key)
-                else field_name
-            )
-            result[key] = default_value
+            continue
+
+        if default_value is None and resolve_optional:
+            inner_cls = _unwrap_optional_basemodel(fiel.annotation)
+            if inner_cls is not None:
+                nested = introspect_model_defaults(
+                    inner_cls,
+                    flatten=flatten,
+                    parent_key=(
+                        f"{parent_key}{separator}{field_name}"
+                        if parent_key
+                        else field_name
+                    ),
+                    separator=separator,
+                    resolve_optional=resolve_optional,
+                )
+                if flatten:
+                    result.update(nested)
+                else:
+                    result[field_name] = nested
+                continue
+
+        key = (
+            f"{parent_key}{separator}{field_name}"
+            if (flatten and parent_key)
+            else field_name
+        )
+        result[key] = default_value
 
     return result
 
@@ -233,7 +452,6 @@ def expand_substitution(
                 replaced_str = replaced_str.replace(key, subs[key])
             if os.path.exists(replaced_str):
                 replaced_str = path_function(replaced_str).replace("\\", "/")
-                # print('\tpath exists', replaced_str)
             for e in elements.keys():
                 if e in replaced_str:
                     print("Element is in string!", e, replaced_str)
@@ -261,9 +479,7 @@ def check_value(self, d, default=None):
             return (
                 d["value"]
                 if d["value"] is not None
-                else d["default"]
-                if "default" in d
-                else default
+                else d["default"] if "default" in d else default
             )
     elif isinstance(d, str):
         return (
@@ -273,29 +489,91 @@ def check_value(self, d, default=None):
         )
 
 
-def tw_cavity_energy_gain(cavity):
+def tw_cavity_energy_gain(cavity, phase: float | None = None):
     """
     Estimate energy gain in a travelling-wave RF cavity.
 
     Parameters:
         cavity (laura.models.element.RFCavity): RFCavity element
+        phase (float, optional): phase off crest [deg]; the cavity's own by default
 
     Returns:
         float: Estimated energy gain [eV]
     """
+    phase = cavity.phase if phase is None else phase
 
     # Approximate effective accelerating gradient
     e_acc = cavity.field_amplitude * np.sin(
-        np.pi * cavity.mode_numerator * 2 / cavity.mode_denominator / 2
+        np.pi * cavity.cavity.mode_numerator / cavity.cavity.mode_denominator
     )
 
     # Total cavity length
-    l_total = cavity.n_cells * cavity.cell_length
+    l_total = cavity.cavity.n_cells * cavity.cavity.cell_length
 
     # Energy gain in MeV (since 1 MV/m * 1 m = 1 MeV for charge = e)
-    delta_w = e_acc * l_total * np.cos(np.pi * cavity.phase / 180)
+    delta_w = e_acc * l_total * np.cos(np.pi * phase / 180)
 
     return delta_w
+
+
+def transit_time_integral(z, ez, frequency: float) -> float:
+    """
+    ``|int ez(z) exp(ikz) dz|`` [m]: the on-crest energy gain per unit field of a
+    beta = 1 particle through the standing-wave field ``ez``.
+
+    Parameters:
+        z (array): positions [m]
+        ez (array): on-axis field shape
+        frequency (float): RF frequency [Hz]
+
+    Returns:
+        float: transit-time integral [m]
+    """
+    z = np.asarray(z, dtype=float)
+    f = np.asarray(ez, dtype=float) * np.exp(
+        2j * np.pi * frequency / speed_of_light * z
+    )
+    return abs(np.sum((f[1:] + f[:-1]) * np.diff(z)) / 2)
+
+
+def cavity_energy_gain(cavity, phase: float | None = None) -> float:
+    """
+    Estimate the energy gain of an RF cavity [MeV], for design energies along a line.
+
+    With a 1D on-axis field map this is the transit-time integral for a beta = 1
+    particle, ``A |int e(z) exp(ikz) dz|`` with ``e`` the map normalised to unit peak;
+    Within about 1% of ASTRA for a test gun+linac.  Without a map it falls back to
+    :func:`tw_cavity_energy_gain`, or the amplitude.
+
+    Parameters:
+        cavity (RFCavityTranslator): cavity translator
+        phase (float, optional): phase off crest [deg]; the cavity's own by default
+
+    Returns:
+        float: Estimated energy gain [MeV]
+    """
+    cavity.update_field_definition()  # loads the map if it is still a file name
+    field = cavity.simulation.field_definition
+    phase = cavity.phase if phase is None else phase
+    if getattr(field, "field_type", None) != "1DElectroDynamic":
+        if cavity.structure_type == "TravellingWave":
+            return tw_cavity_energy_gain(cavity, phase) / 1e6
+        return cavity.field_amplitude * np.cos(np.pi * phase / 180) / 1e6
+    z = np.asarray(field.z.value.val)
+    ez = np.asarray(field.Ez.value.val)
+    ez = ez / np.abs(ez).max()
+    frequency = cavity.cavity.frequency
+    if field.start_cell_z is None:
+        integral = transit_time_integral(z, ez, frequency)
+    else:
+        core = (z >= field.start_cell_z) & (z <= field.end_cell_z)
+        periods_in_core = (
+            (field.end_cell_z - field.start_cell_z) * frequency / speed_of_light
+        )
+        per_period = 2 * transit_time_integral(z[core], ez[core], frequency)
+        periods = cavity.cavity.n_cells * field.mode_numerator / field.mode_denominator
+        integral = per_period / periods_in_core * periods
+    return cavity.field_amplitude * integral * np.cos(np.pi * phase / 180) / 1e6
 
 
 from laura._compat import deprecated_aliases  # noqa: E402

@@ -1,12 +1,25 @@
-import numpy as np
-from .sdds import write_sdds_field_file
-from warnings import warn
 from collections import Counter
-from .field_parameter import FieldParameter
-from ..units import UnitValue
-import re
+from warnings import warn
+
+import numpy as np
+
+from laura.models.constants import speed_of_light
+
+from .field_parameter import require_rf, set_field
+from .sdds import write_sdds_field_file
 
 d = ",!?/&-:;@'\n \t"
+
+
+def opal_tw_window(field, frequency: float) -> tuple[float, float]:
+    """
+    The stretch of an ASTRA-style travelling-wave map that OPAL's ``TRAVELINGWAVE``
+    reads: two RF periods, the first full period starting at ``start_cell_z``.
+    OPAL takes the period as half the map's length and the core as starting half a
+    period in, so a map with longer couplers gets the wrong cell length.
+    """
+    period = speed_of_light / frequency
+    return field.start_cell_z - period / 2, field.start_cell_z + 3 * period / 2
 
 
 def write_opal_field_file(
@@ -17,15 +30,9 @@ def write_opal_field_file(
     orientation: str = None,
 ):
     """
-    Generate the field data in a format that is suitable for OPAL, based on the
-    :class:`~laura.translator.utils.fields.FieldMap` object provided.
-
-    See the `OPAL manual`_ for more details.
-
-    This is then written to a text file.
-    The `field_type` parameter determines the format of the file.
-
-    A warning is raised if the field type is not supported (perhaps elevate to a `NotImplementedError`?
+    Write the field data of a :class:`~laura.translator.utils.fields.FieldMap`
+    to an OPAL text file, in a format set by `field_type` (see the
+    `OPAL manual`_).
 
     .. _OPAL manual: https://amas.web.psi.ch/opal/Documentation/master/OPAL_Manual.html
 
@@ -36,7 +43,7 @@ def write_opal_field_file(
     frequency: float | None
         The frequency of the field
     radius: float | None
-        The radius of the field, for 1D axially symmetric fields; defaults to 0.1
+        Radial extent of the map [m], for 1D axially symmetric fields; defaults to 0.1
     fourier: int = 100
         Number of fourier coefficients
     orientation: str | None
@@ -52,8 +59,6 @@ def write_opal_field_file(
     ------
     Warning:
         if too many or not enough fourier components are provided; will default to 1/100
-    Warning:
-        if the magnet radius is not provided; will default to 0.1
     Warning:
         if the RF frequency, radius or orientation is not provided for
         `1DElectroDynamic` or `2DElectrodynamic`, return None
@@ -80,7 +85,6 @@ def write_opal_field_file(
         data = self.Bz.value.val
         head = ["1DMagnetoStatic", str(fourier)]
         if radius is None:
-            warn("Magnet radius not provided; defaulting to 10cm")
             radius = 0.1
         zvals = [str(zmin), str(zmax), str(length - 1)]
         rvals = [str(0), str(radius * 100), fourier]
@@ -91,8 +95,17 @@ def write_opal_field_file(
             return
         head = ["AstraDynamic", str(fourier)]
         freq = [str(frequency * 1e-6)]
-        zdata = self.z.value.val
-        ezdata = self.Ez.value.val
+        zdata = np.asarray(self.z.value.val)
+        ezdata = np.asarray(self.Ez.value.val)
+        if self.start_cell_z is not None:
+            lo, hi = opal_tw_window(self, frequency)
+            dz = (zdata.max() - zdata.min()) / (len(zdata) - 1)
+            # a map that stops a fraction of a sample short of the window (JFEL's, by 0.5 mm of a 2 mm step) is held at
+            # its end values; one that is further short has no field where OPAL reads one
+            if lo < zdata.min() - dz or hi > zdata.max() + dz:
+                raise ValueError(f"TW map spans {zdata.min()}-{zdata.max()} m, OPAL needs {lo}-{hi} m")
+            znew = np.linspace(lo, hi, int(round((hi - lo) / dz)) + 1)
+            zdata, ezdata = znew - lo, np.interp(znew, zdata, ezdata)
         data = np.transpose([zdata, ezdata])
         header = [head, freq]
     elif self.field_type == "2DElectroDynamic":
@@ -136,7 +149,6 @@ def write_opal_field_file(
                 f.write(" ".join([str(x) for x in dat]) + "\n")
     return opal_file
 
-
 def read_opal_field_file(
     self,
     filename: str,
@@ -145,7 +157,7 @@ def read_opal_field_file(
     frequency: float | None = None,
 ):
     """
-    Read an OPAL field file and convert it into a :class:`laura.translator.utils.fields.FieldMap` object
+    Read an OPAL field file into a :class:`~laura.translator.utils.fields.FieldMap` object.
 
     Parameters
     ----------
@@ -156,7 +168,7 @@ def read_opal_field_file(
     field_type: str
         The name of the field, see :attr:`~laura.translator.utils.fields.allowed_fields`
     cavity_type: str, optional
-        The type of RF cavity, see :attr:`~laura.translator.utils.fields.allowed_cavities`
+        The type of RF cavity, see :attr:`~laura.translator.utils.fields.hdf5.allowed_cavities`
     frequency: float, optional
         The frequency of the RF cavity.
 
@@ -175,15 +187,7 @@ def read_opal_field_file(
     """
     self.reset_dicts()
     setattr(self, "field_type", field_type)
-    if "Electro" in field_type:
-        if cavity_type is None:
-            raise ValueError(f"cavity_type must be provided for {field_type}")
-        else:
-            setattr(self, "cavity_type", cavity_type)
-        if frequency is None:
-            raise ValueError(f"frequency must be provided for {field_type}")
-        else:
-            setattr(self, "frequency", frequency)
+    require_rf(self, field_type, cavity_type, frequency)
     if field_type == "2DElectroDynamic":
         with open(filename) as f:
             rl = f.readlines()
@@ -198,36 +202,12 @@ def read_opal_field_file(
         )
         values = np.arange(0, self.radius, self.radius / (int(rl[3].split(" ")[2]) + 1))
         rpattern = np.repeat(values, int(rl[1].split(" ")[2]) + 1)
-        setattr(
-            self,
-            "z",
-            FieldParameter(name="z", value=UnitValue(zfull, units="m")),
-        )
-        setattr(
-            self,
-            "r",
-            FieldParameter(name="r", value=UnitValue(rpattern, units="m")),
-        )
-        setattr(
-            self,
-            "Ez",
-            FieldParameter(name="Ez", value=UnitValue(fdat[::, 0], units="V/m")),
-        )
-        setattr(
-            self,
-            "Er",
-            FieldParameter(name="Er", value=UnitValue(fdat[::, 1], units="V/m")),
-        )
-        setattr(
-            self,
-            "Ex",
-            FieldParameter(name="Ex", value=UnitValue(fdat[::, 2], units="V/m")),
-        )
-        setattr(
-            self,
-            "Br",
-            FieldParameter(name="Br", value=UnitValue(fdat[::, 3], units="T")),
-        )
+        set_field(self, "z", zfull, "m")
+        set_field(self, "r", rpattern, "m")
+        set_field(self, "Ez", fdat[::, 0], "V/m")
+        set_field(self, "Er", fdat[::, 1], "V/m")
+        set_field(self, "Ex", fdat[::, 2], "V/m")
+        set_field(self, "Br", fdat[::, 3], "T")
     elif field_type == "1DMagnetoStatic":
         with open(filename) as f:
             rl = f.readlines()
@@ -241,12 +221,8 @@ def read_opal_field_file(
             zend = float(rl[1].split(" ")[1]) * 1e-2
         fdat = np.loadtxt(filename, skiprows=3)
         zvals = np.linspace(zstart, zend, len(fdat))
-        setattr(self, "z", FieldParameter(name="z", value=UnitValue(zvals, units="m")))
-        setattr(
-            self,
-            "Bz",
-            FieldParameter(name="Bz", value=UnitValue(fdat / max(fdat), units="T")),
-        )
+        set_field(self, "z", zvals, "m")
+        set_field(self, "Bz", fdat / max(fdat), "T")
     elif field_type == "1DElectroDynamic":
         with open(filename) as f:
             rl = f.readlines()
@@ -257,13 +233,5 @@ def read_opal_field_file(
             setattr(self, "fourier", int(rl[0].split(" ")[1]))
             setattr(self, "frequency", float(rl[1]) * 1e6)
         fdat = np.loadtxt(filename, skiprows=2)
-        setattr(
-            self, "z", FieldParameter(name="z", value=UnitValue(fdat[::, 0], units="m"))
-        )
-        setattr(
-            self,
-            "Ez",
-            FieldParameter(
-                name="Ez", value=UnitValue(fdat[::, 1] / max(fdat[::, 1]), units="V/m")
-            ),
-        )
+        set_field(self, "z", fdat[::, 0], "m")
+        set_field(self, "Ez", fdat[::, 1] / max(fdat[::, 1]), "V/m")
