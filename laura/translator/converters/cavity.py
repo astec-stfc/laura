@@ -243,14 +243,9 @@ class RFCavityTranslator(BaseElementTranslator):
         voltage (``voltage_v``, for slipstream's linac ``ElementSpec``/
         ``LinacTracker``, an elegant-``RFCA``-style single kick --
         ``phase_deg`` is applied separately by the tracker, not baked in
-        here). ``voltage_v`` for a travelling-wave structure uses the *exact
-        same* compensation factor :meth:`to_elegant` writes as its own
-        ``VOLT=`` (``abs((n_cells + 3.8) * cell_length / sqrt(2)) *
-        field_amplitude``) -- not an independent approximation, the identical
-        formula, so this matches the checked-in ``.lte`` files' ``VOLT=``
-        exactly. A standing-wave structure's ``to_elegant()`` writes
-        ``field_amplitude`` unconverted; CLARA has no standing-wave cavity in
-        this chain to cross-check against, so that branch is untested here.
+        here). ``voltage_v`` is :attr:`voltage`, the number :meth:`to_elegant`
+        writes as ``VOLT=`` (the travelling-wave compensation factor times the
+        field amplitude; the amplitude itself for a standing-wave structure).
 
         Returns
         -------
