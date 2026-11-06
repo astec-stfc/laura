@@ -17,6 +17,8 @@ from warnings import warn
 
 import numpy as np
 
+from ...converters.magnet import solenoid_sheet_radius
+
 try:
     import RF_Track as _rft
 
@@ -210,7 +212,12 @@ build_solenoid_fieldmap, repr_solenoid_fieldmap = _make(
     "Static_Magnetic_FieldMap_1d", _solenoid_fieldmap_args
 )
 _build_solenoid, _repr_solenoid = _make(
-    "Solenoid", lambda t, P_Q: (t.physical.length, t.magnetic.field_amplitude, 0.0)
+    "Solenoid",
+    lambda t, P_Q: (
+        t.physical.length,
+        t.magnetic.field_amplitude,
+        solenoid_sheet_radius(t.magnetic, t.physical.length),
+    ),
 )
 
 
@@ -221,6 +228,11 @@ def build_solenoid(t, **kwargs) -> "object":
     :func:`_magnetic_fieldmap_available`."""
     if _magnetic_fieldmap_available(t):
         return build_solenoid_fieldmap(t, **kwargs)
+    if getattr(t.magnetic, "coil_radius", None):
+        warn(
+            f"RF-Track tracks {t.name!r}, which has no field map, as a hard-edge solenoid: "
+            f"its coil_radius ({t.magnetic.coil_radius} m) changes no particle."
+        )
     return _build_solenoid(t, **kwargs)
 
 

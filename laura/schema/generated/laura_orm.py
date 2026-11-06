@@ -1524,6 +1524,7 @@ class SolenoidMagnet(Base):
     length = Column(Float())
     tilt = Column(Float())
     order = Column(Integer())
+    coil_radius = Column(Float())
     settle_time = Column(Float())
     fields_id = Column(Integer(), ForeignKey('SolenoidFields.id'))
     fields = relationship("SolenoidFields", uselist=False, foreign_keys=[fields_id])
@@ -1538,7 +1539,7 @@ class SolenoidMagnet(Base):
     
 
     def __repr__(self):
-        return f"Solenoid_Magnet(id={self.id},length={self.length},tilt={self.tilt},order={self.order},settle_time={self.settle_time},fields_id={self.fields_id},systematic_fields_id={self.systematic_fields_id},random_fields_id={self.random_fields_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"Solenoid_Magnet(id={self.id},length={self.length},tilt={self.tilt},order={self.order},coil_radius={self.coil_radius},settle_time={self.settle_time},fields_id={self.fields_id},systematic_fields_id={self.systematic_fields_id},random_fields_id={self.random_fields_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
