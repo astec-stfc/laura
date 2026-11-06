@@ -38,6 +38,7 @@ from ..converters import (
     type_conversion_rules_opal,
 )
 from ..converters.codes.gpt import GptCcs
+from ..converters.codes.slipstream import SlipstreamElement
 from ..utils.alignment import arc_point, sagitta, to_frame
 from ..utils.bmad import bmad_misalignment
 from ..utils.fields import FieldMap
@@ -985,6 +986,32 @@ class BaseElementTranslator(PhysicalBaseElement):
                 setattr(obj, self._convert_keyword_wake_t(key), value)
         return obj
 
+    def to_slipstream(self) -> SlipstreamElement:
+        """
+        Default ``slipstream`` record: a plain drift-equivalent of this
+        element's physical length -- mirrors :meth:`to_wake_t`'s own
+        fallback-to-drift default. Overridden by
+        :class:`~laura.translator.converters.drift.DriftTranslator`,
+        :class:`~laura.translator.converters.magnet.MagnetTranslator` (and
+        :class:`~laura.translator.converters.magnet.DipoleTranslator`/
+        :class:`~laura.translator.converters.magnet.SolenoidTranslator`), and
+        :class:`~laura.translator.converters.cavity.RFCavityTranslator`,
+        which carry real optics/field parameters through instead. Everything
+        else (correctors, diagnostics, apertures, markers, ...) has no
+        transport model in slipstream's linac tracker either, so a length-
+        only drift is the correct -- not merely convenient -- translation;
+        see ``plans/LAURA_INTERFACE_PLAN.md`` (``slipstream`` repo).
+
+        Returns
+        -------
+        SlipstreamElement
+        """
+        return SlipstreamElement(
+            name=self.name,
+            hardware_type=self.hardware_type,
+            length=self.physical.length,
+            z_m=self.physical.start.z,
+        )
     def to_fbpic(self) -> object:
         """
         Generates a FBPIC object based on the element's properties and type.

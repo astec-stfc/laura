@@ -14,6 +14,7 @@ simulation codes including:
 * `Ocelot <https://github.com/ocelot-collab/ocelot>`_ :cite:`OCELOT`
 * `Xsuite <https://github.com/xsuite>`_ :cite:`Xsuite`
 * `Wake-T <https://github.com/AngelFP/Wake-T/>`_ :cite:`WakeT`
+* `Slipstream <https://github.com/astec-stfc/slipstream>`_, the PyTorch tracking package: a list of plain ``SlipstreamElement`` records
 * `Genesis <https://github.com/svenreiche/Genesis-1.3-Version4>`_ :cite:`Genesis`
 * `MAD-X <https://cern.ch/madx>`_ :cite:`MADX`, via `cpymad <https://hibtc.github.io/cpymad/index.html>`_
 * `RF-Track <https://gitlab.cern.ch/rf-track>`_ -- see :ref:`rftrack-translator`
@@ -266,6 +267,7 @@ Translation methods for complete lattice sections:
 * ``to_xsuite(beam_length, env, particle_ref, save)``: Generates Xsuite :py:class:`Line` objects.
 * ``to_csrtrack()``: Creates CSRTrack input files.
 * ``to_wake_t()``: Produces Wake-T :py:class:`Beamline` objects.
+* ``to_slipstream()``: A list of :py:class:`SlipstreamElement` records in section order, with the drifts between the elements; slipstream turns them into its own elements.
 * ``to_madx(beam, refer, Brho)``: Creates a MAD-X ``SEQUENCE`` definition string; see :ref:`madx-translator`.
 * ``to_rftrack(P_Q, save, sc_nsteps)`` / ``to_rftrack_volume(P_Q, save)``: Builds an RF-Track ``Lattice`` or ``Volume``; see :ref:`rftrack-translator`.
 * ``to_impactx(model, energy, particle, save)``: A flat list of ImpactX element dicts; ``save`` writes ``{name}.impactx.json``.
