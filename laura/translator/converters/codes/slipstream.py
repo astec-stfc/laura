@@ -32,7 +32,7 @@ class SlipstreamElement:
       <LAURA's off-crest-is-zero phase>``).
     - **Raw-field injector elements** (``field_map_hdf5_path,
       wakefield_hdf5_path, e_max_v_per_m, b_max_t, frequency_hz, n_cells,
-      injector_phase_deg, crest_deg, grad_T_per_m, aperture_shape,
+      injector_phase_deg, crest_deg, grad_t_per_m, aperture_shape,
       aperture_radius_m, aperture_horizontal_m, aperture_vertical_m``): for
       slipstream's space-charge-dominated ``Injector`` (real on-axis field
       tables read directly from LAURA's own HDF5 field-map format, a Boris
@@ -44,7 +44,7 @@ class SlipstreamElement:
       (LAURA's ``self.phase`` verbatim, off-crest-is-zero) -- deliberately a
       separate field from ``phase_deg`` above since the two consumers use
       different phase conventions for the same physical quantity.
-      ``grad_T_per_m`` is a real field gradient (ASTRA's ``Q_grad``), not the
+      ``grad_t_per_m`` is a real field gradient (ASTRA's ``Q_grad``), not the
       normalized ``k1`` above. Aperture fields mirror ``to_astra()``'s own
       shape dispatch (``aperture.py``) -- a "rectangular"/"planar"/"scraper"
       shape can need *two* ``Injector.Aperture`` objects (X and Y) from one
@@ -78,7 +78,7 @@ class SlipstreamElement:
     end1_focus: bool = False
     end2_focus: bool = False
     body_focus_model: str = "none"
-    grad_T_per_m: float = 0.0
+    grad_t_per_m: float = 0.0
     # Aperture (Injector's raw-field path only): aperture_shape is one of
     # LAURA's own ApertureElement.shape values ("circular"/"elliptical"/
     # "planar"/"rectangular"/"scraper"); radius_m for the former two,

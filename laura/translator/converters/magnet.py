@@ -484,7 +484,7 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         ``slipstream`` record: ``k1``/``k2`` from this element's own already-
         computed ``computed_field`` properties -- the same numbers
         ``to_astra()``/``to_elegant()`` use, just not stringified.
-        ``grad_T_per_m`` is ``magnetic.gradient``, a real field-gradient value
+        ``grad_t_per_m`` is ``magnetic.gradient``, a real field-gradient value
         -- only meaningfully set for a *profile*-type quadrupole (ASTRA's
         ``Q_type=...data...``, see ``_write_astra_quadrupole``); a "standard"
         quad's real gradient needs a reference momentum to derive from
@@ -513,7 +513,7 @@ class MagnetTranslator(MultipoleStrengthTranslator):
             z_m=float(field_ref_pos[2]) + self.dz,
             k1=self.k1,
             k2=self.k2,
-            grad_T_per_m=self.magnetic.gradient if self.magnetic.gradient is not None else 0.0,
+            grad_t_per_m=self.magnetic.gradient if self.magnetic.gradient is not None else 0.0,
         )
 
 
