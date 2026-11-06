@@ -43,7 +43,7 @@ def write_opal_field_file(
     frequency: float | None
         The frequency of the field
     radius: float | None
-        The radius of the field, for 1D axially symmetric fields; defaults to 0.1
+        Radial extent of the map [m], for 1D axially symmetric fields; defaults to 0.1
     fourier: int = 100
         Number of fourier coefficients
     orientation: str | None
@@ -59,8 +59,6 @@ def write_opal_field_file(
     ------
     Warning:
         if too many or not enough fourier components are provided; will default to 1/100
-    Warning:
-        if the magnet radius is not provided; will default to 0.1
     Warning:
         if the RF frequency, radius or orientation is not provided for
         `1DElectroDynamic` or `2DElectrodynamic`, return None
@@ -87,7 +85,6 @@ def write_opal_field_file(
         data = self.Bz.value.val
         head = ["1DMagnetoStatic", str(fourier)]
         if radius is None:
-            warn("Magnet radius not provided; defaulting to 10cm")
             radius = 0.1
         zvals = [str(zmin), str(zmax), str(length - 1)]
         rvals = [str(0), str(radius * 100), fourier]

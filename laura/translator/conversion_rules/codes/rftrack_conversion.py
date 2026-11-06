@@ -216,7 +216,7 @@ _build_solenoid, _repr_solenoid = _make(
     lambda t, P_Q: (
         t.physical.length,
         t.magnetic.field_amplitude,
-        solenoid_sheet_radius(t.magnetic, t.physical.length),
+        solenoid_sheet_radius(t.magnetic, t.physical.length, "rftrack"),
     ),
 )
 

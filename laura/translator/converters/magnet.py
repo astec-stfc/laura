@@ -18,6 +18,8 @@ from laura.models.magnetic import (
 )
 from laura.models.simulation import MagnetSimulationElement
 from laura.translator.utils.fields import FieldMap
+from laura.translator.utils.fields.field_parameter import FieldParameter
+from laura.translator.utils.units import UnitValue
 
 from ..converters import (
     elements_genesis,
@@ -36,15 +38,17 @@ from .codes.gpt import GptCcs
 
 GPT_HARD_EDGE_B1 = 300.0
 
-HARD_EDGE_SOLENOID_RADIUS = 1e-3
+MAP_SOLENOID_RADIUS = {"astra": 0.001, "opal": 0.005, "gpt": 0.001, "rftrack": 0.001}
 """Least current-sheet radius, as a fraction of its length, of a solenoid without a field
-map (GPT ``bzsolenoid``, RF-Track ``Solenoid``); unless ``coil_radius`` is larger, the
-radius used, a hard edge to about half of it."""
+map; unless ``coil_radius`` is larger, the radius used. It departs from a hard edge by about
+half of it. Below it the code's own numerics depart by more: ASTRA's (first order) at 0.0005,
+OPAL's (Fourier rebuild, third order) at 0.002-0.003; GPT showed none down to 0.0005, and
+RF-Track loses every particle at R = 0."""
 
 
-def solenoid_sheet_radius(magnetic, length: float) -> float:
-    """``magnetic.coil_radius``, at least :data:`HARD_EDGE_SOLENOID_RADIUS` of ``length``."""
-    return max(getattr(magnetic, "coil_radius", None) or 0.0, HARD_EDGE_SOLENOID_RADIUS * length)
+def solenoid_sheet_radius(magnetic, length: float, code: str) -> float:
+    """``magnetic.coil_radius``, at least ``code``'s :data:`MAP_SOLENOID_RADIUS` of ``length``."""
+    return max(getattr(magnetic, "coil_radius", None) or 0.0, MAP_SOLENOID_RADIUS[code] * length)
 
 BEND_ANGLE_PER_KICK = 0.01
 """Largest angle [rad] one integration step of a bend may turn through when
@@ -1175,26 +1179,33 @@ class SolenoidTranslator(BaseElementTranslator):
             String representation of the element for ASTRA
         """
         field_ref_pos = self.get_field_reference_position()
-        field_file_name = self.generate_field_file_name(
-            self.simulation.field_definition, code="astra"
-        )
+        field_file_name = self.generate_field_file_name(self._field_map("astra"), code="astra")
         if not isinstance(field_file_name, str):
             raise NotImplementedError(
                 f"ASTRA solenoids require fieldmaps; see element {self.name}"
             )
+        hard_edge = self.simulation.field_definition is None and not getattr(
+            self.magnetic, "coil_radius", None
+        )
         return self._write_astra_dictionary(
             {
                 "S_pos": {"value": field_ref_pos[2] + self.dz, "default": 0},
                 "FILE_BFieLD": {"value": f"'{field_file_name}'", "default": ""},
                 "MaxB": {
-                    "value": self.magnetic.field_amplitude,
+                    "value": self._map_amplitude("astra"),
                     "default": 0,
                 },
-                "S_smooth": {"value": self.simulation.smooth, "default": 10},
+                # smoothing a generated (exact) map would only widen its edge
+                "S_smooth": {
+                    "value": 0 if self.simulation.field_definition is None else self.simulation.smooth,
+                    "default": 10,
+                },
                 "S_xoff": {"value": field_ref_pos[0] + self.dx, "default": 0},
                 "S_yoff": {"value": field_ref_pos[1] + self.dy, "default": 0},
                 "S_xrot": {"value": self._astra_rotation("x"), "default": 0},
                 "S_yrot": {"value": self._astra_rotation("y"), "default": 0},
+                # a hard edge is the linear limit; higher orders go as (r / R)^2
+                **({"S_higher_order": {"value": False}} if hard_edge else {}),
             },
             n,
         )
@@ -1255,7 +1266,7 @@ class SolenoidTranslator(BaseElementTranslator):
         length = self.magnetic.length
         if not length:
             raise NotImplementedError(f"GPT has no thin solenoid; see element {self.name}")
-        radius = solenoid_sheet_radius(self.magnetic, length)
+        radius = solenoid_sheet_radius(self.magnetic, length, "gpt")
         stands_for = "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
         warn(
             f"GPT: {self.name!r} has no field map: writing a bzsolenoid, the analytic field "
@@ -1283,6 +1294,56 @@ class SolenoidTranslator(BaseElementTranslator):
             return True
         return not version.isdigit()
 
+    def _sheet_radius(self, code: str) -> float | None:
+        """None with a field map; else ``coil_radius``, at least ``code``'s
+        :data:`MAP_SOLENOID_RADIUS` of the length."""
+        if self.simulation.field_definition is not None:
+            return None
+        length = self.magnetic.length
+        if not length:
+            raise NotImplementedError(f"A thin solenoid has no field map; see element {self.name}")
+        return solenoid_sheet_radius(self.magnetic, length, code)
+
+    def _map_amplitude(self, code: str):
+        """The peak field to scale the map by: a current sheet's peak is ``L / hypot(L, 2R)``
+        of ``S0L / L``, so that its field integral is ``S0L``."""
+        radius = self._sheet_radius(code)
+        if radius is None:
+            return self.magnetic.field_amplitude
+        length = self.magnetic.length
+        return self.magnetic.field_amplitude * length / np.hypot(length, 2 * radius)
+
+    def _field_map(self, code: str) -> FieldMap:
+        """
+        ``simulation.field_definition``, or without one the on-axis field of a current
+        sheet of radius :meth:`_sheet_radius`, normalised to unit peak, on z from the field
+        reference position.
+        """
+        radius = self._sheet_radius(code)
+        if radius is None:
+            return self.simulation.field_definition
+        length = self.magnetic.length
+        stands_for = "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        warn(
+            f"{code.upper()} needs a field map and {self.name!r} has none: writing the analytic "
+            f"field of a current sheet of radius {radius:.3g} m, for {stands_for}."
+        )
+        half = length / 2 + 50 * radius
+        z = np.linspace(-half, half, int(np.ceil(8 * half / radius)) + 1)
+        bz = (z + length / 2) / np.hypot(z + length / 2, radius) - (z - length / 2) / np.hypot(
+            z - length / 2, radius
+        )
+        offset = self.physical.middle.z - self.get_field_reference_position()[2]
+        field = FieldMap()
+        field.length = len(z)
+        field.z = FieldParameter(name="z", value=UnitValue(z + offset, "m"))
+        field.Bz = FieldParameter(name="Bz", value=UnitValue(bz / bz.max(), "T"))
+        field.field_type = "1DMagnetoStatic"
+        field.fourier = int(4 * half / radius)  # OPAL rebuilds the map from these
+        field.filename = f"{self.name}_solenoid.hdf5"
+        field.read = True
+        return field
+
     def opal_ks(self, designenergy: float | None = None) -> float:
         """
         The solenoid ``KS`` attribute, in the convention of the target OPAL.
@@ -1307,7 +1368,7 @@ class SolenoidTranslator(BaseElementTranslator):
         float
             Value to write for ``KS``
         """
-        field = self.magnetic.field_amplitude
+        field = self._map_amplitude("opal")
         if not self.is_opalx():
             return field
         if not designenergy:
@@ -1347,8 +1408,9 @@ class SolenoidTranslator(BaseElementTranslator):
             value = self.opal_ks(designenergy) if key == "ks" else self._flag(value)
             if value is not None:
                 wholestring += f", {key} = {value}"
-        if isinstance(self.simulation.field_definition, FieldMap):
-            wholestring += f', fmapfn = "{self.generate_field_file_name(self.simulation.field_definition, code="opal")}"'
+        field = self._field_map("opal")
+        if isinstance(field, FieldMap):
+            wholestring += f', fmapfn = "{self.generate_field_file_name(field, code="opal")}"'
             sval += float(
                 np.linalg.norm(
                     self.get_field_reference_position()

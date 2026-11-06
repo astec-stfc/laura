@@ -73,8 +73,8 @@ def test_round_trip(simple_field, code, field_type):
     params = ROUND_TRIPS[code][field_type]
     simple_field.filename = f"test_{field_type}.{'hdf5' if code in ('astra', 'gdf') else code}"
     simple_field.field_type = field_type
-    # OPAL has no format for wakes or 1D magnetostatic maps, and says so
-    warns = code == "opal" and ("Wake" in field_type or field_type == "1DMagnetoStatic")
+    # OPAL has no format for wakes, and says so
+    warns = code == "opal" and "Wake" in field_type
     with pytest.warns(UserWarning) if warns else contextlib.nullcontext():
         # GDF otherwise normalises B to its on-axis peak
         new = _read_back(simple_field, code, **({"normalize_b": False} if code == "gdf" else {}))
