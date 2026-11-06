@@ -3884,6 +3884,8 @@ class _SolenoidMagnetBase(ConfiguredBaseModel):
     order: int = Field(default=0, description="""Principal solenoid multipole order.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
          'ifabsent': 'int(0)'} })
     """Principal solenoid multipole order."""
+    coil_radius: Optional[float] = Field(default=None, description="""Radius of the coil [m], which sets the length of the fringe fields. Unset means a hard-edge solenoid.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Solenoid_Magnet'], 'unit': {'ucum_code': 'm'}} })
+    """Radius of the coil [m], which sets the length of the fringe fields. Unset means a hard-edge solenoid."""
     fields: Optional[_SolenoidFieldsBase] = Field(default=None, description="""Nominal integrated axial field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Solenoid_Magnet']} })
     """Nominal integrated axial field components."""
     systematic_fields: Optional[_SolenoidFieldsBase] = Field(default=None, description="""Systematic field errors.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Solenoid_Magnet']} })
