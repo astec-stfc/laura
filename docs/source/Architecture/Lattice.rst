@@ -702,7 +702,9 @@ mapping can give its ``geometry`` (``open`` or ``closed``) and ``reference_energ
 its ``particle``, and a top-level ``particle`` in ``layouts.yaml`` sets the machine-wide
 one. All are optional, and
 :py:func:`export_machine_sections <laura.exporters.yaml_exporter.export_machine_sections>`
-writes the section keys back out.
+writes the section keys back out, and
+:py:func:`export_machine_layouts <laura.exporters.yaml_exporter.export_machine_layouts>`
+the layout ones.
 
 .. code-block:: yaml
 
