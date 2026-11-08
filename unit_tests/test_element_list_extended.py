@@ -118,9 +118,14 @@ class TestElementList:
         m1 = Marker(name="M1", machine_area="A")
         m2 = Marker(name="M2", machine_area="A")
         el = ElementList(elements={"M1": m1, "M2": m2})
-        result = el.totally_missing_attr
+        result = el.aperture
         assert isinstance(result, ElementList)
         assert result.elements == {"M1": None, "M2": None}
+
+    def test_getattr_raises_when_no_element_has_it(self):
+        el = ElementList(elements={"M1": Marker(name="M1", machine_area="A")})
+        with pytest.raises(AttributeError, match="totally_missing_attr"):
+            el.totally_missing_attr
 
 
 class TestNormaliseLatticeType:
