@@ -1,4 +1,5 @@
 from typing import Any, ClassVar, Dict, List, Type, TypeVar, Union
+from warnings import warn
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, model_serializer
@@ -197,10 +198,27 @@ def set_functional_definitions(
             their numeric values, e.g. ``{"quad1_k1l": -2, "cav1_phase": 90}``.
         merge (bool, optional): If True (default), merge into the existing
             registry; if False, replace it entirely.
+
+    Merging a name that is already registered with another value warns: the
+    registry is shared, so elements of machines built earlier resolve to the
+    new value from then on.
     """
+    registry = IgnoreExtra.functional_definitions
     if not merge:
-        IgnoreExtra.functional_definitions.clear()
-    IgnoreExtra.functional_definitions.update(definitions or {})
+        registry.clear()
+    changed = {
+        name: (registry[name], value)
+        for name, value in (definitions or {}).items()
+        if name in registry and registry[name] != value
+    }
+    if changed:
+        details = ", ".join(f"{n}: {old} -> {new}" for n, (old, new) in changed.items())
+        warn(
+            f"Redefining functional definition(s) {details}. The definitions are "
+            "shared by every machine in this session, so the elements of machines "
+            "built earlier now resolve to the new values too."
+        )
+    registry.update(definitions or {})
 
 
 def convert_numpy_types(v: Any) -> Any:
@@ -283,7 +301,23 @@ class FunctionalMixin:
 
     A mixin rather than methods on :class:`IgnoreExtra` because the generated
     bases in ``laura/models/_generated.py`` do not descend from ``IgnoreExtra``.
+
+    It also checks a name set on a functional field against the functional
+    definitions, when there are any; list it before the pydantic base so that
+    its ``__setattr__`` runs.
     """
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        defs = IgnoreExtra.functional_definitions
+        if isinstance(value, str) and defs and value not in defs:
+            for field, functional, reserved in _functional_fields(type(self)):
+                if field == name and functional and not (reserved and reserved in value):
+                    raise ValueError(
+                        f"'{value}' is not a functional definition; "
+                        f"{type(self).__name__}.{name} takes a number or one of "
+                        f"{sorted(defs)}"
+                    )
+        super().__setattr__(name, value)
 
     def resolve(self, value: Any) -> Any:
         """
@@ -310,7 +344,7 @@ class FunctionalMixin:
         return self.resolve(getattr(self, field_name))
 
 
-class IgnoreExtra(ModelBase, FunctionalMixin):
+class IgnoreExtra(FunctionalMixin, ModelBase):
     """Base Model that ignores extra fields."""
 
     model_config = ConfigDict(

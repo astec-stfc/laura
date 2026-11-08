@@ -783,6 +783,15 @@ defined, a ``ValueError`` is raised that names the missing parameter, the
 element(s) that use it, and the source (the YAML file path, or the supplied
 dictionary).
 
+Once the definitions are loaded, assigning an undefined name to a functional
+attribute (``quad.magnetic.k1l = "quad1_k1"``) raises a ``ValueError`` that lists
+the defined names. A ``functional_definitions`` key left empty in a file is
+allowed.
+
+The definitions are shared by every machine in the session: each machine built
+adds its own to them. Redefining a name with a different value warns, because
+the elements of machines built earlier then resolve to the new value too.
+
 Export behaviour
 ~~~~~~~~~~~~~~~~
 
@@ -791,3 +800,8 @@ parameters always receive resolved numbers. Codes that do — ELEGANT (via a
 ``% <value> sto <name>`` rpn store at the top of the file) and Xsuite (via
 variables on the ``xt.Environment``) — render the symbolic references by default,
 or resolved numbers when ``resolve_functional`` is ``True``.
+
+A YAML export (``export_machine`` or ``export_machine_combined_file``) keeps the
+names in the elements and writes the machine's definitions to
+``_functional_definitions.yaml`` beside them. Pass that file as
+``functional_definitions`` when reloading.

@@ -77,7 +77,7 @@ def brho(momentum: float) -> float:
     return 3.3356 * momentum / 1e9
 
 
-class Multipole(_MultipoleBase, FunctionalMixin):
+class Multipole(FunctionalMixin, _MultipoleBase):
     """
     Single order magnetic multipole model.
 
@@ -354,7 +354,7 @@ class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
         return iter([getattr(self, k) for k in self._COEFF_KEYS])
 
 
-class MagneticElement(DeprecatedMethodAliases, _MagneticElementBase, FunctionalMixin):
+class MagneticElement(DeprecatedMethodAliases, FunctionalMixin, _MagneticElementBase):
     """
     Magnetic info model.
     """
@@ -738,7 +738,7 @@ solenoid_fields = {
 solenoid_fields_data = create_model("solenoidFieldsData", **solenoid_fields)
 
 
-class SolenoidFields(solenoid_fields_data, _SolenoidFieldsBase):
+class SolenoidFields(solenoid_fields_data, FunctionalMixin, _SolenoidFieldsBase):
     """Solenoid field components model."""
 
     def __repr__(self):

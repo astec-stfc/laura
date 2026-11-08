@@ -475,7 +475,7 @@ class BaseLatticeModel(ModelBase):
     master_lattice: str | None = None
     """Top-level directory containing lattice files."""
 
-    functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
+    functional_definitions: Union[str, Dict[str, Union[int, float]], None] = {}
     """Functional definitions for the lattice, e.g.
     ``{"quad1_k1l": -2, "cav1_phase": 90}``, or a path to a YAML file holding
     such a mapping. Registered into the shared registry so that string-valued
@@ -2126,7 +2126,7 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
 
     .. _BDSIM manual: https://bdsim-collaboration.github.io/bdsim/sphinx/index.html#"""
 
-    functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
+    functional_definitions: Union[str, Dict[str, Union[int, float]], None] = {}
     """Mapping of functional-parameter names to their numeric values, or a path
     to a YAML file holding such a mapping. Resolved at construction and shared
     with every section, layout and element in the machine."""
@@ -2631,6 +2631,11 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
         return by_area, by_name
 
     def append(self, values: dict) -> None:
+        validate_functional_references(
+            [e for e in values.values() if isinstance(e, BaseElement)],
+            self.functional_definitions,
+            self._functional_source,
+        )
         self.elements = values | self.elements
         self._build_sections_from_elements(self.elements)
         self._build_layouts(self.elements)
