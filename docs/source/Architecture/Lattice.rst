@@ -98,7 +98,7 @@ A section lattice must define:
 * ``section_type: "beam" | "rf" | "laser"``: What kind of lattice this section belongs to (default ``"beam"``); see :ref:`lattice-types`.
 * ``master_lattice: str | None``: Optional top-level directory containing lattice files.
 * ``functional_definitions: str | dict``: Optional functional definitions (a mapping or YAML file path); see :ref:`functional-definitions`.
-* ``resolve_functional: bool``: Optional global resolution mode (default ``False``); see :ref:`functional-definitions`.
+* ``resolve_functional: bool``: Optional resolution mode (default ``False``); see :ref:`functional-definitions`.
 
 Key methods and properties include:
 
@@ -230,7 +230,7 @@ A machine layout defines:
 * ``layout_type: "beam" | "rf" | "laser"``: What kind of lattice this beam path represents (default ``"beam"``); see :ref:`lattice-types`.
 * ``master_lattice: str | None``: Directory containing lattice files.
 * ``functional_definitions: str | dict``: Optional functional definitions (a mapping or YAML file path); see :ref:`functional-definitions`.
-* ``resolve_functional: bool``: Optional global resolution mode (default ``False``); see :ref:`functional-definitions`.
+* ``resolve_functional: bool``: Optional resolution mode (default ``False``); see :ref:`functional-definitions`.
 
 Important methods include:
 
@@ -755,13 +755,25 @@ attributes that are defined symbolically by name rather than as numbers:
   to numeric values (e.g. ``{"quad1_k1l": -2, "cav1_phase": 90}``), or a path to a
   YAML file holding such a mapping (optionally nested under a top-level
   ``functional_definitions`` key).
-* ``resolve_functional: bool``: the global resolution mode (default ``False``);
-  see :ref:`functional-parameters`.
+* ``resolve_functional: bool``: the resolution mode (default ``False``); see
+  :ref:`functional-parameters`.
 
 When provided to a :py:class:`MachineModel <laura.models.element_list.MachineModel>`,
 both are cascaded into the sections and layouts that it builds — and on into the
 translators — so that a single declaration at the top level applies to the whole
 machine.
+
+Both belong to that machine alone. Its elements, and the sub-models inside them,
+resolve against their own machine's definitions and mode
+(:py:attr:`element.functional_scope
+<laura.models.base_models.FunctionalMixin.functional_scope>`), so two machines in
+one session can give the same name different values, or one can resolve while
+the other does not. An element that belongs to no machine uses the session-wide
+definitions and mode, set with :py:func:`set_functional_definitions
+<laura.models.base_models.set_functional_definitions>` and
+:py:func:`set_resolve_functional
+<laura.models.base_models.set_resolve_functional>`; building a machine does not
+change them.
 
 Loading from a file and validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -783,14 +795,11 @@ defined, a ``ValueError`` is raised that names the missing parameter, the
 element(s) that use it, and the source (the YAML file path, or the supplied
 dictionary).
 
-Once the definitions are loaded, assigning an undefined name to a functional
-attribute (``quad.magnetic.k1l = "quad1_k1"``) raises a ``ValueError`` that lists
-the defined names. A ``functional_definitions`` key left empty in a file is
+Once an element is in a machine, assigning a name the machine does not define
+to a functional attribute (``quad.magnetic.k1l = "quad1_k1"``) raises a
+``ValueError`` that lists the defined names, as does ``machine.append`` with
+such an element. A ``functional_definitions`` key left empty in a file is
 allowed.
-
-The definitions are shared by every machine in the session: each machine built
-adds its own to them. Redefining a name with a different value warns, because
-the elements of machines built earlier then resolve to the new value too.
 
 Export behaviour
 ~~~~~~~~~~~~~~~~

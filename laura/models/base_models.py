@@ -1,8 +1,7 @@
 from typing import Any, ClassVar, Dict, List, Type, TypeVar, Union
-from warnings import warn
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, model_serializer
+from pydantic import BaseModel, ConfigDict, PrivateAttr, model_serializer
 from pydantic_core.core_schema import SerializationInfo
 
 from ..utils.dict_utils import (
@@ -67,7 +66,9 @@ def resolve_functional_parameter(
 
 def set_resolve_functional(value: bool) -> None:
     """
-    Set the global resolution-mode flag: when True, functional attributes are
+    Set the session-wide resolution-mode flag, used by elements that belong to
+    no machine (a machine has its own ``resolve_functional``): when True,
+    functional attributes are
     presented as their resolved numeric values; when False (the default), they
     are rendered as the functional-definition name (a string). Computations that
     require a number always resolve regardless of this flag.
@@ -191,33 +192,19 @@ def set_functional_definitions(
     definitions: Union[Dict[str, Union[int, float]], None], merge: bool = True
 ) -> None:
     """
-    Populate the shared registry of functional definitions for the lattice.
+    Populate the session-wide functional definitions, used by elements that
+    belong to no machine. A machine, section or layout keeps its own (see
+    :class:`FunctionalScope`) and does not touch these.
 
     Args:
         definitions (dict | None): Mapping of functional-parameter names to
             their numeric values, e.g. ``{"quad1_k1l": -2, "cav1_phase": 90}``.
         merge (bool, optional): If True (default), merge into the existing
             registry; if False, replace it entirely.
-
-    Merging a name that is already registered with another value warns: the
-    registry is shared, so elements of machines built earlier resolve to the
-    new value from then on.
     """
     registry = IgnoreExtra.functional_definitions
     if not merge:
         registry.clear()
-    changed = {
-        name: (registry[name], value)
-        for name, value in (definitions or {}).items()
-        if name in registry and registry[name] != value
-    }
-    if changed:
-        details = ", ".join(f"{n}: {old} -> {new}" for n, (old, new) in changed.items())
-        warn(
-            f"Redefining functional definition(s) {details}. The definitions are "
-            "shared by every machine in this session, so the elements of machines "
-            "built earlier now resolve to the new values too."
-        )
     registry.update(definitions or {})
 
 
@@ -294,21 +281,91 @@ def _dump(model: BaseModel, exclude_defaults: bool) -> dict:
     return out
 
 
-class FunctionalMixin:
+class FunctionalScope:
+    """
+    The functional definitions and resolution mode that a machine's elements
+    resolve against. Each machine, section and layout holds its own, so names
+    and values do not carry over from one machine to another. An element that
+    belongs to no machine uses the session-wide ones (see
+    :func:`set_functional_definitions` and :func:`set_resolve_functional`).
+    """
+
+    def __init__(
+        self,
+        definitions: Union[Dict[str, Union[int, float]], None] = None,
+        resolve: bool = False,
+    ):
+        self.definitions = {} if definitions is None else definitions
+        self.resolve = bool(resolve)
+
+    # Which machine an element belongs to is not part of its value: elements
+    # compare equal across machines, and a copy stays with its machine.
+    def __eq__(self, other: Any) -> bool:
+        return isinstance(other, FunctionalScope)
+
+    __hash__ = object.__hash__
+
+    def __deepcopy__(self, memo: dict) -> "FunctionalScope":
+        return self
+
+
+class _SessionScope(FunctionalScope):
+    """The session-wide definitions and mode, for elements in no machine."""
+
+    def __init__(self):
+        pass
+
+    definitions = property(lambda self: IgnoreExtra.functional_definitions)
+    resolve = property(lambda self: IgnoreExtra.resolve_functional)
+
+
+_SESSION_SCOPE = _SessionScope()
+
+
+def attach_functional_scope(model: Any, scope: FunctionalScope) -> None:
+    """Point ``model`` (an element, or a list of them), and every model nested
+    in it, at ``scope``."""
+    if isinstance(model, (list, tuple)):
+        for item in model:
+            attach_functional_scope(item, scope)
+        return
+    if not isinstance(model, BaseModel):
+        return
+    if isinstance(model, FunctionalMixin):
+        if model.functional_scope is scope:
+            return
+        model._functional_scope = scope
+    for name in type(model).model_fields:
+        value = model.__dict__.get(name)
+        if isinstance(value, (BaseModel, list, tuple)):
+            attach_functional_scope(value, scope)
+
+
+class FunctionalMixin(BaseModel):
     """
     Provides :meth:`resolve` / :meth:`resolved` to any model holding functional
-    parameters.
+    parameters, resolved against the model's :attr:`functional_scope`.
 
     A mixin rather than methods on :class:`IgnoreExtra` because the generated
     bases in ``laura/models/_generated.py`` do not descend from ``IgnoreExtra``.
 
     It also checks a name set on a functional field against the functional
-    definitions, when there are any; list it before the pydantic base so that
+    definitions, when there are any; list it before the generated base so that
     its ``__setattr__`` runs.
     """
 
+    _functional_scope: Any = PrivateAttr(default_factory=lambda: _SESSION_SCOPE)
+
+    @property
+    def functional_scope(self) -> FunctionalScope:
+        """The definitions and resolution mode of the machine this model belongs
+        to, or the session-wide ones."""
+        private = getattr(self, "__pydantic_private__", None) or {}
+        return private.get("_functional_scope") or _SESSION_SCOPE
+
     def __setattr__(self, name: str, value: Any) -> None:
-        defs = IgnoreExtra.functional_definitions
+        scope = self.functional_scope
+        defs = scope.definitions
         if isinstance(value, str) and defs and value not in defs:
             for field, functional, reserved in _functional_fields(type(self)):
                 if field == name and functional and not (reserved and reserved in value):
@@ -318,16 +375,20 @@ class FunctionalMixin:
                         f"{sorted(defs)}"
                     )
         super().__setattr__(name, value)
+        if name in type(self).model_fields:  # a new sub-model joins this machine
+            attach_functional_scope(self.__dict__.get(name), scope)
 
-    def resolve(self, value: Any) -> Any:
+    def resolve(self, value: Any, force: Union[bool, None] = True) -> Any:
         """
-        Resolve a single (possibly functional) value to its number, regardless of
-        the global resolution mode.
+        Resolve a single (possibly functional) value against this model's
+        functional definitions: always by default, or with ``force=None`` only
+        when its machine's resolution mode says so.
 
         See :func:`resolve_functional_parameter`.
         """
+        scope = self.functional_scope
         return resolve_functional_parameter(
-            value, IgnoreExtra.functional_definitions, force=True
+            value, scope.definitions, force=scope.resolve if force is None else force
         )
 
     def resolved(self, field_name: str) -> Any:
@@ -355,17 +416,19 @@ class IgnoreExtra(FunctionalMixin, ModelBase):
 
     functional_definitions: ClassVar[Dict[str, Union[int, float]]] = {}
     """
-    Shared registry of functional definitions for the accelerator lattice,
-    e.g. ``{"quad1_k1l": -2, "cav1_phase": 90}``. Populate it via
-    :func:`set_functional_definitions`.
+    Session-wide functional definitions, e.g. ``{"quad1_k1l": -2, "cav1_phase":
+    90}``, for elements that belong to no machine. Populate it via
+    :func:`set_functional_definitions`; a machine keeps its own (see
+    :class:`FunctionalScope`).
     """
 
     resolve_functional: ClassVar[bool] = False
     """
-    Global resolution mode (see :func:`set_resolve_functional`). When False
-    (default), functional attributes render as their definition name (string);
-    when True, the "configured value" accessors and the codes that support
-    functional parameters present resolved numbers instead.
+    Session-wide resolution mode (see :func:`set_resolve_functional`), for
+    elements that belong to no machine. When False (default), functional
+    attributes render as their definition name (string); when True, the
+    "configured value" accessors and the codes that support functional
+    parameters present resolved numbers instead.
     """
 
     def _create_field(

@@ -1,6 +1,7 @@
-"""Guards on functional definitions: names are checked when set, a clash
-between machines warns, an empty ``functional_definitions`` is allowed, and a
-YAML export carries the values its elements name."""
+"""Guards on functional definitions: names are checked when set, each machine
+keeps its own definitions and resolution mode, an empty
+``functional_definitions`` is allowed, and a YAML export carries the values its
+elements name."""
 
 import warnings
 
@@ -8,20 +9,13 @@ import pytest
 
 from laura import LAURA
 from laura.exporters.yaml_exporter import export_machine, export_machine_combined_file
-from laura.models.base_models import set_functional_definitions
 from laura.models.element import Quadrupole
+from laura.translator.converters.section import SectionLatticeTranslator
 
 
-@pytest.fixture(autouse=True)
-def empty_registry():
-    set_functional_definitions({}, merge=False)
-    yield
-    set_functional_definitions({}, merge=False)
-
-
-def build(k1l, definitions):
+def build(k1l, definitions, resolve=False):
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message="(?!.*functional definition)")
+        warnings.simplefilter("ignore")
         return LAURA(
             element_list=[
                 Quadrupole(
@@ -35,6 +29,7 @@ def build(k1l, definitions):
             section={"sections": {"A": ["Q"]}},
             layout={"default_layout": "l", "layouts": {"l": ["A"]}},
             functional_definitions=definitions,
+            resolve_functional=resolve,
         )
 
 
@@ -59,13 +54,27 @@ def test_a_misspelt_name_is_refused_when_appended():
         machine.append({"Q2": typo})
 
 
-def test_redefining_a_name_with_another_value_warns():
-    build("quad_k1l", {"quad_k1l": -2.0})
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        build("quad_k1l", {"quad_k1l": -2.0})  # the same value again is fine
-    with pytest.warns(UserWarning, match="quad_k1l.*-2.0.*3.0"):
-        build("quad_k1l", {"quad_k1l": 3.0})
+def test_each_machine_keeps_its_own_definitions():
+    first = build("quad_k1l", {"quad_k1l": -2.0})["Q"].magnetic
+    second = build("quad_k1l", {"quad_k1l": 3.0, "other": 1.0})["Q"].magnetic
+    assert (first.KnL(1), second.KnL(1)) == (-2.0, 3.0)
+    with pytest.raises(ValueError, match="'other'"):
+        first.k1l = "other"  # defined only by the second machine
+    second.k1l = "other"
+    assert second.KnL(1) == 1.0
+
+
+def test_each_machine_keeps_its_own_resolution_mode():
+    symbolic = build("quad_k1l", {"quad_k1l": -2.0})
+    resolved = build("quad_k1l", {"quad_k1l": 3.0}, resolve=True)
+    assert symbolic["Q"].magnetic.kl == "quad_k1l"
+    assert resolved["Q"].magnetic.kl == 3.0
+
+    def madx(machine):
+        return SectionLatticeTranslator.from_section(machine.sections["A"]).to_madx()
+
+    assert "quad_k1l = -2.0;" in madx(symbolic)
+    assert "quad_k1l" not in madx(resolved)
 
 
 def test_empty_functional_definitions_are_allowed():
@@ -81,7 +90,6 @@ def test_an_export_carries_the_definitions_it_names(tmp_path, combined):
     else:
         export_machine(str(tmp_path), machine)
         elements = str(tmp_path)
-    set_functional_definitions({}, merge=False)  # as in a fresh session
 
     reloaded = LAURA(
         element_list=elements,

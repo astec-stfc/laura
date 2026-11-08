@@ -478,8 +478,9 @@ class TestFunctionalDefinitionsLoading:
             functional_definitions={"quad1_k1l": -2.0},
             resolve_functional=True,
         )
-        assert IgnoreExtra.resolve_functional is True
         assert mm.sections["S1"].resolve_functional is True
+        assert mm.elements["Q1"].magnetic.functional_scope.resolve is True
+        assert IgnoreExtra.resolve_functional is False  # the machine's own
 
     def test_load_flat_yaml(self, tmp_path):
         f = tmp_path / "defs.yaml"
@@ -517,17 +518,19 @@ class TestFunctionalDefinitionsLoading:
         f.write_text("")
         assert load_functional_definitions(str(f)) == {}
 
-    def test_machine_model_registers_from_yaml(self, tmp_path):
+    def test_machine_model_keeps_its_definitions_from_yaml(self, tmp_path):
         f = tmp_path / "defs.yaml"
         f.write_text("quad1_k1l: -2.0\n")
-        MachineModel(functional_definitions=str(f))
-        assert IgnoreExtra.functional_definitions == {"quad1_k1l": -2.0}
+        mm = MachineModel(functional_definitions=str(f))
+        assert mm.functional_definitions == {"quad1_k1l": -2.0}
+        assert IgnoreExtra.functional_definitions == {}
 
-    def test_section_lattice_registers_from_dict(self):
-        SectionLattice(
+    def test_section_lattice_keeps_its_definitions_from_dict(self):
+        section = SectionLattice(
             name="S1", order=[], elements=[], functional_definitions={"x": 5}
         )
-        assert IgnoreExtra.functional_definitions == {"x": 5}
+        assert section.functional_definitions == {"x": 5}
+        assert IgnoreExtra.functional_definitions == {}
 
     def test_machine_model_cascades_to_children(self, elements, tmp_path):
         f = tmp_path / "defs.yaml"

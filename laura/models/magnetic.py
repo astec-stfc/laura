@@ -28,7 +28,7 @@ from ._generated import (
     _SolenoidMagnetBase,
     _WigglerMagnetBase,
 )
-from .base_models import FunctionalMixin, IgnoreExtra, T, resolve_functional_parameter
+from .base_models import FunctionalMixin, IgnoreExtra, T, attach_functional_scope
 from .constants import pi, speed_of_light
 
 
@@ -478,7 +478,7 @@ class MagneticElement(DeprecatedMethodAliases, FunctionalMixin, _MagneticElement
         Returns:
             Union[int, float]: The integrated strength (KnL) of the multipole.
         """
-        return resolve_functional_parameter(self.kl_raw(order), force=True)
+        return self.resolve(self.kl_raw(order))
 
     def kl_raw(self, order: int = None) -> Union[int, float, str]:
         """
@@ -505,11 +505,11 @@ class MagneticElement(DeprecatedMethodAliases, FunctionalMixin, _MagneticElement
 
     @property
     def kl(self) -> Union[int, float, str]:
-        """Integrated strength as configured. By default (global resolution mode
-        off) this is the value as stored — a number, or the name of a functional
-        definition; with resolution mode on it is the resolved number. Use
-        :meth:`KnL` for the resolved number regardless of mode."""
-        return resolve_functional_parameter(self.kl_raw(self.order))
+        """Integrated strength as configured. By default (the machine's
+        resolution mode off) this is the value as stored — a number, or the name
+        of a functional definition; with resolution mode on it is the resolved
+        number. Use :meth:`KnL` for the resolved number regardless of mode."""
+        return self.resolve(self.kl_raw(self.order), force=None)
 
     @kl.setter
     def kl(self, kl: float = 0) -> None:
@@ -581,12 +581,12 @@ class DipoleMagnet(MagneticElement):
 
     # `angle` is deliberately not a schema slot (see magnetic.yaml): it is
     # derived from multipoles.K0L here, so a symbolic bend angle survives
-    # round-tripping and reads follow the global resolution mode.
+    # round-tripping and reads follow the machine's resolution mode.
     @property
     def angle(self) -> Union[int, float, str]:
         """Bend angle as configured; see :attr:`~MagneticElement.kl`. Use
         ``KnL(0)`` for the resolved number regardless of mode."""
-        return resolve_functional_parameter(self.kl_raw(0))
+        return self.resolve(self.kl_raw(0), force=None)
 
     @angle.setter
     def angle(self, value: float) -> None:
@@ -847,7 +847,7 @@ class SolenoidMagnet(_SolenoidMagnetBase, IgnoreExtra):
     @property
     def field_amplitude(self) -> Union[int, float]:
         """Solenoid field amplitude (ks / length), resolved to a number."""
-        return resolve_functional_parameter(self.ks, force=True) / self.length
+        return self.resolve(self.ks) / self.length
 
     @field_amplitude.setter
     def field_amplitude(self, fa: float = 0) -> None:
@@ -857,9 +857,7 @@ class SolenoidMagnet(_SolenoidMagnetBase, IgnoreExtra):
     def ks(self) -> Union[int, float, str]:
         """Solenoid strength as configured; see :attr:`MagneticElement.kl`. Use
         :attr:`field_amplitude` for the resolved number regardless of mode."""
-        return resolve_functional_parameter(
-            getattr(self.fields, f"S{self.order!s}L")
-        )
+        return self.resolve(getattr(self.fields, f"S{self.order!s}L"), force=None)
 
     @ks.setter
     def ks(self, ks: float = 0) -> None:
@@ -915,13 +913,14 @@ class CorrectorMagnet(DipoleMagnet, _CorrectorMagnetBase):
         """The order-0 multipole, creating ``multipoles`` if it is unset."""
         if self.multipoles is None:
             object.__setattr__(self, "multipoles", Multipoles())
+            attach_functional_scope(self.multipoles, self.functional_scope)
         return self.multipoles.K0L
 
     @computed_field
     @property
     def horizontal_kick(self) -> Union[int, float, str]:
         """Horizontal kick angle [rad] -- the normal component of ``K0L``."""
-        return resolve_functional_parameter(self._k0l().normal)
+        return self.resolve(self._k0l().normal, force=None)
 
     @horizontal_kick.setter
     def horizontal_kick(self, value: Union[int, float, str]) -> None:
@@ -933,7 +932,7 @@ class CorrectorMagnet(DipoleMagnet, _CorrectorMagnetBase):
     @property
     def vertical_kick(self) -> Union[int, float, str]:
         """Vertical kick angle [rad] -- the skew component of ``K0L``."""
-        return resolve_functional_parameter(self._k0l().skew)
+        return self.resolve(self._k0l().skew, force=None)
 
     @vertical_kick.setter
     def vertical_kick(self, value: Union[int, float, str]) -> None:
@@ -951,8 +950,8 @@ class CorrectorMagnet(DipoleMagnet, _CorrectorMagnetBase):
         """
         k0l = self._k0l()
         return (
-            resolve_functional_parameter(k0l.normal, force=True),
-            resolve_functional_parameter(k0l.skew, force=True),
+            self.resolve(k0l.normal),
+            self.resolve(k0l.skew),
         )
 
     def kick_from_angle(self, skew: bool = None) -> Union[int, float, str]:
@@ -1123,7 +1122,7 @@ class CombinedCorrectorMagnet(_CombinedCorrectorMagnetBase, IgnoreExtra):
 
     def resolved_kicks(self) -> tuple[float, float]:
         """``(horizontal_kick, vertical_kick)`` [rad] as numbers, resolving
-        functional definitions regardless of the global resolution mode."""
+        functional definitions regardless of the machine's resolution mode."""
         return (
             self.horizontal.resolved_kicks()[0],
             self.vertical.resolved_kicks()[1],

@@ -6,7 +6,6 @@ from warnings import warn
 import numpy as np
 from pydantic import Field, PrivateAttr, computed_field
 
-from laura.models.base_models import IgnoreExtra
 from laura.models.element import PhysicalBaseElement
 from laura.models.physical import PhysicalElement, Position  # noqa E402
 from laura.utils import flatten_dict
@@ -250,7 +249,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             separator="_",
         )
         data.pop("magnetic_gap", None)
-        defs = IgnoreExtra.functional_definitions
+        defs = self.functional_scope.definitions
         if resolve and defs:
             data = {
                 key: (defs[value] if self.is_functional(value) else value)
@@ -258,21 +257,20 @@ class BaseElementTranslator(PhysicalBaseElement):
             }
         return data
 
-    @staticmethod
-    def is_functional(value: Any) -> bool:
+    def is_functional(self, value: Any) -> bool:
         """
         True if ``value`` is a string naming an entry in the lattice's functional
         definitions (i.e. it should be resolved to a number, or passed through
         symbolically to codes that support it).
         """
-        return isinstance(value, str) and value in IgnoreExtra.functional_definitions
+        return isinstance(value, str) and value in self.functional_scope.definitions
 
     @property
     def _resolve_functional(self) -> bool:
-        """The global resolution mode. When True, functional attributes are
+        """The machine's resolution mode. When True, functional attributes are
         baked in as resolved numbers even for codes that support symbolic
         parameters; when False (default) they are rendered symbolically."""
-        return IgnoreExtra.resolve_functional
+        return self.functional_scope.resolve
 
     def _raw_multipole_strength(self, order: int) -> str | None:
         """
@@ -1138,7 +1136,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             if isinstance(value, str) and isinstance(numeric, (int, float)):
                 return numeric
             return value
-        resolved = IgnoreExtra.functional_definitions.get(str(expression))
+        resolved = self.functional_scope.definitions.get(str(expression))
         if resolved is None:
             resolved = numeric if isinstance(numeric, (int, float)) else 0.0
         return GmadExpression(resolved, str(expression))
