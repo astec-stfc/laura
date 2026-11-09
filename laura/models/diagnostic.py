@@ -11,6 +11,7 @@ from ._generated import (
     _BAMDiagnosticElementBase,
     _BLMDiagnosticElementBase,
     _ScreenDiagnosticElementBase,
+    _WireScannerDiagnosticElementBase,
     _ChargeDiagnosticElementBase,
     _CameraDiagnosticElementBase,
     _CameraPixelResultsIndicesBase,
@@ -215,6 +216,12 @@ class ScreenDiagnostic(_ScreenDiagnosticElementBase):
     @classmethod
     def validate_devices(cls, v: Union[str, List]) -> DeviceList:
         return _coerce_device_list(v)
+
+
+class WireScannerDiagnostic(_WireScannerDiagnosticElementBase):
+    """
+    Wire-scanner diagnostic model.
+    """
 
 
 class ChargeDiagnosticElement(_ChargeDiagnosticElementBase):

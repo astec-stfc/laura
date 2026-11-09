@@ -42,6 +42,7 @@ from .importer import (
     LatticeImporter,
     check_layouts,
     compact_expression,
+    element_class,
     infer_geometry,
     keyword_rules,
     read_with_calls,
@@ -162,6 +163,7 @@ bmad_unsupported = [
     "NonLinearLens",
     "PID",
     "Plasma",
+    "PlasmaLens",
     "PowerSupply",
     "RFHeartbeat",
     "RFModulator",
@@ -169,6 +171,8 @@ bmad_unsupported = [
     "RFProtection",
     "Shutter",
     "Stage",
+    "Target",
+    "Crystal",
     "VacuumGauge",
     "Valve",
     "Wire",
@@ -324,8 +328,10 @@ def _aperture(parameters: Dict[str, Any], etype: str = "") -> Dict[str, Dict[str
         return {}
     return {
         "aperture": {
-            "horizontal_size": limits["X1_LIMIT"] + limits["X2_LIMIT"],
-            "vertical_size": limits["Y1_LIMIT"] + limits["Y2_LIMIT"],
+            "horizontal_size": (limits["X1_LIMIT"] + limits["X2_LIMIT"]) / 2,
+            "vertical_size": (limits["Y1_LIMIT"] + limits["Y2_LIMIT"]) / 2,
+            "horizontal_offset": (limits["X2_LIMIT"] - limits["X1_LIMIT"]) / 2,
+            "vertical_offset": (limits["Y2_LIMIT"] - limits["Y1_LIMIT"]) / 2,
             "shape": shape or "rectangular",
         }
     }
@@ -493,7 +499,7 @@ def _holds_a_wake_field(hardware_type: str) -> bool:
     samples down to. Asked here so an unexpected element type warns instead of
     raising a validation error part-way through an import.
     """
-    element = getattr(laura_elements, hardware_type, None)
+    element = element_class(hardware_type)
     simulation = getattr(element, "model_fields", {}).get("simulation")
     if simulation is None:
         return False
@@ -511,7 +517,7 @@ def _simulation_fields(hardware_type: str) -> frozenset:
     reports for every element alike have to be filtered before they are handed
     to a constructor that would reject them.
     """
-    element = getattr(laura_elements, hardware_type, None)
+    element = element_class(hardware_type)
     simulation = getattr(element, "model_fields", {}).get("simulation")
     if simulation is None:
         return frozenset()
@@ -1209,6 +1215,7 @@ class BmadLatticeImporter(LatticeImporter):
         parameters: Dict[str, Any],
         length: float,
         hardware_type: str,
+        n_cells: int = 1,
     ) -> Dict[str, Any]:
         """Sample this element's Bmad wake into a LAURA ``field``, if it has one."""
         tables = parameters.get("_WAKE")
@@ -1231,6 +1238,10 @@ class BmadLatticeImporter(LatticeImporter):
         )
         if not sampled:
             return {}
+        sampled = {
+            key: -values[::-1] if key == "z" else values[::-1] / n_cells
+            for key, values in sampled.items()
+        }
         units = {"z": "m", "Wz": "V/C", "Wx": "V/C/m", "Wy": "V/C/m"}
         transverse = "Wx" in sampled or "Wy" in sampled
         if not transverse:
@@ -1242,7 +1253,8 @@ class BmadLatticeImporter(LatticeImporter):
         wake = FieldMap(
             field_type=field_type,
             origin_code="Bmad",
-            length=length,
+            length=len(sampled["z"]),
+            reference_length=length / n_cells,
             filename=re.sub(r"[^A-Za-z0-9_.-]", "_", name) + "_wake.bmad",
             **{
                 key: FieldParameter(name=key, value=UnitValue(values, units=units[key]))
@@ -1328,7 +1340,7 @@ class BmadLatticeImporter(LatticeImporter):
             extra["simulation"] = settings | dict(extra.get("simulation") or {})
         self.laura_elems[universe][branch].update(
             {
-                name: getattr(laura_elements, hardware_type)(
+                name: element_class(hardware_type)(
                     physical=dict(physical),
                     name=name,
                     hardware_type=hardware_type,
@@ -1427,7 +1439,13 @@ class BmadLatticeImporter(LatticeImporter):
             | _fringe_model(e.parameters, e.etype, hardware_type)
             | dict(elem_data.get("simulation") or {})
         )
-        wake_data = self._wake_field(e.name, e.parameters, e.length, hardware_type)
+        wake_data = self._wake_field(
+            e.name,
+            e.parameters,
+            e.length,
+            hardware_type,
+            (elem_data.get("cavity") or {}).get("n_cells") or 1,
+        )
         if wake_data:
             simulation.update(wake_data["simulation"])
         if simulation:
@@ -1442,7 +1460,7 @@ class BmadLatticeImporter(LatticeImporter):
         }
         stored = self.laura_elems[e.universe][e.branch]
         if e.etype != "Kicker":
-            stored[e.name] = getattr(laura_elements, data["hardware_type"])(**data)
+            stored[e.name] = element_class(data["hardware_type"])(**data)
             return
         stored[e.name] = CombinedCorrector(**data)
         for suffix, cls, hardware_type, kick in (
@@ -1881,6 +1899,12 @@ class BmadLatticeImporter(LatticeImporter):
                 "along the beam line."
             )
             return None
+        if e.etype == "Pipe" and e.parameters.get("_WAKE") and e.length > 0.0:
+            return {
+                "hardware_type": "Wakefield",
+                "hardware_class": "Wakefield",
+                "cavity": {"n_cells": 1, "cell_length": e.length},
+            }
         return {"hardware_type": "Drift", "hardware_class": "Drift"}
 
     def _reference_energy(self, universe: int, branch: str) -> float | None:

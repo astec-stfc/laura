@@ -6,18 +6,23 @@ from pydantic import BaseModel, ConfigDict, Field
 from laura._compat import DeprecatedMethodAliases
 
 from ...utils.classes import get_grid_size
+from ...utils.functions import space_charge_dimension
 
 opal_unsupported = [
     "Laser",
     "Plasma",
+    "PlasmaLens",
     "Decapole",
     "RFDeflectingCavity",
     "Plasma",
+    "PlasmaLens",
     "TwissMatch",
     "MatrixTransform",
     "ActivePlasmaLens",
     "CrabCavity",
     "Wiggler",
+    "Target",
+    "Crystal",
 ]
 
 
@@ -328,11 +333,9 @@ class OpalFieldSolver(OpalHeader):
     sample_interval: int = 1
     """Divides ``npart`` when sizing the space-charge grid. """
 
-    MIN_PARTICLES_PER_CELL: int = 8
-    """Fewest particles per space-charge cell the automatic mesh may produce.
-    Eight matches the mesh at which the CLARA benchmark stopped improving (16^3
-    at 32768 particles gave 2.07x ASTRA against 2.05x at 32^3, for an eighth of
-    the cells) and keeps ``grid**3`` safely below the particle count."""
+    MIN_PARTICLES_PER_CELL: int = 1
+    """Fewest particles per space-charge cell the automatic mesh may produce; 1 is
+    OPAL's own limit."""
 
     grid_size_override: int | tuple[int, int, int] | list | None = None
     """Explicit space-charge mesh size, replacing the heuristic in
@@ -404,12 +407,11 @@ class OpalFieldSolver(OpalHeader):
     def apply_space_charge_mode(self) -> None:
         """
         Translate the requested space-charge mode into an OPAL ``FSTYPE``.
-
         OPAL has no 2D solver, so a ``2D`` request runs the 3D FFT solver with
         a warning. A disabled mode selects ``FSTYPE = NONE``.
         """
-        mode = str(self.space_charge_mode or "").strip().lower()
-        if not self.space_charge or mode in ("false", "off", "0", "no", "none_"):
+        mode = space_charge_dimension(self.space_charge_mode)
+        if not mode:
             self.FSTYPE = "NONE"
             return
         if mode == "2d":
@@ -435,12 +437,7 @@ class OpalFieldSolver(OpalHeader):
         bool
             True if enabled
         """
-        return not (
-            self.space_charge_mode == "False"
-            or self.space_charge_mode is False
-            or self.space_charge_mode is None
-            or self.space_charge_mode == "None"
-        )
+        return bool(space_charge_dimension(self.space_charge_mode))
 
     @property
     def grid_size(self) -> int:
@@ -549,9 +546,6 @@ class OpalTrack(OpalHeader):
         self.exclude.append("ZSTOP_STAGES")
 
     def write_opal(self) -> str:
-        # OPAL takes DT/ZSTOP as arrays; a scalar is just the one-stage case. The
-        # final ZSTOP is nudged past the end of the line so the last element is
-        # tracked through rather than stopped on.
         if isinstance(self.DT, (list, tuple)):
             self.DT = "{" + ", ".join(str(dt) for dt in self.DT) + "}"
         else:

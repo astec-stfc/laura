@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from laura._compat import DeprecatedMethodAliases
 
 from ...utils.classes import get_grid_size
+from ...utils.functions import space_charge_dimension
 
 section_header_text_astra = {
     "&APERTURE": "LApert",
@@ -27,6 +28,7 @@ astra_unsupported = [
     "MatrixTransform",
     "Laser",
     "Plasma",
+    "PlasmaLens",
     "Sextupole",
     "Octupole",
     "Decapole",
@@ -36,6 +38,8 @@ astra_unsupported = [
     "Wiggler",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
+    "Crystal",
 ]
 
 
@@ -401,10 +405,6 @@ class AstraCharge(AstraHeader):
             output += f"nxf = {self.grid_size},\n"
             output += f"nyf = {self.grid_size},\n"
             output += f"nzf = {self.grid_size},\n"
-        elif self.space_charge():
-            output += f"nxf = {self.grid_size},\n"
-            output += f"nyf = {self.grid_size},\n"
-            output += f"nzf = {self.grid_size},\n"
         output = output[:-2] + "\n"
         output += "/\n"
         return output
@@ -418,21 +418,10 @@ class AstraCharge(AstraHeader):
         bool
             True if enabled
         """
-        if not (
-            self.space_charge_mode == "False"
-            or self.space_charge_mode is False
-            or self.space_charge_mode is None
-            or self.space_charge_mode == "None"
-        ):
-            self.space_charge_3d = True
-            if isinstance(self.space_charge_mode, str):
-                if "2d" in self.space_charge_mode.lower():
-                    self.space_charge_2d = True
-                    self.space_charge_3d = False
-            return True
-        self.space_charge_2d = False
-        self.space_charge_3d = False
-        return False
+        dimension = space_charge_dimension(self.space_charge_mode)
+        self.space_charge_2d = bool(dimension)
+        self.space_charge_3d = dimension == "3d"
+        return bool(dimension)
 
     @property
     def grid_size(self) -> int:

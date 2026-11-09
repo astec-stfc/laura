@@ -515,3 +515,18 @@ def test_a_kicker_keeps_its_length(tmp_path):
         assert kicker.magnetic.length == pytest.approx(0.19)
         assert kicker.magnetic.horizontal.length == pytest.approx(0.19)
         assert kicker.magnetic.vertical.length == pytest.approx(0.19)
+
+
+def test_collimator_shapes_come_from_the_elegant_type(tmp_path):
+    _, elements = _saved_lattice(
+        tmp_path,
+        "R: RCOL,L=0.1,X_MAX=0.01,Y_MAX=0.02\n"
+        "E: ECOL,L=0.1,X_MAX=0.01,Y_MAX=0.02\n"
+        "M: MAXAMP,X_MAX=0.01,Y_MAX=0.02,ELLIPTICAL=1\n"
+        "S: LINE=(R,E,M)\n"
+        'USE,"S"\n',
+    )
+
+    shapes = {name: elements[name]["aperture"]["shape"] for name in "REM"}
+    assert shapes == {"R": "rectangular", "E": "elliptical", "M": "elliptical"}
+    assert elements["R"]["aperture"]["horizontal_size"] == 0.01

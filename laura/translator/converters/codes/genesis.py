@@ -11,7 +11,10 @@ genesis_unsupported = [
     "Aperture",
     "Wakefield",
     "Plasma",
+    "PlasmaLens",
     "TwissMatch",
     "ActivePlasmaLens",
     "CrabCavity",
+    "Target",
+    "Crystal",
 ]

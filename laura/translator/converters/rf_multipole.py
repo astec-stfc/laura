@@ -1,3 +1,7 @@
+from warnings import warn
+
+import numpy as np
+
 from laura.models.simulation import RFMultipoleSimulationElement
 
 from ..utils.functions import sanitize_string
@@ -96,3 +100,89 @@ class RFMultipoleTranslator(BaseElementTranslator):
             "ps": list(self.simulation.psl),
         }
         return self.name, RFMultipole_xs, properties
+
+    def to_bdsim(
+        self,
+        section_aperture: dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        BDSIM has no RF multipole, so the integrated strengths are exported as a
+        static ``multipole`` (or ``thinmultipole`` at zero length) and the RF
+        modulation -- frequency, phase and the per-order phases ``pnl``/``psl``
+        -- is dropped. A warning names what was discarded.
+
+        BDSIM's ``knl``/``ksl`` start at the quadrupole, so the dipole term is
+        dropped too. Two BDSIM 1.7.7 bugs are worked around: its thick
+        ``multipole`` negates the
+        normal terms (and takes them per metre, as documented), and its
+        ``thinmultipole`` kicks x the wrong way for skew terms. So at zero
+        length each skew order goes out as its own ``thinmultipole``, a normal
+        term tilted by -pi/(2(n+1)), and a list of elements is returned.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+
+        Returns
+        -------
+        object or list
+            BDSIM object, or a list of them for a thin multipole with skew terms
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+
+        thin = not self.physical.length
+        if thin:
+            from pybdsim.Builder import ThinMultipole
+
+            obj = ThinMultipole
+        else:
+            obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        knl, ksl = tuple(self.simulation.knl or ()), tuple(self.simulation.ksl or ())
+        if any(knl[:1]) or any(ksl[:1]):
+            warn(f"BDSIM multipoles have no dipole term; dropped from {self.name}.")
+        knl, ksl = knl[1:], ksl[1:]
+        if self.verbose:
+            warn(
+                f"WARNING! BDSIM has no RF multipole; {self.name} exported as a static "
+                f"{'thinmultipole' if thin else 'multipole'} -- frequency, phase, pnl "
+                "and psl are not carried."
+            )
+        if not thin:
+            length = self.physical.length
+            keywords["knl"] = tuple(-k / length for k in knl) or (
+                0.0,
+            )  # gmad rejects {}
+            keywords["ksl"] = tuple(k / length for k in ksl) or (0.0,)
+            return obj(
+                **self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set)
+            )
+
+        tilt = keywords.get("tilt") or 0.0
+        pieces = [(knl, tilt)] if any(knl) or not any(ksl) else []
+        pieces += [
+            ((0.0,) * (n - 1) + (k,), tilt - np.pi / (2 * (n + 1)))
+            for n, k in enumerate(ksl, start=1)
+            if k
+        ]
+        elements = []
+        for i, (strengths, piece_tilt) in enumerate(pieces):
+            piece = dict(keywords, knl=strengths or (0.0,), ksl=(0.0,), tilt=piece_tilt)
+            if i:
+                piece["name"] = f"{keywords['name']}_{i}"
+            elements.append(
+                obj(**self._bdsim_charge_sign(obj, piece, charge_sign, integrator_set))
+            )
+        return elements[0] if len(elements) == 1 else elements

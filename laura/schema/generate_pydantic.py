@@ -500,6 +500,13 @@ def _inject_alias_choices_import(content: str) -> str:
     return content
 
 
+def _serialize_by_field_name(content: str) -> str:
+    """Make ``ConfiguredBaseModel`` dump field names rather than aliases. """
+    return content.replace(
+        "        serialize_by_alias = True,", "        serialize_by_alias = False,", 1
+    )
+
+
 # ── Step 5: mirror field descriptions as attribute docstrings ────────────────
 
 
@@ -559,6 +566,33 @@ _PYDANTIC_EXCLUDED_SLOTS: dict[str, frozenset[str]] = {
 }
 
 
+def _excluded_slots_by_class(tree: ast.Module) -> dict[str, frozenset[str]]:
+    """Resolve ``_PYDANTIC_EXCLUDED_SLOTS`` through the generated class tree.
+
+    A class inherits the exclusions of every ancestor it is generated from, so
+    a slot listed once on a root base is dropped from all of its descendants.
+    """
+    parents: dict[str, list[str]] = {
+        node.name: [b.id for b in node.bases if isinstance(b, ast.Name)]
+        for node in tree.body
+        if isinstance(node, ast.ClassDef)
+    }
+    resolved: dict[str, frozenset[str]] = {}
+
+    def excluded_for(name: str, seen: frozenset[str] = frozenset()) -> frozenset[str]:
+        if name in resolved:
+            return resolved[name]
+        if name in seen:  # defensive: generated output should never cycle
+            return frozenset()
+        slots = _PYDANTIC_EXCLUDED_SLOTS.get(name, frozenset())
+        for base in parents.get(name, []):
+            slots |= excluded_for(base, seen | {name})
+        resolved[name] = slots
+        return slots
+
+    return {name: excluded_for(name) for name in parents}
+
+
 def _drop_excluded_slots(content: str) -> str:
     """Remove ``_PYDANTIC_EXCLUDED_SLOTS`` field definitions from *content*.
 
@@ -567,12 +601,13 @@ def _drop_excluded_slots(content: str) -> str:
     with them.
     """
     tree = ast.parse(content)
+    by_class = _excluded_slots_by_class(tree)
     lines = content.split("\n")
     drop: set[int] = set()  # 0-based line indices
     for node in tree.body:
         if not isinstance(node, ast.ClassDef):
             continue
-        excluded = _PYDANTIC_EXCLUDED_SLOTS.get(node.name)
+        excluded = by_class.get(node.name)
         if not excluded:
             continue
         body = node.body
@@ -606,7 +641,8 @@ def generate(
     _enum_names, model_names = _collect_schema_classes(raw)
     renamed = _rename_classes(raw, model_names)
     fixed = _apply_schema_fixes(renamed, schema_path)
-    documented = _add_attribute_docstrings(fixed)
+    configured = _serialize_by_field_name(fixed)
+    documented = _add_attribute_docstrings(configured)
     trimmed = _drop_excluded_slots(documented)
     return _HEADER + trimmed
 

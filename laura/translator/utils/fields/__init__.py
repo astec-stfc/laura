@@ -361,7 +361,7 @@ class FieldMap(BaseModel):
         path = os.path.join(_output_location, pre + extension)
         try:
             return os.path.relpath(path)
-        except ValueError:  # Windows: path and cwd on different drives
+        except ValueError:
             return os.path.abspath(path)
 
     def get_field_data(self, code: str) -> np.ndarray | None:
@@ -387,7 +387,7 @@ class FieldMap(BaseModel):
             )
             return
         if code.lower() in ["astra", "ocelot"]:
-            return astra.generate_astra_field_data(self)
+            return astra.generate_astra_field_data(self, ocelot=code.lower() == "ocelot")
         return None
 
     def write_field_file(
@@ -406,7 +406,8 @@ class FieldMap(BaseModel):
         location: str | None:
             Optional; if provided, it specifies the directory where the output file will be saved.
         **kwargs
-            Passed to :func:`~laura.translator.utils.fields.bmad.write_bmad_field_file`.
+            Passed to :func:`~laura.translator.utils.fields.bmad.write_bmad_field_file`
+            or :func:`~laura.translator.utils.fields.gdf.write_gdf_field_file`.
 
         Returns
         -------
@@ -423,11 +424,11 @@ class FieldMap(BaseModel):
         else:
             self._output_location = os.path.dirname(os.path.dirname(self.filename))
         if code.lower() in ["astra", "ocelot"]:
-            return astra.write_astra_field_file(self)
+            return astra.write_astra_field_file(self, ocelot=code.lower() == "ocelot")
         elif code.lower() in ["sdds", "elegant"]:
             return sdds.write_sdds_field_file(self)
         elif code.lower() in ["gdf", "gpt"]:
-            return gdf.write_gdf_field_file(self)
+            return gdf.write_gdf_field_file(self, **kwargs)
         elif code.lower() == "opal":
             return opal.write_opal_field_file(
                 self,

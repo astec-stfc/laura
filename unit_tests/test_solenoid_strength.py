@@ -152,6 +152,26 @@ def test_bmad_and_its_import(tmp_path):
     assert imported.magnetic.fields.S0L == pytest.approx(B * L)
 
 
+@pytest.mark.skipif(which("bdsim") is None, reason="BDSIM is not installed")
+def test_bdsim(tmp_path):
+    pybdsim = pytest.importorskip("pybdsim")
+    pytest.importorskip("ROOT")
+    from pybdsim.Beam import Beam
+
+    beam = Beam("e-", np.hypot(P0C, 0.51099895e6) / 1e9, "reference")
+    beam.SetX0(X0, unitsstring="m")
+    machine = section(solenoid()).to_bdsim(beam=beam, charge_sign=-1, Brho=BRHO)
+    machine.AddSampler("S1")
+    machine.Write(str(tmp_path / "lat.gmad"))
+    subprocess.run(
+        ["bdsim", "--file=lat.gmad", "--batch", "--outfile=out", "--ngenerate=1"],
+        cwd=tmp_path, check=True, capture_output=True,
+    )
+    hit = pybdsim.Data.SamplerData(pybdsim.Data.Load(str(tmp_path / "out.root")), "S1").data
+    final = [hit["x"][0], hit["xp"][0], hit["y"][0], hit["yp"][0]]
+    assert final == pytest.approx(EXPECTED, rel=1e-4)
+
+
 def test_normalised_codes_warn_without_the_rigidity():
     with pytest.warns(UserWarning, match="rigidity"):
         text = translator(solenoid()).to_madx()

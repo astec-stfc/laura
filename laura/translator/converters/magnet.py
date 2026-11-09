@@ -1,10 +1,11 @@
 from copy import deepcopy
-from typing import ClassVar, Optional, Union
+from typing import ClassVar, Dict, Optional, Union
 from warnings import warn
 
 import numpy as np
 from pydantic import computed_field, field_validator, model_validator
 
+from laura.models.constants import speed_of_light, vacuum_permittivity
 from laura.models.magnetic import (
     CombinedCorrectorMagnet,
     CombinedSolenoidQuadrupoleMagnet,
@@ -17,17 +18,37 @@ from laura.models.magnetic import (
 )
 from laura.models.simulation import MagnetSimulationElement
 from laura.translator.utils.fields import FieldMap
+from laura.translator.utils.fields.field_parameter import FieldParameter
+from laura.translator.utils.units import UnitValue
 
 from ..converters import (
     elements_genesis,
+    elements_madx,
     elements_opal,
     keyword_conversion_rules_elegant,
 )
-from ..utils.functions import _rotation_matrix, chop, expand_substitution
+from ..utils.functions import (
+    _rotation_matrix,
+    chop,
+    expand_substitution,
+    sanitize_string,
+)
 from .base import BaseElementTranslator
 from .codes.gpt import GptCcs
 
 GPT_HARD_EDGE_B1 = 300.0
+
+MAP_SOLENOID_RADIUS = {"astra": 0.001, "opal": 0.005, "gpt": 0.001, "rftrack": 0.001}
+"""Least current-sheet radius, as a fraction of its length, of a solenoid without a field
+map; unless ``coil_radius`` is larger, the radius used. It departs from a hard edge by about
+half of it. Below it the code's own numerics depart by more: ASTRA's (first order) at 0.0005,
+OPAL's (Fourier rebuild, third order) at 0.002-0.003; GPT showed none down to 0.0005, and
+RF-Track loses every particle at R = 0."""
+
+
+def solenoid_sheet_radius(magnetic, length: float, code: str) -> float:
+    """``magnetic.coil_radius``, at least ``code``'s :data:`MAP_SOLENOID_RADIUS` of ``length``."""
+    return max(getattr(magnetic, "coil_radius", None) or 0.0, MAP_SOLENOID_RADIUS[code] * length)
 
 BEND_ANGLE_PER_KICK = 0.01
 """Largest angle [rad] one integration step of a bend may turn through when
@@ -119,9 +140,43 @@ class MultipoleStrengthTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(order) / self.magnetic.length
         except ZeroDivisionError:
-            if self._warn_zero_length:
+            if self._warn_zero_length and self.verbose:
                 warn(f"Magnet has zero length; returning k{order} = k{order}l")
             return self.magnetic.KnL(order)
+
+    def to_madx(self, at: float | None = None) -> str:
+        """
+        MAD-X ignores a zero-length quadrupole, sextupole or bend, so a thin
+        magnet is written as a ``multipole``. A thick one adds its skew
+        ``k<n>s``, which no keyword rule carries.
+        """
+        multipoles = self.magnetic.multipoles
+        length = self.resolve(self.magnetic.length) or 0.0
+        if length:
+            allowed = elements_madx[self._convert_type_madx(self.hardware_type)]
+            string = super().to_madx()[: -len(";\n")]
+            for order in (1, 2, 3):
+                skew = self.resolve(multipoles.skew(order)) or 0.0
+                if skew and f"k{order}s" in allowed:
+                    string += f", k{order}s = {skew / length}"
+        else:
+            self.start_write()
+            knl, ksl = (
+                [self.resolve(part(order)) or 0.0 for order in range(5)]
+                for part in (multipoles.normal, multipoles.skew)
+            )
+            string = f"{sanitize_string(self.name)}: multipole"
+            for key, values in (("knl", knl), ("ksl", ksl)):
+                while values and not values[-1]:
+                    values.pop()
+                if values:
+                    string += f", {key} = {{{', '.join(map(str, values))}}}"
+            tilt = self.resolve(self.magnetic.tilt) or 0.0
+            if tilt:
+                string += f", tilt = {tilt}"
+        if at is not None:
+            string += f", at = {at}"
+        return string + ";\n"
 
 
 class MagnetTranslator(MultipoleStrengthTranslator):
@@ -231,9 +286,10 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         if self.hardware_type.lower() == "quadrupole":
             return self._write_astra_quadrupole(n, **kwargs)
         else:
-            warn(
-                f"Element type {self.hardware_type} of {self.name} not supported by ASTRA"
-            )
+            if self.verbose:
+                warn(
+                    f"Element type {self.hardware_type} of {self.name} not supported by ASTRA"
+                )
             return ""
 
     def to_csrtrack(self, n: int = 0, **kwargs) -> str:
@@ -255,9 +311,10 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         if self.hardware_type.lower() == "quadrupole":
             return self._write_csrtrack_quadrupole(n)
         else:
-            warn(
-                f"Element type {self.hardware_type} of {self.name} not supported by CSRTrack"
-            )
+            if self.verbose:
+                warn(
+                    f"Element type {self.hardware_type} of {self.name} not supported by CSRTrack"
+                )
             return ""
 
     def _write_astra_quadrupole(self, n: int = 0, **kwargs: dict) -> str:
@@ -388,6 +445,9 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         self.start_write()
         if "corrector" in self.hardware_type.lower():
             return ""
+        if self.hardware_type.lower() not in ("quadrupole", "sextupole", "octupole"):
+            warn(f"GPT has no {self.hardware_type}; {self.name!r} is not written.")
+            return ""
         # GPT "X" is minus Bmad's y_pitch, "Y" its x_pitch (GPT manual; not run)
         rotation = list(self.ccs.rotation)
         rotation[0] += self.dy_rot
@@ -402,6 +462,19 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         kn = self.magnetic.KnL() / length if length else self.magnetic.KnL()
         if self.hardware_type.lower() == "sextupole":
             kn = kn / 2
+        if self.hardware_type.lower() == "octupole":
+            aperture = self.aperture
+            bore = max(
+                (aperture.radius or 0, aperture.horizontal_size or 0, aperture.vertical_size or 0)
+                if aperture
+                else (0,)
+            )
+            b1 = min(GPT_HARD_EDGE_B1, np.pi / bore) if bore else GPT_HARD_EDGE_B1
+            octupole = charge_sign * Brho * kn / 6
+            return (
+                f'Bmultipole("{self.ccs.name}", {ccs_label}, {value_text}, {length!s}, '
+                f"0, 0, 0, 0, 0, 0, 0, 0, 0, {octupole!s}, 0, {b1!s});\n"
+            )
         output = f'{self.hardware_type.lower()!s}("{self.ccs.name}", {ccs_label}, {value_text}, {length!s}, {charge_sign * Brho * kn!s});\n'
         return output
 
@@ -873,6 +946,86 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         wholestring += ', FMAPFN = "1DPROFILE1-DEFAULT";\n'
         return wholestring
 
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+    ) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+        from ..utils.bdsim import magnet_frame_workaround
+
+        # always an sbend: BDSIM's rbend takes the chord length and measures e1/e2
+        # from the chord's normal, where LAURA's are sbend (MAD-X) values
+        obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        obj, keywords = magnet_frame_workaround(obj, keywords, integrator_set)
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+
+
+class DecapoleTranslator(MagnetTranslator):
+    """
+    Translator for a :class:`~laura.models.element.Decapole`.
+
+    Only exists to give MAD-X, which has no ``DECAPOLE`` element, a faithful
+    export: a thin ``MULTIPOLE`` carrying the integrated strengths in ``knl``
+    (or ``ksl`` when the magnet is skew). Every other code has a decapole of its
+    own and uses the inherited behaviour.
+    """
+
+    def to_madx(self, at: float = None) -> str:
+        """
+        Generates a MAD-X ``MULTIPOLE`` for this decapole.
+
+        MAD-X's ``MULTIPOLE`` is a thin lens: the physical length is carried by
+        ``lrad`` (used for the synchrotron-radiation calculation) rather than
+        ``l``. Strengths are the integrated ``KnL`` values, dipole through
+        decapole, so the decapole term lands in the fifth slot.
+
+        Parameters
+        ----------
+        at: float, optional
+            S-position at which to place the element inside a MAD-X ``SEQUENCE``;
+            see :meth:`~laura.translator.converters.base.BaseElementTranslator.to_madx`.
+
+        Returns
+        -------
+        str
+            String representation of the element for MAD-X
+        """
+        self.start_write()
+        string = sanitize_string(self.name) + ": multipole"
+        if self.magnetic.length:
+            string += f", lrad = {self.magnetic.length}"
+        strengths = [self.magnetic.KnL(order) for order in range(5)]
+        keyword = "ksl" if getattr(self.magnetic, "skew", False) else "knl"
+        string += f", {keyword} = {{{', '.join(str(v) for v in strengths)}}}"
+        if self.roll:
+            string += f", tilt = {self.roll}"
+        if at is not None:
+            string += f", at = {at}"
+        return string + ";\n"
+
 
 class SolenoidTranslator(BaseElementTranslator):
     """
@@ -1026,36 +1179,41 @@ class SolenoidTranslator(BaseElementTranslator):
             String representation of the element for ASTRA
         """
         field_ref_pos = self.get_field_reference_position()
-        field_file_name = self.generate_field_file_name(
-            self.simulation.field_definition, code="astra"
-        )
+        field_file_name = self.generate_field_file_name(self._field_map("astra"), code="astra")
         if not isinstance(field_file_name, str):
             raise NotImplementedError(
                 f"ASTRA solenoids require fieldmaps; see element {self.name}"
             )
+        hard_edge = self.simulation.field_definition is None and not getattr(
+            self.magnetic, "coil_radius", None
+        )
         return self._write_astra_dictionary(
             {
                 "S_pos": {"value": field_ref_pos[2] + self.dz, "default": 0},
                 "FILE_BFieLD": {"value": f"'{field_file_name}'", "default": ""},
                 "MaxB": {
-                    "value": self.magnetic.field_amplitude,
+                    "value": self._map_amplitude("astra"),
                     "default": 0,
                 },
-                "S_smooth": {"value": self.simulation.smooth, "default": 10},
+                # smoothing a generated (exact) map would only widen its edge
+                "S_smooth": {
+                    "value": 0 if self.simulation.field_definition is None else self.simulation.smooth,
+                    "default": 10,
+                },
                 "S_xoff": {"value": field_ref_pos[0] + self.dx, "default": 0},
                 "S_yoff": {"value": field_ref_pos[1] + self.dy, "default": 0},
                 "S_xrot": {"value": self._astra_rotation("x"), "default": 0},
                 "S_yrot": {"value": self._astra_rotation("y"), "default": 0},
+                # a hard edge is the linear limit; higher orders go as (r / R)^2
+                **({"S_higher_order": {"value": False}} if hard_edge else {}),
             },
             n,
         )
 
     def to_gpt(self, Brho: float = 0.0, *args, **kwargs) -> str:
         """
-        Write a string representation of the solenoid for GPT. Note that only solenoids with
-        field maps are currently supported.
-
-        # TODO include solenoids w/o field maps.
+        Write a string representation of the solenoid for GPT: its field map, or
+        without one a ``bzsolenoid`` (see :meth:`_gpt_bzsolenoid`).
 
         Parameters
         ----------
@@ -1068,6 +1226,8 @@ class SolenoidTranslator(BaseElementTranslator):
             String representation of the magnet for GPT.
         """
         self.start_write()
+        if self.simulation.field_definition is None:
+            return self._gpt_bzsolenoid()
         field_ref_pos = self.get_field_reference_position()
         field_file_name = self.generate_field_file_name(
             self.simulation.field_definition, code="gpt"
@@ -1098,6 +1258,30 @@ class SolenoidTranslator(BaseElementTranslator):
             )
         return output
 
+    def _gpt_bzsolenoid(self) -> str:
+        """
+        GPT's ``bzsolenoid``, a current sheet of radius :func:`solenoid_sheet_radius`. Its
+        on-axis field integral is ``mu0 nI L`` for any radius, so ``nI = S0L / (mu0 L)``.
+        """
+        length = self.magnetic.length
+        if not length:
+            raise NotImplementedError(f"GPT has no thin solenoid; see element {self.name}")
+        radius = solenoid_sheet_radius(self.magnetic, length, "gpt")
+        stands_for = "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        warn(
+            f"GPT: {self.name!r} has no field map: writing a bzsolenoid, the analytic field "
+            f"of a current sheet of radius {radius:.3g} m, for {stands_for}."
+        )
+        field = expand_substitution(self, self.get_field_amplitude / length)
+        n_i = field * vacuum_permittivity * speed_of_light**2  # B / mu0
+        ccs_label, value_text = self.ccs.ccs_text(
+            list(self.physical.middle.model_dump().values()), list(self.ccs.rotation)
+        )
+        return (
+            f'bzsolenoid("{self.ccs.name}", {ccs_label}, {value_text}, '
+            f"{radius!s}, {length!s}, {n_i!s});\n"
+        )
+
     def is_opalx(self) -> bool:
         """
         Whether :attr:`~opal_version` refers to OPAL-X rather than classic OPAL.
@@ -1109,6 +1293,56 @@ class SolenoidTranslator(BaseElementTranslator):
         if version.startswith("x") or "opalx" in version or "opal-x" in version:
             return True
         return not version.isdigit()
+
+    def _sheet_radius(self, code: str) -> float | None:
+        """None with a field map; else ``coil_radius``, at least ``code``'s
+        :data:`MAP_SOLENOID_RADIUS` of the length."""
+        if self.simulation.field_definition is not None:
+            return None
+        length = self.magnetic.length
+        if not length:
+            raise NotImplementedError(f"A thin solenoid has no field map; see element {self.name}")
+        return solenoid_sheet_radius(self.magnetic, length, code)
+
+    def _map_amplitude(self, code: str):
+        """The peak field to scale the map by: a current sheet's peak is ``L / hypot(L, 2R)``
+        of ``S0L / L``, so that its field integral is ``S0L``."""
+        radius = self._sheet_radius(code)
+        if radius is None:
+            return self.magnetic.field_amplitude
+        length = self.magnetic.length
+        return self.magnetic.field_amplitude * length / np.hypot(length, 2 * radius)
+
+    def _field_map(self, code: str) -> FieldMap:
+        """
+        ``simulation.field_definition``, or without one the on-axis field of a current
+        sheet of radius :meth:`_sheet_radius`, normalised to unit peak, on z from the field
+        reference position.
+        """
+        radius = self._sheet_radius(code)
+        if radius is None:
+            return self.simulation.field_definition
+        length = self.magnetic.length
+        stands_for = "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        warn(
+            f"{code.upper()} needs a field map and {self.name!r} has none: writing the analytic "
+            f"field of a current sheet of radius {radius:.3g} m, for {stands_for}."
+        )
+        half = length / 2 + 50 * radius
+        z = np.linspace(-half, half, int(np.ceil(8 * half / radius)) + 1)
+        bz = (z + length / 2) / np.hypot(z + length / 2, radius) - (z - length / 2) / np.hypot(
+            z - length / 2, radius
+        )
+        offset = self.physical.middle.z - self.get_field_reference_position()[2]
+        field = FieldMap()
+        field.length = len(z)
+        field.z = FieldParameter(name="z", value=UnitValue(z + offset, "m"))
+        field.Bz = FieldParameter(name="Bz", value=UnitValue(bz / bz.max(), "T"))
+        field.field_type = "1DMagnetoStatic"
+        field.fourier = int(4 * half / radius)  # OPAL rebuilds the map from these
+        field.filename = f"{self.name}_solenoid.hdf5"
+        field.read = True
+        return field
 
     def opal_ks(self, designenergy: float | None = None) -> float:
         """
@@ -1134,7 +1368,7 @@ class SolenoidTranslator(BaseElementTranslator):
         float
             Value to write for ``KS``
         """
-        field = self.magnetic.field_amplitude
+        field = self._map_amplitude("opal")
         if not self.is_opalx():
             return field
         if not designenergy:
@@ -1174,10 +1408,61 @@ class SolenoidTranslator(BaseElementTranslator):
             value = self.opal_ks(designenergy) if key == "ks" else self._flag(value)
             if value is not None:
                 wholestring += f", {key} = {value}"
-        if isinstance(self.simulation.field_definition, FieldMap):
-            wholestring += f', fmapfn = "{self.generate_field_file_name(self.simulation.field_definition, code="opal")}"'
+        field = self._field_map("opal")
+        if isinstance(field, FieldMap):
+            wholestring += f', fmapfn = "{self.generate_field_file_name(field, code="opal")}"'
+            sval += float(
+                np.linalg.norm(
+                    self.get_field_reference_position()
+                    - np.asarray(self.physical.start.array)
+                )
+            )
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
+
+    def to_bdsim(
+        self,
+        section_aperture: Dict | None = None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+        Brho: float = 0.0,
+    ) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        BDSIM's ``ks`` is normalised [1/m], so it needs the rigidity. (Its
+        ``B`` [T] alternative is mis-scaled in BDSIM 1.7.7, 1000 times too weak.)
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        integrator_set: str, optional
+                BDSIM ``integratorSet`` option; unused here.
+        Brho: float, optional
+                Magnetic rigidity [T*m] of the reference particle.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+
+        self.Brho = Brho or self.Brho
+        obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        if "ks" in keywords:
+            self._check_rigidity("BDSIM")
+            if self.Brho:
+                keywords["ks"] = self.magnetic.field_amplitude / self.Brho
+            else:
+                keywords.pop("ks")
+        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
 
 
 class WigglerTranslator(BaseElementTranslator):
@@ -1254,6 +1539,30 @@ class WigglerTranslator(BaseElementTranslator):
             terms.append(f"{key} = {self._flag(value)}")
         return f"{index}{self.name}: {etype} = {{{', '.join(terms)}}};\n"
 
+    def to_ocelot(self) -> object:
+        """
+        Ocelot ``Undulator``, with the period, number of periods and deflection
+        parameter set -- without them Ocelot tracks it as a drift, with none of
+        the undulator's natural focusing.
+
+        ``strength`` is the peak K: a planar undulator gets ``Kx = K``, a
+        helical one ``Kx = Ky = K`` (the reverse of the Ocelot importer).
+
+        Returns
+        -------
+        object
+            Ocelot element
+        """
+        obj = super().to_ocelot()
+        m = self.magnetic
+        strength = m.resolved("strength") if m.strength is not None else 0.0
+        if m.period:
+            obj.lperiod = float(m.period)
+            obj.nperiods = int(m.num_periods or round(float(m.length) / float(m.period)))
+        obj.Kx = float(strength)
+        obj.Ky = float(strength) if m.helical else 0.0
+        return obj
+
 
 class CorrectorTranslator(BaseElementTranslator):
     """
@@ -1294,6 +1603,14 @@ class CorrectorTranslator(BaseElementTranslator):
     def vangle(self) -> Union[float, str]:
         """Vertical kick angle [rad] (`magnetic.vertical_kick`)."""
         return self.magnetic.vertical_kick
+
+    def to_opal(self, sval: float, designenergy: float | None = None) -> str:
+        if self.physical.length:
+            return super().to_opal(sval, designenergy)
+        length = 10 * speed_of_light * self.opal_time_step
+        thin = self.model_copy(deep=True)
+        thin.physical.length = thin.magnetic.length = length
+        return BaseElementTranslator.to_opal(thin, sval - length / 2, designenergy)
 
     def to_ocelot(self) -> object:
         """

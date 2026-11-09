@@ -13,6 +13,7 @@ from warnings import warn
 
 from pydantic import BaseModel
 
+import laura.models.element as laura_elements
 from laura.models.element_list import (
     ElementList,
     MachineLayout,
@@ -39,6 +40,17 @@ def infer_geometry(section: SectionLattice) -> None:
     )
     if abs(abs(total) - 2 * math.pi) < CLOSED_ANGLE_TOLERANCE:
         section.geometry = "closed"
+
+
+def element_class(hardware_type: str) -> Optional[type]:
+    """The LAURA element class for ``hardware_type``, or None.
+
+    Read from ``ELEMENT_REGISTRY`` first: the underscored hardware types are
+    deprecated module aliases, which warn when fetched by attribute.
+    """
+    return laura_elements.ELEMENT_REGISTRY.get(hardware_type) or getattr(
+        laura_elements, hardware_type, None
+    )
 
 
 def section_entry(elements: list, section: Optional[SectionLattice] = None):

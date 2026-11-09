@@ -686,3 +686,14 @@ class PhysicalElement(_PhysicalElementBase):
     @property
     def end(self) -> Position:
         return self._face("end")
+
+
+class DriftPhysicalElement(PhysicalElement):
+    """
+    Physical info for a drift. Its length may be negative, purely so a sequence can step
+    back over overlapping elements (e.g. a solenoid around the end of a gun).
+    Only generated drifts use it; an authored :class:`~laura.models.element.Drift` keeps
+    ``length >= 0``, which sequential placement relies on.
+    """
+
+    length: float = Field(default=0, allow_inf_nan=False)
