@@ -1274,6 +1274,7 @@ class SectionLatticeTranslator(SectionLattice):
         """
         from ocelot.cpbd.elements import Aperture as OcelotAperture
         from ocelot.cpbd.elements import Drift as OcelotDrift
+        from ocelot.cpbd.elements import Matrix as OcelotMatrix
         from ocelot.cpbd.elements import Octupole, Undulator
         from ocelot.cpbd.magnetic_lattice import MagneticLattice
         from ocelot.cpbd.transformations.kick import KickTM
@@ -1310,16 +1311,26 @@ class SectionLatticeTranslator(SectionLattice):
                 if not isinstance(o, OcelotAperture):
                     o.dx, o.dy = d.dx, d.dy
                 o.tilt += roll
-            d._warn_dropped_misalignment("ocelot", {"dx", "dy"}, tilt=True)
+            d._warn_dropped_misalignment("ocelot", {"dx", "dy", "dx_rot", "dy_rot"}, tilt=True)
             if (d.dx or d.dy) and roll:
                 warn(f"OCELOT offsets {d.name!r} before rolling it, unlike LAURA.")
             if symbolic and objs:
                 objs[0].laura_functional_fields = functional_fields(d)
-            elements.extend(objs)
             oce_len = sum(getattr(o, "l", 0.0) or 0.0 for o in objs)
             gap = d.physical.length - oce_len
             if gap > 1e-9:
-                elements.append(OcelotDrift(l=gap, eid=f"{d.name}_len"))
+                objs.append(OcelotDrift(l=gap, eid=f"{d.name}_len"))
+            alignment = d.ocelot_alignment() if d.physical.length else None
+            if alignment is not None:
+                unit = {f"r{i}{i}": 1.0 for i in range(1, 7)}
+                objs = [
+                    OcelotMatrix(eid=f"{d.name}_align_in", **unit,
+                                 **{f"b{i}": float(v) for i, v in enumerate(alignment[0], 1)}),
+                    *objs,
+                    OcelotMatrix(eid=f"{d.name}_align_out", **unit,
+                                 **{f"b{i}": float(v) for i, v in enumerate(alignment[1], 1)}),
+                ]
+            elements.extend(objs)
 
         maglat = MagneticLattice(elements, method=method)
         if symbolic:

@@ -1906,6 +1906,31 @@ class BaseElementTranslator(PhysicalBaseElement):
         }
         return {key: float(value) for key, value in terms.items() if value}
 
+    def ocelot_alignment(self) -> tuple | None:
+        """
+        ``(B in, B out)``, the constant terms of the maps into and out of the
+        element's frame for its yaw and pitch, which OCELOT elements cannot take;
+        to first order, about the centre. None without either. The offsets and roll
+        go on the element itself.
+        """
+        if not (self.dx_rot or self.dy_rot):
+            return None
+        curved = self._curved
+        length = self.physical.length or 0.0
+        angle = float(self.resolve(self.magnetic.KnL(0))) if curved else 0.0
+        errors = {"dx_rot": self.dx_rot, "dy_rot": self.dy_rot}
+        ends = []
+        for s in (-length / 2, length / 2):
+            offset, rotation = to_frame(
+                errors,
+                *arc_point(length, angle, s),
+                tilt=self.roll - self.dz_rot if curved else 0.0,
+                rolled=False,
+                chord=sagitta(length, angle),
+            )
+            ends.append(np.array([offset[0], rotation[1], offset[1], -rotation[0], 0.0, 0.0]))
+        return -ends[0], ends[1]
+
     @property
     def _curved(self) -> bool:
         """A bend, whose ``tilt`` every code takes as a roll of the reference
