@@ -155,7 +155,7 @@ Example:
 
 .. code-block:: python
 
-    from laura.translator.converters.converter import translate_elements
+    from laura.translator import translate_elements
 
     translated = translate_elements(
         elements=element_list,
@@ -283,7 +283,7 @@ Example workflow:
 
 .. code-block:: python
 
-    from laura.translator.converters.section import SectionLatticeTranslator
+    from laura.translator import SectionLatticeTranslator
 
     # Create translator from existing section
     translator = SectionLatticeTranslator.from_section(section)
@@ -357,7 +357,7 @@ The returned string is plain MAD-X input, intended to be passed directly to
 .. code-block:: python
 
     from cpymad.madx import Madx
-    from laura.translator.converters.section import SectionLatticeTranslator
+    from laura.translator import SectionLatticeTranslator
 
     translator = SectionLatticeTranslator.from_section(section)
     sequence_string = translator.to_madx(
@@ -450,7 +450,7 @@ silently produces zero transmission.
 
 .. code-block:: python
 
-    from laura.translator.converters.section import SectionLatticeTranslator
+    from laura.translator import SectionLatticeTranslator
 
     translator = SectionLatticeTranslator.from_section(section)
     translator.directory = "./simulations"
@@ -568,7 +568,7 @@ Example usage:
 
 .. code-block:: python
 
-    from laura.translator.converters.layout import MachineLayoutTranslator
+    from laura.translator import MachineLayoutTranslator
 
     # Create translator from existing layout
     translator = MachineLayoutTranslator.from_layout(machine_layout)
@@ -643,7 +643,7 @@ Example workflow:
 .. code-block:: python
 
 
-    from laura.translator.converters.model import MachineModelTranslator
+    from laura.translator import MachineModelTranslator
 
     # Create translator from machine model
     translator = MachineModelTranslator.from_machine(machine_model)

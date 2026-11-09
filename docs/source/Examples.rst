@@ -19,7 +19,7 @@ The simplest LAURA element requires only basic identification properties:
 
 .. code-block:: python
 
-    from laura.models.element import BaseElement
+    from laura.models import BaseElement
 
     # Create a basic element
     element = BaseElement(
@@ -39,7 +39,7 @@ Elements with physical properties include position and dimensions:
 
 .. code-block:: python
 
-    from laura.models.element import PhysicalBaseElement
+    from laura.models import PhysicalBaseElement
     from laura.models.physical import PhysicalElement, Position
 
     # Create element with physical properties
@@ -66,7 +66,7 @@ Full element definitions include electrical, manufacturer, and simulation proper
 
 .. code-block:: python
 
-    from laura.models.element import Element
+    from laura.models import Element
     from laura.models.electrical import ElectricalElement
     from laura.models.manufacturer import ManufacturerElement
     from laura.models.simulation import SimulationElement
@@ -181,7 +181,7 @@ This can then be loaded in as a :mod:`LAURA` object:
 
 .. code-block:: python
 
-  from laura.importers.yaml_loader import interpret_yaml_element, read_yaml_element_file
+  from laura.importers import interpret_yaml_element, read_yaml_element_file
 
   filename = "INJ-MAG-DIP-01.yaml"
 
@@ -208,8 +208,7 @@ Sections group elements into ordered sequences:
 
 .. code-block:: python
 
-    from laura.models.element_list import SectionLattice, ElementList
-    from laura.models.element import PhysicalBaseElement
+    from laura.models import SectionLattice, ElementList, PhysicalBaseElement
     from copy import deepcopy
 
     # Create elements for a section
@@ -305,7 +304,7 @@ Layouts combine multiple sections into beam paths:
 
 .. code-block:: python
 
-    from laura.models.element_list import MachineLayout
+    from laura.models import MachineLayout
 
     # Create another section
     linac_section = SectionLattice(
@@ -366,8 +365,7 @@ The complete machine model manages all elements, sections, and layouts:
 
 .. code-block:: python
 
-    from laura.models.element_list import MachineModel
-    from laura.models.element import PhysicalBaseElement
+    from laura.models import MachineModel, PhysicalBaseElement
 
     def element(name, hardware_class, hardware_type, machine_area, z, length):
         return PhysicalBaseElement(
@@ -537,7 +535,7 @@ Alongside the beam path, every element can declare what it is wired to. ``inputs
 
 .. code-block:: python
 
-    from laura.models.element import PowerSupply, Quadrupole
+    from laura.models import PowerSupply, Quadrupole
 
     psu = PowerSupply(
         name="INJ_QUAD_01_PSU",

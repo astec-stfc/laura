@@ -72,7 +72,7 @@ summary file:
 
 .. code-block:: python
 
-    from laura.exporters.yaml_exporter import (
+    from laura.exporters import (
         export_machine, export_machine_combined_file, export_as_yaml,
     )
 
@@ -168,7 +168,8 @@ SQL
 :py:mod:`laura.exporters.sql_exporter` persists a machine to any SQLAlchemy-supported database, using
 the ORM generated from the same schema (``laura/schema/generated/laura_orm.py``). Tables are
 created if absent, and each export is a separate snapshot identified by an integer ID.
-Requires ``pip install "laura-accelerator[sql]"``.
+Requires ``pip install "laura-accelerator[sql]"``. Its ``export_machine`` is also available as
+``laura.exporters.export_machine_sql``, since ``laura.exporters.export_machine`` is the YAML one.
 
 .. code-block:: python
 
