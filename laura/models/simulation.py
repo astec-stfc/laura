@@ -79,21 +79,76 @@ class PlasmaSimulationElement(_PlasmaSimulationElementBase):
     Plasma simulation element model.
     """
 
+    _GRID_ATTRS: ClassVar[list[str]] = [
+        "r_max",
+        "n_longitudinal",
+        "n_radial",
+        "min_longitudinal_position",
+        "max_longitudinal_position",
+        "dz_fields",
+        "laser_evolution",
+        "laser_envelope_substeps",
+        "laser_envelope_n_longitudinal",
+        "laser_envelope_n_radial",
+        "laser_envelope_use_phase",
+    ]
+
     required_attrs: ClassVar[dict[str, list[str]]] = {
         "common": [
             "length",
+            "bunch_pusher",
+            "dt_bunch",
+            "n_out",
         ],
-        "quasistatic_2d": [
-            "density",
-            "r_max",
-            "n_longitudinal",
-            "n_radial",
-            "min_longitudinal_position",
-            "max_longitudinal_position",
-        ],
+        # Analytic models: the density (and laser, if any) is all they need.
+        "simple_blowout": [],
+        "focusing_blowout": [],
+        "cold_fluid_1d": _GRID_ATTRS,
+        "quasistatic_2d": _GRID_ATTRS + ["r_max_plasma", "particles_per_radial_cell"],
+        "quasistatic_2d_ion": _GRID_ATTRS + ["r_max_plasma", "particles_per_radial_cell"],
     }
+    """Attributes passed to each Wake-T wakefield model, beyond the density,
+    which is passed as a function wherever it is not uniform. The parabolic
+    channel goes in that function rather than through Wake-T's deprecated
+    ``parabolic_coefficient``, so it is applied once and the same way as in
+    FBPIC."""
 
-    pass
+    @property
+    def p_zmin(self) -> float:
+        """Start of the plasma column, defaulting to the box lower edge."""
+        if self.plasma_min_longitudinal_position is None:
+            return self.min_longitudinal_position
+        return self.plasma_min_longitudinal_position
+
+    @property
+    def p_zmax(self) -> float:
+        """End of the plasma column, defaulting to the box upper edge."""
+        if self.plasma_max_longitudinal_position is None:
+            return self.max_longitudinal_position
+        return self.plasma_max_longitudinal_position
+
+    @property
+    def p_rmax(self) -> float:
+        """Radial extent of the plasma column, defaulting to the box radius."""
+        if self.r_max_plasma is None:
+            return self.r_max
+        return self.r_max_plasma
+
+    @property
+    def p_rmax_ionizable(self) -> float:
+        """Radial extent of the ionizable species, defaulting to that of the
+        plasma column."""
+        if self.r_max_ionizable is None:
+            return self.p_rmax
+        return self.r_max_ionizable
+
+    @property
+    def p_rmin(self) -> float:
+        """Inner radius of the plasma column, zero (a filled column) unless a
+        hollow channel is asked for."""
+        if self.r_min_plasma is None:
+            return 0.0
+        return self.r_min_plasma
 
 
 class RFCavitySimulationElement(_RFCavitySimulationElementBase, FunctionalMixin):

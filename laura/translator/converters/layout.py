@@ -403,6 +403,7 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         *,
         space_charge_n_bin: int | None = None,
         initial_twiss: Any = None,
+        reference_energy: float | None = None,
     ) -> str:
         """
         Create one Bmad lattice file for this whole beam path, with a multipass
@@ -422,6 +423,9 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
             Optional positive number of Bmad space-charge bins.
         initial_twiss: TwissMatchSimulationElement | None
             Beginning Twiss parameters.
+        reference_energy: float | None
+            Total energy at the start [eV], written as ``beginning[e_tot]``;
+            the first section's own ``reference_energy`` if not given.
 
         Returns
         -------
@@ -469,7 +473,9 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
                 geometry,
                 particle=self.particle or particle,
                 space_charge_n_bin=space_charge_n_bin,
-                reference_energy=first.reference_energy,
+                reference_energy=(
+                    reference_energy if reference_energy is not None else first.reference_energy
+                ),
                 initial_twiss=(
                     initial_twiss
                     if initial_twiss is not None

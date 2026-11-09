@@ -20,6 +20,17 @@ def opal_tw_window(field, frequency: float) -> tuple[float, float]:
     period = speed_of_light / frequency
     return field.start_cell_z - period / 2, field.start_cell_z + 3 * period / 2
 
+def opal_tw_window(field, frequency: float) -> tuple[float, float]:
+    """
+    The stretch of an ASTRA-style travelling-wave map that OPAL's ``TRAVELINGWAVE``
+    reads: two RF periods, the first full period starting at ``start_cell_z``.
+    OPAL takes the period as half the map's length and the core as starting half a
+    period in, so a map with longer couplers gets the wrong cell length.
+    """
+    period = speed_of_light / frequency
+    return field.start_cell_z - period / 2, field.start_cell_z + 3 * period / 2
+
+
 def write_opal_field_file(
     self,
     frequency: float = None,
@@ -41,7 +52,7 @@ def write_opal_field_file(
     frequency: float | None
         The frequency of the field
     radius: float | None
-        The radius of the field, for 1D axially symmetric fields; defaults to 0.1
+        Radial extent of the map [m], for 1D axially symmetric fields; defaults to 0.1
     fourier: int = 100
         Number of fourier coefficients
     orientation: str | None
@@ -57,8 +68,6 @@ def write_opal_field_file(
     ------
     Warning:
         if too many or not enough fourier components are provided; will default to 1/100
-    Warning:
-        if the magnet radius is not provided; will default to 0.1
     Warning:
         if the RF frequency, radius or orientation is not provided for
         `1DElectroDynamic` or `2DElectrodynamic`, return None
@@ -85,7 +94,6 @@ def write_opal_field_file(
         data = self.Bz.value.val
         head = ["1DMagnetoStatic", str(fourier)]
         if radius is None:
-            warn("Magnet radius not provided; defaulting to 10cm")
             radius = 0.1
         zvals = [str(zmin), str(zmax), str(length - 1)]
         rvals = [str(0), str(radius * 100), fourier]
@@ -100,9 +108,11 @@ def write_opal_field_file(
         ezdata = np.asarray(self.Ez.value.val)
         if self.start_cell_z is not None:
             lo, hi = opal_tw_window(self, frequency)
-            if lo < zdata.min() - 1e-9 or hi > zdata.max() + 1e-9:
-                raise ValueError(f"TW map spans {zdata.min()}-{zdata.max()} m, OPAL needs {lo}-{hi} m")
             dz = (zdata.max() - zdata.min()) / (len(zdata) - 1)
+            # a map that stops a fraction of a sample short of the window (JFEL's, by 0.5 mm of a 2 mm step) is held at
+            # its end values; one that is further short has no field where OPAL reads one
+            if lo < zdata.min() - dz or hi > zdata.max() + dz:
+                raise ValueError(f"TW map spans {zdata.min()}-{zdata.max()} m, OPAL needs {lo}-{hi} m")
             znew = np.linspace(lo, hi, int(round((hi - lo) / dz)) + 1)
             zdata, ezdata = znew - lo, np.interp(znew, zdata, ezdata)
         data = np.transpose([zdata, ezdata])

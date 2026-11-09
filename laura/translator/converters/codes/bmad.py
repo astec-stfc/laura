@@ -163,6 +163,7 @@ bmad_unsupported = [
     "NonLinearLens",
     "PID",
     "Plasma",
+    "PlasmaLens",
     "PowerSupply",
     "RFHeartbeat",
     "RFModulator",
@@ -170,6 +171,8 @@ bmad_unsupported = [
     "RFProtection",
     "Shutter",
     "Stage",
+    "Target",
+    "Crystal",
     "VacuumGauge",
     "Valve",
     "Wire",
@@ -1896,6 +1899,12 @@ class BmadLatticeImporter(LatticeImporter):
                 "along the beam line."
             )
             return None
+        if e.etype == "Pipe" and e.parameters.get("_WAKE") and e.length > 0.0:
+            return {
+                "hardware_type": "Wakefield",
+                "hardware_class": "Wakefield",
+                "cavity": {"n_cells": 1, "cell_length": e.length},
+            }
         return {"hardware_type": "Drift", "hardware_class": "Drift"}
 
     def _reference_energy(self, universe: int, branch: str) -> float | None:

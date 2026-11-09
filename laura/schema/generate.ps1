@@ -39,6 +39,11 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "Generating JSON Schema..." -ForegroundColor Cyan
 gen-json-schema $SCHEMA --indent 2 | Set-Content "$OUT_DIR/laura_element.schema.json" -Encoding ascii
+# gen-json-schema emits the slot's own range as a sibling "type" next to the
+# "anyOf" it generates for an any_of slot, and JSON Schema ANDs siblings -- so
+# every branch except the one matching that type is dead. See
+# postprocess_json_schema.py.
+python "laura/schema/postprocess_json_schema.py" "$OUT_DIR/laura_element.schema.json"
 
 Write-Host "Generating OWL ontology..." -ForegroundColor Cyan
 gen-owl $SCHEMA `

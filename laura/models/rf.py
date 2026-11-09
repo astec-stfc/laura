@@ -187,7 +187,7 @@ class LowLevelRFElement(DeprecatedMethodAliases, _LowLevelRFElementBase, IgnoreE
     }
     # one_record remains dynamic because CATAP payload keys depend on
     # available cavity/channel combinations at runtime.
-    one_record: LLRFChannelsBase
+    one_record: LLRFChannelsBase = Field(default_factory=LLRFChannelsBase)
 
     @staticmethod
     def _create_llrf_channels_model(fields: dict):

@@ -66,9 +66,9 @@ def test_opal_quadrupole_k1_is_a_gradient():
     assert float(re.search(r"k1 = ([^,]+)", written).group(1)) == pytest.approx(-10.0)
 
 
-def test_opal_correctors_are_kickers_and_thin_ones_last_one_time_step():
-    """OPAL's hkicker/vkicker don't take hkick/vkick, and it rejects a corrector
-    shorter than one time step; both aborted the run."""
+def test_opal_correctors_are_kickers_and_thin_ones_last_ten_time_steps():
+    """OPAL's hkicker/vkicker don't take hkick/vkick, and it rejects an element
+    shorter than ten time steps of drift; both aborted the run."""
     def corrector(length):
         return translate(
             HorizontalCorrector(name="X", machine_area="S", physical={"length": length},
@@ -78,7 +78,7 @@ def test_opal_correctors_are_kickers_and_thin_ones_last_one_time_step():
     thin = corrector(0.0)
     thin.opal_time_step = 2e-12
     written = thin.to_opal(sval=1.0)
-    step = 299792458.0 * 2e-12
+    step = 10 * 299792458.0 * 2e-12
     assert float(re.search(r"\bl = ([^,]+)", written).group(1)) == pytest.approx(step)
     assert float(re.search(r"ELEMEDGE = ([^;]+)", written).group(1)) == pytest.approx(1.0 - step / 2)
     assert "hkick = 0.001" in written
@@ -106,6 +106,30 @@ def test_opal_solenoid_map_starts_at_its_field_reference(tmp_path, monkeypatch):
     assert float(re.search(r"ELEMEDGE = ([^;]+)", written).group(1)) == pytest.approx(1.1)
 
 
+@pytest.mark.parametrize("reference", [None, "middle", "end"])
+def test_a_solenoid_without_a_map_gets_a_current_sheet(tmp_path, monkeypatch, reference):
+    """OPAL stopped on a solenoid without FMAPFN ("No field map file specified", laura#53)
+    and ASTRA's writer raised; both now get the map of a thin current sheet, which
+    tracked a hard-edge solenoid to 0.2% of the beam size in ASTRA and OPAL."""
+    monkeypatch.chdir(tmp_path)
+    element = Solenoid(name="SOL", machine_area="S", physical={"length": 0.2, "middle": [0, 0, 1.0]},
+                       magnetic={"length": 0.2, "fields": {"S0L": 0.15}},
+                       simulation={"field_reference_position": reference})
+    solenoid = translate(element)
+    solenoid.directory = str(tmp_path)
+    offset = 1.0 - solenoid.get_field_reference_position()[2]
+    for code in ("astra", "opal"):
+        with pytest.warns(UserWarning, match=f"{code.upper()} needs a field map and 'SOL' has none"):
+            field = solenoid._field_map(code)
+        z, bz = field.z.value.val, field.Bz.value.val
+        assert z[np.argmax(bz)] == pytest.approx(offset, abs=1e-3)  # centred on the middle
+        # scaled to the sheet's peak, the field integral is S0L
+        assert np.trapezoid(bz, z) * solenoid._map_amplitude(code) == pytest.approx(0.15, rel=1e-4)
+    assert 'fmapfn = "SOL_solenoid.opal"' in solenoid.to_opal(sval=0.9, designenergy=100.0)
+    assert "FILE_BFieLD(1) = 'SOL_solenoid.astra'" in solenoid.to_astra(n=1)
+    assert (tmp_path / "SOL_solenoid.opal").exists() and (tmp_path / "SOL_solenoid.astra").exists()
+
+
 def test_opal_tw_map_is_the_two_periods_opal_reads(tmp_path, monkeypatch):
     """OPAL takes the period as half the map, so ASTRA's longer couplers gave the wrong cells."""
     monkeypatch.chdir(tmp_path)
@@ -116,6 +140,23 @@ def test_opal_tw_map_is_the_two_periods_opal_reads(tmp_path, monkeypatch):
     assert z[0] == 0.0  # OPAL refuses anything else
     assert z[-1] == pytest.approx(2 * WAVELENGTH)
     assert opal_tw_window(field, FREQUENCY)[0] == pytest.approx(0.08 - WAVELENGTH / 2)
+
+
+@pytest.mark.parametrize("short, accepted", [(0.0005, True), (0.02, False)])
+def test_opal_tw_map_short_of_the_window_by_under_a_step_is_held_not_refused(tmp_path, monkeypatch, short, accepted):
+    """JFEL's TW map is 0.5 mm short of the window at each end, under its 2 mm sample step: the exporter refused it."""
+    monkeypatch.chdir(tmp_path)
+    lo, hi = opal_tw_window(_rf_map(np.linspace(0, 0.3, 3001), np.ones(3001), start_cell_z=0.08), FREQUENCY)
+    z = np.arange(lo + short, hi - short, 0.002)
+    field = _rf_map(z, np.ones(len(z)), start_cell_z=0.08)
+    field.filename = "tw.hdf5"
+    if accepted:
+        lines = open(field.write_field_file(code="opal")).read().split("\n")
+        zs = [float(line.split()[0]) for line in lines[2:] if line.strip()]
+        assert zs[0] == 0.0 and zs[-1] == pytest.approx(2 * WAVELENGTH, abs=0.002)
+    else:
+        with pytest.raises(ValueError, match="TW map spans"):
+            field.write_field_file(code="opal")
 
 
 def test_opal_drops_a_cavity_with_no_field(tmp_path, monkeypatch):

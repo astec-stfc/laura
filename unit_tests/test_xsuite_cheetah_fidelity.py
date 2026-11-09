@@ -100,6 +100,17 @@ def test_xsuite_cavity_without_reference_warns_and_has_no_edges():
     assert any("without edge focusing" in str(w.message) for w in caught)
 
 
+def test_xsuite_cavity_that_holds_the_reference_has_no_edges():
+    """A ring's fixed reference has no gain for the edges to follow: with them SIMBA's one-turn map had det != 1."""
+    cavity = _cavity()
+    cavity.simulation.change_p0 = 0
+    ref = xt.Particles(p0c=[100e6], mass0=ME)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        line = _section([cavity]).to_xsuite(beam_length=1, particle_ref=ref, save=False)
+    assert line.element_names == ["C"]
+
+
 @pytest.mark.parametrize("method", [None, "second_order"])
 def test_cheetah_tracking_method_is_written(method):
     """"auto" writes linear, for choose_cheetah_tracking_method to raise."""

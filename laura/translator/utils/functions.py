@@ -1,17 +1,55 @@
 import math
-import re
 import os
+import re
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    get_args,
+    get_origin,
+)
 
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
-from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.models.base_models import IgnoreExtra
 from laura.models.constants import speed_of_light
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, get_args, get_origin
-from .fields import FieldMap
+from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.utils.naming import number_repeated_names  # noqa: F401 (re-exported)
+
+from .fields import FieldMap
+
+SPACE_CHARGE_OFF = ("", "false", "none", "off", "0", "no")
+"""``space_charge_mode`` spellings, lower-cased, that mean no space charge."""
+
+
+def space_charge_dimension(mode: Any) -> str:
+    """
+    ``space_charge_mode`` as ``"2d"``, ``"3d"``, or ``""`` for off, the same for every code.
+    Off is ``None``, ``False`` or any of :data:`SPACE_CHARGE_OFF`, in any case.
+
+    Raises
+    ------
+    ValueError
+        For anything else, rather than guessing at a solver.
+    """
+    if mode is None or mode is False:
+        return ""
+    text = str(mode).strip().lower()
+    if text in SPACE_CHARGE_OFF:
+        return ""
+    if text in ("2d", "3d"):
+        return text
+    raise ValueError(
+        f"space_charge_mode {mode!r} is not one of '2d', '3d' or off "
+        f"(False, None, {', '.join(repr(s) for s in SPACE_CHARGE_OFF[1:])})"
+    )
 
 
 def same_element_placement(left: Any, right: Any) -> bool:
@@ -132,9 +170,7 @@ def elegant_functional_definitions(definitions: Dict | None = None) -> str:
         # Resolution mode: values are baked in as numbers, so no rpn store needed.
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
-    return "".join(
-        f"% {value} sto {name}\n" for name, value in definitions.items()
-    )
+    return "".join(f"% {value} sto {name}\n" for name, value in definitions.items())
 
 
 def madx_functional_definitions(definitions: Dict | None = None) -> str:
@@ -167,6 +203,7 @@ def madx_functional_definitions(definitions: Dict | None = None) -> str:
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
     return "".join(f"{name} = {value};\n" for name, value in definitions.items())
+
 
 def bmad_functional_definitions(definitions: Dict | None = None) -> str:
     """Build Bmad variable assignments for symbolic lattice parameters."""
@@ -206,6 +243,38 @@ def apply_functional_fields(data: Dict, fields: Dict[str, str]) -> None:
         for key in parents:
             target = target.setdefault(key, {})
         target[leaf] = symbol
+def bdsim_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the gmad variable-declaration block assigning every functional
+    definition for the lattice, e.g.::
+
+        quad1_k1l = -2;
+        cav1_phase = 90;
+
+    The syntax matches MAD-X's, but gmad has no deferred-assignment operator:
+    expressions such as ``k1=quad1_k1l/0.1`` are evaluated when BDSIM parses
+    the file, so this block must be included *before* the component
+    definitions. :meth:`SectionLatticeTranslator.to_bdsim
+    <laura.translator.converters.section.SectionLatticeTranslator.to_bdsim>`
+    writes it to ``<section>_variables.gmad``.
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        A ``<name> = <value>;`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no header needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(f"{name} = {value};\n" for name, value in definitions.items())
 
 
 def sanitize_string(string: str) -> str:
@@ -298,7 +367,11 @@ def _unwrap_optional_basemodel(annotation: Any) -> Optional[Type[BaseModel]]:
     """Return ``X`` if ``annotation`` is ``Optional[X]`` for a BaseModel ``X``, else ``None``."""
     if get_origin(annotation) is Union:
         non_none = [a for a in get_args(annotation) if a is not type(None)]
-        if len(non_none) == 1 and isinstance(non_none[0], type) and issubclass(non_none[0], BaseModel):
+        if (
+            len(non_none) == 1
+            and isinstance(non_none[0], type)
+            and issubclass(non_none[0], BaseModel)
+        ):
             return non_none[0]
     return None
 
@@ -350,7 +423,9 @@ def introspect_model_defaults(
                     inner_cls,
                     flatten=flatten,
                     parent_key=(
-                        f"{parent_key}{separator}{field_name}" if parent_key else field_name
+                        f"{parent_key}{separator}{field_name}"
+                        if parent_key
+                        else field_name
                     ),
                     separator=separator,
                     resolve_optional=resolve_optional,

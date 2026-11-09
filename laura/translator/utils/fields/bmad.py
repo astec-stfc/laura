@@ -159,7 +159,8 @@ def write_bmad_field_file(
         Harmonic index for generalized-gradient
     cell_length: float | None
         Length of the element a wake is on, per cell. With it, wakes are written per
-        metre of their ``reference_length`` (or of ``cell_length``); without it, whole
+        metre of their ``reference_length`` (or of ``cell_length``) with
+        ``scale_with_length = T``; without it, or for a thin element, whole.
 
     Returns
     -------

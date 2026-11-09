@@ -105,6 +105,12 @@ def test_a_per_pass_phase_becomes_phi0_multipass(lattice):
     assert "CAV_01\\2[phi0_multipass] = -0.5\n" in lattice
 
 
+def test_a_given_reference_energy_starts_the_lattice(erl):
+    with quiet():
+        lattice = erl.to_bmad_multipass("electron", reference_energy=10e6)
+    assert lattice.count("beginning[e_tot] = 10000000.0\n") == 1
+
+
 def test_pass_one_carries_no_settings_of_its_own(lattice):
     assert "CAV_01\\1[" not in lattice
 

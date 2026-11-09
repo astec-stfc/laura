@@ -868,6 +868,17 @@ def _schema_dir(base_dir: str | None, schema_ref: str, elem: dict) -> str | None
     return nested if os.path.exists(os.path.join(nested, schema_ref)) else base_dir
 
 
+@functools.lru_cache(maxsize=None)
+def _hardware_type_aliases() -> dict:
+    """Map a ``hardware_type`` serialization alias (e.g. ``BPM``) to its value."""
+    aliases = {}
+    for hardware_type, cls in ELEMENT_REGISTRY.items():
+        alias = getattr(cls.model_fields.get("hardware_type"), "alias", None)
+        if alias and alias != "hardware_type":
+            aliases[alias] = hardware_type
+    return aliases
+
+
 def interpret_yaml_element(
     elem: dict,
     exclude_set=None,
@@ -884,7 +895,9 @@ def interpret_yaml_element(
     is appended to ``errors`` as an :class:`ElementLoadError`; when
     ``strict`` the error is raised.
     """
-    hw_type = elem.get("hardware_type")
+    hw_type = elem.get("hardware_type") or next(
+        (t for a, t in _hardware_type_aliases().items() if a in elem), None
+    )
     if not hw_type:
         name = elem.get("name", "<unknown>")
         _log.warning("Skipping element '%s': no hardware_type field", name)

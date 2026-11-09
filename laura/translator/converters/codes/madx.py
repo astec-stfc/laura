@@ -28,6 +28,24 @@ from .importer import (
     twiss_simulation,
 )
 
+madx_unsupported = [
+    "CombinedSolenoidQuadrupole",
+    "LaserAttenuator",
+    "LaserEnergyMeter",
+    "LaserHalfWavePlate",
+    "LaserMirror",
+    "Lighting",
+    "Low_Level_RF",
+    "PID",
+    "PowerSupply",
+    "RFHeartbeat",
+    "RFModulator",
+    "RFProtection",
+    "Stage",
+    "VacuumGauge",
+]
+
+
 _STRENGTH_KEYS = ("k0", "k1", "k2", "k3", "k1s", "k2s", "k3s", "ks")
 
 _RAW_KEYS = _STRENGTH_KEYS + ("angle", "l", "kick", "hkick", "vkick")

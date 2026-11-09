@@ -1,6 +1,7 @@
 """ImpactX import: LAURA's own export reads back to the same export, and
 native ImpactX lattices and inputs files read as their users write them."""
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -21,7 +22,20 @@ from unit_tests.helpers import quiet
 from unit_tests.test_impactx_translator import LINE, bend, impactx_track, section
 
 E = 250e6  # total energy [eV]
-FODO = Path.home() / "Documents/impactx/examples/fodo/input_fodo.in"
+
+
+def _impactx_examples() -> Path:
+    """ImpactX's examples directory: $IMPACTX_EXAMPLES, else the first of the
+    usual checkout locations that exists."""
+    if os.environ.get("IMPACTX_EXAMPLES"):
+        return Path(os.environ["IMPACTX_EXAMPLES"])
+    for candidate in (Path.home() / "impactx/examples", Path.home() / "Documents/impactx/examples"):
+        if candidate.is_dir():
+            return candidate
+    return Path.home() / "impactx/examples"
+
+
+FODO = _impactx_examples() / "fodo/input_fodo.in"
 
 ELEMENTS = [
     *(e.model_copy(deep=True) for e in LINE),  # placing them would move LINE's
@@ -92,7 +106,20 @@ def test_export_reads_back_to_the_same_export(model):
         again = imported(dicts, name="line", energy=E).to_impactx(model=model, energy=E)
     assert [d["type"] for d in again] == [d["type"] for d in dicts]
     for before, after in zip(dicts, again):
-        assert after == pytest.approx(before, abs=1e-12), before["name"]
+        assert after.keys() == before.keys(), before["name"]
+        for key, value in before.items():  # pytest>=9.1 approx rejects nested lists in a dict
+            value = np.asarray(value) if isinstance(value, list) else value
+            assert after[key] == pytest.approx(value, abs=1e-12), (before["name"], key)
+
+
+def test_a_gradient_bend_keeps_its_cartesian_sextupole():
+    with quiet():
+        dicts = section(bend(k1l=0.3, k2l=1.0)).to_impactx(model="exact", energy=E)
+    (body,) = [d for d in dicts if d["type"] == "ExactCFbend"]
+    assert body["k_normal"][2] == pytest.approx(1.0 + 0.3 * 0.2)  # k2 + k1 / rc
+    (b,) = ImpactXLatticeImporter(lattice=dicts, energy=E).create_laura_element_dictionary().values()
+    m = b.magnetic.multipoles
+    assert (m.K0L.normal, m.K1L.normal, m.K2L.normal) == pytest.approx((0.2, 0.3, 1.0))
 
 
 def test_native_edges_merge_into_their_bend_and_names_repeat():
@@ -142,6 +169,7 @@ def test_reads_an_inputs_file():
     assert sum(name.startswith("monitor") for name in elements) == 6
 
 
+@pytest.mark.skipif(not FODO.is_file(), reason="needs the ImpactX examples")
 def test_an_inputs_file_includes_files_beside_it_and_leaves_diags_alone(tmp_path):
     pytest.importorskip("impactx")
     (tmp_path / "input_fodo.in").write_text(FODO.read_text())
@@ -156,3 +184,12 @@ def test_an_inputs_file_includes_files_beside_it_and_leaves_diags_alone(tmp_path
         "main.in",
     ]
     assert (tmp_path / "diags" / "keep").exists()
+
+
+def test_a_soft_hwang_lee_edge_stays_hwang_lee():
+    edge = {"type": "DipEdge", "name": "e", "psi": 0.1, "rc": 5.0, "g": 0.03}
+    edge.update(K2=0.5, model="nonlinear_hwang_lee")
+    sbend = {"type": "Sbend", "name": "sb", "ds": 1.0, "rc": 5.0}
+    with quiet():
+        out = imported([edge, sbend, edge], name="line", energy=E).to_impactx(energy=E)
+    assert {d["model"] for d in out if d["type"] == "DipEdge"} == {"nonlinear_hwang_lee"}

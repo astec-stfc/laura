@@ -4,7 +4,7 @@ title: LAURA Machine Model Chunk
 description: >-
   Section, layout and whole-machine container classes.
 version: "0.1.0"
-license: Apache Software License 2.0
+license: GPL-3.0-or-later
 
 prefixes:
   linkml: https://w3id.org/linkml/
@@ -42,6 +42,12 @@ enums:
         description: >-
           Recirculating machine such as a storage ring, for which closed
           orbits and periodic Twiss parameters are computed.
+  BeampipeShapeEnum:
+    description: Cross-sectional shape of a beam-pipe aperture.
+    permissible_values:
+      circular:    {}
+      rectangular: {}
+      elliptical:  {}
 
 classes:
 
@@ -139,6 +145,21 @@ classes:
         multivalued: true
         range: string
         description: Ordered list of element names in this section.
+      beampipe_aperture_type:
+        range: BeampipeShapeEnum
+        description: Cross-sectional beam pipe aperture shape.
+      beampipe_size:
+        range: float
+        any_of:
+          - range: float
+          - range: float
+            multivalued: true
+        description: >-
+          Size of beam pipe [m]. A single value for a circular aperture, or two
+          values (horizontal, vertical) for a rectangular or elliptical one.
+      beampipe_material:
+        range: string
+        description: Beam pipe material
 
   LayoutPass:
     description: >-
@@ -230,3 +251,18 @@ classes:
         inlined: true
         range: MachineLayout
         description: All named beamline layouts.
+      beampipe_aperture_type:
+        range: BeampipeShapeEnum
+        description: Cross-sectional beam pipe aperture shape.
+      beampipe_size:
+        range: float
+        any_of:
+          - range: float
+          - range: float
+            multivalued: true
+        description: >-
+          Size of beam pipe [m]. A single value for a circular aperture, or two
+          values (horizontal, vertical) for a rectangular or elliptical one.
+      beampipe_material:
+        range: string
+        description: Beam pipe material

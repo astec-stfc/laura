@@ -192,6 +192,7 @@ gcloud-auth-config.json
 ANALYSIS.md
 REFACTORING_PLAN.md
 CLAUDE.md
+AGENTS.md
 .agents/
 .claude/
 .codex/

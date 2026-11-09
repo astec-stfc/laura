@@ -58,6 +58,18 @@ class ContainerTranslator:
     def to_cheetah(self, save: bool = False, Brho: float = 0.0) -> Dict[str, Any]:
         return self._fan_out("to_cheetah", save=save, Brho=Brho)
 
+    def to_bdsim(
+        self,
+        save: bool = False,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+        Brho: float = 0.0,
+    ) -> Dict[str, Any]:
+        return self._fan_out(
+            "to_bdsim", save=save, charge_sign=charge_sign,
+            integrator_set=integrator_set, Brho=Brho,
+        )
+
     def to_xsuite(
         self,
         beam_length: int,

@@ -1,7 +1,7 @@
 import json
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict, Optional, Literal
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, List
 from warnings import warn
 
 import numpy as np
@@ -10,6 +10,7 @@ from pydantic import PositiveInt
 if TYPE_CHECKING:
     from cheetah import Segment
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
+    from pybdsim.Builder import Machine
     from wake_t import Beamline
     from xtrack import Line
 
@@ -50,15 +51,18 @@ from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
 from .codes import (
     astra_unsupported,
+    bdsim_unsupported,
     bmad_unsupported,
     cheetah_unsupported,
     csrtrack_unsupported,
     elegant_unsupported,
     genesis_unsupported,
     gpt_unsupported,
+    madx_unsupported,
     ocelot_unsupported,
     opal_unsupported,
     pals_unsupported,
+    rftrack_unsupported,
     wake_t_unsupported,
     xsuite_unsupported,
 )
@@ -93,14 +97,19 @@ def _s_bounds(element) -> tuple:
 unsupported_elements = {
     "bmad": bmad_unsupported,
     "astra": astra_unsupported,
+    "bdsim": bdsim_unsupported,
     "cheetah": cheetah_unsupported,
     "csrtrack": csrtrack_unsupported,
     "elegant": elegant_unsupported,
+    "fbpic": [],  # to_fbpic skips, with a warning, every element but plasmas, lasers and drifts
     "genesis": genesis_unsupported,
     "gpt": gpt_unsupported,
+    "impactx": [],  # impactx_conversion.to_dicts already warns per element it writes as a drift
+    "madx": madx_unsupported,
     "ocelot": ocelot_unsupported,
     "opal": opal_unsupported,
     "pals": pals_unsupported,
+    "rftrack": rftrack_unsupported,
     "wake_t": wake_t_unsupported,
     "xsuite": xsuite_unsupported,
 }
@@ -229,6 +238,9 @@ class SectionLatticeTranslator(SectionLattice):
                 "reference_energy": section.reference_energy,
                 "revolution_frequency": section.revolution_frequency,
                 "space_charge": section.space_charge,
+                "beampipe_aperture_type": section.beampipe_aperture_type,
+                "beampipe_size": section.beampipe_size,
+                "beampipe_material": section.beampipe_material,
             }
         )
 
@@ -247,7 +259,10 @@ class SectionLatticeTranslator(SectionLattice):
         if elements is None:
             elements = list(self.elements.elements.values())
         return translate_elements(
-            elements, master_lattice=self.master_lattice, directory=self.directory
+            elements,
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+            verbose=self.verbose,
         )
 
     @staticmethod
@@ -457,7 +472,7 @@ class SectionLatticeTranslator(SectionLattice):
             if element.name in superimposed_names:
                 continue
             start, end = s_bounds(element)
-            if previous_end is not None and start < previous_end - 1e-12:
+            if previous_end is not None and start < previous_end - 1e-9:
                 superimposed_names.add(element.name)
             else:
                 backbone.append(element)
@@ -743,6 +758,8 @@ class SectionLatticeTranslator(SectionLattice):
         astrastr = ""
         for h in self.astra_headers.values():
             astrastr += h.write_astra()
+        h_max = next((h.h_max for h in self.astra_headers.values() if getattr(h, "h_max", None)), 0.0)
+        aperture_min_length = max(1e-3, 1e-9 * speed_of_light * h_max)
         for e in elem_dict.values():
             for key, count in counter.items():
                 if (key == "&APERTURE" and isinstance(e, ApertureTranslator)) or (
@@ -750,11 +767,14 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[
-                            key
-                        ] += f"{section_header_text_astra[key]} = True\n"
+                        element_headers[key] += (
+                            f"{section_header_text_astra[key]} = True\n"
+                        )
                         written.append(key)
-                    element_headers[key] += e.to_astra(n=count)
+                    if isinstance(e, ApertureTranslator):
+                        element_headers[key] += e.to_astra(n=count, min_length=aperture_min_length)
+                    else:
+                        element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
                         counter[key] += e.aperture.number_of_elements
                     elif isinstance(e, WakefieldTranslator):
@@ -784,9 +804,9 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers[
-                                "&WAKE"
-                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
+                            element_headers["&WAKE"] += (
+                                f"{section_header_text_astra['&WAKE']} = True\n"
+                            )
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += w.astra_wake_spacing[1]
@@ -803,6 +823,7 @@ class SectionLatticeTranslator(SectionLattice):
         Brho: float = 0.0,
         dtmin: float | None = None,
         charge_sign: int = -1,
+        aperture_dtmax: bool = False,
     ) -> str:
         """
         Create a GPT-compatible input file based on the lattice information and
@@ -823,6 +844,10 @@ class SectionLatticeTranslator(SectionLattice):
             Minimum time step size for integration
         charge_sign: int, optional
             Particle charge sign
+        aperture_dtmax: bool, optional
+            Hold GPT's time step down while the bunch passes each aperture; the
+            caller defines the timing variables of
+            :meth:`~laura.translator.converters.aperture.ApertureTranslator.to_gpt`.
 
         Returns
         -------
@@ -835,13 +860,16 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += header.write_gpt()
         elem_dict = self._translate()
         self._apply_wakefield_enable(elem_dict)
+        self._apply_tw_focusing(elem_dict)
         self.gpt_screen_positions = {}
-        kwargs = {"charge_sign": charge_sign}
+        kwargs = {"charge_sign": charge_sign, "aperture_dtmax": aperture_dtmax}
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
+                # origin at z = 0, the frame of the screens, zminmax and the beam
+                start = element.physical.start
                 ccs = GptCcs(
                     name="wcs",
-                    position=list(element.physical.start.model_dump().values()),
+                    position=[start.x, start.y, 0.0],
                     rotation=list(
                         element.physical.global_rotation.model_dump().values()
                     ),
@@ -856,7 +884,9 @@ class SectionLatticeTranslator(SectionLattice):
                     + cavity_energy_gain(element) * 1e6
                 )
                 Brho = np.sqrt(kinetic * (kinetic + 2 * mc2)) / speed_of_light
-            if not isinstance(element, MagnetTranslator):
+            if isinstance(element, ApertureTranslator):
+                element._warn_dropped_misalignment("gpt", {"dx", "dy", "dz"})
+            elif not isinstance(element, MagnetTranslator):
                 element._warn_dropped_misalignment("gpt", set())
             if (
                 element.hardware_type.lower() == "rfcavity"
@@ -927,6 +957,10 @@ class SectionLatticeTranslator(SectionLattice):
         Each RF cavity raises the design energy by
         :func:`~laura.translator.utils.functions.cavity_energy_gain`, an estimate.
 
+        The section starts at s = 0, where OPAL puts the beam: ``ELEMEDGE`` is the distance from
+        the entrance of the first element (a leading drift counts), and ``ZSTOP`` is the length
+        of the section, wherever it is in the machine.
+
         Parameters
         ----------
         energy: float
@@ -959,6 +993,13 @@ class SectionLatticeTranslator(SectionLattice):
         elem_dict = self._translate()
         written = []
         svals = self.get_resolved_s_values(as_dict=True, at_entrance=True)
+        # OPAL starts the beam at s = 0 and tracks until ZSTOP, so the section must start there:
+        # the entrance of its first element (a leading drift counts) is s0, z0, not the machine's 0.
+        # Only the elements written count for s0: the drifts LAURA puts between them have no s of their
+        # own, they are projected onto one trajectory, and in a section that begins with an element of its
+        # neighbour (the chicane, from the last element before it) that is the neighbour's, which ends there.
+        s0 = min((svals[n] for n in elem_dict if n in svals), default=0.0)
+        z0 = min((d.physical.start.z for d in elem_dict.values()), default=0.0)
         dt = self.opal_headers["track"].DT
         # with staged steps, the longest one fits a thin element into every stage
         dt = max(dt) if isinstance(dt, (list, tuple)) else dt
@@ -970,14 +1011,23 @@ class SectionLatticeTranslator(SectionLattice):
             if d.subelement:
                 phys = d.physical
                 traj = getattr(phys, "_trajectory", None)
-                sval = traj.s_at_xyz(phys.start) if traj is not None else phys.start.z
+                sval = (
+                    traj.s_at_xyz(phys.start) - s0
+                    if traj is not None
+                    else phys.start.z - z0
+                )
             else:
-                sval = svals[d.name]
+                sval = svals[d.name] - s0
             stnew = d.to_opal(sval=sval, designenergy=energy)
             if len(stnew) > 0:
                 written.append(d.name)
                 fulltext += stnew
-            zstops.append(d.physical.end.z)
+            # ZSTOP is a path length, like ELEMEDGE: after a bend the path is longer than z
+            phys = d.physical
+            if not d.subelement and phys.s is not None:
+                zstops.append(phys.s + phys.length / 2.0 - s0)
+            else:
+                zstops.append(phys.end.z - z0)
         zstop = max(zstops)
         self.opal_headers["track"].ZSTOP = zstop
         fulltext += "\n" + self.name + ": LINE=("
@@ -1235,8 +1285,17 @@ class SectionLatticeTranslator(SectionLattice):
 
         self._check_elements_supported("ocelot")
 
-        method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
         elem_dict = self._translate(self.create_drifts().values())
+        helical = any(
+            getattr(getattr(d, "magnetic", None), "helical", False)
+            for d in elem_dict.values()
+            if d.hardware_type == "Wiggler"
+        )
+        method = {
+            "global": SecondTM,
+            Octupole: KickTM,
+            Undulator: SecondTM if helical else RungeKuttaTM,
+        }
         elements = []
 
         symbolic = not IgnoreExtra.resolve_functional
@@ -1304,6 +1363,7 @@ class SectionLatticeTranslator(SectionLattice):
         RF_Track.Lattice
             An RF-Track ``Lattice`` object, with elements appended in section order.
         """
+        self._check_elements_supported("rftrack")
         from ..conversion_rules.codes.rftrack_conversion import get_rftrack
 
         rft = get_rftrack()
@@ -1343,6 +1403,7 @@ class SectionLatticeTranslator(SectionLattice):
         -------
         RF_Track.Volume
         """
+        self._check_elements_supported("rftrack")
         from ..conversion_rules.codes.rftrack_conversion import get_rftrack
 
         rft = get_rftrack()
@@ -1640,13 +1701,21 @@ class SectionLatticeTranslator(SectionLattice):
         -------
         list[dict]
         """
+        from ..conversion_rules.codes.impactx_conversion import reference
+
+        self._check_elements_supported("impactx")
         energy = self.reference_energy if energy is None else energy
+        charge = abs(reference(None, particle)["charge"])
         elements = []
         for d in self._translate(self.create_drifts().values()).values():
             if not d.subelement:
                 elements += d.to_impactx(
                     model=model, energy=energy, particle=particle, field_maps=field_maps
                 )
+                if energy and d.hardware_type == "RFCavity" and d.simulation.change_p0:
+                    energy += (
+                        float(d.voltage) * charge * np.cos(np.radians(float(d.phase)))
+                    )
         if save:
             with open(f"{self.directory}/{self.name}.impactx.json", "w") as f:
                 json.dump(elements, f, indent=1)
@@ -1673,7 +1742,7 @@ class SectionLatticeTranslator(SectionLattice):
                 csrtrackstr += e.to_csrtrack(n=counter[key])
                 e._warn_dropped_misalignment("CSRTrack", set())
                 counter[key] += 1
-            elif e.hardware_class != "Diagnostic":
+            elif e.hardware_class != "Diagnostic" and self.verbose:
                 warn(f"Element of type {e.hardware_type} not supported for CSRTrack")
         lastelem = list(elem_dict.values())[-1]
         lastscreen = self._end_screen(
@@ -1721,6 +1790,7 @@ class SectionLatticeTranslator(SectionLattice):
             (done here when ``beam`` is given).
         """
         self._warn_dropped_wakes("MAD-X")
+        self._check_elements_supported("madx")
         elem_dict = self._translate(self.create_drifts().values())
         svals = self.get_s_values(as_dict=True, at_entrance=True)
         exit_svals = self.get_s_values(as_dict=True, at_entrance=False)
@@ -1793,3 +1863,127 @@ class SectionLatticeTranslator(SectionLattice):
                     beamline.append(element.to_wake_t())
                     element._warn_dropped_misalignment("Wake-T", set())
         return Beamline(beamline)
+
+    def to_fbpic(self) -> List:
+        """
+        Create a list of FBPIC objects based on the lattice information.
+
+        Returns
+        -------
+        List
+            A list of FBPIC objects.
+        """
+        self._check_elements_supported("fbpic")
+        elem_dict = self._translate(self.create_drifts().values())
+        beamline = []
+        if not any([elem.hardware_type.lower() == "plasma" for elem in elem_dict.values()]):
+            raise ValueError(f"No plasma elements defined for {self.name}; "
+                             f"cannot run FBPIC")
+        for element in list(elem_dict.values()):
+            if element.hardware_type.lower() in ["plasma", "laser"]:
+                beamline.append(element)
+            elif "drift" in element.hardware_type.lower():
+                pass
+            else:
+                warn(f"Element type {element.hardware_type} not supported for FBPIC; "
+                     f"skipping {element.name}")
+
+        return beamline
+
+    def to_bdsim(
+        self,
+        save=False,
+        beam=None,
+        charge_sign: int | float = 1,
+        integrator_set: str = "bdsimmatrix",
+        Brho: float = 0.0,
+    ) -> "Machine":
+        """
+        Create a BDSIM-compatible Machine object based on the lattice information.
+
+        Parameters
+        ----------
+        save: bool
+            Flag to indicate whether to save the lattice to a file.
+        beam: Beam | None
+            BDSIM `Beam` object.
+        charge_sign: int or float
+            Beam particle charge sign; see
+            :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        integrator_set: str
+            BDSIM ``integratorSet`` option the lattice will be tracked with; see
+            :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
+        Brho: float
+            Magnetic rigidity [T*m] of the reference particle, for solenoids.
+
+        Returns
+        -------
+        Machine
+            A BDSIM `Machine` object, with its ``integratorSet`` and
+            ``buildPoleFaceGeometry=0`` options set; add to ``machine.options``
+            rather than replacing them.
+        """
+        from pybdsim.Beam import Beam
+        from pybdsim.Builder import GmadObject, Machine
+        from pybdsim.Builder import Marker as Marker_bds
+        from pybdsim.Options import Options
+
+        from ..utils.functions import bdsim_functional_definitions
+
+        self._check_elements_supported("bdsim")
+        elem_dict = self._translate(self.create_drifts().values())
+        elements = []
+        if any(
+            q is not None
+            for q in [
+                self.beampipe_aperture_type,
+                self.beampipe_size,
+                self.beampipe_material,
+            ]
+        ):
+            section_aperture = {
+                "type": self.beampipe_aperture_type,
+                "size": self.beampipe_size,
+                "material": self.beampipe_material,
+            }
+        else:
+            section_aperture = None
+
+        for d in elem_dict.values():
+            kwargs = {"Brho": Brho} if isinstance(d, SolenoidTranslator) else {}
+            built = d.to_bdsim(
+                section_aperture=section_aperture,
+                charge_sign=charge_sign,
+                integrator_set=integrator_set,
+                **kwargs,
+            )
+            # a thin multipole with skew terms comes back as several elements
+            elements.extend(built if isinstance(built, list) else [built])
+
+        machine = Machine()
+        machine.AddOptions(
+            Options(integratorSet=f'"{integrator_set}"', buildPoleFaceGeometry=0)
+        )
+        sanitized_name = self.name.replace("-", "_")
+        definitions = bdsim_functional_definitions(self.functional_definitions)
+        variables_file = f"{sanitized_name}_variables.gmad"
+        if definitions:
+            machine.AddIncludePre(variables_file)
+
+        for be in elements:
+            if isinstance(be, GmadObject):
+                # a definition an element refers to (a crystal), not part of the line
+                machine.AddObject(be)
+                continue
+            machine.Append(be)
+            if isinstance(be, Marker_bds):
+                machine.AddSampler(be.name)
+        if isinstance(beam, Beam):
+            machine.AddBeam(beam)
+        if save:
+            if definitions:
+                with open(f"{self.directory}/{variables_file}", "w") as vfile:
+                    vfile.write(definitions)
+            machine.Write(f"{self.directory}/{sanitized_name}.gmad")
+
+        return machine

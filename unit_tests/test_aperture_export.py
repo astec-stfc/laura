@@ -17,6 +17,7 @@ RECT = {
     "vertical_size": 0.02,
     "horizontal_offset": 0.002,
 }
+RECT_SIZE = {"horizontal_size": 0.01, "vertical_size": 0.02}
 # x inside / outside each edge of RECT; the thick collimator must cut at both ends
 X = [-0.0085, -0.0075, 0.0115, 0.0125]
 SURVIVES = [False, True, True, False]
@@ -66,6 +67,33 @@ def test_opal_writes_sizes_on_a_shaped_collimator():
     written = translator(collimator()).to_opal(0.0)
     assert written.startswith("c1: rcollimator, xsize = 0.01, ysize = 0.02")
     assert "dx = 0.002" in written
+
+
+def test_opal_gives_a_zero_length_aperture_a_length():
+    """OPAL removes only the particles it finds inside a collimator's length."""
+    thin = translator(
+        Aperture(name="a1", machine_area="S", aperture={"shape": "rectangular", **RECT_SIZE})
+    )
+    assert ", l = 0.01," in thin.to_opal(1.0)
+    assert ", l = 0.1," in translator(collimator()).to_opal(1.0)  # a thick one keeps its own
+
+
+def placed(aperture):
+    """A collimator whose position is resolved, which ASTRA's z range needs."""
+    element = collimator(aperture)
+    section(element)
+    return translator(element)
+
+
+def test_astra_warns_that_it_writes_an_ellipse_as_a_circle():
+    ellipse = {"shape": "elliptical", "horizontal_size": 0.0015, "vertical_size": 0.001}
+    with pytest.warns(UserWarning, match="ASTRA has no elliptical aperture"):
+        written = placed(ellipse).to_astra(1)
+    assert "RAD" in written and "Ap_R(1) = 1.0" in written
+    circle = {"shape": "elliptical", "horizontal_size": 0.001, "vertical_size": 0.001}
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        placed(circle).to_astra(1)
 
 
 def test_radius_only_aperture_is_a_local_elliptical_collimator():
@@ -151,3 +179,20 @@ def test_ocelot_round_trip_keeps_shape_size_and_offset():
     assert aperture.shape == "elliptical"
     assert [aperture.horizontal_size, aperture.vertical_size] == pytest.approx([0.01, 0.02])
     assert aperture.horizontal_offset == pytest.approx(0.002)
+
+
+@pytest.mark.parametrize("h_max, length", [(None, 1e-3), (0.001, 1e-3), (0.007, 2.0985e-3)])
+def test_astra_cannot_step_over_a_thin_aperture(h_max, length):
+    """ASTRA checks apertures only at its time steps: a thin one is written at least one step (c H_max) long."""
+    import re
+
+    from laura.translator.converters.codes.astra import AstraNewRun
+
+    thin = Aperture(name="a1", machine_area="S", physical={"s": 1.0, "length": 0.0},
+                    aperture={"shape": "rectangular", **RECT_SIZE})
+    lattice = section(thin)
+    lattice.astra_headers = {} if h_max is None else {"newrun": AstraNewRun(h_max=h_max, input_particle_definition="T.astra", output_particle_definition="T.astra")}
+    text = quiet(lattice.to_astra)
+    z1 = float(re.search(r"Ap_Z1\(1\) = ([-\d.eE]+)", text).group(1))
+    z2 = float(re.search(r"Ap_Z2\(1\) = ([-\d.eE]+)", text).group(1))
+    assert z2 - z1 == pytest.approx(length, rel=1e-3)
