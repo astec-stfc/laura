@@ -106,7 +106,6 @@ class AcceleratorElement(Base):
     virtual_name = Column(Text())
     subelement = Column(Text())
     inherits_from = Column(Text())
-    MachineModel_id = Column(Integer(), ForeignKey('MachineModel.id'))
     
     
     alias_rel = relationship( "AcceleratorElementAlias" )
@@ -143,7 +142,7 @@ class AcceleratorElement(Base):
     
 
     def __repr__(self):
-        return f"AcceleratorElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},MachineModel_id={self.MachineModel_id},)"
+        return f"AcceleratorElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},)"
 
 
 
@@ -531,7 +530,6 @@ class SectionLattice(Base):
     beampipe_aperture_type = Column(Enum('circular', 'rectangular', 'elliptical', name='BeampipeShapeEnum'))
     beampipe_size = Column(Float())
     beampipe_material = Column(Text())
-    MachineModel_id = Column(Integer(), ForeignKey('MachineModel.id'))
     space_charge_id = Column(Integer(), ForeignKey('SpaceChargeSettings.id'))
     space_charge = relationship("SpaceChargeSettings", uselist=False, foreign_keys=[space_charge_id])
     
@@ -542,7 +540,7 @@ class SectionLattice(Base):
     
 
     def __repr__(self):
-        return f"SectionLattice(name={self.name},master_lattice={self.master_lattice},geometry={self.geometry},reference_energy={self.reference_energy},beampipe_aperture_type={self.beampipe_aperture_type},beampipe_size={self.beampipe_size},beampipe_material={self.beampipe_material},MachineModel_id={self.MachineModel_id},space_charge_id={self.space_charge_id},)"
+        return f"SectionLattice(name={self.name},master_lattice={self.master_lattice},geometry={self.geometry},reference_energy={self.reference_energy},beampipe_aperture_type={self.beampipe_aperture_type},beampipe_size={self.beampipe_size},beampipe_material={self.beampipe_material},space_charge_id={self.space_charge_id},)"
 
 
 
@@ -578,7 +576,6 @@ class MachineLayout(Base):
     name = Column(Text(), primary_key=True, nullable=False )
     master_lattice = Column(Text())
     particle = Column(Text())
-    MachineModel_id = Column(Integer(), ForeignKey('MachineModel.id'))
     
     
     sections_rel = relationship( "MachineLayoutSections" )
@@ -591,7 +588,7 @@ class MachineLayout(Base):
     
 
     def __repr__(self):
-        return f"MachineLayout(name={self.name},master_lattice={self.master_lattice},particle={self.particle},MachineModel_id={self.MachineModel_id},)"
+        return f"MachineLayout(name={self.name},master_lattice={self.master_lattice},particle={self.particle},)"
 
 
 
@@ -611,16 +608,16 @@ class MachineModel(Base):
     beampipe_material = Column(Text())
     
     
-    # One-To-Many: OneToAnyMapping(source_class='MachineModel', source_slot='elements', mapping_type=None, target_class='AcceleratorElement', target_slot='MachineModel_id', join_class=None, uses_join_table=None, multivalued=False)
-    elements = relationship( "AcceleratorElement", foreign_keys="[AcceleratorElement.MachineModel_id]")
+    # ManyToMany
+    elements = relationship( "AcceleratorElement", secondary="MachineModel_elements")
     
     
-    # One-To-Many: OneToAnyMapping(source_class='MachineModel', source_slot='sections', mapping_type=None, target_class='SectionLattice', target_slot='MachineModel_id', join_class=None, uses_join_table=None, multivalued=False)
-    sections = relationship( "SectionLattice", foreign_keys="[SectionLattice.MachineModel_id]")
+    # ManyToMany
+    sections = relationship( "SectionLattice", secondary="MachineModel_sections")
     
     
-    # One-To-Many: OneToAnyMapping(source_class='MachineModel', source_slot='layouts', mapping_type=None, target_class='MachineLayout', target_slot='MachineModel_id', join_class=None, uses_join_table=None, multivalued=False)
-    layouts = relationship( "MachineLayout", foreign_keys="[MachineLayout.MachineModel_id]")
+    # ManyToMany
+    layouts = relationship( "MachineLayout", secondary="MachineModel_layouts")
     
 
     def __repr__(self):
@@ -4116,6 +4113,60 @@ class MachineLayoutPasses(Base):
 
     def __repr__(self):
         return f"MachineLayout_passes(MachineLayout_name={self.MachineLayout_name},passes_id={self.passes_id},)"
+
+
+
+    
+
+
+class MachineModelElements(Base):
+    """
+    None
+    """
+    __tablename__ = 'MachineModel_elements'
+
+    MachineModel_id = Column(Integer(), ForeignKey('MachineModel.id'), primary_key=True)
+    elements_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"MachineModel_elements(MachineModel_id={self.MachineModel_id},elements_name={self.elements_name},)"
+
+
+
+    
+
+
+class MachineModelSections(Base):
+    """
+    None
+    """
+    __tablename__ = 'MachineModel_sections'
+
+    MachineModel_id = Column(Integer(), ForeignKey('MachineModel.id'), primary_key=True)
+    sections_name = Column(Text(), ForeignKey('SectionLattice.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"MachineModel_sections(MachineModel_id={self.MachineModel_id},sections_name={self.sections_name},)"
+
+
+
+    
+
+
+class MachineModelLayouts(Base):
+    """
+    None
+    """
+    __tablename__ = 'MachineModel_layouts'
+
+    MachineModel_id = Column(Integer(), ForeignKey('MachineModel.id'), primary_key=True)
+    layouts_name = Column(Text(), ForeignKey('MachineLayout.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"MachineModel_layouts(MachineModel_id={self.MachineModel_id},layouts_name={self.layouts_name},)"
 
 
 
