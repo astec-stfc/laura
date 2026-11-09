@@ -20,6 +20,7 @@ import os
 import re
 import subprocess
 import sys
+import warnings
 
 import pytest
 import yaml
@@ -621,9 +622,9 @@ class TestAgainstTheReferenceTranslator:
         assert attributes["tilt"] == pytest.approx(error.rotation.psi)
 
 
-def test_an_overlapping_element_is_dropped_not_shifted():
-    # The same split the Bmad writer superimposes: Q-OVER starts inside Q-BASE,
-    # so it leaves the line and Q-NEXT keeps its place.
+def test_an_overlapping_element_is_superimposed_and_reads_back(tmp_path):
+    # Q-OVER starts inside Q-BASE: it leaves the line, is superimposed on it,
+    # and on import every element keeps its place.
     section = SectionLattice(
         name="OVERLAP",
         order=["Q-BASE", "Q-OVER", "Q-NEXT"],
@@ -638,11 +639,56 @@ def test_an_overlapping_element_is_dropped_not_shifted():
             }
         ),
     )
-    with pytest.warns(UserWarning, match="Q-OVER"):
-        document = SectionLatticeTranslator.from_section(section).to_pals()
+    document = SectionLatticeTranslator.from_section(section).to_pals()
     facility = _facility(document)
-    assert "Q-OVER" not in facility
+    assert "Q-OVER" not in facility["OVERLAP_element"]["line"]
+    assert facility["superimpose"] == {
+        "place": "Q-OVER",
+        "placement": {
+            "base_item": "OVERLAP_element_begin",
+            "offset": pytest.approx(2.0),
+        },
+    }
     assert facility["OVERLAP_drift_1"]["length"] == pytest.approx(2.0)
+
+    path = tmp_path / "overlap.pals.yaml"
+    path.write_text(document)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # the fixture sets no reference energy
+        model = PalsLatticeImporter(source_file=str(path)).create_machine_model(
+            min_section_length=1
+        )
+    (imported,) = model.sections.values()
+    middles = {n: model.elements[n].physical.middle.z for n in imported.order}
+    assert middles == pytest.approx({"Q-BASE": 2.0, "Q-OVER": 3.0, "Q-NEXT": 7.0})
+
+
+def test_a_hand_written_superimpose_is_applied(tmp_path):
+    path = tmp_path / "sup.pals.yaml"
+    path.write_text(
+        """
+PALS:
+  facility:
+  - Q-BASE: {kind: Quadrupole, length: 4.0, MagneticMultipoleP: {Kn1L: 0.4}}
+  - Q-PARENT: {kind: Quadrupole, length: 1.0, MagneticMultipoleP: {Kn1L: 0.1}}
+  - Q-OVER: {inherit: Q-PARENT, MagneticMultipoleP: {Kn1L: 0.2}}
+  - L: {kind: BeamLine, line: [Q-BASE]}
+  - superimpose:
+      place: Q-OVER
+      placement: {base_item: L>>Q-BASE, from_point: CENTER, to_point: CENTER, offset: 0.5}
+  - LAT: {kind: Lattice, branches: [L]}
+  - use: LAT
+"""
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        elements = PalsLatticeImporter(
+            source_file=str(path)
+        ).create_laura_element_dictionary()
+    over = elements["Q-OVER"]
+    assert over.physical.length == pytest.approx(1.0)  # inherited
+    assert over.magnetic.k1l == pytest.approx(0.2)  # overridden
+    assert over.physical.s - over.physical.length / 2 == pytest.approx(2.5)  # centre at 2.5
 
 
 @pytest.mark.parametrize("length", [0.0, 0.2], ids=["marker", "drift"])

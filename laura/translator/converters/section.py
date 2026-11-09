@@ -642,32 +642,26 @@ class SectionLatticeTranslator(SectionLattice):
                 in {"Horizontal_Corrector", "Vertical_Corrector"}
             )
 
-        dropped = {
-            element.name
+        # subelements, and an element starting inside the one before, leave the
+        # line and are superimposed on it, as the Bmad writer does
+        superimposed = [
+            element
             for element in ordered_elements
             if element.is_subelement() and not logical_corrector_part(element)
-        }
-        # an element starting inside the one before leaves the line, as the Bmad
-        # writer superimposes it, so the rest keep their places
+        ]
         previous_end = None
-        overlapping = set()
         for element in ordered_elements:
             if element.is_subelement():
                 continue
             start, end = _s_bounds(element)
             if previous_end is not None and start < previous_end - 1e-12:
-                overlapping.add(element.name)
+                superimposed.append(element)
             else:
                 previous_end = end
-        dropped |= overlapping
-        if dropped:
-            warn(
-                f"PALS cannot superimpose one element on another, so "
-                f"{', '.join(sorted(dropped))} could not be written into section "
-                f"{self.name!r}. Everything else keeps its position."
-            )
         ordered_elements = [
-            element for element in ordered_elements if element.name not in overlapping
+            element
+            for element in ordered_elements
+            if not element.is_subelement() and element not in superimposed
         ]
 
         section = self.model_copy(
@@ -684,9 +678,14 @@ class SectionLatticeTranslator(SectionLattice):
             directory=self.directory,
         )
         start = max(_s_bounds(ordered_elements[0])[0], 0.0)
+        overlays = translate_elements(
+            superimposed,
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
 
         renames = pals_safe_names(
-            [*elements, self.name, *([begin_name] if begin_name else [])]
+            [*elements, *overlays, self.name, *([begin_name] if begin_name else [])]
         )
         definitions: Dict[str, Any] = {}
         line: list = []
@@ -694,6 +693,11 @@ class SectionLatticeTranslator(SectionLattice):
             translator.name = renames.get(name, name)
             definitions.update(translator.to_pals())
             line.append(translator.name)
+        offsets: Dict[str, float] = {}
+        for name, translator in overlays.items():
+            translator.name = renames.get(name, name)
+            definitions.update(translator.to_pals())
+            offsets[translator.name] = _s_bounds(by_name[name])[0] - start
 
         name = renames.get(self.name, self.name)
         sublines, line = fold_repeated_cells(name, definitions, line)
@@ -710,6 +714,7 @@ class SectionLatticeTranslator(SectionLattice):
             twiss=initial_twiss,
             begin_name=renames.get(begin_name, begin_name),
             s_position=start,
+            superimposed=offsets,
         )
 
     def to_pals(self, particle: str | None = None) -> str:
@@ -993,11 +998,7 @@ class SectionLatticeTranslator(SectionLattice):
         elem_dict = self._translate()
         written = []
         svals = self.get_resolved_s_values(as_dict=True, at_entrance=True)
-        # OPAL starts the beam at s = 0 and tracks until ZSTOP, so the section must start there:
-        # the entrance of its first element (a leading drift counts) is s0, z0, not the machine's 0.
-        # Only the elements written count for s0: the drifts LAURA puts between them have no s of their
-        # own, they are projected onto one trajectory, and in a section that begins with an element of its
-        # neighbour (the chicane, from the last element before it) that is the neighbour's, which ends there.
+        # OPAL starts the beam at s = 0 and tracks until ZSTOP, so the section must start there
         s0 = min((svals[n] for n in elem_dict if n in svals), default=0.0)
         z0 = min((d.physical.start.z for d in elem_dict.values()), default=0.0)
         dt = self.opal_headers["track"].DT

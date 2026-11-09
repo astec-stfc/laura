@@ -1,13 +1,11 @@
 """Write LAURA elements, sections and layouts as a PALS document.
 
-This is the inverse of ``translator/converters/codes/pals.py``
-Two things the standard offers are deliberately not used:
+This is the inverse of ``translator/converters/codes/pals.py``.
 
-``placement`` / ``superimpose``
-    A PALS line item can be positioned by an offset from another item rather
-    than by the running sum of the lengths ahead of it.
-    Here, gaps are written as
-    explicit ``Drift`` elements, from ``SectionLattice.create_drifts()``.
+Gaps are written as explicit ``Drift`` elements, from
+``SectionLattice.create_drifts()``, not as line-item ``placement``. An element
+that overlaps the one before, or is a subelement, is kept off the line and
+written as a ``superimpose`` offset from the branch's ``BeginningEle``.
 
 The document shape is one ``BeamLine`` per LAURA section, one ``Lattice``
 naming them as branches, and a ``use``. A section that repeats a cell nests a
@@ -140,6 +138,10 @@ class PalsBeamLine(NamedTuple):
     sublines: Dict[str, Dict[str, Any]] = {}
     """Nested ``BeamLine`` bodies the entries of ``line`` name, written into the
     facility ahead of it. Not branches of their own."""
+
+    superimposed: Dict[str, float] = {}
+    """Element name -> entrance offset [m] from the ``BeginningEle``, for elements
+    off the line (overlapping or subelements), written as ``superimpose``."""
 
 
 def _reads_as_something_else(name: str) -> bool:
@@ -705,6 +707,9 @@ def pals_document(
             entry["periodic"] = True
         entry["line"] = line
         facility.append({beamline.name: entry})
+        for name, offset in beamline.superimposed.items():
+            placement = {"base_item": begin, "offset": float(offset)}
+            facility.append({"superimpose": {"place": name, "placement": placement}})
 
     facility.append(
         {
@@ -735,8 +740,8 @@ def pals_document(
     header = (
         "# Written by LAURA.\n"
         "#\n"
-        "# Gaps between elements are explicit Drift elements: the reference\n"
-        "# parser does not yet implement `placement` or `superimpose`.\n"
+        "# Gaps between elements are explicit Drift elements; overlapping\n"
+        "# elements are superimposed.\n"
     )
     return header + yaml.safe_dump(
         {"PALS": _plain(document)}, sort_keys=False, default_flow_style=False, width=100

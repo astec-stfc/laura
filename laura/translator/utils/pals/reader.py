@@ -18,6 +18,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
@@ -193,12 +194,13 @@ def _check_parser() -> None:
 
 def parse_pals_file(
     source_file: str | Path,
-    views: Sequence[str] = ("full_expanded",),
+    views: Sequence[str] = ("full_expanded", "combined"),
 ) -> PalsDocument:
     """Expand ``source_file`` and return it as plain dataclasses.
 
     ``views`` names the trees to bring back. ``full_expanded`` is the one the
-    importer reads.
+    importer reads; ``superimpose`` statements, which the parser ignores, are
+    applied from ``combined`` by :func:`_superimpose`.
     """
     path = Path(source_file).expanduser().resolve()
     if not path.is_file():
@@ -238,7 +240,109 @@ def parse_pals_file(
         views=trees,
     )
     document.lattices = _read_lattices(trees.get("full_expanded", {}))
+    if "combined" in trees:
+        _superimpose(document, trees["combined"])
     return document
+
+
+_POINTS = {"ENTRANCE_END": 0.0, "CENTER": 0.5, "EXIT_END": 1.0}
+"""Fraction of an item's length at each ``placement`` reference point."""
+
+
+def _superimpose(document: PalsDocument, combined: Dict[str, Any]) -> None:
+    """Insert each ``superimpose``\\ d element into the branches, at its ``s``.
+
+    The element is kept whole and overlaps the line, rather than splitting what it
+    lands on. Its body is the facility definition as written (``inherit``
+    resolved), plus the ``ReferenceP`` of the line element it starts in. An
+    unqualified ``base_item`` matches in every branch; ``line>>name`` only in the
+    branch ``line``.
+    """
+    facility = (combined.get("PALS") or {}).get("facility") or []
+    definitions = {
+        name: body
+        for item in facility
+        for name, body in _pairs(item)
+        if isinstance(body, dict)
+    }
+    statements = [
+        body for item in facility for key, body in _pairs(item) if key == "superimpose"
+    ]
+    branches = [b for lattice in document.lattices for b in lattice.branches]
+    for statement in statements:
+        place = str((statement or {}).get("place", ""))
+        placement = (statement or {}).get("placement") or {}
+        body = _resolve_inherit(place, definitions)
+        to_point = str(placement.get("to_point", "ENTRANCE_END")).upper()
+        from_point = str(placement.get("from_point", "EXIT_END")).upper()
+        if body is None or body.get("kind") == "BeamLine":
+            warnings.warn(f"PALS superimpose of {place!r}: not an element; skipped.")
+            continue
+        if to_point not in _POINTS or from_point not in _POINTS:
+            warnings.warn(
+                f"PALS superimpose of {place!r}: placement point {to_point}/"
+                f"{from_point} is not supported; skipped."
+            )
+            continue
+        qualifier, _, base = str(placement.get("base_item", "")).rpartition(">>")
+        length = float(body.get("length", 0.0) or 0.0)
+        placed = 0
+        for branch in branches:
+            if qualifier and branch.name != qualifier:
+                continue
+            if base:
+                anchors = [
+                    e.s_start + _POINTS[from_point] * e.length
+                    for e in branch.elements
+                    if e.name == base
+                ]
+            else:  # no base: the beginning of the line
+                anchors = [branch.elements[0].s_start] if branch.elements else []
+            for anchor in anchors:
+                s = anchor + float(placement.get("offset", 0.0) or 0.0)
+                s -= _POINTS[to_point] * length
+                _insert(branch, place, body, s)
+                placed += 1
+        if not placed:
+            warnings.warn(
+                f"PALS superimpose of {place!r}: base item "
+                f"{placement.get('base_item')!r} is in no branch; skipped."
+            )
+
+
+def _resolve_inherit(
+    name: str, definitions: Dict[str, Any], seen: tuple = ()
+) -> Optional[Dict[str, Any]]:
+    """The definition of ``name`` with its ``inherit`` chain merged in."""
+    body = definitions.get(name)
+    if body is None or name in seen:
+        return body
+    parent = body.get("inherit")
+    if parent is None:
+        return dict(body)
+    # shallow merge, so a child's parameter group replaces the parent's whole
+    merged = _resolve_inherit(str(parent), definitions, (*seen, name)) or {}
+    merged.update({key: value for key, value in body.items() if key != "inherit"})
+    return merged
+
+
+def _insert(branch: PalsBranch, name: str, body: Dict[str, Any], s: float) -> None:
+    """Put ``name`` into ``branch`` after the last element starting at or before
+    ``s``, unless the parser already placed it there."""
+    if any(e.name == name and abs(e.s_start - s) < 1e-9 for e in branch.elements):
+        return
+    index = max(
+        (i for i, e in enumerate(branch.elements) if e.s_start <= s + 1e-12),
+        default=-1,
+    )
+    parameters = {key: value for key, value in body.items() if key != "kind"}
+    parameters["s_position"] = s
+    if index >= 0 and branch.elements[index].group("ReferenceP"):
+        parameters["ReferenceP"] = dict(branch.elements[index].group("ReferenceP"))
+    branch.elements.insert(
+        index + 1,
+        PalsElement(name=name, kind=str(body.get("kind", "")), parameters=parameters),
+    )
 
 
 def _read_lattices(tree: Dict[str, Any]) -> List[PalsLattice]:

@@ -315,6 +315,26 @@ class TestDriftsAndSPos:
         assert machine.get_elements_s_pos()["VV01"] == pytest.approx(0.37452)
         assert machine.elements["VV01"].physical.s == pytest.approx(0.37452)
 
+    def test_overlapping_s_positioned_elements_keep_their_s(self):
+        """An element starting inside the one before was placed after it, shifting everything downstream."""
+        def at(s, length):
+            return {"length": length, "s": s, "s_point": "start"}
+
+        elems = [
+            Quadrupole(name="GUN", machine_area="G", magnetic={"length": 0.135, "k1l": 0.0},
+                       physical=at(0.0, 0.135)),
+            Marker(name="M", machine_area="G", hardware_class="Marker", physical=at(0.05, 0.0)),
+            Solenoid(name="SOL1", machine_area="G", magnetic={"length": 0.2}, physical=at(0.09601, 0.2)),
+            Marker(name="VV01", machine_area="G", hardware_class="Marker", physical=at(0.37452, 0.0)),
+        ]
+        machine = LAURA(
+            element_list=elems,
+            layout={"default_layout": "line1", "layouts": {"line1": ["G"]}},
+            section={"sections": {"G": ["GUN", "M", "SOL1", "VV01"]}},
+        )
+        middles = {n: machine.elements[n].physical.middle.z for n in ("GUN", "M", "SOL1", "VV01")}
+        assert middles == pytest.approx({"GUN": 0.0675, "M": 0.05, "SOL1": 0.19601, "VV01": 0.37452})
+
     @pytest.mark.parametrize("offset", [1e-10, -1e-10])
     def test_touching_elements_do_not_get_a_negative_drift(self, offset):
         """A step of ~1e-10 m between elements that touch is round-off: its sign must not make a negative drift."""
