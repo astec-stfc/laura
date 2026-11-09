@@ -22,6 +22,7 @@ import subprocess
 import sys
 import warnings
 
+import numpy as np
 import pytest
 import yaml
 from scipy.constants import speed_of_light
@@ -175,13 +176,13 @@ class TestElementBodies:
             "Bsol": pytest.approx(-0.6 * momentum / speed_of_light, rel=1e-6)
         }
 
-    def test_a_cavity_states_its_phase_in_turns(self, facility):
+    def test_a_cavity_states_its_phase_in_radians(self, facility):
         rf = facility["cav1"]["RFP"]
         assert rf["frequency"] == pytest.approx(1.3e9)
         assert rf["voltage"] == pytest.approx(2.0e7)
         # LAURA measures the phase in degrees from the zero crossing, PALS in
-        # turns from the accelerating crest.
-        assert rf["phase"] == pytest.approx(0.25)
+        # radians from the accelerating crest.
+        assert rf["phase"] == pytest.approx(np.pi / 2)
         assert rf["num_cells"] == 9
         assert rf["cavity_type"] == "STANDING_WAVE"
 
@@ -579,7 +580,7 @@ class TestAgainstTheReferenceTranslator:
             cavity.simulation.field_amplitude
         )
         assert attributes["n_cell"] == cavity.cavity.n_cells
-        # Bmad's phi0 is in turns, as PALS's phase is; LAURA's is in degrees
+        # Bmad's phi0 is in turns, PALS's phase in radians; LAURA's is in degrees
         # from the zero crossing.
         assert attributes["phi0"] == pytest.approx(-cavity.cavity.phase / 360.0)
         assert cavity.cavity.cell_length == pytest.approx(

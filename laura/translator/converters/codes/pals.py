@@ -680,7 +680,7 @@ def _cavity(element: PalsElement, period: Optional[float] = None) -> Dict[str, D
     cavity["n_cells"] = n_cells
     phase = _number(rf.get("phase"))
     if phase is not None:
-        cavity["phase"] = -360.0 * phase
+        cavity["phase"] = -np.degrees(phase)  # PALS: radians; LAURA: degrees
 
     voltage = _number(rf.get("voltage"))
     gradient = _number(rf.get("gradient"))

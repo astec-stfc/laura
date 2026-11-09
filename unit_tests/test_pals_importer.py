@@ -121,7 +121,7 @@ class TestPalsElements:
         # A standing-wave cavity is taken to run in pi mode, so one cell is
         # half a wavelength.
         assert cav.cavity.cell_length == pytest.approx(speed_of_light / (2 * 1.3e9))
-        # PALS measures the phase in turns from the accelerating crest; LAURA
+        # PALS measures the phase in radians from the accelerating crest; LAURA
         # measures it in degrees from the zero crossing.
         assert cav.cavity.phase == pytest.approx(-90.0)
         assert cav.simulation.field_amplitude == pytest.approx(2.0e7)
