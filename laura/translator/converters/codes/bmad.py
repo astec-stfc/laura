@@ -1573,7 +1573,9 @@ class BmadLatticeImporter(LatticeImporter):
         cavity = {
             # inverse of RFCavityTranslator.to_bmad
             "phase": (
-                360.0 * phi0 - 90.0 if e.etype == "Crab_Cavity" else -360.0 * phi0
+                360.0 * phi0 - 90.0
+                if e.etype in ("Crab_Cavity", "RFCavity")
+                else -360.0 * phi0
             ),
             "frequency": frequency,
             "n_cells": n_cells,

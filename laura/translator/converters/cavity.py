@@ -178,8 +178,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 "rf_frequency = 0."
             )
         phase = self.cavity.phase
-        # Bmad's crab kick is sin(2*pi*phi0 - wt): phase 0 (full kick) is phi0 = 1/4
-        sign, offset = (1, 90) if etype == "crab_cavity" else (-1, 0)
+        sign, offset = (1, 90) if etype in ("crab_cavity", "rfcavity") else (-1, 0)
         parameters["phi0"] = (
             f"({sign} * ({phase}) + {offset}) / 360"
             if not self._resolve_functional and self.is_functional(phase)
@@ -250,7 +249,7 @@ class RFCavityTranslator(BaseElementTranslator):
             sim.t_column = sim.t_column or "t"
             for col in ("Wx", "Wy", "Wz"):
                 if getattr(
-                        getattr(wake, col, None), "value", None
+                    getattr(wake, col, None), "value", None
                 ) is not None and not getattr(sim, f"{col.lower()}_column"):
                     setattr(sim, f"{col.lower()}_column", col)
             self.set_wakefield_column_names(wakefield_file_name)
@@ -635,7 +634,9 @@ class RFCavityTranslator(BaseElementTranslator):
                 )
             else:
                 keywords["gradient"] /= self.physical.length
-        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+        return obj(
+            **self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set)
+        )
 
     def rf_focusing(
         self,
