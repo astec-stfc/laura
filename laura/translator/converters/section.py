@@ -1979,7 +1979,9 @@ class SectionLatticeTranslator(SectionLattice):
             ``Brho``, cavities to auto-phase without a reference particle, or a
             reference particle that stops before the end of the line
         """
-        from ..utils.fields.onaxis import autophase, render, track
+        from math import factorial
+
+        from ..utils.fields.onaxis import MultipoleTerm, autophase, render, track
 
         self._check_elements_supported("warpx")
         elements = [e for e in self._translate(self.create_drifts().values()).values()
@@ -2034,6 +2036,19 @@ class SectionLatticeTranslator(SectionLattice):
                     warn(f"WarpX quadrupoles are hard-edged; the field map of {element.name} is ignored.")
                 place(element.name, length, type="quad", dBdx=charge_sign * Brho * element.k1)
                 element._warn_dropped_misalignment("WarpX", set())
+            elif kind in ("sextupole", "octupole"):  # no lattice element: a hard-edged particle field over a drift
+                n = 2 if kind == "sextupole" else 3
+                knl = float(getattr(element, f"k{n}l"))
+                if knl and not Brho:
+                    raise ValueError(f"{self.name}: WarpX {kind} fields need Brho.")
+                if element.magnetic.tilt or element.magnetic.multipoles.skew(n):
+                    warn(f"WarpX {kind}s are upright; the tilt and skew of {element.name} are ignored.")
+                terms.append(MultipoleTerm(
+                    n, charge_sign * Brho * knl / float(element.magnetic.length) / factorial(n),
+                    float(element.magnetic.length), float(element.physical.start.z) - zstart,
+                    x=float(element.physical.start.x + element.dx), y=float(element.physical.start.y + element.dy)))
+                place(element.name, length)
+                element._warn_dropped_misalignment("WarpX", {"dx", "dy"})
             else:
                 mapped = (element.warpx_field_terms(zstart)
                           if kind in ("rfcavity", "solenoid", "wiggler") else [])

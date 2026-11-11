@@ -218,7 +218,46 @@ class CurrentSheetTerm:
         return head, {"Bz": name, "Bx": f"-0.5*{dx}*{name}_d", "By": f"-0.5*{dy}*{name}_d"}
 
 
-def render(terms: Sequence[FieldTerm | UndulatorTerm | CurrentSheetTerm]) -> dict:
+@dataclass
+class MultipoleTerm:
+    """
+    A hard-edged normal multipole of ``order`` n over ``length`` from code z ``z``:
+    ``B_y + i B_x = coefficient (x + i y)^n``, so that ``coefficient = Brho K_n / n!`` gives
+    MAD-X's kick of ``(x' - i y')`` by ``-K_n L (x + i y)^n / n!`` (n = 1 is a quadrupole of gradient
+    ``coefficient``). No fringe field.
+    """
+
+    order: int
+    coefficient: float
+    """[T / m^n]"""
+    length: float
+    z: float
+    x: float = 0.0
+    y: float = 0.0
+    kind: Literal["B"] = "B"
+    frequency: float = 0.0
+    amplitude: float = 0.0  # no E_z on the axis, for track()
+    group: str | None = None
+
+    def on_axis(self, z, t) -> np.ndarray:
+        return np.zeros_like(np.asarray(z, dtype=float))
+
+    def components(self, name: str) -> tuple[str, dict]:
+        """Parser statements and ``{component: expression}`` of this term."""
+        from math import comb
+
+        n, s, u, v = self.order, f"s_{name}", f"u_{name}", f"v_{name}"
+        head = (f"{s} = z-{number(self.z)}; {u} = x-{number(self.x)}; {v} = y-{number(self.y)}; "
+                f"{name} = {number(self.coefficient)}*if({s}<0,0,if({s}>{number(self.length)},0,1)); ")
+        # (u + i v)^n = sum_k C(n, k) u^(n-k) (i v)^k: even k real, odd k imaginary, i^k giving the sign
+        terms = {0: [], 1: []}
+        for k in range(n + 1):
+            sign = -1 if (k // 2) % 2 else 1
+            terms[k % 2].append(f"{sign * comb(n, k)}*{u}^{n - k}*{v}^{k}")
+        return head, {"By": f"{name}*({'+'.join(terms[0])})", "Bx": f"{name}*({'+'.join(terms[1])})"}
+
+
+def render(terms: Sequence[FieldTerm | UndulatorTerm | CurrentSheetTerm | MultipoleTerm]) -> dict:
     """
     WarpX ``particles.*_external_particle_function(x,y,z,t)`` inputs for ``terms``,
     each quoted so its local variables survive ParmParse.

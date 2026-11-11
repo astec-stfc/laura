@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from scipy.constants import c
 
-from laura.models.element import Quadrupole, Solenoid, Wiggler
+from laura.models.element import Octupole, Quadrupole, Sextupole, Solenoid, Wiggler
 from laura.translator.converters.converter import translate_elements
 from laura.translator.utils.fields.onaxis import FieldTerm, Profile, autophase, render, track
 from laura.translator.utils.functions import cavity_energy_gain
@@ -142,6 +142,23 @@ def test_helical_undulator_has_both_components():
 def test_ignored_wiggler_attributes_warn():
     with pytest.warns(UserWarning, match="tilt"):
         translate_elements([_wiggler(tilt=0.1)])["U"].warpx_field_terms(0.0)
+
+
+@pytest.mark.parametrize("magnet, n", [(Sextupole, 2), (Octupole, 3)])
+def test_multipoles_are_madx_fields_over_their_length(magnet, n):
+    """By + i Bx = charge_sign Brho K_n (x + i y)^n / n!: MAD-X's kick of (x' - i y') by -K_n L (x + i y)^n / n!
+    for the design particle, as the quadrupole's dBdx = charge_sign Brho k1."""
+    from math import factorial
+
+    knl, length, brho = 4.0 * 10**n, 0.2, 0.3
+    element = magnet(name="M", machine_area="X", physical={"length": length},
+                     magnetic={"length": length, f"k{n}l": knl})
+    p = _line(element, Brho=brho, charge_sign=-1)
+    assert p["lattice.elements"] == ["M"] and p["M.type"] == "drift"
+    x, y, zz = 1.3e-3, -0.7e-3, np.array([-0.01, 0.1, 0.21])
+    by, bx = (_evaluate(p[f"particles.B{k}_external_particle_function(x,y,z,t)"], x=x, y=y, z=zz, t=0.0) for k in "yx")
+    expected = -brho * knl / length / factorial(n) * (x + 1j * y) ** n
+    np.testing.assert_allclose(by + 1j * bx, [0, expected, 0], rtol=1e-12, atol=1e-15)  # zero outside the magnet
 
 
 def test_gaps_warn_when_met():
