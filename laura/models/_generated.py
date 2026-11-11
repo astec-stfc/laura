@@ -3172,6 +3172,10 @@ class _LaserElementBase(ConfiguredBaseModel):
     """Laser polarization angle with respect to the x-axis."""
     temporal_chirp_2nd_order: float = Field(default=0, description="""The amount of temporal chirp, at focus (in the lab frame).""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'float(0)'} })
     """The amount of temporal chirp, at focus (in the lab frame)."""
+    collision_angle: float = Field(default=0.0, description="""Angle between the particle beam's direction and the laser's axis, for a laser colliding with the beam at its focus [rad]: 0 is head-on (counter-propagating).""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'rad'}} })
+    """Angle between the particle beam's direction and the laser's axis, for a laser colliding with the beam at its focus [rad]: 0 is head-on (counter-propagating)."""
 
 
 class _LaserEnergyMeterElementBase(ConfiguredBaseModel):
