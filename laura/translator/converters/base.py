@@ -814,7 +814,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         return ""
 
-    def to_rftrack(self, P_Q: float = float("nan")) -> object:
+    def to_rftrack(self, P_Q: float = float("nan"), volume: bool = False) -> object:
         """
         Generates an RF-Track element object based on the element's properties and type.
 
@@ -826,25 +826,35 @@ class BaseElementTranslator(PhysicalBaseElement):
         ----------
         P_Q: float
             Beam reference momentum-over-charge [MV/c] at this point in the
-            lattice. Only used by dipoles: RF-Track's ``SBend`` cannot defer it
-            to ``autophase()``, and a NaN value gives zero transmission.
+            lattice. Only used by dipoles; the default, NaN, makes RF-Track's
+            ``SBend`` take the bunch's own P/Q, set by ``autophase()`` (as
+            quadrupoles always do), which follows acceleration.
+        volume: bool
+            Build for a ``Volume`` instead, using
+            :data:`~laura.translator.conversion_rules.codes.rftrack_conversion.rftrack_volume_conversion_rules`
+            where it has an entry (a dipole as a field box).
 
         Returns
         -------
         object or list of object
             An RF-Track element object (e.g. ``RF_Track.Quadrupole``), with its
-            name and aperture (if any) applied. Some builders (e.g.
-            ``build_tw_fieldmap``) return a list, which
+            name and aperture (if any) applied. A builder may return a list,
+            which
             :func:`~laura.translator.converters.section.SectionLatticeTranslator.to_rftrack`
             flattens into its own Lattice.
         """
         from ..conversion_rules.codes.rftrack_conversion import (
+            WAKE_HOST_LENGTH,
             build_drift,
+            get_rftrack,
             rftrack_conversion_rules,
+            rftrack_volume_conversion_rules,
         )
 
         self.start_write()
         builder = rftrack_conversion_rules.get(self.hardware_type, None)
+        if volume:
+            builder = rftrack_volume_conversion_rules.get(self.hardware_type, builder)
         if builder is None:
             warn(
                 f"Element type {self.hardware_type} of {self.name} not supported by "
@@ -852,12 +862,21 @@ class BaseElementTranslator(PhysicalBaseElement):
             )
             builder = build_drift
         obj = builder(self, P_Q=P_Q)
+        wake = self._rftrack_wake_args()
+        if wake is not None and not self.physical.length:
+            # zero-length elements apply no wake, so it rides on a short Drift after them
+            obj = [*(obj if isinstance(obj, list) else [obj]), get_rftrack().Drift(WAKE_HOST_LENGTH)]
         for o in obj if isinstance(obj, list) else [obj]:
             o.set_name(self.name)
             self._apply_rftrack_aperture(o)
+            if wake is not None:
+                o.add_collective_effect(get_rftrack().Wakefield_1d(*wake))
+                o.set_cfx_nsteps(1)
         return obj
 
-    def to_rftrack_repr(self, varname: str, P_Q: float = float("nan")) -> tuple:
+    def to_rftrack_repr(
+        self, varname: str, P_Q: float = float("nan"), volume: bool = False
+    ) -> tuple:
         """
         Generates the Python source lines that construct this element as an
         ``RF_Track`` object, mirroring :func:`to_rftrack`; used for
@@ -869,6 +888,8 @@ class BaseElementTranslator(PhysicalBaseElement):
             Python variable name to assign the constructed object to.
         P_Q: float
             Beam reference momentum-over-charge [MV/c]; see :func:`to_rftrack`.
+        volume: bool
+            Build for a ``Volume``; see :func:`to_rftrack`.
 
         Returns
         -------
@@ -880,16 +901,22 @@ class BaseElementTranslator(PhysicalBaseElement):
             returns a list.
         """
         from ..conversion_rules.codes.rftrack_conversion import (
+            WAKE_HOST_LENGTH,
+            _format_args,
             repr_drift,
             rftrack_repr_rules,
+            rftrack_volume_repr_rules,
         )
 
         self.start_write()
-        repr_fn = rftrack_repr_rules.get(self.hardware_type, None)
-        if repr_fn is None:
-            repr_fn = repr_drift
+        repr_fn = rftrack_repr_rules.get(self.hardware_type, repr_drift)
+        if volume:
+            repr_fn = rftrack_volume_repr_rules.get(self.hardware_type, repr_fn)
         result = repr_fn(self, P_Q=P_Q)
         entries = result if isinstance(result, list) else [result]
+        wake = self._rftrack_wake_args()
+        if wake is not None and not self.physical.length:
+            entries = [*entries, (f"Drift({WAKE_HOST_LENGTH!r})", [])]
         lines = []
         varnames = []
         for i, (ctor_expr, post_stmts) in enumerate(entries):
@@ -899,7 +926,40 @@ class BaseElementTranslator(PhysicalBaseElement):
             lines.append(f"{vn}.set_name({self.name!r})")
             lines += self._rftrack_aperture_repr(vn)
             lines += [s.format(var=vn) for s in post_stmts]
+            if wake is not None:
+                lines.append(
+                    f"{vn}.add_collective_effect(rft.Wakefield_1d({_format_args(wake)}))"
+                )
+                lines.append(f"{vn}.set_cfx_nsteps(1)")
         return lines, varnames
+
+    def _rftrack_wake_args(self):
+        """
+        ``RF_Track.Wakefield_1d`` arguments for this element's wake (see
+        :func:`~laura.translator.utils.fields.rftrack.wakefield_1d_args`): once
+        per cell (``n_cells`` over the length, as Xsuite and Ocelot), or once per
+        ``reference_length`` for a wake tabulated over that length (as
+        ``WakefieldTranslator.astra_wake_spacing``), or just once for a
+        zero-length element; ``None`` if it has none, or
+        one RF-Track cannot take (with a warning).
+        """
+        from ..utils.fields import rftrack as fields_rftrack
+
+        if not self._wakefield_active():
+            return None
+        from ..conversion_rules.codes.rftrack_conversion import WAKE_HOST_LENGTH
+
+        wake, length = self.simulation.wakefield_definition, self.physical.length
+        if isinstance(wake, str):
+            warn(f"RF-Track: wake of {self.name} dropped (file not read)")
+            return None
+        if not length:
+            # once, on the WAKE_HOST_LENGTH Drift that to_rftrack puts after the element
+            return fields_rftrack.wakefield_1d_args(wake, factor=1 / WAKE_HOST_LENGTH)
+        if getattr(wake, "reference_length", None):
+            return fields_rftrack.wakefield_1d_args(wake, factor=1 / wake.reference_length)
+        n_cells = getattr(getattr(self, "cavity", None), "n_cells", None) or 1
+        return fields_rftrack.wakefield_1d_args(wake, factor=n_cells / length)
 
     def _rftrack_aperture_params(self, code: str = "RF-Track"):
         """
