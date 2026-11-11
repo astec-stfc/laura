@@ -89,6 +89,40 @@ def test_injector_laser_is_not_a_driver():
         assert translator.to_wake_t().wakefield.laser is None
 
 
+def test_wake_t_and_fbpic_focus_in_the_same_place():
+    # Wake-T's z_foc is a distance from the pulse centre; FBPIC's zf a position.
+    pytest.importorskip("wake_t")
+    pytest.importorskip("fbpic")
+    laser = LaserElement(a0=2.0, wavelength=8e-7, waist=4e-5, pulse_duration_fwhm=3e-14,
+                         initial_position=1e-3, focal_position=3e-3)
+    plasma = _plasma()
+    plasma.laser = laser
+    translator = translate_elements([plasma])["P"]
+    r = np.linspace(0, 1e-4, 50)
+    wake_t = translator.to_wake_t().wakefield.laser.envelope_function(1e-3, r, 0.0)
+    fbpic = translator.laser_to_fbpic().transverse_profile.evaluate(r, 0 * r, 1e-3 + 0 * r)
+    assert np.abs(wake_t) == pytest.approx(2.0 * np.abs(fbpic), rel=1e-9)
+
+
+def test_fbpic_circular_laser_has_a0_in_each_component():
+    pytest.importorskip("fbpic")
+
+    def fields(polarization):
+        # Long pulse, so the envelope is flat to 3e-5 over the wavelength sampled.
+        plasma = _plasma()
+        plasma.laser = LaserElement(a0=2.0, wavelength=8e-7, waist=4e-5,
+                                    pulse_duration_fwhm=3e-13, polarization=polarization)
+        profile = translate_elements([plasma])["P"].laser_to_fbpic()
+        z = np.linspace(-4e-7, 4e-7, 41)  # one wavelength about the pulse centre
+        return profile.E_field(0 * z, 0 * z, z, 0.0)
+
+    ex_lin, _ = fields("linear")
+    ex, ey = fields("circular")
+    assert ex == pytest.approx(ex_lin, abs=1e-12 * np.max(np.abs(ex_lin)))
+    # A quarter period apart: |E| does not oscillate with the carrier.
+    assert np.hypot(ex, ey) == pytest.approx(np.max(np.abs(ex_lin)), rel=1e-3)
+
+
 def test_laser_is_linearly_polarized_by_default_in_wake_t():
     # Wake-T treats anything but "linear" as circular, doubling the
     # ponderomotive force on the plasma.

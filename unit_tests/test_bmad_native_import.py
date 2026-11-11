@@ -14,7 +14,7 @@ from pytao import Tao
 from laura.translator.converters.codes import magnetic_orders
 from laura.translator.converters.codes.bmad import BmadLatticeImporter
 from laura.translator.converters.section import SectionLatticeTranslator
-from laura.translator.utils.bmad import bmad_floor_rotation_matrix
+from laura.translator.utils.bmad import bmad_floor_rotation_matrix, preload_bmad_gsl
 
 # Bmad's own variable; pytao already reads it.
 BMAD_DIST = Path(
@@ -74,6 +74,7 @@ def _roundtrip(tmp_path, text, header="", position_mode="floor"):
 
 
 def _tao(path):
+    preload_bmad_gsl(LIBTAO)
     return Tao(lattice_file=str(path), so_lib=str(LIBTAO), noplot=True)
 
 
@@ -946,6 +947,7 @@ def test_the_exported_wake_tracks_the_way_the_modes_it_came_from_do(
             '&tao_beam_init\n ix_universe = 1\n beam_saved_at = "*"\n'
             f" beam_init%position_file = '{beam}'\n/\n"
         )
+        preload_bmad_gsl(LIBTAO)
         tao = Tao(init_file=str(init), so_lib=str(LIBTAO), noplot=True)
         tao.cmd("set global track_type = beam")
         pz = np.array(tao.bunch1("1@0>>1", coordinate="pz", which="model", ix_bunch=1))

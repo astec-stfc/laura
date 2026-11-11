@@ -2061,7 +2061,7 @@ export interface LaserElement {
     pulse_energy?: number,
     /** Pulse duration at FWHM [s]. */
     pulse_duration_fwhm?: number,
-    /** Focal (waist) position along the propagation axis [m]. */
+    /** Focal (waist) position at the start, in the same frame as initial_position [m]. */
     focal_position?: number,
     /** Carrier-envelope phase [rad]. */
     cep_phase?: number,

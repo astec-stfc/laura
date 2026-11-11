@@ -1,8 +1,9 @@
 from inspect import signature
+from math import pi
 from typing import Any, List
+from warnings import warn
 
 from laura.models.laser import LaserElement
-from warnings import warn
 
 from .base import BaseElementTranslator
 
@@ -65,11 +66,11 @@ class LaserTranslator(BaseElementTranslator):
             If the laser model is not supported; note that not all models are implemented yet
         """
         from wake_t.physics_models.laser.laser_pulse import (
-            GaussianPulse,
-            LaguerreGaussPulse,
             FlattenedGaussianPulse,
             # SummedPulse,
             # OpenPMDPulse,
+            GaussianPulse,
+            LaguerreGaussPulse,
         )
 
         additional_dict = {
@@ -77,6 +78,9 @@ class LaserTranslator(BaseElementTranslator):
             for param in self.additional_attrs
             if getattr(self.laser, param) is not None
         }
+        additional_dict["z_foc"] = (
+            self.laser.focal_position - self.laser.initial_position
+        )
         if self.profile_type == "gaussian":
             obj = GaussianPulse(
                 self.laser.initial_position,
@@ -125,12 +129,13 @@ class LaserTranslator(BaseElementTranslator):
             If the laser model is not supported; note that not all models are implemented yet
         """
         from fbpic.lpa_utils.laser.laser_profiles import (
+            DonutLikeLaguerreGaussLaser,
+            FewCycleLaser,
+            FlattenedGaussianLaser,
             GaussianLaser,
             LaguerreGaussLaser,
-            DonutLikeLaguerreGaussLaser,
-            FlattenedGaussianLaser,
-            FewCycleLaser,
         )
+
         a0 = self.laser.amplitude
         waist = self.laser.waist
         z0 = self.laser.initial_position
@@ -138,9 +143,14 @@ class LaserTranslator(BaseElementTranslator):
         profile_type = str(self.laser.profile_type).lower()
         if profile_type == "gaussian":
             if self.laser._is_few_cycle:
-                warn(f"The laser defined in element {self.name} is a few-cycle pulse. "
-                     "Using the FewCycleLaser model.")
-                cls, args = FewCycleLaser, (a0, waist, self.laser.pulse_duration_fwhm, z0)
+                warn(
+                    f"The laser defined in element {self.name} is a few-cycle pulse. "
+                    "Using the FewCycleLaser model."
+                )
+                cls, args = (
+                    FewCycleLaser,
+                    (a0, waist, self.laser.pulse_duration_fwhm, z0),
+                )
             else:
                 cls, args = GaussianLaser, (a0, waist, tau, z0)
             kwargs = {}
@@ -168,7 +178,12 @@ class LaserTranslator(BaseElementTranslator):
                 f"Supported models are {self.supported_pulses_fbpic}."
             )
         kwargs.update(self._fbpic_optional_kwargs(cls))
-        return cls(*args, **kwargs)
+        profile = cls(*args, **kwargs)
+        if str(self.laser.polarization) == "circular":
+            kwargs["theta_pol"] = kwargs.get("theta_pol", 0.0) + pi / 2
+            kwargs["cep_phase"] = kwargs.get("cep_phase", 0.0) + pi / 2
+            profile = profile + cls(*args, **kwargs)
+        return profile
 
     def _fbpic_optional_kwargs(self, cls: type) -> dict:
         """

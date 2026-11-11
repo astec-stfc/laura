@@ -104,6 +104,7 @@ unsupported_elements = {
     "fbpic": [],  # to_fbpic skips, with a warning, every element but plasmas, lasers and drifts
     "genesis": genesis_unsupported,
     "gpt": gpt_unsupported,
+    "hipace": [],  # to_hipace skips, with a warning, every element but plasmas and drifts
     "impactx": [],  # impactx_conversion.to_dicts already warns per element it writes as a drift
     "madx": madx_unsupported,
     "ocelot": ocelot_unsupported,
@@ -1886,6 +1887,35 @@ class SectionLatticeTranslator(SectionLattice):
                      f"skipping {element.name}")
 
         return beamline
+
+    def to_hipace(self, include_ions: bool = False, directory: str | None = None) -> dict[str, dict]:
+        """
+        HiPACE++ input parameters for each plasma stage and plasma lens, one run
+        each; see :func:`~laura.translator.converters.plasma.PlasmaTranslator.to_hipace`.
+
+        Parameters
+        ----------
+        include_ions : bool
+            Model the background ions as mobile
+        directory : str or None
+            Where to write the density files of ``custom`` profiles
+
+        Returns
+        -------
+        dict[str, dict]
+            ``{stage name: {input key: value}}``, in beamline order
+        """
+        self._check_elements_supported("hipace")
+        stages = {}
+        for element in self._translate(self.create_drifts().values()).values():
+            if element.hardware_type.lower() in ("plasma", "plasmalens"):
+                stages[element.name] = element.to_hipace(include_ions=include_ions, directory=directory)
+            elif "drift" not in element.hardware_type.lower() and self.verbose:
+                warn(f"Element type {element.hardware_type} not supported for HiPACE++; "
+                     f"skipping {element.name}")
+        if not stages:
+            raise ValueError(f"No plasma elements defined for {self.name}; cannot run HiPACE++")
+        return stages
 
     def to_bdsim(
         self,

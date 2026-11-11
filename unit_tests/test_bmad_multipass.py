@@ -197,6 +197,9 @@ def test_tao_reads_the_export_as_a_multipass_lord(lattice, tmp_path):
     os.environ.setdefault("ACC_ROOT_DIR", str(LIBTAO.parent.parent.parent))
     from pytao import Tao
 
+    from laura.translator.utils.bmad import preload_bmad_gsl
+
+    preload_bmad_gsl(LIBTAO)
     path = tmp_path / "erl.bmad"
     path.write_text(f"beginning[e_tot] = 10e6\n{lattice}")
     tao = Tao(f"-lat {path} -noplot")

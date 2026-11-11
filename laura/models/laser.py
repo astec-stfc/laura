@@ -1,16 +1,17 @@
-from pydantic import computed_field
 from warnings import warn
-from .constants import pi, c, e, m_e, epsilon_0
-import numpy as np
 
-from .base_models import IgnoreExtra
+import numpy as np
+from pydantic import computed_field
+
 from ._generated import (
     _LaserElementBase,
-    _LaserHalfWavePlateElementBase,
     _LaserEnergyMeterElementBase,
-    _LaserMirrorSenseBase,
+    _LaserHalfWavePlateElementBase,
     _LaserMirrorElementBase,
+    _LaserMirrorSenseBase,
 )
+from .base_models import IgnoreExtra
+from .constants import c, e, epsilon_0, m_e, pi
 
 
 class LaserElement(_LaserElementBase):
@@ -38,7 +39,8 @@ class LaserElement(_LaserElementBase):
         for a Gaussian pulse, whose peak power is
         ``P = 2*sqrt(ln2/pi) * E / tau_FWHM`` and peak intensity
         ``I = 2*P/(pi*w0**2)``, giving
-        ``a0 = (e*lambda0/(pi*m_e*c**2*w0)) * sqrt(P/(pi*epsilon_0*c))``.
+        ``a0 = (e*lambda0/(pi*m_e*c**2*w0)) * sqrt(P/(pi*epsilon_0*c))``,
+        over sqrt(2) for circular polarization, whose a0 is per component.
 
         Returns
         -------
@@ -60,7 +62,11 @@ class LaserElement(_LaserElementBase):
                 "duration, to compute laser amplitude."
             )
             return 0
-        peak_power = 2 * np.sqrt(np.log(2) / pi) * self.pulse_energy / self.pulse_duration_fwhm
+        peak_power = (
+            2 * np.sqrt(np.log(2) / pi) * self.pulse_energy / self.pulse_duration_fwhm
+        )
+        if str(self.polarization) == "circular":
+            peak_power /= 2
         return ((e * self.wavelength) / (pi * m_e * c**2 * self.waist)) * np.sqrt(
             peak_power / (pi * epsilon_0 * c)
         )
@@ -103,7 +109,9 @@ class LaserElement(_LaserElementBase):
             If wavelength is not set or non-positive
         """
         if self.wavelength <= 0:
-            raise ValueError("Wavelength must be positive to compute laser angular frequency.")
+            raise ValueError(
+                "Wavelength must be positive to compute laser angular frequency."
+            )
         return self.angular_frequency * self.pulse_duration_fwhm <= 10
 
 

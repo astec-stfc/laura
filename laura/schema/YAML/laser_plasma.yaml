@@ -238,7 +238,9 @@ classes:
           ucum_code: s
       focal_position:
         range: float
-        description: Focal (waist) position along the propagation axis [m].
+        description: >-
+          Focal (waist) position at the start, in the same frame as
+          initial_position [m].
         ifabsent: float(0.0)
         unit:
           ucum_code: m

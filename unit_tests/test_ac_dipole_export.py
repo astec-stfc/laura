@@ -207,6 +207,8 @@ class TestBmadParity:
         """Write a 1 GeV electron lattice holding ``body`` and open it in Tao."""
         from pytao import Tao
 
+        from laura.translator.utils.bmad import preload_bmad_gsl
+
         lattice = tmp_path / "lat.bmad"
         lattice.write_text(
             "beginning[beta_a] = 10\nbeginning[beta_b] = 10\n"
@@ -218,6 +220,7 @@ class TestBmadParity:
             "&tao_start\n  n_universes = 1\n/\n"
             f"&tao_design_lattice\n  design_lattice(1)%file = '{lattice}'\n/\n"
         )
+        preload_bmad_gsl(LIBTAO)
         return Tao(f"-init {init} -noplot", so_lib=str(LIBTAO))
 
     @classmethod

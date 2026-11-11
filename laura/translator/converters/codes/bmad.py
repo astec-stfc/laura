@@ -30,6 +30,7 @@ from ...utils.bmad import (
     BMAD_SR_WAKE_SAMPLES,
     bmad_floor_angles_to_laura,
     is_flat_roll,
+    preload_bmad_gsl,
     sample_bmad_sr_wake,
 )
 from ...utils.fields import FieldMap
@@ -971,6 +972,7 @@ class BmadLatticeImporter(LatticeImporter):
 
         self._read_functional_definitions()
 
+        preload_bmad_gsl(self.libtao)
         tao = Tao(f"-init {self._tao_init_path()} -noplot", so_lib=self.libtao)
         self.bmad_com = dict(tao.bmad_com())
         self.space_charge_com = dict(tao.space_charge_com())

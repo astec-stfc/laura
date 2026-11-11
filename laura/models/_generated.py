@@ -3148,10 +3148,10 @@ class _LaserElementBase(ConfiguredBaseModel):
     """Laser pulse energy [J]."""
     pulse_duration_fwhm: Optional[float] = Field(default=None, description="""Pulse duration at FWHM [s].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'unit': {'ucum_code': 's'}} })
     """Pulse duration at FWHM [s]."""
-    focal_position: float = Field(default=0.0, description="""Focal (waist) position along the propagation axis [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
+    focal_position: float = Field(default=0.0, description="""Focal (waist) position at the start, in the same frame as initial_position [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
-    """Focal (waist) position along the propagation axis [m]."""
+    """Focal (waist) position at the start, in the same frame as initial_position [m]."""
     cep_phase: float = Field(default=0, description="""Carrier-envelope phase [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'rad'}} })
