@@ -1,4 +1,5 @@
 import json
+import re
 from copy import deepcopy
 from textwrap import wrap
 from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, List
@@ -112,6 +113,7 @@ unsupported_elements = {
     "pals": pals_unsupported,
     "rftrack": rftrack_unsupported,
     "wake_t": wake_t_unsupported,
+    "warpx": [],  # to_warpx skips, with a warning, every element but plasmas and drifts
     "xsuite": xsuite_unsupported,
 }
 
@@ -1916,6 +1918,156 @@ class SectionLatticeTranslator(SectionLattice):
         if not stages:
             raise ValueError(f"No plasma elements defined for {self.name}; cannot run HiPACE++")
         return stages
+
+    def to_warpx(
+        self,
+        include_ions: bool = False,
+        zstart: float | None = None,
+        antenna_offset: float | None = None,
+        Brho: float = 0.0,
+        charge_sign: int = -1,
+        directory: str | None = None,
+        z_reference: float | None = None,
+        rest_energy: float = 0.51099895e6,
+        auto_phase: bool = True,
+    ) -> dict:
+        """
+        WarpX input parameters for this line, run as one simulation: its
+        elements as WarpX's ``lattice.elements``, which start at box z = 0, plus
+        the plasma, box and laser of its plasma stage or plasma lens, if any
+        (:func:`~laura.translator.converters.plasma.PlasmaTranslator.to_warpx`).
+        Any unsupported element with a length is a drift of that length, with a warning.
+        A line without a stage brings no box: the caller sets one.
+
+        With ``z_reference`` the run lasts until the reference particle, tracked
+        along the axis through the cavities, reaches the end of the line.
+
+        Parameters
+        ----------
+        include_ions : bool
+            Model the background ions as mobile
+        zstart : float or None
+            Lattice z of box z = 0 at t = 0; None puts the line's start there.
+            What lies behind it -- a beam starting inside the line -- is left out
+        antenna_offset : float or None
+            How far ahead of the laser centre the antenna sits [m]
+        Brho : float
+            Beam rigidity [T m], for the quadrupole gradients
+        charge_sign : int
+            Beam charge sign: WarpX tracks with the real charge, and LAURA's
+            ``k1`` focuses the design particle
+        directory : str or None
+            Where to write the density files of ``custom`` profiles
+        z_reference : float or None
+            Box z of the reference particle at t = 0, of momentum ``Brho``
+        rest_energy : float
+            Rest energy of the reference particle [eV]
+        auto_phase : bool
+            Find each cavity's crest with the reference particle
+            (:func:`~laura.translator.utils.fields.onaxis.autophase`);
+            otherwise take the cavity's stored ``crest``
+
+        Returns
+        -------
+        dict
+            ``{input key: value}``, in SI units
+
+        Raises
+        ------
+        ValueError
+            For more than one plasma stage or lens, a quadrupole strength without
+            ``Brho``, cavities to auto-phase without a reference particle, or a
+            reference particle that stops before the end of the line
+        """
+        from ..utils.fields.onaxis import autophase, render, track
+
+        self._check_elements_supported("warpx")
+        elements = [e for e in self._translate(self.create_drifts().values()).values()
+                    if float(e.physical.length or 0.0) > 0]
+        if not elements:
+            raise ValueError(f"{self.name} has no elements with a length; cannot run WarpX")
+        if zstart is None:
+            zstart = float(elements[0].physical.start.z)
+        params, lattice, stage, terms = {}, [], None, []
+
+        def place(name: str, length: float, **fields) -> None:
+            key = re.sub(r"\W", "_", name)
+            lattice.append(key)
+            params.update({f"{key}.type": "drift", f"{key}.ds": length} | {
+                f"{key}.{k}": v for k, v in fields.items()})
+
+        lead = float(elements[0].physical.start.z) - zstart
+        if lead > 0:
+            place("lead_in", lead)
+        cut = max(-lead, 0.0)  # what lies behind box z = 0, where WarpX's lattice starts
+        for element in elements:
+            kind = element.hardware_type.lower()
+            length = float(element.physical.length)
+            if cut >= length:  # wholly behind the beam
+                cut -= length
+                continue
+            length, cut = length - cut, 0.0
+            if kind in ("plasma", "plasmalens"):
+                if stage is not None:
+                    raise ValueError(
+                        f"{self.name}: a WarpX line holds one plasma stage or plasma lens; "
+                        f"it has {stage} and {element.name}."
+                    )
+                stage = element.name
+                params |= element.to_warpx(
+                    include_ions=include_ions,
+                    z_entrance=float(element.physical.start.z) - zstart,
+                    antenna_offset=antenna_offset,
+                    directory=directory,
+                )
+                if kind == "plasmalens":
+                    place(element.name, length, type="plasmalens", dBdx=element.focusing_strength)
+                else:
+                    place(element.name, length)
+                element._warn_dropped_misalignment("WarpX", set())
+            elif kind == "quadrupole":
+                if element.k1 and not Brho:
+                    raise ValueError(f"{self.name}: WarpX quadrupole gradients need Brho.")
+                if element.magnetic.tilt or element.magnetic.multipoles.skew(1):
+                    warn(f"WarpX quadrupoles are upright; the tilt and skew of {element.name} are ignored.")
+                if getattr(element.simulation, "field_definition", None) is not None:
+                    warn(f"WarpX quadrupoles are hard-edged; the field map of {element.name} is ignored.")
+                place(element.name, length, type="quad", dBdx=charge_sign * Brho * element.k1)
+                element._warn_dropped_misalignment("WarpX", set())
+            else:
+                mapped = (element.warpx_field_terms(zstart)
+                          if kind in ("rfcavity", "solenoid", "wiggler") else [])
+                if not auto_phase:
+                    for term in mapped:
+                        term.crest = np.radians(float(element.cavity.crest))
+                terms += mapped
+                if "drift" not in kind and not mapped:
+                    field = getattr(getattr(element, "simulation", None), "field_definition", None)
+                    kind_of_map = getattr(field, "field_type", None)
+                    why = f" (its {kind_of_map} field map is not supported)" if kind_of_map else ""
+                    warn(f"Element type {element.hardware_type} not supported for WarpX{why}; "
+                         f"{element.name} is a drift")
+                place(element.name, length)
+                element._warn_dropped_misalignment("WarpX", {"dx", "dy", "dz"} if mapped else set())
+        params["lattice.elements"] = lattice
+        if z_reference is not None and Brho:
+            p0c = Brho * speed_of_light
+            if auto_phase:
+                autophase(terms, z_reference, p0c, rest_energy, charge_sign)
+            end = sum(params[f"{key}.ds"] for key in lattice)
+            arrival, energy = track(terms, z_reference, p0c, rest_energy, charge_sign, end)
+            if energy == -np.inf:
+                raise ValueError(f"{self.name}: the reference particle stops before the end of the line.")
+            beta0, beta1 = (pc / np.hypot(pc, rest_energy)
+                            for pc in (p0c, np.sqrt((energy + rest_energy) ** 2 - rest_energy**2)))
+            if abs(beta1 - beta0) > 1e-3:
+                warn(f"{self.name}: the reference particle's speed goes from {beta0:.4f} c to "
+                     f"{beta1:.4f} c; a box moving at constant speed (its average) loses track "
+                     "of a beam accelerated this much, e.g. in a gun.")
+            params["stop_time"] = arrival
+        elif auto_phase and any(t.frequency for t in terms):
+            raise ValueError(f"{self.name}: auto-phasing the cavities needs z_reference and Brho.")
+        return params | render(terms)
 
     def to_bdsim(
         self,

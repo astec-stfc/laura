@@ -946,6 +946,54 @@ class RFCavityTranslator(BaseElementTranslator):
             output = ""
         return output
 
+    def warpx_field_terms(self, zstart: float) -> list:
+        """
+        The cavity's on-axis map as an analytic RF field for WarpX (see
+        :mod:`~laura.translator.utils.fields.onaxis`), as :meth:`to_gpt` builds it.
+        The phase is ``crest - phase``, the crest to be found by
+        :func:`~laura.translator.utils.fields.onaxis.autophase`.
+
+        Parameters
+        ----------
+        zstart : float
+            Lattice z of WarpX's z = 0
+
+        Returns
+        -------
+        list[FieldTerm]
+            The terms, or none for a map that is not ``1DElectroDynamic``
+        """
+        from laura.translator.utils.fields.gdf import gpt_tw_field
+        from laura.translator.utils.fields.onaxis import FieldTerm, Profile
+
+        self.update_field_definition()  # loads the map if it is still a file name
+        field = self.simulation.field_definition
+        if getattr(field, "field_type", None) != "1DElectroDynamic":
+            return []
+        travelling = (
+            self.structure_type == "TravellingWave"
+            and self.tw_focusing
+            and getattr(field, "cavity_type", None) == "TravellingWave"
+            and getattr(field, "start_cell_z", None) is not None
+        )
+        if travelling:
+            z, real, imag = gpt_tw_field(field, self.get_cells())
+            parts, amplitude = [(real, 0.0), (imag, np.pi / 2)], self.field_amplitude
+        elif self.structure_type == "TravellingWave":
+            z, ez = gpt_tw_mockup(field)
+            parts, amplitude = [(ez, 0.0)], self._gpt_tw_ffac()
+        else:
+            z, ez = field.z.value.val, field.Ez.value.val
+            parts, amplitude = [(ez, 0.0)], self.field_amplitude
+        ref = self.get_field_reference_position()
+        return [
+            FieldTerm(Profile.fit(z, f), float(amplitude), "E", z=float(ref[2] + self.dz) - zstart,
+                      x=float(ref[0] + self.dx), y=float(ref[1] + self.dy),
+                      frequency=float(self.cavity.frequency),
+                      phase=offset, off_crest=-np.radians(float(self.phase)), group=self.name)
+            for f, offset in parts
+        ]
+
     def _gpt_tw_ffac(self) -> float:
         """
         Field factor for GPT's standing-wave mock-up of a travelling-wave structure

@@ -1,4 +1,4 @@
-"""HiPACE++ input-file helpers, dependency-free so simba can write inputs without HiPACE++."""
+"""HiPACE++ and WarpX (AMReX) input-file helpers, dependency-free so simba can write inputs without either."""
 
 from math import atan, comb, factorial, pi, sqrt
 from numbers import Integral, Real
@@ -132,10 +132,10 @@ def laser_envelope(
     return f'"{head}amp*(qr*cos(ph)-qi*sin(ph))"', f'"{head}amp*(qr*sin(ph)+qi*cos(ph))"'
 
 
-def write_density_rz(path: str, z, r, density) -> None:
+def write_density_rz(path: str, z, r, density, modes: bool = False) -> None:
     """
-    Write ``density[z, r]`` as the openPMD ``density`` mesh HiPACE++'s
-    ``read_density_from_path`` reads. Written with h5py in openPMD-api's own
+    Write ``density[z, r]`` as the openPMD ``density`` mesh HiPACE++'s and WarpX's
+    ``read_density_from_path`` read. Written with h5py in openPMD-api's own
     layout: ``openpmd_api`` crashes in a process that has imported ROOT.
 
     Parameters
@@ -143,13 +143,18 @@ def write_density_rz(path: str, z, r, density) -> None:
     path : str
         File to write, e.g. ``"stage_density.h5"``
     z, r : np.ndarray
-        Evenly spaced grid [m]; HiPACE++ holds the edge values outside it
+        Evenly spaced grid [m]; HiPACE++ holds the edge values outside it,
+        WarpX takes zero there
     density : np.ndarray
         Density [m^-3], shape ``(len(z), len(r))``
+    modes : bool
+        Add the leading azimuthal-mode axis (of one, mode 0) WarpX's RZ reader expects
     """
     import h5py
     import numpy as np
 
+    if modes:
+        density = np.asarray(density)[None]
     with h5py.File(path, "w") as f:
         f.attrs.update({
             "openPMD": np.bytes_("1.1.0"), "openPMDextension": np.uint32(0),

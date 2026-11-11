@@ -111,3 +111,59 @@ class BeamBeamTranslator(BaseElementTranslator):
             "other_beam_Sigma_33": self.simulation.vertical_sigma ** 2,
         }
         return self.name, BeamBeamBiGaussian2D, properties
+
+    def to_warpx(
+        self, p0c: float, rest_energy: float, z_centre: float, sigma_z: float, macroparticles: int = 10000
+    ) -> dict:
+        """
+        The opposing bunch as a WarpX species ``opposing`` for a strong-strong
+        collision: a Gaussian of ``n_particles`` particles of ``charge`` e,
+        rms sizes ``horizontal/vertical_sigma`` and ``width``, offset by
+        ``horizontal/vertical_offset``, moving towards -z. Its momentum and mass
+        are not in the element so the caller gives them (simba: the incoming beam's,
+        unless overridden).
+
+        Parameters
+        ----------
+        p0c, rest_energy : float
+            Opposing particles' momentum and rest energy [eV]
+        z_centre : float
+            Code z of the bunch centre at t = 0 [m]
+        sigma_z : float
+            Rms length to use when ``width`` is 0 [m]
+        macroparticles : int
+            Macroparticles in the bunch
+
+        Returns
+        -------
+        dict
+            ``{input key: value}``, in SI units
+
+        Raises
+        ------
+        ValueError
+            Without a size, a particle count or a charge
+        """
+        from scipy.constants import c, e
+
+        sim = self.simulation
+        if not (sim.horizontal_sigma and sim.vertical_sigma and sim.n_particles and sim.charge):
+            raise ValueError(
+                f"{self.name}: a WarpX opposing bunch needs horizontal_sigma, vertical_sigma, "
+                "n_particles and charge."
+            )
+        return {
+            "opposing.charge": sim.charge * e,
+            "opposing.mass": rest_energy * e / c**2,
+            "opposing.injection_style": "gaussian_beam",
+            "opposing.npart": macroparticles,
+            "opposing.q_tot": sim.charge * e * sim.n_particles,
+            "opposing.x_rms": sim.horizontal_sigma,
+            "opposing.y_rms": sim.vertical_sigma,
+            "opposing.z_rms": sim.width or sigma_z,
+            "opposing.x_m": sim.horizontal_offset,
+            "opposing.y_m": sim.vertical_offset,
+            "opposing.z_m": z_centre,
+            "opposing.momentum_distribution_type": "constant",
+            "opposing.uz": -p0c / rest_energy,  # gamma*beta
+        }

@@ -1,10 +1,10 @@
 import os
-from math import ceil
+from math import atan, ceil, cos, pi, sin
 from typing import Any
 from warnings import warn
 
 import numpy as np
-from scipy.constants import c
+from scipy.constants import c, e, physical_constants
 
 from laura.models.laser import LaserElement
 from laura.models.plasma import PlasmaElement
@@ -169,7 +169,7 @@ class PlasmaTranslator(BaseElementTranslator):
             column["temperature_in_ev"] = plas.temperature
         background = column | {
             "element": _HIPACE_ELEMENTS[plas.species],
-            **self._hipace_density(plas.density, directory, "electrons"),
+            **self._amrex_density(plas.density, directory, "electrons"),
         }
         if include_ions:
             if plas.species != "electron":
@@ -194,7 +194,7 @@ class PlasmaTranslator(BaseElementTranslator):
                 "atoms",
                 **gas,
                 element=plas.ionization_element,
-                **self._hipace_density(n_atoms, directory, "atoms"),
+                **self._amrex_density(n_atoms, directory, "atoms"),
                 initial_ion_level=level,
                 can_field_ionize=1,
                 can_laser_ionize=int(laser is not None),
@@ -205,7 +205,7 @@ class PlasmaTranslator(BaseElementTranslator):
                     "atom_electrons",
                     **gas,
                     element="electron",
-                    **self._hipace_density(level * n_atoms, directory, "atom_electrons"),
+                    **self._amrex_density(level * n_atoms, directory, "atom_electrons"),
                     neutralize_background=0,
                 )
             add("injected", element="electron", ppc=[0, 0], neutralize_background=0,
@@ -331,12 +331,16 @@ class PlasmaTranslator(BaseElementTranslator):
         params["diagnostic.output_period"] = max(1, params["max_step"] // max(sim.n_out, 1))
         return params
 
-    def _hipace_density(self, density: float, directory: str | None, species: str) -> dict:
+    def _amrex_density(
+        self, density: float, directory: str | None, species: str, offset: float = 0.0,
+        modes: bool = False,
+    ) -> dict:
         """
-        HiPACE++ density of one species: this plasma scaled to ``density``.
+        HiPACE++ or WarpX density of one species: this plasma scaled to ``density``.
         HiPACE++'s ``z`` is ``c*t`` from the stage entrance -- the axis
-        :func:`~PlasmaElement.relative_density_profile` is measured on.
-        A ``custom`` profile is Python, so it is sampled onto an (r, z) grid
+        :func:`~PlasmaElement.relative_density_profile` is measured on -- and
+        WarpX's lab ``z``, from ``offset``.
+        A ``custom`` profile is Python, so it is sampled onto a (z, r) grid
         and written to ``<directory>/<name>_<species>_density.h5``.
 
         Parameters
@@ -346,7 +350,11 @@ class PlasmaTranslator(BaseElementTranslator):
         directory : str or None
             Where a ``custom`` profile's file goes
         species : str
-            HiPACE++ species name, for the file name
+            Species name, for the file name
+        offset : float
+            ``z`` of the stage entrance [m]
+        modes : bool
+            Give the file WarpX's leading azimuthal-mode axis
 
         Returns
         -------
@@ -365,7 +373,7 @@ class PlasmaTranslator(BaseElementTranslator):
         if plas.density_profile and kind == "custom":
             if directory is None:
                 raise ValueError(
-                    f"{self.name}: a custom density profile goes to HiPACE++ as an "
+                    f"{self.name}: a custom density profile goes to HiPACE++ and WarpX as an "
                     "openPMD file; pass the directory to write it in."
                 )
             sim = self.simulation
@@ -376,12 +384,12 @@ class PlasmaTranslator(BaseElementTranslator):
             z = np.linspace(0.0, self.length, 1001)
             zz, rr = np.meshgrid(z, np.abs(r), indexing="ij")
             values = np.broadcast_to(plas.relative_density_profile(zz, rr), zz.shape)
-            # Absolute, as HiPACE++ may run elsewhere than the caller's working directory.
+            # Absolute, as the code may run elsewhere than the caller's working directory.
             path = os.path.abspath(os.path.join(directory, f"{self.name}_{species}_density.h5"))
-            write_density_rz(path, z, r, density * values)
+            write_density_rz(path, z + offset, r, density * values, modes=modes)
             return {"read_density_from_path": path}
         plas.relative_density_profile(0.0)  # validates ramps and tables as for every code
-        start = plas.density_profile_start
+        start = plas.density_profile_start + offset
         dz = f"(z-{number(start)})" if start >= 0 else f"(z+{number(-start)})"
         up = plas.ramp_up
         top = up + plas.plateau
@@ -411,6 +419,225 @@ class PlasmaTranslator(BaseElementTranslator):
         if plas.parabolic_coefficient:
             terms.append(f"(1+{number(plas.parabolic_coefficient)}*(x^2+y^2))")
         return {"density(x,y,z)": "*".join(terms)}
+
+    def to_warpx(
+        self,
+        include_ions: bool = False,
+        z_entrance: float = 0.0,
+        antenna_offset: float | None = None,
+        directory: str | None = None,
+    ) -> dict:
+        """
+        WarpX (RZ) input parameters this stage defines: box, grid, moving
+        window, run length, plasma species and laser, in the lab frame.
+        Solver, boundaries, azimuthal modes, diagnostics and the beam are left
+        to the caller; render with :func:`~laura.translator.utils.hipace.hipace_inputs`.
+        The run starts from E = 0, so ionizable atoms bring no
+        pre-freed electrons: ``density`` is all the background electrons.
+
+        Parameters
+        ----------
+        include_ions : bool
+            Add the background ions as mobile protons
+        z_entrance : float
+            Box z of the stage entrance at t = 0 [m]. The plasma lies over
+            ``z_entrance`` to ``z_entrance + length`` unless
+            ``plasma_min/max_longitudinal_position`` say otherwise
+        antenna_offset : float or None
+            How far ahead of the laser centre the antenna sits [m];
+            ``3 c tau`` by default
+        directory : str or None
+            Where to write the density files of a ``custom`` profile
+
+        Returns
+        -------
+        dict
+            ``{input key: value}``, in SI units
+
+        Raises
+        ------
+        ValueError
+            If the box or grid is unset, for an unknown species or a ``custom``
+            profile without ``directory``, or if :func:`~_warpx_laser` refuses the laser
+        """
+        sim, plas = self.simulation, self.plasma
+        params = self._warpx_box(z_entrance)
+        if plas.species not in _HIPACE_ELEMENTS:
+            raise ValueError(
+                f"{self.name}: plasma species {plas.species!r} has no WarpX species; "
+                f"use one of {list(_HIPACE_ELEMENTS)}."
+            )
+
+        names = []
+
+        def add(name: str, **kwargs) -> None:
+            names.append(name)
+            params.update({f"{name}.{key}": value for key, value in kwargs.items()})
+
+        def thermal(u: float) -> dict:
+            if not u:
+                return {"momentum_distribution_type": "at_rest"}
+            return {"momentum_distribution_type": "gaussian", "ux_th": u, "uy_th": u, "uz_th": u}
+
+        column = {
+            "injection_style": "NUniformPerCell",
+            "num_particles_per_cell_each_dim": [  # RZ order: r, theta, z
+                sim.particles_per_radial_cell,
+                sim.particles_per_angular_cell,
+                sim.particles_per_longitudinal_cell,
+            ],
+            "zmin": z_entrance if sim.plasma_min_longitudinal_position is None else sim.p_zmin,
+            "zmax": (
+                z_entrance + self.length
+                if sim.plasma_max_longitudinal_position is None
+                else sim.p_zmax
+            ),
+            "xmax": sim.p_rmax,
+            "do_continuous_injection": 1,
+        }
+        if sim.p_rmin:
+            column["xmin"] = sim.p_rmin
+
+        def density_function(n: float, species: str) -> dict:
+            got = self._amrex_density(n, directory, species, offset=z_entrance, modes=True)
+            if "read_density_from_path" in got:
+                return {"profile": "read_from_file", **got}
+            return {"profile": "parse_density_function", "density_function(x,y,z)": got["density(x,y,z)"]}
+
+        density = density_function(plas.density, "electrons")
+        add(
+            "electrons",
+            species_type=_HIPACE_ELEMENTS[plas.species],
+            **column,
+            **density,
+            **thermal(plas.thermal_momentum(plas.species)),
+        )
+        if include_ions:
+            if plas.species != "electron":
+                raise ValueError(f"{self.name}: include_ions needs an electron plasma.")
+            add("ions", species_type="proton", **column, **density,
+                **thermal(plas.thermal_momentum("hydrogen")))
+
+        if plas.ionizable:
+            if not plas.ionization_element:
+                raise ValueError(
+                    f"{self.name} sets ionizable but no ionization_element. Give "
+                    "the atomic symbol of the gas to ionize, e.g. 'N' or 'He'."
+                )
+            if plas.ionization_max_level is not None:
+                warn(f"{self.name}: WarpX has no maximum ionization level; it is ignored.")
+            import periodictable  # as simba's FBPIC backend
+
+            mass = getattr(periodictable, plas.ionization_element).mass * physical_constants[
+                "atomic mass constant"
+            ][0]
+            add(
+                "atoms",
+                charge=e,  # WarpX scales it by the ionization level
+                mass=mass,
+                **column | {"xmax": sim.p_rmax_ionizable},
+                **density_function(plas.ionization_density or plas.density, "atoms"),
+                **thermal(plas.thermal_momentum(mass=mass)),
+                do_field_ionization=1,
+                physical_element=plas.ionization_element,
+                ionization_initial_level=plas.ionization_initial_level or 0,
+                ionization_product_species="injected",
+            )
+            add("injected", species_type="electron", injection_style="none")
+        params["particles.species_names"] = names
+
+        if self.laser is not None:
+            params |= self._warpx_laser(antenna_offset)
+        return params
+
+    def _warpx_box(self, z_entrance: float) -> dict:
+        """WarpX RZ box, grid, moving window and run length: until box z = 0 leaves the stage."""
+        sim = self.simulation
+        zmin, zmax = sim.min_longitudinal_position, sim.max_longitudinal_position
+        if not (sim.r_max > 0 and sim.n_radial > 0 and sim.n_longitudinal > 0 and zmax > zmin):
+            raise ValueError(
+                f"{self.name}: WarpX needs r_max, n_radial and n_longitudinal set, "
+                "and max_longitudinal_position above min_longitudinal_position."
+            )
+        return {
+            "geometry.dims": "RZ",
+            "amr.n_cell": [sim.n_radial, sim.n_longitudinal],
+            "geometry.prob_lo": [0.0, zmin],
+            "geometry.prob_hi": [sim.r_max, zmax],
+            "warpx.do_moving_window": 1,
+            "warpx.moving_window_dir": "z",
+            "warpx.moving_window_v": 1.0,
+            "stop_time": (z_entrance + self.length) / c,
+        }
+
+    def _warpx_laser(self, antenna_offset: float | None) -> dict:
+        """
+        WarpX Gaussian antenna emitting a pulse: centre at
+        ``initial_position`` and focus at ``focal_position`` (box z at t = 0).
+        At the antenna the field is the conjugate of its complex form.
+        Circular adds the orthogonal component at ``phi0 + pi/2``.
+
+        Returns
+        -------
+        dict
+            ``{input key: value}``
+
+        Raises
+        ------
+        ValueError
+            For a non-Gaussian, counter-propagating or elliptical laser, or
+            without wavelength, waist and pulse_duration_fwhm
+        """
+        sim, laser = self.simulation, self.laser
+        if (
+            str(laser.profile_type).lower() != "gaussian"
+            or laser.propagation_direction != 1
+            or str(laser.polarization) not in ("linear", "circular")
+            or not (laser.wavelength and laser.waist and laser.pulse_duration_fwhm)
+        ):
+            raise ValueError(
+                f"{self.name}: WarpX export handles a co-propagating, linear or circular "
+                "Gaussian laser, with wavelength, waist and pulse_duration_fwhm set."
+            )
+        if laser._is_few_cycle:
+            warn(
+                f"{self.name}: the laser is a few-cycle pulse, which FBPIC launches as a "
+                "FewCycleLaser; WarpX's Gaussian profile is used."
+            )
+        tau = laser.pulse_duration_1e_field
+        phi2 = laser.temporal_chirp_2nd_order or 0.0
+        s = 2 * phi2 / tau**2  # FBPIC's stretch factor is 1 - i*s, WarpX's 1 + i*s
+        offset = 3 * c * tau if antenna_offset is None else antenna_offset
+        z_antenna = laser.initial_position + offset
+        if not sim.min_longitudinal_position < z_antenna < sim.max_longitudinal_position:
+            warn(
+                f"The laser antenna of {self.name} is at z = {z_antenna * 1e6:.1f} um, "
+                "outside the simulation box, so WarpX will not launch it; widen the box "
+                "or set antenna_offset."
+            )
+        common = {
+            "profile": "Gaussian",
+            "position": [0.0, 0.0, z_antenna],
+            "direction": [0.0, 0.0, 1.0],
+            "wavelength": laser.wavelength,
+            "a0": laser.amplitude * (1 + s**2) ** -0.25,
+            "profile_waist": laser.waist,
+            "profile_duration": tau,
+            "profile_t_peak": offset / c,
+            "profile_focal_distance": laser.focal_position - z_antenna,
+            "phi2": phi2,
+        }
+        theta, phi0 = laser.polarization_angle, laser.cep_phase - atan(s) / 2
+        components = {"laser": (theta, phi0)}
+        if str(laser.polarization) == "circular":
+            components["laser_y"] = (theta + pi / 2, phi0 + pi / 2)
+        params = {"lasers.names": list(components)}
+        for name, (angle, phase) in components.items():
+            for key, value in (
+                common | {"polarization": [cos(angle), sin(angle), 0.0], "phi0": phase}
+            ).items():
+                params[f"{name}.{key}"] = value
+        return params
 
     @property
     def driver_laser(self) -> LaserElement | None:
@@ -573,6 +800,33 @@ class PlasmaLensTranslator(PlasmaTranslator):
         g = self.focusing_strength
         params["beams.external_B(x,y,z,t)"] = [f"{number(g)}*y", f"{number(-g)}*x", 0.0]
         return params
+
+    def to_warpx(
+        self,
+        include_ions: bool = False,
+        z_entrance: float = 0.0,
+        antenna_offset: float | None = None,
+        directory: str | None = None,
+    ) -> dict:
+        """
+        The lens's box and run length, and its plasma with :attr:`~wakefields`.
+        Its field, ``B = g (y, -x, 0)`` for :attr:`~focusing_strength` *g*
+        is a ``plasmalens`` lattice element, which
+        :func:`~laura.translator.converters.section.SectionLatticeTranslator.to_warpx` places.
+
+        Parameters
+        ----------
+        include_ions, z_entrance, antenna_offset, directory
+            As :func:`~PlasmaTranslator.to_warpx`, with :attr:`~wakefields`
+
+        Returns
+        -------
+        dict
+            ``{input key: value}``, in SI units
+        """
+        if self.wakefields:
+            return super().to_warpx(include_ions=include_ions, z_entrance=z_entrance, directory=directory)
+        return self._warpx_box(z_entrance)
 
     def to_wake_t(self) -> Any:
         """

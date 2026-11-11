@@ -38,12 +38,13 @@ from .codes.gpt import GptCcs
 
 GPT_HARD_EDGE_B1 = 300.0
 
-MAP_SOLENOID_RADIUS = {"astra": 0.001, "opal": 0.005, "gpt": 0.001, "rftrack": 0.001}
+MAP_SOLENOID_RADIUS = {"astra": 0.001, "opal": 0.005, "gpt": 0.001, "rftrack": 0.001, "warpx": 0.005}
 """Least current-sheet radius, as a fraction of its length, of a solenoid without a field
 map; unless ``coil_radius`` is larger, the radius used. It departs from a hard edge by about
 half of it. Below it the code's own numerics depart by more: ASTRA's (first order) at 0.0005,
 OPAL's (Fourier rebuild, third order) at 0.002-0.003; GPT showed none down to 0.0005, and
-RF-Track loses every particle at R = 0."""
+RF-Track loses every particle at R = 0. WarpX takes OPAL's: its map is a Fourier series too
+(:mod:`~laura.translator.utils.fields.onaxis`)."""
 
 
 def solenoid_sheet_radius(magnetic, length: float, code: str) -> float:
@@ -1344,6 +1345,41 @@ class SolenoidTranslator(BaseElementTranslator):
         field.read = True
         return field
 
+    def warpx_field_terms(self, zstart: float) -> list:
+        """
+        The solenoid's on-axis map as an analytic field for WarpX (see
+        :mod:`~laura.translator.utils.fields.onaxis`).
+
+        Parameters
+        ----------
+        zstart : float
+            Lattice z of WarpX's z = 0
+
+        Returns
+        -------
+        list[FieldTerm]
+            One term, or none for a map that is not ``1DMagnetoStatic``
+        """
+        from laura.translator.utils.fields.onaxis import CurrentSheetTerm, FieldTerm, Profile
+
+        self.update_field_definition()  # loads the map if it is still a file name
+        if self.simulation.field_definition is None:  # the current sheet of _field_map, in closed form
+            radius = self._sheet_radius("warpx")
+            stands_for = "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+            warn(f"WARPX needs a field map and {self.name!r} has none: writing the analytic field of a "
+                 f"current sheet of radius {radius:.3g} m, for {stands_for}.")
+            return [CurrentSheetTerm(float(self._map_amplitude("warpx")), float(self.magnetic.length), radius,
+                                     z=float(self.physical.middle.z + self.dz) - zstart,
+                                     x=float(self.physical.middle.x + self.dx), y=float(self.physical.middle.y + self.dy))]
+        field = self._field_map("warpx")
+        if field.field_type != "1DMagnetoStatic":
+            return []
+        ref = self.get_field_reference_position()
+        profile = Profile.fit(field.z.value.val, field.Bz.value.val)
+        return [FieldTerm(profile, float(self._map_amplitude("warpx")), "B",
+                          z=float(ref[2] + self.dz) - zstart, x=float(ref[0] + self.dx),
+                          y=float(ref[1] + self.dy))]
+
     def opal_ks(self, designenergy: float | None = None) -> float:
         """
         The solenoid ``KS`` attribute, in the convention of the target OPAL.
@@ -1562,6 +1598,51 @@ class WigglerTranslator(BaseElementTranslator):
         obj.Kx = float(strength)
         obj.Ky = float(strength) if m.helical else 0.0
         return obj
+
+    def warpx_field_terms(self, zstart: float) -> list:
+        """
+        The wiggler as an ideal undulator field for WarpX
+        (:class:`~laura.translator.utils.fields.onaxis.UndulatorTerm`): peak field
+        ``peak_magnetic_field``, else from ``strength``, over
+        ``num_periods`` periods (else the length) from the element's start.
+
+        Parameters
+        ----------
+        zstart : float
+            Lattice z of WarpX's z = 0
+
+        Returns
+        -------
+        list[UndulatorTerm]
+            One term, or none without a period or a field
+        """
+        from laura.translator.utils.fields.onaxis import UndulatorTerm
+
+        m = self.magnetic
+        field = undulator_peak_field(m)
+        if not (m.period and field):
+            return []
+        ignored = [name for name in ("tilt", "quadratic_roll_off_x", "quadratic_roll_off_y",
+                                     "transverse_gradient_x", "transverse_gradient_y") if getattr(m, name)]
+        if getattr(self, "laser", None) is not None:
+            ignored.append("laser (no inverse-Compton set-up)")
+        if ignored:
+            warn(f"WarpX: {self.name} is an ideal undulator; its {', '.join(ignored)} are ignored.")
+        periods = m.num_periods or int(round(float(m.length or self.physical.length) / float(m.period)))
+        start = self.physical.start
+        return [UndulatorTerm(field, float(m.period), periods * float(m.period), float(start.z) - zstart,
+                              x=float(start.x + self.dx), y=float(start.y + self.dy), helical=bool(m.helical))]
+
+
+def undulator_peak_field(magnetic) -> float:
+    """Peak field [T] of a wiggler: ``peak_magnetic_field``, else ``K / (93.37 lambda_u)``."""
+    from laura.translator.utils.fields.onaxis import K_PER_TESLA_METRE
+
+    if magnetic.peak_magnetic_field:
+        return float(magnetic.peak_magnetic_field)
+    if magnetic.period and magnetic.strength:
+        return float(magnetic.resolved("strength")) / (K_PER_TESLA_METRE * float(magnetic.period))
+    return 0.0
 
 
 class CorrectorTranslator(BaseElementTranslator):
