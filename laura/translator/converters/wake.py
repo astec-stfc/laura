@@ -72,48 +72,6 @@ class WakefieldTranslator(BaseElementTranslator):
             + ", n_bins = 0;\n"
         )
 
-    def to_elegant(self) -> str:
-        """
-        Writes the wakefield element string for ELEGANT, as an ``rfcw`` with no voltage:
-        ELEGANT's ``wake`` element has no length, and ``rfcw`` scales the per-cell wake
-        by ``l / cell_length``, so it is applied once per cell, as in ASTRA and GPT.
-
-        Returns
-        -------
-        str
-            String representation of the element for ELEGANT
-        """
-        self.start_write()
-        length = self.physical.length
-        wake = self.simulation.wakefield_definition
-        if not (
-            isinstance(wake, FieldMap)
-            and self.simulation.scale_kick > 0
-            and getattr(self.simulation, "wakefield_enable", True)
-        ):
-            return f"{self.name}: drift, l = {length};\n"
-        if not length:
-            raise ValueError(f"Wakefield {self.name} has no length")
-        filename = self.generate_field_file_name(wake, code="elegant")
-        columns = [
-            col
-            for col in ("Wx", "Wy", "Wz")
-            if getattr(getattr(wake, col, None), "value", None) is not None
-        ]
-        wakefile = (
-            "zwakefile"
-            if columns == ["Wz"]
-            else "wakefile"
-            if "Wz" in columns
-            else "trwakefile"
-        )
-        return (
-            f"{self.name}: rfcw, l = {length}, volt = 0, cell_length = {length / self.cavity.n_cells},&\n"
-            f' {wakefile} = "{filename}", tcolumn = "t", '
-            + ", ".join(f'{col.lower()}column = "{col}"' for col in columns)
-            + ", n_bins = 0;\n"
-        )
-
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the wakefield element string for ASTRA;
