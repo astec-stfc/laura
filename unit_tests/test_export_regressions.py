@@ -221,3 +221,21 @@ def test_opal_quadrupole_k1_is_a_gradient():
     # 599.584916 MeV is B*rho = 2 T m; the field gradient flips sign for electrons
     written = quad.to_opal(sval=0.0, designenergy=599.584916)
     assert float(re.search(r"k1 = ([^,]+)", written).group(1)) == pytest.approx(-10.0)
+
+
+def test_astra_dipole_faces_turn_with_the_beam_and_bend_it_the_right_way():
+    """A chicane's second dipole, entered at 0.1 rad with e1 = angle: its faces are square to z. They were
+    drawn as if the beam came in along z, and ASTRA, which bends a positive radius towards -x, took the
+    beam the other way out of the first: 18 ps through a 0.1 rad chicane."""
+    def bend(angle, e1, e2, heading):
+        return translate(Dipole(
+            name="B", hardware_class="Magnet", machine_area="S",
+            physical={"length": 0.2, "middle": {"x": 0.1, "y": 0.0, "z": 1.0}, "rotation": {"theta": heading}},
+            magnetic={"length": 0.2, "k0l": angle, "entrance_edge_angle": e1, "exit_edge_angle": e2},
+        ))
+    second = bend(-0.1, "angle", 0.0, -0.1)  # LAURA's theta is -dx/dz: this beam heads towards +x
+    entrance, exit_ = (second.corners[0], second.corners[3]), (second.corners[1], second.corners[2])
+    for a, b in (entrance, exit_):
+        assert a[2] == pytest.approx(b[2], abs=1e-12)
+    first = bend(0.1, 0.0, "angle", 0.0)
+    assert float(re.search(r"D_radius\(1\) = ([^,\s]+)", first.to_astra(n=1)).group(1)) == pytest.approx(-2.0)

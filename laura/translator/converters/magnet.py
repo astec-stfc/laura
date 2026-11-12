@@ -726,7 +726,8 @@ class DipoleTranslator(MultipoleStrengthTranslator):
                     "default": 1e6,
                 }
             else:
-                params["D_radius"] = {"value": 1 * self.magnetic.rho, "default": 1e6}
+                # ASTRA bends a positive radius towards -x; LAURA lays a positive angle out towards +x
+                params["D_radius"] = {"value": -1 * self.magnetic.rho, "default": 1e6}
             return self._write_astra_dictionary(params, n)
         else:
             return ""
@@ -742,8 +743,11 @@ class DipoleTranslator(MultipoleStrengthTranslator):
             Dipole corner positions
         """
         corners = [0, 0, 0, 0]
-        rotation = self.physical.global_rotation.theta
-        theta = self.e1 + rotation
+        # faces square to the beam lie at its heading, theta = -dx/dz; e1 turns the entrance face towards the bend
+        # and e2 the exit face back. global_rotation alone was 0 here, which put a dipole entered at an angle, the
+        # second of a chicane, square to z: ASTRA's beam took 18 ps more through a 0.1 rad chicane
+        rotation = self.physical.rotation.theta + self.physical.global_rotation.theta
+        theta = rotation - self.e1
         corners[0] = np.array(
             list(
                 map(
@@ -772,7 +776,7 @@ class DipoleTranslator(MultipoleStrengthTranslator):
                 )
             )
         )
-        theta = self.magnetic.KnL(0) - self.e2 + rotation
+        theta = rotation - self.magnetic.KnL(0) + self.e2
         corners[1] = np.array(
             list(
                 map(
@@ -1032,6 +1036,8 @@ class DipoleTranslator(MultipoleStrengthTranslator):
             wholestring += f", {key} = {self._flag(self._angle_token(value))}"
         if etype == "monitor":
             wholestring += f', OUTFN = "{self.name}_opal"'
+        if designenergy:  # the momentum [MeV/c]; OPAL's is kinetic, so it bent a 5 MeV/c bunch 10% too far
+            designenergy = float(np.hypot(designenergy, self.opal_rest_energy) - self.opal_rest_energy)
         wholestring += f", DESIGNENERGY = {designenergy}"
         wholestring += f", ELEMEDGE = {sval}"
         wholestring += ', FMAPFN = "1DPROFILE1-DEFAULT";\n'

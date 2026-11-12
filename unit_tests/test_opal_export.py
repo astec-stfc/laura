@@ -223,3 +223,14 @@ def test_opal_design_energy_after_a_cavity_is_its_gain(tmp_path, monkeypatch):
     # |int cos(kz) exp(ikz)| over two wavelengths is one wavelength, at 10 MV/m
     assert seen["Q2"] == pytest.approx(5.0 + 10 * WAVELENGTH, rel=1e-4)
     assert steps == {2e-12}  # the longest stage step
+
+
+def test_opal_design_energy_is_kinetic():
+    """The section's energy is the momentum [MeV/c]; OPAL's DESIGNENERGY is kinetic, so a 5 MeV/c
+    bunch was bent 10% too far, 4 ps more path through a 0.1 rad chicane."""
+    bend = translate(
+        Dipole(name="B", hardware_class="Magnet", machine_area="S", physical={"length": 0.2},
+               magnetic={"length": 0.2, "k0l": 0.1, "entrance_edge_angle": 0.0, "exit_edge_angle": 0.1})
+    )
+    written = bend.to_opal(sval=0.0, designenergy=5.0)
+    assert float(re.search(r"DESIGNENERGY = ([^,]+)", written).group(1)) == pytest.approx(np.hypot(5.0, 0.51099895) - 0.51099895)

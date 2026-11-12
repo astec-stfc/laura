@@ -769,9 +769,9 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[key] += (
-                            f"{section_header_text_astra[key]} = True\n"
-                        )
+                        element_headers[
+                            key
+                        ] += f"{section_header_text_astra[key]} = True\n"
                         written.append(key)
                     if isinstance(e, ApertureTranslator):
                         element_headers[key] += e.to_astra(
@@ -808,9 +808,9 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers["&WAKE"] += (
-                                f"{section_header_text_astra['&WAKE']} = True\n"
-                            )
+                            element_headers[
+                                "&WAKE"
+                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += w.astra_wake_spacing[1]
@@ -1032,9 +1032,11 @@ class SectionLatticeTranslator(SectionLattice):
         # with staged steps, the longest one fits a thin element into every stage
         dt = max(dt) if isinstance(dt, (list, tuple)) else dt
         shortfall = 0.0
+        rest_energy = {"PROTON": 938.27208816}.get(getattr(self.opal_headers["beam"], "PARTICLE", ""), 0.51099895)
         for d in elem_dict.values():
             d.opal_version = self.opal_version
             d.opal_time_step = float(dt)
+            d.opal_rest_energy = rest_energy
             if isinstance(d, RFCavityTranslator):
                 energy += cavity_energy_gain(d)
             if d.subelement:
