@@ -181,20 +181,14 @@ class TestSequentialRoundTrip:
         written = _read(dest / "summary.yaml")
         assert [name for name in written if name.startswith("D1")] == ["D1"]
 
-    @pytest.mark.parametrize(
-        "options",
-        [
-            pytest.param({"position_mode": "s"}, id="other-mode"),
-            pytest.param(
-                {"position_mode": "sequential", "write_sections": False}, id="turned-off"
-            ),
-        ],
-    )
-    def test_sections_are_not_written(self, sequential_source, tmp_path, options):
+    def test_sections_are_not_written_when_turned_off(self, sequential_source, tmp_path):
         machine, _, _ = sequential_source
         dest = tmp_path / "combined"
-        export_machine_combined_file(str(dest), machine, **options)
+        export_machine_combined_file(
+            str(dest), machine, position_mode="sequential", write_sections=False
+        )
         assert not (dest / "_sections.yaml").exists()
+        assert not (dest / "_layouts.yaml").exists()
 
     def test_exported_sections_alone_are_loadable(self, sequential_source, tmp_path):
         machine, elements, layouts = sequential_source

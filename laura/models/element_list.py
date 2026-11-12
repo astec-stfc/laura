@@ -563,6 +563,10 @@ class ElementList(ModelBase):
         try:
             return super().__getattr__(a)
         except Exception:
+            # entries not loaded yet (None or raw dicts) cannot say, so only loaded ones decide
+            loaded = [v for v in self.elements.values() if isinstance(v, BaseElement)]
+            if loaded and not any(hasattr(v, a) for v in loaded):
+                raise AttributeError(f"No element in this list has an attribute {a!r}") from None
             data = self._get_attributes_or_none(a)
             if all([isinstance(d, (Union[BaseElement, None])) for d in data.values()]):
                 return ElementList(elements=data)
@@ -680,9 +684,11 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
     def __str__(self):
         return str(self.names)
 
-    def __getitem__(self, item: Union[str, int]) -> BaseModel:
+    def __getitem__(self, item: Union[str, int, slice]) -> BaseModel | List[BaseModel]:
         if isinstance(item, int):
             return self.elements[self.names[item]]
+        if isinstance(item, slice):
+            return [self.elements[name] for name in self.names[item]]
         return self.elements[item]
 
     def __getattr__(self, a):
@@ -1763,7 +1769,11 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
         except AttributeError:
             return getattr(self.sections, item)
 
-    def __getitem__(self, item: str) -> int:
+    def __getitem__(self, item: str | int) -> SectionLattice:
+        """A section by name, or by position along the beam path (a section
+        entered twice counts twice)."""
+        if isinstance(item, int):
+            return self._sections_in_beam_order()[item]
         return self.sections[item]
 
     @staticmethod
@@ -2010,8 +2020,8 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
 
     def elements_between(
         self,
-        end: str = None,
         start: str = None,
+        end: str = None,
         element_type: Union[str, list, None] = None,
         element_model: Union[str, list, None] = None,
         element_class: Union[str, list, None] = None,
@@ -2024,10 +2034,11 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
 
         Parameters
         ----------
-        end: str
-            Name of the element defining the end of the search region
         start: str
             Name of the element defining the start of the search region
+        end: str
+            Name of the element defining the end of the search region; a
+            `LatticeError` if it comes before `start`
         element_type: str | list | None
             Filter by element type; if list, gather multiple types; if None, gather all.
         element_model: str | list | None
@@ -2049,6 +2060,11 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
 
         first = 0 if start is None else self._lookup_index(start)
         last = len(elements) if end is None else self._lookup_index(end) + 1
+        if last <= first:
+            raise LatticeError(
+                f"'{start}' comes after '{end}' along beam path '{self.name}'; "
+                "elements_between takes the start first"
+            )
         indices = list(range(first, last))
 
         filtered_section_types = self._normalise_type_filter(
@@ -3277,8 +3293,8 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
 
     def elements_between(
         self,
-        end: str = None,
         start: str = None,
+        end: str = None,
         element_type: Union[str, list, None] = None,
         element_model: Union[str, list, None] = None,
         element_class: Union[str, list, None] = None,
@@ -3292,10 +3308,11 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
 
         Parameters
         ----------
-        end: str
-            Name of the element defining the end of the search region
         start: str
             Name of the element defining the start of the search region
+        end: str
+            Name of the element defining the end of the search region; a
+            `LatticeError` if it comes before `start`
         element_type: str | list | None
             Filter by element type; if list, gather multiple types; if None, gather all.
         element_model: str | list | None
@@ -3304,6 +3321,8 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
             Filter by element hardware class; if list, gather multiple classes; if None, gather all.
         path: str
             Optional beam path, i.e. name of :class:`~laura.models.element_list.MachineLayout`.
+            If not given, the default layout, or, when `end` is not on it, the
+            layout named after the section `end` is in.
         section_type: str | list | None
             Filter by section type; if list, gather multiple types; if None, gather all.
 
@@ -3321,19 +3340,15 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
                     '"default_layout" = %s is not defined, and more than one layout exists.'
                     % self._default_path,
                 )
+            if end is not None:
+                area = self.get_element(end).machine_area
+                names = self.lattices[path]._get_all_element_names()
+                on_default = end in names or split_occurrence(end)[0] in names
+                if not on_default and area in self.lattices:
+                    path = area
         elif path not in self.lattices:
             raise Exception('"path" = %s is not defined' % path)
-
-        if end is None:
-            path_obj = self.lattices[path]
-        else:
-            end_obj = self.get_element(end)
-            beam_path = (
-                end_obj.machine_area
-                if (end_obj.machine_area in self.lattices)
-                else path
-            )
-            path_obj = self.lattices[beam_path]
+        path_obj = self.lattices[path]
 
         # return a list of elements along this beam path
         elements = path_obj.elements_between(
