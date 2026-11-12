@@ -769,9 +769,9 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[
-                            key
-                        ] += f"{section_header_text_astra[key]} = True\n"
+                        element_headers[key] += (
+                            f"{section_header_text_astra[key]} = True\n"
+                        )
                         written.append(key)
                     if isinstance(e, ApertureTranslator):
                         element_headers[key] += e.to_astra(
@@ -808,9 +808,9 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers[
-                                "&WAKE"
-                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
+                            element_headers["&WAKE"] += (
+                                f"{section_header_text_astra['&WAKE']} = True\n"
+                            )
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += w.astra_wake_spacing[1]
@@ -981,7 +981,9 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += dtmint.write_gpt()
         return fulltext
 
-    def to_opal(self, energy: float = 0, breakstr: str = "", particle: str = "electron") -> str:
+    def to_opal(
+        self, energy: float = 0, breakstr: str = "", particle: str = "electron"
+    ) -> str:
         """
         Create an OPAL-compatible input file based on the lattice information and
         the settings provided in :attr:`~opal_headers`.
@@ -1478,10 +1480,10 @@ class SectionLatticeTranslator(SectionLattice):
         rft = get_rftrack()
         elem_dict = self._translate()
         first = next(iter(elem_dict.values())).physical
-        origin, R0 = (
+        origin, R0 = (  # noqa N803
             np.asarray(first.start.array, dtype=float),
             first.rotation_matrix,
-        )  # noqa N803
+        )
         volume = rft.Volume()
         placements = {}
         for name, d in elem_dict.items():
