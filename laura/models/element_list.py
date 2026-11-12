@@ -562,7 +562,9 @@ class ElementList(ModelBase):
             # entries not loaded yet (None or raw dicts) cannot say, so only loaded ones decide
             loaded = [v for v in self.elements.values() if isinstance(v, BaseElement)]
             if loaded and not any(hasattr(v, a) for v in loaded):
-                raise AttributeError(f"No element in this list has an attribute {a!r}") from None
+                raise AttributeError(
+                    f"No element in this list has an attribute {a!r}"
+                ) from None
             data = self._get_attributes_or_none(a)
             if all([isinstance(d, (Union[BaseElement, None])) for d in data.values()]):
                 return ElementList(elements=data)
@@ -627,6 +629,11 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
     _placed_sequentially: bool = PrivateAttr(default=False)
     """True if this section's positions were derived from ``order`` plus lengths
     rather than stated on the elements.  See :meth:`MachineLayout.arc_lengths`."""
+
+    _s_surveyed: bool = PrivateAttr(default=False)
+    """True if this section's positions are stated but its ``s`` is not, so
+    ``s`` was counted from the first element's distance to the origin, which
+    leaves out the extra path of any bend upstream.  See :meth:`chain_s_onto`."""
 
     _authored_order: Optional[List[Any]] = PrivateAttr(default=None)
     """The section's element list as written, before
@@ -714,7 +721,11 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
         """
         elements = self._get_all_elements()
         if flag == "csr_enable":
-            elements = [e for e in elements if str(getattr(e, "hardware_type", "")).lower() == "dipole"]
+            elements = [
+                e
+                for e in elements
+                if str(getattr(e, "hardware_type", "")).lower() == "dipole"
+            ]
         return any(getattr(element.simulation, flag, False) for element in elements)
 
     def create_drifts(
@@ -1110,6 +1121,7 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
                     current_s = _s_start_of(phys)
                     start = phys.start
                     prev_end = np.array([start.x, start.y, start.z])
+                self._s_surveyed = phys.s is None and not self._placed_sequentially
                 break
 
         s_list = [current_s]
@@ -1235,6 +1247,39 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
             for phys in physicals:
                 phys._trajectory = moved_traj
         self._composed_frame = frame
+
+    def chain_s_onto(self, element_registry: dict, frame) -> None:
+        """Continue a surveyed section's ``s`` from frame, the exit of its predecessor.
+        Its positions are global and stay put, but its ``s`` started at its first
+        element's distance from the origin.
+        """
+        if frame is None or not self._s_surveyed:
+            return
+        physicals = [
+            p
+            for p in (
+                getattr(element_registry.get(n), "physical", None)
+                for n in dict.fromkeys(self.order)
+            )
+            if p is not None and p.middle is not None
+        ]
+        if not physicals:
+            return
+        s_exit, exit_pos, rotation = frame
+        step = np.array(physicals[0].start.array) - np.asarray(exit_pos)
+        gap = float(np.linalg.norm(step))
+        if gap >= TOUCHING:
+            gap = float(np.copysign(gap, step @ np.asarray(rotation)[:, 2]))
+        ds = s_exit + gap - _s_start_of(physicals[0])
+        traj = physicals[0]._trajectory
+        for phys in physicals:
+            phys._trajectory = None  # or setting s would move it along the trajectory
+            phys.s = phys.s + ds
+        if traj is not None:
+            moved = Trajectory(traj._s + ds, traj._pos, traj._rots)
+            for phys in physicals:
+                phys._trajectory = moved
+        self._s_surveyed = False
 
     def resolve_positions(self, element_registry: dict) -> Optional[Trajectory]:
         """Resolve all positioning modes and build the section trajectory.
@@ -1742,7 +1787,9 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
             # positions are read off the trajectory at s; the device has not moved
             trajectory = phys._trajectory
             if trajectory is not None:
-                phys._trajectory = Trajectory(trajectory._s + offset, trajectory._pos, trajectory._rots)
+                phys._trajectory = Trajectory(
+                    trajectory._s + offset, trajectory._pos, trajectory._rots
+                )
             phys.s = phys.s + offset
         return element
 
@@ -2722,7 +2769,8 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
     @staticmethod
     def _section_members(elem_names, by_name, children):
         """A section's elements: the ones it orders, plus their subelements
-        (from :meth:`_subelement_index`), one generation at a time in ``by_name`` order."""
+        (from :meth:`_subelement_index`), one generation at a time in ``by_name`` order.
+        """
         members = [by_name[name] for name in elem_names if name in by_name]
         seen = {name for name in elem_names if name in by_name}
         parents = set(elem_names)
@@ -2781,7 +2829,9 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
                             area,
                             self._section_definitions[area],
                         )
-                        new_elements = self._section_members(elem_names, by_name, children)
+                        new_elements = self._section_members(
+                            elem_names, by_name, children
+                        )
                         _log.debug(
                             "Section %s elements=(%s)",
                             area,
@@ -3180,6 +3230,9 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
                             f"'{path}'.",
                             stacklevel=2,
                         )
+                elif frame is not None and section._s_surveyed and area not in composed:
+                    section.chain_s_onto(self.elements, frame)
+                    composed[area] = path
                 frame = section.exit_frame(self.elements) or frame
 
     def _number_sequential_repeats(self) -> None:

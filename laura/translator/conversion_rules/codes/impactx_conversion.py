@@ -350,8 +350,28 @@ def build_cavity(t, model, ref) -> list:
     cos_phi = cos(radians(float(t.phase)))
     p1 = sqrt((hypot(p0c, mass) + voltage * cos_phi) ** 2 - mass**2)
     target, _, exit, _ = t.rf_focusing(length, voltage, cos_phi, p0c, p1)
-    half = np.array([[1, length / 2], [0, 1]])
-    body = half @ np.diag([1, p0c / p1]) @ half
+    # kicks as ELEGANT's N_KICKS and Xsuite's num_kicks
+    # the slices share the cavity's name, so a program setting an absolute V on a linac cavity would set it on each
+    cells = t.get_cells() or 0
+    n = 3 * cells if cells > 1 else 1
+    if n > 1:
+        slice_ = {**kick, "V": kick["V"] / n}
+        parts = [drift(f"{t.name}_in", length / (2 * n), model)]
+        for i in range(n):
+            parts += [
+                dict(slice_),
+                drift(
+                    f"{t.name}_out" if i == n - 1 else f"{t.name}_body",
+                    length / (n if i < n - 1 else 2 * n),
+                    model,
+                ),
+            ]
+    half = np.array([[1, length / (2 * n)], [0, 1]])
+    body, p = np.eye(2), p0c
+    for _ in range(n):
+        q = sqrt((hypot(p, mass) + voltage * cos_phi / n) ** 2 - mass**2)
+        body = half @ np.diag([1, p / q]) @ half @ body
+        p = q
     return [
         _transverse_map(f"{t.name}_entrance", np.linalg.inv(exit @ body) @ target),
         *parts,
