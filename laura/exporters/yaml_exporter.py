@@ -714,12 +714,15 @@ def export_machine_sections(
     machine: MachineModel,
     filename: str = "_sections.yaml",
     aliases: Optional[dict] = None,
+    authored: bool = True,
 ) -> None:
     """Write the section orders out beside the exported elements.
 
     A ``"sequential"`` export is only reloadable alongside these orders.
     *aliases* (from :func:`_repeat_aliases`) puts a repeated name back where the
-    loader numbered it. The ``_`` prefix keeps the file out of the element list
+    loader numbered it. *authored* puts back authored ``repeat`` counts and
+    nested lines; turn it off when the elements are written under their
+    numbered names. The ``_`` prefix keeps the file out of the element list
     on reload.
     """
     os.makedirs(path, exist_ok=True)
@@ -743,11 +746,69 @@ def export_machine_sections(
     }
     with open(os.path.join(path, filename), "w") as handle:
         yaml.dump(
-            {"sections": _authored_sections(machine, flat)},
+            {"sections": _authored_sections(machine, flat) if authored else flat},
             handle,
             sort_keys=False,
             Dumper=_ExportDumper,
         )
+
+
+def export_functional_definitions(
+    path: str, machine: MachineModel, filename: str = "_functional_definitions.yaml"
+) -> None:
+    """Write the machine's functional definitions out beside the exported elements.
+
+    An element whose strength names a definition holds only the name, so the
+    export is only reloadable with these values (pass the file as
+    ``functional_definitions``). Nothing is written for a machine without any.
+    """
+    definitions = getattr(machine, "functional_definitions", None)
+    if not definitions:
+        return
+    os.makedirs(path, exist_ok=True)
+    with open(os.path.join(path, filename), "w") as handle:
+        yaml.dump({"functional_definitions": dict(definitions)}, handle, sort_keys=False)
+
+
+def export_machine_layouts(
+    path: str,
+    machine: MachineModel,
+    filename: str = "_layouts.yaml",
+) -> None:
+    """Write the machine's layouts out beside the exported elements, in the
+    form ``MachineModel(layout=...)`` reads. Nothing is written for a machine
+    without layouts."""
+    if not isinstance(machine, MachineModel) or not machine._layout_entries:
+        return
+    layouts = {
+        layout: [
+            name
+            if (direction, multipass, momentum, overrides) == (1, None, None, {})
+            else {
+                name: {
+                    key: value
+                    for key, value, default in (
+                        ("direction", direction, 1),
+                        ("multipass", multipass, None),
+                        ("momentum", momentum, None),
+                        ("overrides", overrides, {}),
+                    )
+                    if value != default
+                }
+            }
+            for name, direction, multipass, momentum, overrides in entries
+        ]
+        for layout, entries in machine._layout_entries.items()
+    }
+    out = {"default_layout": machine.default_path} if machine.default_path else {}
+    out["layouts"] = layouts
+    if machine._layout_metadata:
+        out["layout_metadata"] = machine._layout_metadata
+    if machine.particle is not None:
+        out["particle"] = machine.particle
+    os.makedirs(path, exist_ok=True)
+    with open(os.path.join(path, filename), "w") as handle:
+        yaml.dump(out, handle, sort_keys=False, Dumper=_ExportDumper)
 
 
 def export_as_yaml(
@@ -887,9 +948,10 @@ def export_machine_combined_file(
     template_root:
         As `export_as_yaml`; defaults to `machine.element_list`.
     write_sections:
-        In `"sequential"` position mode, also write the section orders to
-        `_sections.yaml` (see `export_machine_sections`), without which the
-        export carries no positions at all. Ignored in the other modes.
+        Also write the section orders to `_sections.yaml` and the layouts to
+        `_layouts.yaml` (see `export_machine_sections` and
+        `export_machine_layouts`), which the export needs to load back as a
+        machine. In `"sequential"` mode the orders are its only positions.
     """
     filename = os.path.join(path, "summary.yaml")
     os.makedirs(path, exist_ok=True)
@@ -930,8 +992,12 @@ def export_machine_combined_file(
     with open(filename, "w") as yaml_file:
         yaml.dump(combined_yaml, yaml_file, Dumper=_ExportDumper)
 
-    if position_mode == "sequential" and write_sections:
-        export_machine_sections(path, machine, aliases=aliases)
+    export_functional_definitions(path, machine)
+    if write_sections:
+        export_machine_sections(
+            path, machine, aliases=aliases, authored=position_mode == "sequential"
+        )
+        export_machine_layouts(path, machine)
 
 
 def export_machine(
@@ -987,9 +1053,10 @@ def export_machine(
         inherited from (and its own chain of parents) into the export root
         as `_<name>.yaml`.
     write_sections:
-        In `"sequential"` position mode, also write the section orders to
-        `_sections.yaml` (see `export_machine_sections`), without which the
-        export carries no positions at all. Ignored in the other modes.
+        Also write the section orders to `_sections.yaml` and the layouts to
+        `_layouts.yaml` (see `export_machine_sections` and
+        `export_machine_layouts`), which the export needs to load back as a
+        machine. In `"sequential"` mode the orders are its only positions.
     round_floats:
         As `export_as_yaml`.
     field_directory:
@@ -1092,10 +1159,14 @@ def export_machine(
                 _copy_controls_schema(elem, schema_root, directory, copied_schemas)
             if collapse_inheritance and copy_templates:
                 _copy_templates(dump, namespace, path, copied_templates)
+    export_functional_definitions(path, machine)
     if extract_schemas:
         _extract_schemas(path, apply=True)
-    if position_mode == "sequential" and write_sections:
-        export_machine_sections(path, machine, aliases=aliases)
+    if write_sections:
+        export_machine_sections(
+            path, machine, aliases=aliases, authored=position_mode == "sequential"
+        )
+        export_machine_layouts(path, machine)
 
 
 class _TemplateOverlay:

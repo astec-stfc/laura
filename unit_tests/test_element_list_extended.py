@@ -118,9 +118,14 @@ class TestElementList:
         m1 = Marker(name="M1", machine_area="A")
         m2 = Marker(name="M2", machine_area="A")
         el = ElementList(elements={"M1": m1, "M2": m2})
-        result = el.totally_missing_attr
+        result = el.aperture
         assert isinstance(result, ElementList)
         assert result.elements == {"M1": None, "M2": None}
+
+    def test_getattr_raises_when_no_element_has_it(self):
+        el = ElementList(elements={"M1": Marker(name="M1", machine_area="A")})
+        with pytest.raises(AttributeError, match="totally_missing_attr"):
+            el.totally_missing_attr
 
 
 class TestNormaliseLatticeType:
@@ -478,8 +483,9 @@ class TestFunctionalDefinitionsLoading:
             functional_definitions={"quad1_k1l": -2.0},
             resolve_functional=True,
         )
-        assert IgnoreExtra.resolve_functional is True
         assert mm.sections["S1"].resolve_functional is True
+        assert mm.elements["Q1"].magnetic.functional_scope.resolve is True
+        assert IgnoreExtra.resolve_functional is False  # the machine's own
 
     def test_load_flat_yaml(self, tmp_path):
         f = tmp_path / "defs.yaml"
@@ -517,17 +523,19 @@ class TestFunctionalDefinitionsLoading:
         f.write_text("")
         assert load_functional_definitions(str(f)) == {}
 
-    def test_machine_model_registers_from_yaml(self, tmp_path):
+    def test_machine_model_keeps_its_definitions_from_yaml(self, tmp_path):
         f = tmp_path / "defs.yaml"
         f.write_text("quad1_k1l: -2.0\n")
-        MachineModel(functional_definitions=str(f))
-        assert IgnoreExtra.functional_definitions == {"quad1_k1l": -2.0}
+        mm = MachineModel(functional_definitions=str(f))
+        assert mm.functional_definitions == {"quad1_k1l": -2.0}
+        assert IgnoreExtra.functional_definitions == {}
 
-    def test_section_lattice_registers_from_dict(self):
-        SectionLattice(
+    def test_section_lattice_keeps_its_definitions_from_dict(self):
+        section = SectionLattice(
             name="S1", order=[], elements=[], functional_definitions={"x": 5}
         )
-        assert IgnoreExtra.functional_definitions == {"x": 5}
+        assert section.functional_definitions == {"x": 5}
+        assert IgnoreExtra.functional_definitions == {}
 
     def test_machine_model_cascades_to_children(self, elements, tmp_path):
         f = tmp_path / "defs.yaml"

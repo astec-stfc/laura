@@ -11,6 +11,7 @@ import yaml
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from yaml import CSafeLoader as Loader
 
+from ..models.base_models import attach_functional_scope
 from ..models.control import ControlVariable
 
 # Import elements before building registry
@@ -254,6 +255,10 @@ class LazyElementDict(dict):
     Dictionary that loads elements from YAML files only when accessed.
     """
 
+    functional_scope = None
+    """Set by the machine that owns the dictionary; each element joins it as it
+    is read (see :class:`~laura.models.base_models.FunctionalScope`)."""
+
     def __init__(
         self,
         filenames,
@@ -323,6 +328,8 @@ class LazyElementDict(dict):
             )
             if elem is None:
                 self._failed.add(key)
+            elif self.functional_scope is not None:
+                attach_functional_scope(elem, self.functional_scope)
             super().__setitem__(key, elem)
             return elem
         raise KeyError(key)

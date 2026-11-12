@@ -64,12 +64,12 @@ def _getter(
     returns: str | None = None,
 ):
     """
-    Build a ``get_<family>(end, start, path)`` method, listing the names of the
+    Build a ``get_<family>(start, end, path)`` method, listing the names of the
     elements of ``element_class``/``element_type`` along a path, optionally
     post-processed by ``then(machine, names)``.
     """
 
-    def get(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+    def get(self, start: str = None, end: str = None, path: str = None) -> list[str]:
         names = self.elements_between(
             start=start,
             end=end,
@@ -82,8 +82,8 @@ def _getter(
     get.__doc__ = f"""
         Get all {what} between start and end
 
-        :param end: Name of the last element in the sequence
         :param start: Name of the first element in the sequence
+        :param end: Name of the last element in the sequence
         :param path: Name of the lattice path to use
         :return: {returns or f"List of the names of the {what}"}
         """
@@ -310,15 +310,15 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
 
     def create_drifts(
             self,
-            end: str | None = None,
             start: str | None = None,
+            end: str | None = None,
             path: str | None = None,
     ) -> Dict:
         """
         Insert drifts into a sequence of 'elements'
 
-        :param end: Name of the last element in the sequence
         :param start: Name of the first element in the sequence
+        :param end: Name of the last element in the sequence
         :param path: Name of the lattice path to use
         :return: Dictionary of elements with drifts inserted
         """
@@ -328,14 +328,14 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
 
     def _beamline(
             self,
-            end: str | None = None,
             start: str | None = None,
+            end: str | None = None,
             path: str | None = None
     ) -> Dict:
         """The elements :meth:`create_drifts` fills the gaps between.
 
-        :param end: Name of the last element in the sequence (last if `None`)
         :param start: Name of the first element in the sequence (first if `None`)
+        :param end: Name of the last element in the sequence (last if `None`)
         :param path: Name of the lattice path to use (`default_layout` if `None`)
         :return: Dictionary of element names and elements, without drifts
         """
@@ -355,15 +355,15 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
 
     def get_elements_s_pos(
             self,
-            end: str | None = None,
             start: str | None = None,
+            end: str | None = None,
             path: str | None = None
     ) -> Dict[str, float]:
         """
         Get s positions of all elements between start and end
 
-        :param end: Name of the last element in the sequence (last if `None`)
         :param start: Name of the first element in the sequence (first if `None`)
+        :param end: Name of the last element in the sequence (last if `None`)
         :param path: Name of the lattice path to use (`default_layout` if `None`)
         :return: Dictionary of element names and their s positions
         """

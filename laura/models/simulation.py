@@ -33,7 +33,7 @@ class ApertureElement(_ApertureElementBase):
     pass
 
 
-class SimulationElement(_SimulationElementBase, FunctionalMixin):
+class SimulationElement(FunctionalMixin, _SimulationElementBase):
     """
     Simulation element model.
     """
@@ -44,7 +44,7 @@ class SimulationElement(_SimulationElementBase, FunctionalMixin):
     without its wakefield, without discarding the definition itself."""
 
 
-class MagnetSimulationElement(_MagnetSimulationElementBase, FunctionalMixin):
+class MagnetSimulationElement(FunctionalMixin, _MagnetSimulationElementBase):
     """
     Magnet simulation element model.
     """
@@ -151,7 +151,7 @@ class PlasmaSimulationElement(_PlasmaSimulationElementBase):
         return self.r_min_plasma
 
 
-class RFCavitySimulationElement(_RFCavitySimulationElementBase, FunctionalMixin):
+class RFCavitySimulationElement(FunctionalMixin, _RFCavitySimulationElementBase):
     """
     RF cavity simulation element model.
     """
@@ -306,7 +306,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
 
 
 class ElectrostaticSeparatorSimulationElement(
-    _ElectrostaticSeparatorSimulationElementBase
+    FunctionalMixin, _ElectrostaticSeparatorSimulationElementBase
 ):
     """
     Electrostatic separator simulation element model.
@@ -361,7 +361,7 @@ class SampledWaveform(_SampledWaveformBase):
         return self
 
 
-class ACDipoleSimulationElement(_ACDipoleSimulationElementBase):
+class ACDipoleSimulationElement(FunctionalMixin, _ACDipoleSimulationElementBase):
     """
     AC dipole / tune-exciter simulation element model.
     """
@@ -438,7 +438,7 @@ class BeamBeamSimulationElement(_BeamBeamSimulationElementBase):
     """Bunch length of the opposing bunch [m], for the 3D weak-strong model."""
 
 
-class RFMultipoleSimulationElement(_RFMultipoleSimulationElementBase, FunctionalMixin):
+class RFMultipoleSimulationElement(FunctionalMixin, _RFMultipoleSimulationElementBase):
     """
     Thin RF multipole simulation element model.
     """

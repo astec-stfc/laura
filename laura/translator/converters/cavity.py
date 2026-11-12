@@ -22,6 +22,7 @@ from ..utils.functions import (
     transit_time_integral,
 )
 from .base import BaseElementTranslator, ocelot_attributes
+from .codes.slipstream import SlipstreamElement
 
 
 class RFCavityTranslator(BaseElementTranslator):
@@ -227,6 +228,73 @@ class RFCavityTranslator(BaseElementTranslator):
         ):
             self.trwakefile = f'"{wakefield_file_name}"'
             return
+
+    def to_slipstream(self) -> SlipstreamElement:
+        """
+        ``slipstream`` record for this cavity -- carries both a raw-field
+        representation (``field_map_hdf5_path``/``wakefield_hdf5_path``/
+        ``e_max_v_per_m``/``n_cells``/``injector_phase_deg``, for slipstream's
+        space-charge ``Injector``, real Boris-pusher field tables read
+        directly from LAURA's own HDF5 format -- ``start_write()`` resolves
+        both ``simulation.field_definition``/``wakefield_definition`` into
+        real ``FieldMap``s with an absolute ``.filename``, the same
+        resolution ``to_astra()``/``to_elegant()`` use internally, but no
+        ASTRA/elegant-format regeneration is involved here) and a lumped peak
+        voltage (``voltage_v``, for slipstream's linac ``ElementSpec``/
+        ``LinacTracker``, an elegant-``RFCA``-style single kick --
+        ``phase_deg`` is applied separately by the tracker, not baked in
+        here). ``voltage_v`` is :attr:`voltage`, the number :meth:`to_elegant`
+        writes as ``VOLT=`` (the travelling-wave compensation factor times the
+        field amplitude; the amplitude itself for a standing-wave structure).
+
+        Returns
+        -------
+        SlipstreamElement
+        """
+        self.start_write()
+        field_map_hdf5_path = getattr(self.simulation.field_definition, "filename", None)
+        wakefield_hdf5_path = getattr(self.simulation.wakefield_definition, "filename", None)
+        # get_field_reference_position()[2] + self.dz, not physical.start.z --
+        # the exact computation _write_astra_cavity uses for ASTRA's own
+        # C_pos, see SolenoidTranslator.to_slipstream()'s identical fix.
+        field_ref_pos = self.get_field_reference_position()
+        return SlipstreamElement(
+            name=self.name,
+            hardware_type=self.hardware_type,
+            length=self.physical.length,
+            z_m=float(field_ref_pos[2]) + self.dz,
+            field_map_hdf5_path=field_map_hdf5_path,
+            wakefield_hdf5_path=wakefield_hdf5_path,
+            e_max_v_per_m=self.field_amplitude,
+            frequency_hz=self.cavity.frequency,
+            n_cells=self.get_cells() or 0,
+            # elegant's own PHASE convention ("all phases are +90 degrees",
+            # see to_elegant()'s own comment), not LAURA's native
+            # off-crest-is-zero self.phase -- ready for slipstream's
+            # ElementSpec.phase_rad = phase_deg * pi/180 unconverted, the
+            # exact convention parse_elegant_lattice already assumes.
+            phase_deg=90.0 - self.phase,
+            # ASTRA's/Injector's own convention instead (self.phase verbatim,
+            # off-crest-is-zero) -- confirmed directly against
+            # Injector.from_astra's own cavity construction (injector.py:595,
+            # Auto_phase=T reads ASTRA's own Phi straight into phase_deg with
+            # no transform at all -- a different convention than elegant's).
+            injector_phase_deg=self.phase,
+            crest_deg=self.cavity.crest,
+            voltage_v=self.voltage,
+            # Same overrides to_elegant() applies: elegant's own N_KICKS
+            # convention is 3 per physical cell, and a TravellingWave
+            # structure forces elegant's TW1 body-focus model regardless of
+            # the raw (standing-wave-default) "SRS" simulation setting.
+            n_kicks=3 * self.get_cells() if (self.get_cells() or 0) > 1 else 1,
+            change_p0=bool(self.simulation.change_p0),
+            end1_focus=bool(self.simulation.end1_focus),
+            end2_focus=bool(self.simulation.end2_focus),
+            body_focus_model=(
+                "TW1" if self.cavity.structure_type == "TravellingWave"
+                else self.simulation.body_focus_model
+            ),
+        )
 
     def to_elegant(self) -> str:
         """
