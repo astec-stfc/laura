@@ -364,7 +364,9 @@ class SectionLatticeTranslator(SectionLattice):
         beginning: str
             The floor-position datum from :meth:`_bmad_body`.
         """
-        header = bmad_functional_definitions(self.functional_definitions)
+        header = bmad_functional_definitions(
+            self.functional_definitions, self.resolve_functional
+        )
         if particle:
             header += f"parameter[particle] = {particle}\n"
         enabled = (
@@ -1179,7 +1181,9 @@ class SectionLatticeTranslator(SectionLattice):
             wrap(lstring, 80, break_long_words=False, break_on_hyphens=False)
         )
         return (
-            elegant_functional_definitions(self.functional_definitions)
+            elegant_functional_definitions(
+                self.functional_definitions, self.resolve_functional
+            )
             + string
             + lstring
         )
@@ -1325,7 +1329,7 @@ class SectionLatticeTranslator(SectionLattice):
         }
         elements = []
 
-        symbolic = not IgnoreExtra.resolve_functional
+        symbolic = not self.resolve_functional
         for d in elem_dict.values():
             obj = (
                 d.to_ocelot(Brho=Brho)
@@ -1667,17 +1671,16 @@ class SectionLatticeTranslator(SectionLattice):
 
         if not isinstance(env, xt.Environment):
             env = xt.Environment()
-        if not IgnoreExtra.resolve_functional:
-            for name, value in (
-                self.functional_definitions or IgnoreExtra.functional_definitions
-            ).items():
+        definitions = self.functional_definitions or IgnoreExtra.functional_definitions
+        if not self.resolve_functional:
+            for name, value in definitions.items():
                 env[name] = value
         elem_dict = self._translate(self.create_drifts().values())
         self._apply_tw_focusing(elem_dict)
 
         def _is_symbolic(val: Any) -> bool:
             if isinstance(val, str):
-                return any(nam in val for nam in IgnoreExtra.functional_definitions)
+                return any(nam in val for nam in definitions)
             if isinstance(val, (list, tuple)):
                 return any(_is_symbolic(v) for v in val)
             return False
@@ -1933,7 +1936,9 @@ class SectionLatticeTranslator(SectionLattice):
                     f"ealign, {terms};\n"
                 )
 
-        seqstring = madx_functional_definitions(self.functional_definitions)
+        seqstring = madx_functional_definitions(
+            self.functional_definitions, self.resolve_functional
+        )
         has_beam = isinstance(beam, Dict)
         if has_beam:
             beamstr = "BEAM"
@@ -2080,7 +2085,9 @@ class SectionLatticeTranslator(SectionLattice):
             Options(integratorSet=f'"{integrator_set}"', buildPoleFaceGeometry=0)
         )
         sanitized_name = self.name.replace("-", "_")
-        definitions = bdsim_functional_definitions(self.functional_definitions)
+        definitions = bdsim_functional_definitions(
+            self.functional_definitions, self.resolve_functional
+        )
         variables_file = f"{sanitized_name}_variables.gmad"
         if definitions:
             machine.AddIncludePre(variables_file)

@@ -142,7 +142,14 @@ def merge_layout_elements(
     section_definitions[section_name] = [renamed[name] for name in order]
 
 
-def elegant_functional_definitions(definitions: Dict | None = None) -> str:
+def _baked_in(resolve: bool | None) -> bool:
+    """The lattice's resolution mode, or the session-wide one if not given."""
+    return IgnoreExtra.resolve_functional if resolve is None else resolve
+
+
+def elegant_functional_definitions(
+    definitions: Dict | None = None, resolve: bool | None = None
+) -> str:
     """
     Build the ELEGANT rpn-store header declaring every functional definition for
     the lattice, e.g.::
@@ -159,6 +166,8 @@ def elegant_functional_definitions(definitions: Dict | None = None) -> str:
     definitions: dict, optional
         The functional definitions to declare. Defaults to the shared registry
         (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+    resolve: bool, optional
+        The lattice's resolution mode; defaults to the session-wide one.
 
     Returns
     -------
@@ -166,14 +175,16 @@ def elegant_functional_definitions(definitions: Dict | None = None) -> str:
         The ``% <value> sto <name>`` block (one line per definition), or an empty
         string if no functional definitions are set.
     """
-    if IgnoreExtra.resolve_functional:
+    if _baked_in(resolve):
         # Resolution mode: values are baked in as numbers, so no rpn store needed.
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
     return "".join(f"% {value} sto {name}\n" for name, value in definitions.items())
 
 
-def madx_functional_definitions(definitions: Dict | None = None) -> str:
+def madx_functional_definitions(
+    definitions: Dict | None = None, resolve: bool | None = None
+) -> str:
     """
     Build the MAD-X variable-declaration header assigning every functional
     definition for the lattice, e.g.::
@@ -191,6 +202,8 @@ def madx_functional_definitions(definitions: Dict | None = None) -> str:
     definitions: dict, optional
         The functional definitions to declare. Defaults to the shared registry
         (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+    resolve: bool, optional
+        The lattice's resolution mode; defaults to the session-wide one.
 
     Returns
     -------
@@ -198,16 +211,18 @@ def madx_functional_definitions(definitions: Dict | None = None) -> str:
         A ``<name> = <value>;`` block (one line per definition), or an empty
         string if no functional definitions are set.
     """
-    if IgnoreExtra.resolve_functional:
+    if _baked_in(resolve):
         # Resolution mode: values are baked in as numbers, so no header needed.
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
     return "".join(f"{name} = {value};\n" for name, value in definitions.items())
 
 
-def bmad_functional_definitions(definitions: Dict | None = None) -> str:
+def bmad_functional_definitions(
+    definitions: Dict | None = None, resolve: bool | None = None
+) -> str:
     """Build Bmad variable assignments for symbolic lattice parameters."""
-    if IgnoreExtra.resolve_functional:
+    if _baked_in(resolve):
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
     return "".join(f"{name} = {value}\n" for name, value in definitions.items())
@@ -221,14 +236,16 @@ def functional_fields(element: BaseModel) -> Dict[str, str]:
     the native object and :func:`apply_functional_fields` can restore them.
     """
     found = {}
-    if not IgnoreExtra.functional_definitions:
+    scope = getattr(element, "functional_scope", None)
+    definitions = scope.definitions if scope else IgnoreExtra.functional_definitions
+    if not definitions:
         return found
 
     def walk(value: Any, path: str) -> None:
         if isinstance(value, dict):
             for key, item in value.items():
                 walk(item, f"{path}.{key}" if path else str(key))
-        elif isinstance(value, str) and value in IgnoreExtra.functional_definitions:
+        elif isinstance(value, str) and value in definitions:
             found[path] = value
 
     walk(element.model_dump(), "")
@@ -243,7 +260,9 @@ def apply_functional_fields(data: Dict, fields: Dict[str, str]) -> None:
         for key in parents:
             target = target.setdefault(key, {})
         target[leaf] = symbol
-def bdsim_functional_definitions(definitions: Dict | None = None) -> str:
+def bdsim_functional_definitions(
+    definitions: Dict | None = None, resolve: bool | None = None
+) -> str:
     """
     Build the gmad variable-declaration block assigning every functional
     definition for the lattice, e.g.::
@@ -263,6 +282,8 @@ def bdsim_functional_definitions(definitions: Dict | None = None) -> str:
     definitions: dict, optional
         The functional definitions to declare. Defaults to the shared registry
         (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+    resolve: bool, optional
+        The lattice's resolution mode; defaults to the session-wide one.
 
     Returns
     -------
@@ -270,7 +291,7 @@ def bdsim_functional_definitions(definitions: Dict | None = None) -> str:
         A ``<name> = <value>;`` block (one line per definition), or an empty
         string if no functional definitions are set.
     """
-    if IgnoreExtra.resolve_functional:
+    if _baked_in(resolve):
         # Resolution mode: values are baked in as numbers, so no header needed.
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions

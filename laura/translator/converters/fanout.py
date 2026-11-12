@@ -243,7 +243,9 @@ class ContainerTranslator:
         """
         definitions, lines = self._elegant_body(charge=charge, Brho=Brho)
         return (
-            elegant_functional_definitions(self.functional_definitions)
+            elegant_functional_definitions(
+                self.functional_definitions, self.resolve_functional
+            )
             + string
             + definitions
             + lines

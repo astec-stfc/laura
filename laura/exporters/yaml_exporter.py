@@ -745,6 +745,23 @@ def export_machine_sections(
         )
 
 
+def export_functional_definitions(
+    path: str, machine: MachineModel, filename: str = "_functional_definitions.yaml"
+) -> None:
+    """Write the machine's functional definitions out beside the exported elements.
+
+    An element whose strength names a definition holds only the name, so the
+    export is only reloadable with these values (pass the file as
+    ``functional_definitions``). Nothing is written for a machine without any.
+    """
+    definitions = getattr(machine, "functional_definitions", None)
+    if not definitions:
+        return
+    os.makedirs(path, exist_ok=True)
+    with open(os.path.join(path, filename), "w") as handle:
+        yaml.dump({"functional_definitions": dict(definitions)}, handle, sort_keys=False)
+
+
 def export_machine_layouts(
     path: str,
     machine: MachineModel,
@@ -967,6 +984,7 @@ def export_machine_combined_file(
     with open(filename, "w") as yaml_file:
         yaml.dump(combined_yaml, yaml_file, Dumper=_ExportDumper)
 
+    export_functional_definitions(path, machine)
     if write_sections:
         export_machine_sections(
             path, machine, aliases=aliases, authored=position_mode == "sequential"
@@ -1128,6 +1146,7 @@ def export_machine(
                 _copy_controls_schema(elem, schema_root, directory, copied_schemas)
             if collapse_inheritance and copy_templates:
                 _copy_templates(dump, namespace, path, copied_templates)
+    export_functional_definitions(path, machine)
     if write_sections:
         export_machine_sections(
             path, machine, aliases=aliases, authored=position_mode == "sequential"
