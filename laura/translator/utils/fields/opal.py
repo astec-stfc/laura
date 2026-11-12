@@ -10,7 +10,6 @@ from .sdds import write_sdds_field_file
 
 d = ",!?/&-:;@'\n \t"
 
-
 def opal_tw_window(field, frequency: float) -> tuple[float, float]:
     """
     The stretch of an ASTRA-style travelling-wave map that OPAL's ``TRAVELINGWAVE``

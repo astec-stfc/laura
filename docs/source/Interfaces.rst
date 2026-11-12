@@ -80,6 +80,14 @@ summary file:
     export_machine_combined_file("./out", machine)       # ./out/summary.yaml
     element_dict = export_as_yaml(None, machine["QUAD-01"])   # return, don't write
 
+``export_machine`` and ``export_machine_combined_file`` also write the section orders to
+``_sections.yaml`` and the layouts to ``_layouts.yaml`` (if the machine has any), so the
+export loads back as a machine:
+
+.. code-block:: python
+
+    LAURA(layout="./out/_layouts.yaml", section="./out/_sections.yaml", element_list="./out")
+
 All of these take a ``position_mode`` that selects how each element's placement is written --
 the :ref:`positioning modes <positioning-modes>`. Because the model resolves every mode into
 both global coordinates and an arc-length ``s``, a machine can be re-exported in a form
@@ -98,7 +106,7 @@ different from the one it was read in:
    * - ``"reference"``
      - ``reference_placement`` with an ``s_offset`` relative to the preceding element in section order. The first element of a section falls back to ``"s"``.
    * - ``"sequential"``
-     - No position at all, where the element abuts its predecessor -- the compact drift-based form (see :ref:`sequential-placement`). The section orders are written alongside, to ``_sections.yaml``.
+     - No position at all, where the element abuts its predecessor -- the compact drift-based form (see :ref:`sequential-placement`). The section orders in ``_sections.yaml`` then carry the positions.
 
 .. code-block:: python
 
@@ -120,7 +128,7 @@ coordinates. Three options invert the loader's expansions:
    * - Option
      - Effect
    * - ``position_mode="sequential"``
-     - Drops the position of every element that abuts its predecessor, and writes the section orders to ``_sections.yaml`` (``write_sections=False`` suppresses that file). An element that does not abut keeps an explicit ``s`` at its entrance, and a warning says so. A name the load split into numbered copies (``D1.1``, ``D1.2``, ...) is written back as one element listed twice, so the order reads as it was authored; a group whose copies have since been changed, or whose bare name is still an element in its own right, stays numbered and warns. Authored ``repeat`` counts and nested lines are put back into ``_sections.yaml`` too, along with the definition of every line referenced; if re-expanding them no longer reproduces the machine's own order, every section is written out fully expanded and a warning says so. Authored ``repeat`` counts and nested lines are put back into ``_sections.yaml`` too, along with the definition of every line referenced; if re-expanding them no longer reproduces the machine's own order, every section is written out fully expanded and a warning says so.
+     - Drops the position of every element that abuts its predecessor, leaving the section orders in ``_sections.yaml`` to place it. An element that does not abut keeps an explicit ``s`` at its entrance, and a warning says so. A name the load split into numbered copies (``D1.1``, ``D1.2``, ...) is written back as one element listed twice, so the order reads as it was authored; a group whose copies have since been changed, or whose bare name is still an element in its own right, stays numbered and warns. Authored ``repeat`` counts and nested lines are put back into ``_sections.yaml`` too, along with the definition of every line referenced; if re-expanding them no longer reproduces the machine's own order, every section is written out fully expanded and a warning says so. Authored ``repeat`` counts and nested lines are put back into ``_sections.yaml`` too, along with the definition of every line referenced; if re-expanding them no longer reproduces the machine's own order, every section is written out fully expanded and a warning says so.
    * - ``collapse_inheritance=True``
      - Restores ``inherits_from`` and removes every key the parent already supplies, comparing against the parent as the loader would have merged it. ``template_root`` says where to look for the parents (default: the machine's own element directory); with ``copy_templates=True`` each parent used, and its own ancestors, is written into the export root as ``_<name>.yaml`` so the tree reloads on its own.
    * - ``collapse_schema=True``

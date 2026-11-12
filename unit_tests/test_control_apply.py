@@ -83,6 +83,44 @@ class TestControlVariableApply:
         cv.apply(element, {})
         assert element.magnetic.k1l == before
 
+    def test_apply_calls_calibration_curve_with_context(self):
+        cv = ControlVariable(
+            identifier="current",
+            protocol="CA",
+            value=120.0,  # above I_max, so on the saturation branch
+            target="magnetic.k1l",
+            expression={
+                "call": "magnetic.current_to_k",
+                "args": ["current", "momentum"],
+                "key": "KL",
+            },
+        )
+        element = Quadrupole(
+            name="Quad1",
+            machine_area="AREA",
+            magnetic={
+                "length": 0.121567,
+                "linear_saturation_coefficients": {
+                    "m": 0.0162943759336275, "I_max": 107.995495949144,
+                    "f": -5.900204924620006e-07, "a": 0.00024278977899762656,
+                    "I0": 35.76372436292761, "d": 1.236143726273713,
+                    "L": 121.56727252539314,
+                },
+            },
+            controls=ControlsInformation(variables={"current": cv}),
+        )
+        element.controls.apply(element, momentum=35.0)
+        expected = element.magnetic.current_to_k(120.0, 35.0)["KL"]
+        assert element.magnetic.k1l == pytest.approx(expected)
+        assert element.magnetic.kl_to_current(element.magnetic.k1l, 35.0) == (
+            pytest.approx(120.0)
+        )
+
+    def test_call_rejects_private_attributes(self):
+        expr = {"call": "magnetic.__class__", "args": []}
+        with pytest.raises(ValueError, match="private"):
+            eval_expr(expr, {"magnetic": object()})
+
     def test_str_returns_identifier(self):
         cv = ControlVariable(identifier="my_var", protocol="CA")
         assert str(cv) == "my_var"

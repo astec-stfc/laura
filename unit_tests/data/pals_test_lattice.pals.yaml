@@ -63,7 +63,7 @@ PALS:
               RFP:
                 frequency: 1.3e9
                 voltage: 2.0e7
-                phase: 0.25
+                phase: 1.5707963267948966  # a quarter period [rad]
                 num_cells: 9
                 cavity_type: STANDING_WAVE
           - kick1:
