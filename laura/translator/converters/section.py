@@ -981,7 +981,7 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += dtmint.write_gpt()
         return fulltext
 
-    def to_opal(self, energy: float = 0, breakstr: str = "") -> str:
+    def to_opal(self, energy: float = 0, breakstr: str = "", particle: str = "electron") -> str:
         """
         Create an OPAL-compatible input file based on the lattice information and
         the settings provided in :attr:`~opal_headers`.
@@ -996,9 +996,11 @@ class SectionLatticeTranslator(SectionLattice):
         Parameters
         ----------
         energy: float
-            Beam energy at the start of the section [MeV]
+            Beam momentum at the start of the section [MeV/c]
         breakstr: str
             String for separating sections in the lattice file.
+        particle: str
+            The species, for the rest energy that turns ``energy`` into OPAL's kinetic ``DESIGNENERGY``.
 
         Returns
         -------
@@ -1032,7 +1034,9 @@ class SectionLatticeTranslator(SectionLattice):
         # with staged steps, the longest one fits a thin element into every stage
         dt = max(dt) if isinstance(dt, (list, tuple)) else dt
         shortfall = 0.0
-        rest_energy = {"PROTON": 938.27208816}.get(getattr(self.opal_headers["beam"], "PARTICLE", ""), 0.51099895)
+        from beamphysics.species import mass_of
+
+        rest_energy = mass_of(particle) / 1e6
         for d in elem_dict.values():
             d.opal_version = self.opal_version
             d.opal_time_step = float(dt)

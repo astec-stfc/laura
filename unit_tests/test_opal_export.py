@@ -234,3 +234,17 @@ def test_opal_design_energy_is_kinetic():
     )
     written = bend.to_opal(sval=0.0, designenergy=5.0)
     assert float(re.search(r"DESIGNENERGY = ([^,]+)", written).group(1)) == pytest.approx(np.hypot(5.0, 0.51099895) - 0.51099895)
+
+
+
+def test_opal_design_energy_takes_the_section_s_particle(tmp_path, monkeypatch):
+    bend = Dipole(name="B", hardware_class="Magnet", machine_area="S", physical={"length": 0.2, "middle": [0, 0, 0.1]},
+                  magnetic={"length": 0.2, "k0l": 0.1})
+    section = SectionLatticeTranslator.from_section(SectionLattice(name="S", order=["B"], elements=[bend]))
+    section.directory = str(tmp_path)
+    section.opal_headers = {k: _Header() for k in ("option", "distribution", "fieldsolver", "beam", "track", "run")}
+    monkeypatch.chdir(tmp_path)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        written = section.to_opal(energy=5.0, particle="proton")
+    assert float(re.search(r"DESIGNENERGY = ([^,]+)", written).group(1)) == pytest.approx(np.hypot(5.0, 938.27208816) - 938.27208816)
