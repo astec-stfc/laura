@@ -6,7 +6,6 @@ from warnings import warn
 import numpy as np
 from pydantic import Field, PrivateAttr, computed_field
 
-from laura.models.base_models import IgnoreExtra
 from laura.models.element import PhysicalBaseElement
 from laura.models.physical import PhysicalElement, Position  # noqa E402
 from laura.utils import flatten_dict
@@ -255,7 +254,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             separator="_",
         )
         data.pop("magnetic_gap", None)
-        defs = IgnoreExtra.functional_definitions
+        defs = self.functional_scope.definitions
         if resolve and defs:
             data = {
                 key: (defs[value] if self.is_functional(value) else value)
@@ -263,21 +262,20 @@ class BaseElementTranslator(PhysicalBaseElement):
             }
         return data
 
-    @staticmethod
-    def is_functional(value: Any) -> bool:
+    def is_functional(self, value: Any) -> bool:
         """
         True if ``value`` is a string naming an entry in the lattice's functional
         definitions (i.e. it should be resolved to a number, or passed through
         symbolically to codes that support it).
         """
-        return isinstance(value, str) and value in IgnoreExtra.functional_definitions
+        return isinstance(value, str) and value in self.functional_scope.definitions
 
     @property
     def _resolve_functional(self) -> bool:
-        """The global resolution mode. When True, functional attributes are
+        """The machine's resolution mode. When True, functional attributes are
         baked in as resolved numbers even for codes that support symbolic
         parameters; when False (default) they are rendered symbolically."""
-        return IgnoreExtra.resolve_functional
+        return self.functional_scope.resolve
 
     def _raw_multipole_strength(self, order: int) -> str | None:
         """
@@ -527,11 +525,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         from ocelot.cpbd.elements import Aperture, Marker
 
-        from ..conversion_rules.codes import ocelot_conversion
-
-        type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_ocelot[self.hardware_type](eid=self.name)
+        obj = self._convert_type_ocelot(self.hardware_type)(eid=self.name)
         attributes = ocelot_attributes(type(obj))
         convert = self._keyword_converter("ocelot")
         for key, value in self.full_dump().items():
@@ -580,7 +575,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
         try:
-            obj = type_conversion_rules_cheetah[self.hardware_type](
+            obj = self._convert_type_cheetah(self.hardware_type)(
                 name=self.name,
                 length=tensor(self.physical.length, dtype=float64),
                 sanitize_name=True,
@@ -1229,7 +1224,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             if isinstance(value, str) and isinstance(numeric, (int, float)):
                 return numeric
             return value
-        resolved = IgnoreExtra.functional_definitions.get(str(expression))
+        resolved = self.functional_scope.definitions.get(str(expression))
         if resolved is None:
             resolved = numeric if isinstance(numeric, (int, float)) else 0.0
         return GmadExpression(resolved, str(expression))

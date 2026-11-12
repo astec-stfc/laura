@@ -16,6 +16,7 @@ Or via the generate.ps1 / generate.sh scripts.
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -200,9 +201,31 @@ def _fix_self_referential_m2m(content: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+SHARED_SLOTS = {"MachineModel": ("elements", "sections", "layouts")}
+"""Slots ``inlined`` for JSON that must stay many-to-many in SQL: gen-sqla turns an
+inlined slot into a foreign key on the target, so a second snapshot of a machine
+would take its elements away from the first, which share them by name."""
+
+
+def _without_sql_inlining(schema_path: str, out_path: Path) -> None:
+    """Write the merged schema with ``inlined`` dropped from :data:`SHARED_SLOTS`."""
+    from linkml_runtime.dumpers import yaml_dumper
+    from linkml_runtime.utils.schemaview import SchemaView
+
+    view = SchemaView(schema_path)
+    view.merge_imports()
+    for class_name, slots in SHARED_SLOTS.items():
+        for slot in slots:
+            view.schema.classes[class_name].attributes[slot].inlined = False
+    yaml_dumper.dump(view.schema, str(out_path))
+
+
 def generate(schema_path: str = "laura/schema/YAML/laura_schema.yaml") -> str:
     """Generate and return the full content of the SQLAlchemy ORM module."""
-    raw = _run_gen_sqla(schema_path)
+    with tempfile.TemporaryDirectory() as workdir:
+        merged = Path(workdir) / "laura_schema_sql.yaml"
+        _without_sql_inlining(schema_path, merged)
+        raw = _run_gen_sqla(str(merged))
     return _fix_self_referential_m2m(raw)
 
 

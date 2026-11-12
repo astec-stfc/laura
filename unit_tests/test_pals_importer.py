@@ -103,10 +103,15 @@ class TestPalsElements:
         assert b1.magnetic.edge_field_integral_exit == pytest.approx(0.04)
         assert b1.magnetic.gap == pytest.approx(2.0)
 
-    def test_solenoid_strength_is_normalised_and_integrated(self, elements):
+    def test_solenoid_strength_becomes_the_integrated_field(self, elements):
+        # Ksol = 0.6 /m over 0.4 m, un-normalised as B = K / (q/P0) into
+        # LAURA's S0L [T*m]; negative for an electron, as PALS defines it.
         sol = elements["sol1"]
         assert sol.hardware_type == "Solenoid"
-        assert sol.magnetic.fields.S0L == pytest.approx(0.6 * 0.4)
+        momentum = (1.0e9**2 - 510998.95**2) ** 0.5
+        assert sol.magnetic.fields.S0L == pytest.approx(
+            -0.6 * 0.4 * momentum / speed_of_light, rel=1e-6
+        )
 
     def test_cavity(self, elements):
         cav = elements["cav1"]
@@ -116,7 +121,7 @@ class TestPalsElements:
         # A standing-wave cavity is taken to run in pi mode, so one cell is
         # half a wavelength.
         assert cav.cavity.cell_length == pytest.approx(speed_of_light / (2 * 1.3e9))
-        # PALS measures the phase in turns from the accelerating crest; LAURA
+        # PALS measures the phase in radians from the accelerating crest; LAURA
         # measures it in degrees from the zero crossing.
         assert cav.cavity.phase == pytest.approx(-90.0)
         assert cav.simulation.field_amplitude == pytest.approx(2.0e7)

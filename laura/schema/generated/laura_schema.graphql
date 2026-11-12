@@ -213,6 +213,8 @@ type ACDipoleSimulationElement
     waveform: SampledWaveform
   }
 
+scalar Any
+
 type Aperture
   {
     name: String!
@@ -564,21 +566,25 @@ type ControlsInformation
 
 type ControlVariable
   {
+    name: String!
     identifier: String
     dtype: String
     protocol: String
     units: String
     description: String
     readOnly: Boolean
-    value: String
-    controlType: ControlTypeEnum
+    value: Any
+    type: ControlTypeEnum
     target: String
     expression: String
     elementDtype: NumericDtypeEnum
-    shape: [String]
+    shape: [Any]
     states: String
     readback: String
     setpoint: String
+    role: String
+    canonicalType: String
+    quantityKind: String
     update: String
     dynamics: String
   }
@@ -1260,8 +1266,8 @@ type MagneticElement
     fieldIntegralCoefficients: FieldIntegral
     linearSaturationCoefficients: LinearSaturationFit
     settleTime: Float
-    entranceEdgeAngle: String
-    exitEdgeAngle: String
+    entranceEdgeAngle: Any
+    exitEdgeAngle: Any
     gap: Float
     bore: Float
     plane: BendingPlaneEnum

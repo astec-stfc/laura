@@ -37,9 +37,9 @@ from ._generated import (
     _SectionLatticeBase,
 )
 from .base_models import (
+    FunctionalScope,
     ModelBase,
-    set_functional_definitions,
-    set_resolve_functional,
+    attach_functional_scope,
     validate_functional_references,
 )
 from .control import set_attr_by_path
@@ -475,21 +475,23 @@ class BaseLatticeModel(ModelBase):
     master_lattice: str | None = None
     """Top-level directory containing lattice files."""
 
-    functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
+    functional_definitions: Union[str, Dict[str, Union[int, float]], None] = {}
     """Functional definitions for the lattice, e.g.
     ``{"quad1_k1l": -2, "cav1_phase": 90}``, or a path to a YAML file holding
-    such a mapping. Registered into the shared registry so that string-valued
-    element parameters can be resolved to numbers on demand."""
+    such a mapping. The lattice's elements resolve string-valued parameters
+    against these (see :class:`~laura.models.base_models.FunctionalScope`)."""
 
     resolve_functional: bool = False
-    """Global resolution mode. When False (default), functional attributes are
-    rendered as their definition name (a string); when True they are presented as
-    resolved numbers. See :func:`~laura.models.base_models.set_resolve_functional`."""
+    """Resolution mode for this lattice's elements. When False (default),
+    functional attributes are rendered as their definition name (a string); when
+    True they are presented as resolved numbers."""
 
     revolution_frequency: float | None = None
     """The ring's revolution frequency [Hz], if this lattice is (part of) a closed ring."""
 
     _functional_source: str | None = None
+
+    _functional_scope: FunctionalScope | None = None
 
     def model_post_init(self, __context) -> None:
         self._functional_source = (
@@ -500,15 +502,17 @@ class BaseLatticeModel(ModelBase):
         self.functional_definitions = load_functional_definitions(
             self.functional_definitions, self.master_lattice
         )
-        set_functional_definitions(self.functional_definitions)
-        set_resolve_functional(self.resolve_functional)
+        self._functional_scope = FunctionalScope(
+            self.functional_definitions, self.resolve_functional
+        )
         elements = getattr(self, "elements", None)
         if isinstance(elements, ElementList) and not _FUNCTIONALS_VALIDATED.get():
+            # (a machine that built this from checked elements has attached them)
+            loaded = [e for e in elements.list() if isinstance(e, BaseElement)]
             validate_functional_references(
-                [e for e in elements.list() if isinstance(e, BaseElement)],
-                self.functional_definitions,
-                self._functional_source,
+                loaded, self.functional_definitions, self._functional_source
             )
+            attach_functional_scope(loaded, self._functional_scope)
 
     def __str__(self):
         return str({k: v.names() for k, v in getattr(self, self._basename).items()})
@@ -1047,20 +1051,30 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
                 pos_list.append(current_pos.copy())
                 rot_list.append(current_r.copy())
 
+            overlaps = len(s_list) > 1 and s_elem_start < current_s - TOUCHING
+            if overlaps:
+                # starts inside what is already placed: begin on that orbit at its own s
+                # linear between the start/middle/end samples, so inside a bend it is the chord
+                traced = Trajectory(np.array(s_list), np.array(pos_list), np.array(rot_list))
+                start_pos = traced._lerp_pos(s_elem_start)
+                start_r = traced.rotation_at_s(s_elem_start)
+            else:
+                start_pos, start_r = current_pos, current_r
+
             tilt = _bend_tilt(elem)
             if tilt:
                 cz, sz = np.cos(tilt), np.sin(tilt)
                 rz = np.array([[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]])
-                elem_r = current_r @ rz
+                elem_r = start_r @ rz
             else:
                 rz = None
-                elem_r = current_r
+                elem_r = start_r
 
             # Compute middle and end positions
             if abs(angle) < 1e-9:
-                mid_pos = current_pos + current_r @ np.array([0.0, 0.0, l / 2.0])
-                end_pos = current_pos + current_r @ np.array([0.0, 0.0, l])
-                exit_r = current_r.copy()
+                mid_pos = start_pos + start_r @ np.array([0.0, 0.0, l / 2.0])
+                end_pos = start_pos + start_r @ np.array([0.0, 0.0, l])
+                exit_r = start_r.copy()
             else:
                 # Arc in the bend plane using LAURA's Ry(-angle) convention.
                 rho = l / angle
@@ -1071,8 +1085,8 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
                 local_end = np.array(
                     [rho * (1.0 - np.cos(angle)), 0.0, rho * np.sin(angle)]
                 )
-                mid_pos = current_pos + elem_r @ local_mid
-                end_pos = current_pos + elem_r @ local_end
+                mid_pos = start_pos + elem_r @ local_mid
+                end_pos = start_pos + elem_r @ local_end
                 ct, st = np.cos(angle), np.sin(angle)
                 ry_neg = np.array([[ct, 0.0, st], [0.0, 1.0, 0.0], [-st, 0.0, ct]])
                 exit_r = elem_r @ ry_neg if rz is None else elem_r @ ry_neg @ rz.T
@@ -1081,13 +1095,20 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
             phys.middle = Position.from_list(mid_pos.tolist())
 
             if "rotation" not in phys.model_fields_set:
-                yaw, pitch, roll = rotation_matrix_to_euler(current_r)
+                yaw, pitch, roll = rotation_matrix_to_euler(start_r)
                 phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
                 phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
 
-            s_list.extend([s_elem_start + l / 2.0, s_elem_end])
-            pos_list.extend([mid_pos, end_pos])
-            rot_list.extend([current_r.copy(), exit_r])
+            if overlaps and s_elem_end <= current_s:
+                continue  # wholly inside: the orbit is already traced past it
+            if overlaps:
+                s_list.append(s_elem_end)
+                pos_list.append(end_pos)
+                rot_list.append(exit_r)
+            else:
+                s_list.extend([s_elem_start + l / 2.0, s_elem_end])
+                pos_list.extend([mid_pos, end_pos])
+                rot_list.extend([start_r.copy(), exit_r])
 
             current_pos = end_pos
             current_r = exit_r
@@ -1508,8 +1529,6 @@ class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
         self.functional_definitions = load_functional_definitions(
             self.functional_definitions, self.master_lattice
         )
-        set_functional_definitions(self.functional_definitions)
-        set_resolve_functional(self.resolve_functional)
         all_elems = [elem for _, elem in self._beam_walk()]
         if len(all_elems) > 0:
             # Stub dicts appear while a model is being built incrementally and
@@ -2189,16 +2208,19 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
 
     .. _BDSIM manual: https://bdsim-collaboration.github.io/bdsim/sphinx/index.html#"""
 
-    functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
+    functional_definitions: Union[str, Dict[str, Union[int, float]], None] = {}
     """Mapping of functional-parameter names to their numeric values, or a path
     to a YAML file holding such a mapping. Resolved at construction and shared
-    with every section, layout and element in the machine."""
+    with every section, layout and element in the machine, and with no other
+    machine."""
 
     resolve_functional: bool = False
     """Whether functional parameters are rendered as resolved numbers rather
-    than as their definition names."""
+    than as their definition names. Applies to this machine only."""
 
     _functional_source: str | None = None
+
+    _functional_scope: FunctionalScope | None = None
 
     revolution_frequency: float | None = None
     """The ring's revolution frequency [Hz], if this machine is (part of) a closed ring."""
@@ -2573,8 +2595,9 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
         self.functional_definitions = load_functional_definitions(
             self.functional_definitions, self.master_lattice
         )
-        set_functional_definitions(self.functional_definitions)
-        set_resolve_functional(self.resolve_functional)
+        self._functional_scope = FunctionalScope(
+            self.functional_definitions, self.resolve_functional
+        )
         if isinstance(self.layout, str):
             layout_file = self.layout
             if not os.path.exists(layout_file) and self.master_lattice:
@@ -2639,10 +2662,16 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
         if len(self.elements) > 0:
             validated = not hasattr(self.elements, "get_metadata")
             if validated:
+                loaded = [e for e in self.elements.values() if isinstance(e, BaseElement)]
                 validate_functional_references(
-                    [e for e in self.elements.values() if isinstance(e, BaseElement)],
-                    self.functional_definitions,
-                    self._functional_source,
+                    loaded, self.functional_definitions, self._functional_source
+                )
+                attach_functional_scope(loaded, self._functional_scope)
+            else:  # lazily loaded: each element joins as it is read
+                self.elements.functional_scope = self._functional_scope
+                attach_functional_scope(
+                    [e for e in dict.values(self.elements) if e is not None],
+                    self._functional_scope,
                 )
             token = _FUNCTIONALS_VALIDATED.set(validated)
             try:
@@ -2694,6 +2723,11 @@ class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
         return by_area, by_name
 
     def append(self, values: dict) -> None:
+        added = [e for e in values.values() if isinstance(e, BaseElement)]
+        validate_functional_references(
+            added, self.functional_definitions, self._functional_source
+        )
+        attach_functional_scope(added, self._functional_scope)
         self.elements = values | self.elements
         self._build_sections_from_elements(self.elements)
         self._build_layouts(self.elements)

@@ -259,7 +259,7 @@ what you want when a machine description is not loading as expected:
 
 .. code-block:: python
 
-   from laura.importers.yaml_loader import read_yaml_element_file
+   from laura.importers import read_yaml_element_file
 
    element = read_yaml_element_file("INJ-MAG-DIP-01.yaml", validate=True)
 

@@ -364,7 +364,9 @@ class SectionLatticeTranslator(SectionLattice):
         beginning: str
             The floor-position datum from :meth:`_bmad_body`.
         """
-        header = bmad_functional_definitions(self.functional_definitions)
+        header = bmad_functional_definitions(
+            self.functional_definitions, self.resolve_functional
+        )
         if particle:
             header += f"parameter[particle] = {particle}\n"
         enabled = (
@@ -576,9 +578,11 @@ class SectionLatticeTranslator(SectionLattice):
             translator = elements[element.name]
             target_type = target_types[element.name]
             if target_type == "drift":
-                raise ValueError(
-                    f"Bmad cannot superimpose drift-like element {element.name!r}"
+                warn(
+                    f"Bmad cannot superimpose drift-like element {element.name!r}; "
+                    "it is defined but left out of the lattice."
                 )
+                continue
             start, end = s_bounds(element)
             position = (start + end) / 2 if element.name in thin_kickers else start
             offset = position - lattice_start
@@ -643,31 +647,27 @@ class SectionLatticeTranslator(SectionLattice):
                 in {"Horizontal_Corrector", "Vertical_Corrector"}
             )
 
-        dropped = sorted(
-            element.name
+        # subelements, and an element starting inside the one before, leave the
+        # line and are superimposed on it, as the Bmad writer does
+        superimposed = [
+            element
             for element in ordered_elements
             if element.is_subelement() and not logical_corrector_part(element)
-        )
-        if dropped:
-            warn(
-                f"PALS cannot superimpose one element on another, so {', '.join(dropped)} "
-                f"could not be written into section {self.name!r}. Everything else "
-                "keeps its position."
-            )
-
+        ]
         previous_end = None
         for element in ordered_elements:
             if element.is_subelement():
                 continue
             start, end = _s_bounds(element)
-            if previous_end is not None and start < previous_end - 1e-9:
-                warn(
-                    f"LAURA elements {element.name!r} and the one before it overlap; "
-                    "PALS positions an element by the lengths ahead of it, so the "
-                    "exported branch places them end to end and is longer than the "
-                    "section it came from."
-                )
-            previous_end = end
+            if previous_end is not None and start < previous_end - 1e-12:
+                superimposed.append(element)
+            else:
+                previous_end = end
+        ordered_elements = [
+            element
+            for element in ordered_elements
+            if not element.is_subelement() and element not in superimposed
+        ]
 
         section = self.model_copy(
             update={"order": [element.name for element in ordered_elements]}
@@ -683,9 +683,14 @@ class SectionLatticeTranslator(SectionLattice):
             directory=self.directory,
         )
         start = max(_s_bounds(ordered_elements[0])[0], 0.0)
+        overlays = translate_elements(
+            superimposed,
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
 
         renames = pals_safe_names(
-            [*elements, self.name, *([begin_name] if begin_name else [])]
+            [*elements, *overlays, self.name, *([begin_name] if begin_name else [])]
         )
         definitions: Dict[str, Any] = {}
         line: list = []
@@ -693,6 +698,11 @@ class SectionLatticeTranslator(SectionLattice):
             translator.name = renames.get(name, name)
             definitions.update(translator.to_pals())
             line.append(translator.name)
+        offsets: Dict[str, float] = {}
+        for name, translator in overlays.items():
+            translator.name = renames.get(name, name)
+            definitions.update(translator.to_pals())
+            offsets[translator.name] = _s_bounds(by_name[name])[0] - start
 
         name = renames.get(self.name, self.name)
         sublines, line = fold_repeated_cells(name, definitions, line)
@@ -709,6 +719,7 @@ class SectionLatticeTranslator(SectionLattice):
             twiss=initial_twiss,
             begin_name=renames.get(begin_name, begin_name),
             s_position=start,
+            superimposed=offsets,
         )
 
     def to_pals(self, particle: str | None = None) -> str:
@@ -893,7 +904,6 @@ class SectionLatticeTranslator(SectionLattice):
         self._apply_wakefield_enable(elem_dict)
         self._apply_tw_focusing(elem_dict)
         self.gpt_screen_positions = {}
-        self._apply_tw_focusing(elem_dict)
         kwargs = {"charge_sign": charge_sign, "aperture_dtmax": aperture_dtmax}
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
@@ -1192,7 +1202,9 @@ class SectionLatticeTranslator(SectionLattice):
             wrap(lstring, 80, break_long_words=False, break_on_hyphens=False)
         )
         return (
-            elegant_functional_definitions(self.functional_definitions)
+            elegant_functional_definitions(
+                self.functional_definitions, self.resolve_functional
+            )
             + string
             + lstring
         )
@@ -1338,7 +1350,7 @@ class SectionLatticeTranslator(SectionLattice):
         }
         elements = []
 
-        symbolic = not IgnoreExtra.resolve_functional
+        symbolic = not self.resolve_functional
         for d in elem_dict.values():
             obj = (
                 d.to_ocelot(Brho=Brho)
@@ -1691,17 +1703,16 @@ class SectionLatticeTranslator(SectionLattice):
 
         if not isinstance(env, xt.Environment):
             env = xt.Environment()
-        if not IgnoreExtra.resolve_functional:
-            for name, value in (
-                self.functional_definitions or IgnoreExtra.functional_definitions
-            ).items():
+        definitions = self.functional_definitions or IgnoreExtra.functional_definitions
+        if not self.resolve_functional:
+            for name, value in definitions.items():
                 env[name] = value
         elem_dict = self._translate(self.create_drifts().values())
         self._apply_tw_focusing(elem_dict)
 
         def _is_symbolic(val: Any) -> bool:
             if isinstance(val, str):
-                return any(nam in val for nam in IgnoreExtra.functional_definitions)
+                return any(nam in val for nam in definitions)
             if isinstance(val, (list, tuple)):
                 return any(_is_symbolic(v) for v in val)
             return False
@@ -1957,7 +1968,9 @@ class SectionLatticeTranslator(SectionLattice):
                     f"ealign, {terms};\n"
                 )
 
-        seqstring = madx_functional_definitions(self.functional_definitions)
+        seqstring = madx_functional_definitions(
+            self.functional_definitions, self.resolve_functional
+        )
         has_beam = isinstance(beam, Dict)
         if has_beam:
             beamstr = "BEAM"
@@ -2109,7 +2122,9 @@ class SectionLatticeTranslator(SectionLattice):
             Options(integratorSet=f'"{integrator_set}"', buildPoleFaceGeometry=0)
         )
         sanitized_name = self.name.replace("-", "_")
-        definitions = bdsim_functional_definitions(self.functional_definitions)
+        definitions = bdsim_functional_definitions(
+            self.functional_definitions, self.resolve_functional
+        )
         variables_file = f"{sanitized_name}_variables.gmad"
         if definitions:
             machine.AddIncludePre(variables_file)
