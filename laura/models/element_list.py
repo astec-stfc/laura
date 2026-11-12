@@ -1040,20 +1040,30 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
                 pos_list.append(current_pos.copy())
                 rot_list.append(current_r.copy())
 
+            overlaps = len(s_list) > 1 and s_elem_start < current_s - TOUCHING
+            if overlaps:
+                # starts inside what is already placed: begin on that orbit at its own s
+                # linear between the start/middle/end samples, so inside a bend it is the chord
+                traced = Trajectory(np.array(s_list), np.array(pos_list), np.array(rot_list))
+                start_pos = traced._lerp_pos(s_elem_start)
+                start_r = traced.rotation_at_s(s_elem_start)
+            else:
+                start_pos, start_r = current_pos, current_r
+
             tilt = _bend_tilt(elem)
             if tilt:
                 cz, sz = np.cos(tilt), np.sin(tilt)
                 rz = np.array([[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]])
-                elem_r = current_r @ rz
+                elem_r = start_r @ rz
             else:
                 rz = None
-                elem_r = current_r
+                elem_r = start_r
 
             # Compute middle and end positions
             if abs(angle) < 1e-9:
-                mid_pos = current_pos + current_r @ np.array([0.0, 0.0, l / 2.0])
-                end_pos = current_pos + current_r @ np.array([0.0, 0.0, l])
-                exit_r = current_r.copy()
+                mid_pos = start_pos + start_r @ np.array([0.0, 0.0, l / 2.0])
+                end_pos = start_pos + start_r @ np.array([0.0, 0.0, l])
+                exit_r = start_r.copy()
             else:
                 # Arc in the bend plane using LAURA's Ry(-angle) convention.
                 rho = l / angle
@@ -1064,8 +1074,8 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
                 local_end = np.array(
                     [rho * (1.0 - np.cos(angle)), 0.0, rho * np.sin(angle)]
                 )
-                mid_pos = current_pos + elem_r @ local_mid
-                end_pos = current_pos + elem_r @ local_end
+                mid_pos = start_pos + elem_r @ local_mid
+                end_pos = start_pos + elem_r @ local_end
                 ct, st = np.cos(angle), np.sin(angle)
                 ry_neg = np.array([[ct, 0.0, st], [0.0, 1.0, 0.0], [-st, 0.0, ct]])
                 exit_r = elem_r @ ry_neg if rz is None else elem_r @ ry_neg @ rz.T
@@ -1074,13 +1084,20 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
             phys.middle = Position.from_list(mid_pos.tolist())
 
             if "rotation" not in phys.model_fields_set:
-                yaw, pitch, roll = rotation_matrix_to_euler(current_r)
+                yaw, pitch, roll = rotation_matrix_to_euler(start_r)
                 phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
                 phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
 
-            s_list.extend([s_elem_start + l / 2.0, s_elem_end])
-            pos_list.extend([mid_pos, end_pos])
-            rot_list.extend([current_r.copy(), exit_r])
+            if overlaps and s_elem_end <= current_s:
+                continue  # wholly inside: the orbit is already traced past it
+            if overlaps:
+                s_list.append(s_elem_end)
+                pos_list.append(end_pos)
+                rot_list.append(exit_r)
+            else:
+                s_list.extend([s_elem_start + l / 2.0, s_elem_end])
+                pos_list.extend([mid_pos, end_pos])
+                rot_list.extend([start_r.copy(), exit_r])
 
             current_pos = end_pos
             current_r = exit_r

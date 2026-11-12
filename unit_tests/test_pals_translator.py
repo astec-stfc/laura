@@ -20,19 +20,25 @@ import os
 import re
 import subprocess
 import sys
+import warnings
 
+import numpy as np
 import pytest
 import yaml
 from scipy.constants import speed_of_light
 
+from laura.models.element_list import ElementList, SectionLattice
+from laura.models.physical import Position
 from laura.translator.converters.codes.pals import PalsLatticeImporter
 from laura.translator.converters.model import MachineModelTranslator
+from laura.translator.converters.section import SectionLatticeTranslator
 from laura.translator.utils.pals import (
     PALS_RESERVED_NAMES,
     pals_kind_round_trips,
     pals_safe_names,
     parser_available,
 )
+from unit_tests.helpers import quad
 
 _DATA = os.path.join(os.path.dirname(__file__), "data")
 _LATTICE = os.path.join(_DATA, "pals_test_lattice.pals.yaml")
@@ -162,16 +168,21 @@ class TestElementBodies:
         body = facility["b1"]
         assert "MagneticMultipoleP" not in body
 
-    def test_a_solenoid_states_its_strength_per_metre(self, facility):
-        assert facility["sol1"]["SolenoidP"] == {"Ksol": pytest.approx(0.6)}
+    def test_a_solenoid_states_its_field(self, facility):
+        # S0L is the integrated field [T*m], so it goes out as Bsol [T]: the
+        # fixture's Ksol = 0.6 /m at 1 GeV, back in tesla.
+        momentum = (1.0e9**2 - 510998.95**2) ** 0.5
+        assert facility["sol1"]["SolenoidP"] == {
+            "Bsol": pytest.approx(-0.6 * momentum / speed_of_light, rel=1e-6)
+        }
 
-    def test_a_cavity_states_its_phase_in_turns(self, facility):
+    def test_a_cavity_states_its_phase_in_radians(self, facility):
         rf = facility["cav1"]["RFP"]
         assert rf["frequency"] == pytest.approx(1.3e9)
         assert rf["voltage"] == pytest.approx(2.0e7)
         # LAURA measures the phase in degrees from the zero crossing, PALS in
-        # turns from the accelerating crest.
-        assert rf["phase"] == pytest.approx(0.25)
+        # radians from the accelerating crest.
+        assert rf["phase"] == pytest.approx(np.pi / 2)
         assert rf["num_cells"] == 9
         assert rf["cavity_type"] == "STANDING_WAVE"
 
@@ -555,9 +566,9 @@ class TestAgainstTheReferenceTranslator:
         kind, attributes = reference_bmad["sol1"]
         solenoid = elements["sol1"]
         assert kind == "solenoid"
-        # Bmad's ks is the normalised strength per metre, which is what LAURA
-        # holds integrated over the length.
-        assert attributes["ks"] == pytest.approx(
+        # Bmad's bs_field is the field [T], which is what LAURA holds
+        # integrated over the length.
+        assert attributes["bs_field"] == pytest.approx(
             solenoid.magnetic.fields.S0L / solenoid.physical.length
         )
 
@@ -569,7 +580,7 @@ class TestAgainstTheReferenceTranslator:
             cavity.simulation.field_amplitude
         )
         assert attributes["n_cell"] == cavity.cavity.n_cells
-        # Bmad's phi0 is in turns, as PALS's phase is; LAURA's is in degrees
+        # Bmad's phi0 is in turns, PALS's phase in radians; LAURA's is in degrees
         # from the zero crossing.
         assert attributes["phi0"] == pytest.approx(-cavity.cavity.phase / 360.0)
         assert cavity.cavity.cell_length == pytest.approx(
@@ -610,3 +621,105 @@ class TestAgainstTheReferenceTranslator:
         # theta turns the other way.
         assert attributes["x_pitch"] == pytest.approx(-error.rotation.theta)
         assert attributes["tilt"] == pytest.approx(error.rotation.psi)
+
+
+def test_an_overlapping_element_is_superimposed_and_reads_back(tmp_path):
+    # Q-OVER starts inside Q-BASE: it leaves the line, is superimposed on it,
+    # and on import every element keeps its place.
+    section = SectionLattice(
+        name="OVERLAP",
+        order=["Q-BASE", "Q-OVER", "Q-NEXT"],
+        elements=ElementList(
+            elements={
+                element.name: element
+                for element in (
+                    quad("Q-BASE", 4, 0.4, middle=Position(z=2)),
+                    quad("Q-OVER", 2, 0.2, middle=Position(z=3)),
+                    quad("Q-NEXT", 2, 0.2, middle=Position(z=7)),
+                )
+            }
+        ),
+    )
+    document = SectionLatticeTranslator.from_section(section).to_pals()
+    facility = _facility(document)
+    assert "Q-OVER" not in facility["OVERLAP_element"]["line"]
+    assert facility["superimpose"] == {
+        "place": "Q-OVER",
+        "placement": {
+            "base_item": "OVERLAP_element_begin",
+            "offset": pytest.approx(2.0),
+        },
+    }
+    assert facility["OVERLAP_drift_1"]["length"] == pytest.approx(2.0)
+
+    path = tmp_path / "overlap.pals.yaml"
+    path.write_text(document)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # the fixture sets no reference energy
+        model = PalsLatticeImporter(source_file=str(path)).create_machine_model(
+            min_section_length=1
+        )
+    (imported,) = model.sections.values()
+    middles = {n: model.elements[n].physical.middle.z for n in imported.order}
+    assert middles == pytest.approx({"Q-BASE": 2.0, "Q-OVER": 3.0, "Q-NEXT": 7.0})
+
+
+def test_a_hand_written_superimpose_is_applied(tmp_path):
+    path = tmp_path / "sup.pals.yaml"
+    path.write_text(
+        """
+PALS:
+  facility:
+  - Q-BASE: {kind: Quadrupole, length: 4.0, MagneticMultipoleP: {Kn1L: 0.4}}
+  - Q-PARENT: {kind: Quadrupole, length: 1.0, MagneticMultipoleP: {Kn1L: 0.1}}
+  - Q-OVER: {inherit: Q-PARENT, MagneticMultipoleP: {Kn1L: 0.2}}
+  - L: {kind: BeamLine, line: [Q-BASE]}
+  - superimpose:
+      place: Q-OVER
+      placement: {base_item: L>>Q-BASE, from_point: CENTER, to_point: CENTER, offset: 0.5}
+  - LAT: {kind: Lattice, branches: [L]}
+  - use: LAT
+"""
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        elements = PalsLatticeImporter(
+            source_file=str(path)
+        ).create_laura_element_dictionary()
+    over = elements["Q-OVER"]
+    assert over.physical.length == pytest.approx(1.0)  # inherited
+    assert over.magnetic.k1l == pytest.approx(0.2)  # overridden
+    assert over.physical.s - over.physical.length / 2 == pytest.approx(2.5)  # centre at 2.5
+
+
+@pytest.mark.parametrize("length", [0.0, 0.2], ids=["marker", "drift"])
+def test_a_generic_element_round_trips(tmp_path, length):
+    from laura.models.element import PhysicalBaseElement
+
+    # a name ending in "P" is read by the PALS parser as a parameter group
+    pump = PhysicalBaseElement(
+        name="PUMP1",
+        hardware_type="VacuumPump",
+        hardware_class="Vacuum",
+        machine_area="SEC",
+        physical={"length": length, "middle": Position(z=1.0)},
+    )
+    section = SectionLattice(
+        name="GENERIC",
+        order=["PUMP1", "Q1"],
+        elements=ElementList(
+            elements={"PUMP1": pump, "Q1": quad("Q1", 2, 0.2, middle=Position(z=3))}
+        ),
+    )
+    path = tmp_path / "generic.pals.yaml"
+    path.write_text(SectionLatticeTranslator.from_section(section).to_pals())
+    with pytest.warns(UserWarning, match="generic PhysicalBaseElement"):
+        returned = PalsLatticeImporter(
+            source_file=str(path)
+        ).create_laura_element_dictionary()["PUMP1"]
+    assert (type(returned), returned.hardware_type, returned.hardware_class) == (
+        PhysicalBaseElement,
+        "VacuumPump",
+        "Vacuum",
+    )
+    assert returned.physical.length == pytest.approx(length)

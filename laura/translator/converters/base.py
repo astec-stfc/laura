@@ -521,11 +521,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         from ocelot.cpbd.elements import Aperture, Marker
 
-        from ..conversion_rules.codes import ocelot_conversion
-
-        type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_ocelot[self.hardware_type](eid=self.name)
+        obj = self._convert_type_ocelot(self.hardware_type)(eid=self.name)
         attributes = ocelot_attributes(type(obj))
         convert = self._keyword_converter("ocelot")
         for key, value in self.full_dump().items():
@@ -574,7 +571,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
         try:
-            obj = type_conversion_rules_cheetah[self.hardware_type](
+            obj = self._convert_type_cheetah(self.hardware_type)(
                 name=self.name,
                 length=tensor(self.physical.length, dtype=float64),
                 sanitize_name=True,

@@ -1,13 +1,11 @@
 """Write LAURA elements, sections and layouts as a PALS document.
 
-This is the inverse of ``translator/converters/codes/pals.py``
-Two things the standard offers are deliberately not used:
+This is the inverse of ``translator/converters/codes/pals.py``.
 
-``placement`` / ``superimpose``
-    A PALS line item can be positioned by an offset from another item rather
-    than by the running sum of the lengths ahead of it, which would let a
-    lattice be written without drifts at all. Here, gaps are written as
-    explicit ``Drift`` elements, from ``SectionLattice.createDrifts()``.
+Gaps are written as explicit ``Drift`` elements, from
+``SectionLattice.create_drifts()``, not as line-item ``placement``. An element
+that overlaps the one before, or is a subelement, is kept off the line and
+written as a ``superimpose`` offset from the branch's ``BeginningEle``.
 
 The document shape is one ``BeamLine`` per LAURA section, one ``Lattice``
 naming them as branches, and a ``use``. A section that repeats a cell nests a
@@ -20,6 +18,7 @@ from warnings import warn
 import numpy as np
 import yaml
 
+from ....models.element import ELEMENT_REGISTRY
 from .kinds import LAURA_TYPE_EXTENSION, laura_type_to_pals_kind, pals_kind_round_trips
 
 __all__ = [
@@ -139,6 +138,10 @@ class PalsBeamLine(NamedTuple):
     sublines: Dict[str, Dict[str, Any]] = {}
     """Nested ``BeamLine`` bodies the entries of ``line`` name, written into the
     facility ahead of it. Not branches of their own."""
+
+    superimposed: Dict[str, float] = {}
+    """Element name -> entrance offset [m] from the ``BeginningEle``, for elements
+    off the line (overlapping or subelements), written as ``superimpose``."""
 
 
 def _reads_as_something_else(name: str) -> bool:
@@ -320,7 +323,8 @@ def _solenoid_group(element: Any) -> Dict[str, Any]:
             "PALS states the strength per metre, so it could not be written."
         )
         return {}
-    return {"Ksol": strength / length}
+    # S0L is the integrated field [T*m], so this is the field and not ``Ksol``
+    return {"Bsol": strength / length}
 
 
 def _rf_group(element: Any) -> Dict[str, Any]:
@@ -329,7 +333,7 @@ def _rf_group(element: Any) -> Dict[str, Any]:
     group: Dict[str, Any] = {}
     structure = str(cavity.structure_type or "").replace("_", "").lower()
     amplitude = _resolve(element, getattr(element.simulation, "field_amplitude", None))
-    factor = getattr(element, "travelling_wave_voltage_factor", None)
+    factor = getattr(element, "voltage_factor", None)
     if amplitude and structure.startswith("travel") and factor is not None:
         group["gradient"] = amplitude
         active_length = _scalar(factor())
@@ -339,7 +343,7 @@ def _rf_group(element: Any) -> Dict[str, Any]:
         group["voltage"] = amplitude
     phase = _resolve(element, cavity.phase)
     if phase is not None:
-        group["phase"] = -phase / 360.0
+        group["phase"] = -np.radians(phase)  # LAURA: degrees; PALS: radians
     cells = _scalar(cavity.n_cells)
     if cells:
         group["num_cells"] = int(cells)
@@ -514,6 +518,8 @@ def pals_element_body(element: Any) -> Dict[str, Any]:
     extension: Dict[str, Any] = {}
     if not pals_kind_round_trips(hardware_type):
         extension["hardware_type"] = hardware_type
+        if hardware_type not in ELEMENT_REGISTRY:
+            extension["hardware_class"] = element.hardware_class
     if kind == "Taylor":
         extension.update(_matrix_extension(element))
         warn(
@@ -701,6 +707,9 @@ def pals_document(
             entry["periodic"] = True
         entry["line"] = line
         facility.append({beamline.name: entry})
+        for name, offset in beamline.superimposed.items():
+            placement = {"base_item": begin, "offset": float(offset)}
+            facility.append({"superimpose": {"place": name, "placement": placement}})
 
     facility.append(
         {
@@ -731,8 +740,8 @@ def pals_document(
     header = (
         "# Written by LAURA.\n"
         "#\n"
-        "# Gaps between elements are explicit Drift elements: the reference\n"
-        "# parser does not yet implement `placement` or `superimpose`.\n"
+        "# Gaps between elements are explicit Drift elements; overlapping\n"
+        "# elements are superimposed.\n"
     )
     return header + yaml.safe_dump(
         {"PALS": _plain(document)}, sort_keys=False, default_flow_style=False, width=100

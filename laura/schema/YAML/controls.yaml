@@ -7,15 +7,16 @@ version: "0.1.0"
 license: GPL-3.0-or-later
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  pals: https://pals-project.readthedocs.io/
 
 default_prefix: laura
 default_range: string
@@ -115,7 +116,15 @@ classes:
       A single process-variable entry mapping a logical name to a
       control-system PV identifier.
     class_uri: laura:ControlVariable
+    close_mappings:
+      - pals:Signal
     attributes:
+      name:
+        key: true
+        range: string
+        description: >-
+          Logical name: the variable's key under ``variables``, so not written
+          inside the variable itself.
       identifier:
         range: string
         description: Protocol-specific PV name (e.g., EPICS PV address).
@@ -126,13 +135,19 @@ classes:
           Data type, held as a Python type and serialised by name
           (e.g., ``float``, ``int``, ``str``).
       protocol:
+        close_mappings:
+          - pals:access_protocol
         range: string
-        description: Control-system protocol (e.g., ``EPICS``, ``Tango``).
+        description: >-
+          How the variable is reached (e.g., ``CA``, ``PVA``); NARAD's
+          ``access_protocol`` spells these out (``EPICS Channel Access``).
       units:
         range: string
         ifabsent: string(Arb. Units)
         description: Physical units string (e.g., ``A``, ``T/m``).
       description:
+        close_mappings:
+          - pals:native_description
         range: string
         ifabsent: string(Default Description)
         description: Human-readable description.
@@ -141,7 +156,7 @@ classes:
         ifabsent: "True"
         description: Whether the variable is read-only.
       value:
-        range: string
+        range: Any
         any_of:
           - range: float
           - range: integer
@@ -150,10 +165,11 @@ classes:
           Last-read value. Scalar for most control types; a list for
           ``waveform``.
       control_type:
+        alias: type
         range: ControlTypeEnum
         ifabsent: string(statistical)
         description: >-
-          Kind of quantity this variable carries. Accepted in YAML as ``type``.
+          Kind of quantity this variable carries. Written in YAML as ``type``.
         aliases:
           - type
       target:
@@ -175,7 +191,7 @@ classes:
           ``control_type: waveform``. Distinct from ``dtype``, which names the
           Python container.
       shape:
-        range: string
+        range: Any
         multivalued: true
         any_of:
           - range: integer
@@ -196,6 +212,27 @@ classes:
       setpoint:
         range: string
         description: Name of the set-point variable this readback follows.
+      role:
+        exact_mappings:
+          - pals:signal_role
+        range: string
+        description: >-
+          What the variable is to its element (e.g., ``Setpoint``,
+          ``Readback``, ``MaximumLimit``), in NARAD's ``SignalRoleEnum`` terms.
+      canonical_type:
+        exact_mappings:
+          - pals:canonical_signal_type
+        range: string
+        description: >-
+          The quantity the variable carries, independent of its PV name (e.g.,
+          ``MagnetCurrentSetpoint``), in NARAD's ``CanonicalSignalTypeEnum`` terms.
+      quantity_kind:
+        exact_mappings:
+          - pals:quantity_kind
+        range: string
+        description: >-
+          The physical kind of quantity (e.g., ``ElectricCurrent``), in NARAD's
+          ``QuantityKindEnum`` terms.
       update:
         range: string
         description: >-
