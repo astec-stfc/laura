@@ -115,7 +115,7 @@ such as ASTRA, GPT, Elegant, CSRTrack, Ocelot, Cheetah, Xsuite, Wake-T, Genesis,
 **Example: Export a section to Elegant and Ocelot**
 
 ```python
-from laura.translator.converters.section import SectionLatticeTranslator
+from laura.translator import SectionLatticeTranslator
 
 translator = SectionLatticeTranslator.from_section(section)
 translator.directory = "./output"
