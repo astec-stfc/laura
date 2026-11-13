@@ -99,7 +99,7 @@ Furthermore, elements can be specified with ``error`` and ``survey`` attributes,
 The full specification of an element position therefore consists of:
 
 * ``middle: Position(x, y, z)`` -- the middle of the element. ``position`` and ``centre`` are accepted as input aliases.
-* ``datum: Position(x, y, z)`` -- the element's mechanical datum (fiducial) point.
+* ``datum: Position(x, y, z)`` -- the element's mechanical datum (fiducial) point. A diagnostic that measures somewhere else, such as a BPM whose pickups are not at the datum, records where in ``diagnostic.datum_from_start``: the distance in metres along the beam from the element's upstream face. That is a property of the hardware, so it does not change when a lattice moves the mechanical datum.
 * ``rotation: Rotation(phi, psi, theta)`` -- the element's own rotation.
 * ``global_rotation: Rotation(phi, psi, theta)`` -- the rotation of the local frame the element sits in.
 * ``length: float``

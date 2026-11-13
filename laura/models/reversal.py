@@ -207,7 +207,9 @@ def reverse_element(element, *, strict: bool = True):
     element
         Any element carrying a ``magnetic`` block; anything else (a drift, a
         marker, a screen) is returned as a plain copy, which is correct --- it
-        has nothing that depends on direction.
+        has nothing that depends on direction.  The one exception is a
+        diagnostic's ``datum_from_start``, which is measured from the upstream
+        face and so becomes ``length - datum_from_start``.
     strict
         ``True`` (default) raises :class:`ElementNotReversible` for anything
         listed by :func:`reversal_obstacles`.  ``False`` warns and reverses
@@ -238,6 +240,12 @@ def reverse_element(element, *, strict: bool = True):
             "transformed: its offsets and angles are still expressed in the "
             "forward frame."
         )
+
+    diagnostic = getattr(reversed_element, "diagnostic", None)
+    datum_from_start = getattr(diagnostic, "datum_from_start", None)
+    if datum_from_start is not None and physical is not None:
+        # Measured from the upstream face, and reversal swaps the two faces.
+        diagnostic.datum_from_start = physical.length - datum_from_start
 
     magnetic = getattr(reversed_element, "magnetic", None)
     if magnetic is None:

@@ -359,5 +359,8 @@ class TestElementSubclassNestedDefaults:
         pm = PhotonMonitor(
             name="PM1", machine_area="MA", diagnostic={"type": "Diode", "intensity": 3.0}
         )
-        assert pm.model_dump()["diagnostic"] == {"type": "Diode", "intensity": 3.0}
+        assert pm.model_dump(exclude_none=True)["diagnostic"] == {
+            "type": "Diode",
+            "intensity": 3.0,
+        }
         assert PhotonMonitor(name="PM1", machine_area="MA").diagnostic.type == "I0"

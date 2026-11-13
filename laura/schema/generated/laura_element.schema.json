@@ -985,6 +985,14 @@
       "additionalProperties": false,
       "description": "Beam-arrival monitor (BAM) diagnostic data.",
       "properties": {
+        "datum_from_start": {
+          "description": "Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "type": {
           "description": "BAM type. Accepted in YAML as ``bam_type``.",
           "type": [
@@ -1000,6 +1008,14 @@
       "additionalProperties": false,
       "description": "Bunch-length monitor (BLM) diagnostic data.",
       "properties": {
+        "datum_from_start": {
+          "description": "Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "type": {
           "description": "BLM type (e.g., ``CDR``). Accepted in YAML as ``blm_type``.",
           "type": [
@@ -1015,6 +1031,14 @@
       "additionalProperties": false,
       "description": "Beam-position monitor (BPM) diagnostic data.",
       "properties": {
+        "datum_from_start": {
+          "description": "Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "type": {
           "description": "BPM type (e.g., ``Stripline``, ``Cavity``, ``Button``). Accepted in YAML as ``bpm_type``.",
           "type": [
@@ -2280,6 +2304,14 @@
       "additionalProperties": false,
       "description": "Camera diagnostic data, including sensor parameters, analysis mask, and pixel-to-mm scale factors.",
       "properties": {
+        "datum_from_start": {
+          "description": "Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "flipped_horizontally": {
           "description": "True if the image is mirrored left-right.",
           "type": [
@@ -2897,6 +2929,14 @@
       "additionalProperties": false,
       "description": "Charge-measurement diagnostic data (base for ICT, FCM, WCM).",
       "properties": {
+        "datum_from_start": {
+          "description": "Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "type": {
           "description": "Charge-diagnostic type. Accepted in YAML as ``charge_type``.",
           "type": [
@@ -5696,6 +5736,16 @@
     "DiagnosticElement": {
       "additionalProperties": false,
       "description": "Base class for diagnostic instrument sub-models.  Concrete sub-models extend this with instrument-specific fields.",
+      "properties": {
+        "datum_from_start": {
+          "description": "Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
       "title": "DiagnosticElement",
       "type": "object"
     },
@@ -12815,6 +12865,14 @@
       "additionalProperties": false,
       "description": "Photon intensity monitor diagnostic data.",
       "properties": {
+        "datum_from_start": {
+          "description": "Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "intensity": {
           "description": "Measured photon intensity.",
           "type": [
@@ -17258,6 +17316,14 @@
           "description": "Name of the associated camera element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "datum_from_start": {
+          "description": "Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -22162,6 +22228,14 @@
       "additionalProperties": false,
       "description": "Intercepting wire-scanner diagnostic: a thin wire swept through the beam to measure its transverse profile. Distinct from a Wire element, which carries a current to act on the beam rather than to intercept it.",
       "properties": {
+        "datum_from_start": {
+          "description": "Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "wire_diameter": {
           "description": "Diameter of the scanning wire [m].",
           "minimum": 0,
