@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from warnings import warn
 
@@ -95,6 +96,7 @@ _ACCESS_PROTOCOLS = {"CA": "EPICS Channel Access", "PVA": "EPICS PV Access"}
 _PROTOCOLS = {
     **{text: protocol for protocol, text in _ACCESS_PROTOCOLS.items()},
     "EPICS_ChannelAccess": "CA",  # a SourceSystemEnum value
+    "EPICS PVAccess": "PVA",  # the EIC toy ring's spelling
 }
 
 #: Groups whose keys are already PALS's.
@@ -195,7 +197,7 @@ def _beamline_order(
     chain = [
         relation
         for relation in relations
-        if relation.get("predicate") == "Precedes"
+        if relation.get("predicate") in ("Precedes", "pals:precedes")
         and relation.get("beamline_context") == beamline_id
     ]
     if not chain:
@@ -292,11 +294,12 @@ def _element(
     placement = component.get("LongitudinalPlacementP") or laura.pop(
         "LongitudinalPlacementP", None
     )
-    if placement is None and kind != "BeginningEle":
-        warn(
-            f"NARAD component {name!r} has no LongitudinalPlacementP; it was "
-            "placed, zero length, at the exit of the component before it."
-        )
+    if placement is None:
+        if kind != "BeginningEle":  # a beginning just starts the line
+            warn(
+                f"NARAD component {name!r} has no LongitudinalPlacementP; it was "
+                "placed, zero length, at the exit of the component before it."
+            )
         placement = {"length": 0.0, "s_position": previous_exit}
         s_position_at = "exit"
     length = float(placement.get("length") or 0.0)
@@ -366,8 +369,9 @@ def narad_document(
     lattice = PalsLattice(name=path.name.split(".")[0])
     skipped: List[str] = []
     for beamline in facility.get("beamlines") or []:
-        branch = PalsBranch(name=_name(beamline["id"]))
+        branch = PalsBranch(name=_name(beamline["id"]), attributes=dict(beamline))
         previous_exit = 0.0
+        reference = None
         for identifier in _beamline_order(beamline["id"], relations, components):
             element = _element(
                 components[identifier],
@@ -381,6 +385,10 @@ def narad_document(
                 skipped.append(_name(identifier))
                 continue
             previous_exit = element.s_end
+            if element.group("ReferenceP"):
+                reference = element.group("ReferenceP")
+            elif reference is not None:
+                element.parameters["ReferenceP"] = reference
             branch.elements.append(element)
         start = next((e for e in branch.elements if e.group("ReferenceP")), None)
         if start is not None and start.kind != "BeginningEle":
@@ -915,6 +923,8 @@ def narad_instance(
                 "beamline_relation": "Inline",
             }
         )
+        if getattr(section.geometry, "value", section.geometry) == "closed":
+            beamlines[-1]["periodic"] = True
         ordered = section._get_all_elements()
         seed = (
             ordered[0] if ordered and ordered[0].hardware_type == "TwissMatch" else None
@@ -987,3 +997,36 @@ def narad_instance(
             "component_relations": relations,
         },
     }
+
+
+def narad_yaml(
+    sections: Dict[str, Any], particle: Optional[str] = None, **kwargs: Any
+) -> str:
+    """
+    Write just these sections as a NARAD instance, one beamline per section.
+
+    Loose subelements (in no section, with no parent) are left out: only
+    :func:`narad_instance` given the whole machine can place them.
+
+    Parameters
+    ----------
+    sections: dict
+        Section name -> section, in order.
+    particle: str | None
+        Reference species for any section's ``BeginningEle``.
+    **kwargs
+        Passed to :func:`narad_instance`.
+
+    Returns
+    -------
+    str
+        The contents of a ``*.narad.yaml`` file.
+    """
+    elements = {
+        name: element
+        for section in sections.values()
+        for name, element in section.elements.elements.items()
+    }
+    # narad_instance reads only these three attributes of a machine
+    machine = SimpleNamespace(sections=sections, elements=elements, particle=particle)
+    return yaml.safe_dump(narad_instance(machine, **kwargs), sort_keys=False)

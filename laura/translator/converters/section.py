@@ -739,6 +739,26 @@ class SectionLatticeTranslator(SectionLattice):
         beamline = self._pals_beamline(particle=particle)
         return pals_document([beamline], f"{beamline.name}_lattice")
 
+    def to_narad(self, particle: str | None = None, **kwargs) -> str:
+        """
+        Create a NARAD instance holding this section as a single beamline.
+
+        Parameters
+        ----------
+        particle: str | None
+            Reference species for the section's ``BeginningEle``.
+        **kwargs
+            Passed to :func:`~laura.translator.converters.codes.narad.narad_instance`.
+
+        Returns
+        -------
+        str
+            The contents of a ``*.narad.yaml`` file.
+        """
+        from .codes.narad import narad_yaml  # narad imports this module
+
+        return narad_yaml({self.name: self}, particle, **kwargs)
+
     def to_astra(self) -> str:
         """
         Create an ASTRA-compatible input file based on the lattice information and

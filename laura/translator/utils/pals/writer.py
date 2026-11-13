@@ -343,7 +343,7 @@ def _rf_group(element: Any) -> Dict[str, Any]:
         group["voltage"] = amplitude
     phase = _resolve(element, cavity.phase)
     if phase is not None:
-        group["phase"] = -np.radians(phase)  # LAURA: degrees; PALS: radians
+        group["phase"] = -float(np.radians(phase))  # LAURA: degrees; PALS: radians
     cells = _scalar(cavity.n_cells)
     if cells:
         group["num_cells"] = int(cells)

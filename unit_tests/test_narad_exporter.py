@@ -5,6 +5,7 @@ import math
 import warnings
 
 import pytest
+import yaml
 
 from laura.exporters.yaml_exporter import export_as_yaml
 from laura.translator.converters.codes.narad import (
@@ -159,3 +160,29 @@ def test_an_element_inside_another_is_written_off_the_line(machine):
     assert component["beamline_relation"] == "AttachedToPipe"
     back = _machine({"facility": exported}, **_UITF)
     assert back.elements["APER"].physical.s == pytest.approx(1.3)
+
+
+def test_a_section_and_a_layout_dump_as_the_machine_does(machine):
+    from laura.translator.converters.layout import MachineLayoutTranslator
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    whole = {
+        component["id"]: component
+        for component in yaml.safe_load(yaml.safe_dump(_export(machine, **_UITF)))[
+            "facility"
+        ]["components"]
+    }
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        layout = MachineLayoutTranslator.from_layout(
+            next(iter(machine.lattices.values()))
+        ).to_narad(machine.particle, **_UITF)
+        section = SectionLatticeTranslator.from_section(
+            next(iter(machine.sections.values()))
+        ).to_narad(machine.particle, **_UITF)
+    for text in (layout, section):  # the fixture is one section
+        components = yaml.safe_load(text)["facility"]["components"]
+        # in no section, so only the whole machine places them
+        assert {c["id"] for c in components} == set(whole) - {"inst:VALVE", "inst:PUMP"}
+        for component in components:
+            assert component == whole[component["id"]]

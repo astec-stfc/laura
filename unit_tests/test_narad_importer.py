@@ -13,6 +13,7 @@ from scipy.constants import physical_constants, speed_of_light
 from laura.translator.converters.codes.narad import (
     NaradLatticeImporter,
     narad_document,
+    narad_instance,
 )
 
 _REFERENCE = {"pc_ref": 0.465144443755972, "species_ref": "electron"}
@@ -284,6 +285,57 @@ def test_missing_placement_sits_at_the_previous_exit():
     with pytest.warns(UserWarning, match="no LongitudinalPlacementP"):
         document = narad_document(instance)
     assert document.branch("LINE").elements[-1].s_start == pytest.approx(0.6)
+
+
+def test_a_beginning_needs_no_placement():
+    beginning = _component("B", "BeginningEle", 0.0)
+    del beginning["LongitudinalPlacementP"]
+    instance = _instance([beginning, _UITF_LIKE[0]], ["inst:B", "inst:SOL"])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)  # and says nothing about it
+        document = narad_document(instance)
+    assert document.branch("LINE").elements[0].s_start == 0.0
+
+
+def test_a_ring_in_the_eic_toy_shape():
+    """As the EIC toy ring writes it: ReferenceP on the BeginningEle alone,
+    fields as Bn, ``pals:`` CURIE predicates, a periodic beamline, PVAccess."""
+    beginning = _component("B", "BeginningEle", 0.0)
+    beginning["ReferenceP"] = {"pc_ref": 18e9, "species_ref": "electron"}
+    quad = _component(
+        "Q",
+        "Quadrupole",
+        0.5,
+        0.5,
+        MagneticMultipoleP={"mag_components": [{"order": 1, "Bn": -8.58}]},
+    )
+    del quad["ReferenceP"]
+    instance = _instance([beginning, quad])
+    facility = instance["facility"]
+    facility["beamlines"][0]["periodic"] = True
+    for relation in facility["component_relations"]:
+        relation["predicate"] = "pals:precedes"
+    facility["components"].reverse()  # so only the chain gives the order
+    facility["signals"] = [dict(_SIGNALS[1], access_protocol="EPICS PVAccess")]
+    facility["signal_bindings"] = [{"subject": "inst:Q", "object": "inst:MBEND.STAT"}]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        document = narad_document(instance, s_position_at="exit")
+        importer = NaradLatticeImporter(document=document)
+        quad = importer.create_laura_element_dictionary()["Q"]
+        section = importer.create_section()["LINE"]
+    names = [e.name for e in document.branch("LINE").elements]
+    assert names == ["B", "Q"]
+    # K1 = q c Bn / pc, the electron's charge flipping the sign
+    assert quad.magnetic.k1l == pytest.approx(8.58 * speed_of_light / 18e9 * 0.5)
+    assert getattr(section.geometry, "value", section.geometry) == "closed"
+    controls = document.branch("LINE").elements[1].group("NaradP")["controls"]
+    assert controls["status"]["protocol"] == "PVA"
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        machine = importer.create_machine_model(min_section_length=1)
+        written = narad_instance(machine, s_position_at="exit")["facility"]
+    assert written["beamlines"][0]["periodic"] is True
 
 
 def test_a_forked_chain_is_refused():
