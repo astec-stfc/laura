@@ -260,6 +260,7 @@ type ApertureElement
 
 type BAMDiagnosticElement
   {
+    datumFromStart: Float
     type: String
   }
 
@@ -372,11 +373,13 @@ type BeamPositionMonitor
 
 type BLMDiagnosticElement
   {
+    datumFromStart: Float
     type: String
   }
 
 type BPMDiagnosticElement
   {
+    datumFromStart: Float
     type: String
   }
 
@@ -434,6 +437,7 @@ type Camera
 
 type CameraDiagnosticElement
   {
+    datumFromStart: Float
     type: String
     xPixels: Int
     yPixels: Int
@@ -531,6 +535,7 @@ type ChargeDiagnostic
 
 type ChargeDiagnosticElement
   {
+    datumFromStart: Float
     type: String
   }
 
@@ -688,7 +693,7 @@ type Diagnostic
 
 type DiagnosticElement
   {
-    _placeholder: Boolean
+    datumFromStart: Float
   }
 
 type DiagnosticSimulationElement
@@ -1434,6 +1439,7 @@ type Multipoles
 
 type PhotonIntensityMonitorDiagnostic
   {
+    datumFromStart: Float
     type: String
     intensity: Float
   }
@@ -2035,6 +2041,7 @@ type Screen
 
 type ScreenDiagnosticElement
   {
+    datumFromStart: Float
     type: String
     hasCamera: Boolean
     cameraName: String
@@ -2504,6 +2511,7 @@ type WireScanner
 
 type WireScannerDiagnosticElement
   {
+    datumFromStart: Float
     wireDiameter: Float
     wireLength: Float
   }

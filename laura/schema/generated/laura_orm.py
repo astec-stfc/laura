@@ -1193,10 +1193,11 @@ class DiagnosticElement(Base):
     __tablename__ = 'DiagnosticElement'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    datum_from_start = Column(Float())
     
 
     def __repr__(self):
-        return f"DiagnosticElement(id={self.id},)"
+        return f"DiagnosticElement(id={self.id},datum_from_start={self.datum_from_start},)"
 
 
 
@@ -8967,10 +8968,11 @@ class BPMDiagnosticElement(DiagnosticElement):
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     type = Column(Text())
+    datum_from_start = Column(Float())
     
 
     def __repr__(self):
-        return f"BPMDiagnosticElement(id={self.id},type={self.type},)"
+        return f"BPMDiagnosticElement(id={self.id},type={self.type},datum_from_start={self.datum_from_start},)"
 
 
 
@@ -8990,10 +8992,11 @@ class BAMDiagnosticElement(DiagnosticElement):
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     type = Column(Text())
+    datum_from_start = Column(Float())
     
 
     def __repr__(self):
-        return f"BAMDiagnosticElement(id={self.id},type={self.type},)"
+        return f"BAMDiagnosticElement(id={self.id},type={self.type},datum_from_start={self.datum_from_start},)"
 
 
 
@@ -9014,10 +9017,11 @@ class PhotonIntensityMonitorDiagnostic(DiagnosticElement):
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     type = Column(Text())
     intensity = Column(Float())
+    datum_from_start = Column(Float())
     
 
     def __repr__(self):
-        return f"PhotonIntensityMonitorDiagnostic(id={self.id},type={self.type},intensity={self.intensity},)"
+        return f"PhotonIntensityMonitorDiagnostic(id={self.id},type={self.type},intensity={self.intensity},datum_from_start={self.datum_from_start},)"
 
 
 
@@ -9037,10 +9041,11 @@ class BLMDiagnosticElement(DiagnosticElement):
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     type = Column(Text())
+    datum_from_start = Column(Float())
     
 
     def __repr__(self):
-        return f"BLMDiagnosticElement(id={self.id},type={self.type},)"
+        return f"BLMDiagnosticElement(id={self.id},type={self.type},datum_from_start={self.datum_from_start},)"
 
 
 
@@ -9061,10 +9066,11 @@ class WireScannerDiagnosticElement(DiagnosticElement):
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     wire_diameter = Column(Float())
     wire_length = Column(Float())
+    datum_from_start = Column(Float())
     
 
     def __repr__(self):
-        return f"WireScannerDiagnosticElement(id={self.id},wire_diameter={self.wire_diameter},wire_length={self.wire_length},)"
+        return f"WireScannerDiagnosticElement(id={self.id},wire_diameter={self.wire_diameter},wire_length={self.wire_length},datum_from_start={self.datum_from_start},)"
 
 
 
@@ -9086,6 +9092,7 @@ class ScreenDiagnosticElement(DiagnosticElement):
     type = Column(Text())
     has_camera = Column(Boolean())
     camera_name = Column(Text())
+    datum_from_start = Column(Float())
     
     
     devices_rel = relationship( "ScreenDiagnosticElementDevices" )
@@ -9094,7 +9101,7 @@ class ScreenDiagnosticElement(DiagnosticElement):
     
 
     def __repr__(self):
-        return f"ScreenDiagnosticElement(id={self.id},type={self.type},has_camera={self.has_camera},camera_name={self.camera_name},)"
+        return f"ScreenDiagnosticElement(id={self.id},type={self.type},has_camera={self.has_camera},camera_name={self.camera_name},datum_from_start={self.datum_from_start},)"
 
 
 
@@ -9114,10 +9121,11 @@ class ChargeDiagnosticElement(DiagnosticElement):
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     type = Column(Text())
+    datum_from_start = Column(Float())
     
 
     def __repr__(self):
-        return f"ChargeDiagnosticElement(id={self.id},type={self.type},)"
+        return f"ChargeDiagnosticElement(id={self.id},type={self.type},datum_from_start={self.datum_from_start},)"
 
 
 
@@ -9144,6 +9152,7 @@ class CameraDiagnosticElement(DiagnosticElement):
     flipped_vertically = Column(Boolean())
     screen_name = Column(Text())
     has_led = Column(Boolean())
+    datum_from_start = Column(Float())
     pixel_results_indices_id = Column(Integer(), ForeignKey('CameraPixelResultsIndices.id'))
     pixel_results_indices = relationship("CameraPixelResultsIndices", uselist=False, foreign_keys=[pixel_results_indices_id])
     pixel_results_names_id = Column(Integer(), ForeignKey('CameraPixelResultsNames.id'))
@@ -9155,7 +9164,7 @@ class CameraDiagnosticElement(DiagnosticElement):
     
 
     def __repr__(self):
-        return f"CameraDiagnosticElement(id={self.id},type={self.type},x_pixels={self.x_pixels},y_pixels={self.y_pixels},rotation={self.rotation},flipped_horizontally={self.flipped_horizontally},flipped_vertically={self.flipped_vertically},screen_name={self.screen_name},has_led={self.has_led},pixel_results_indices_id={self.pixel_results_indices_id},pixel_results_names_id={self.pixel_results_names_id},mask_id={self.mask_id},sensor_id={self.sensor_id},)"
+        return f"CameraDiagnosticElement(id={self.id},type={self.type},x_pixels={self.x_pixels},y_pixels={self.y_pixels},rotation={self.rotation},flipped_horizontally={self.flipped_horizontally},flipped_vertically={self.flipped_vertically},screen_name={self.screen_name},has_led={self.has_led},datum_from_start={self.datum_from_start},pixel_results_indices_id={self.pixel_results_indices_id},pixel_results_names_id={self.pixel_results_names_id},mask_id={self.mask_id},sensor_id={self.sensor_id},)"
 
 
 

@@ -2821,7 +2821,8 @@ class _DiagnosticElementBase(ConfiguredBaseModel):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:DiagnosticElement',
          'from_schema': 'https://w3id.org/laura/schema/diagnostics'})
 
-    pass
+    datum_from_start: Optional[float] = Field(default=None, description="""Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``."""
 
 
 class _BPMDiagnosticElementBase(_DiagnosticElementBase):
@@ -2842,6 +2843,8 @@ class _BPMDiagnosticElementBase(_DiagnosticElementBase):
                        'CameraDiagnosticElement'],
          'ifabsent': 'string(Stripline)'} })
     """BPM type (e.g., ``Stripline``, ``Cavity``, ``Button``). Accepted in YAML as ``bpm_type``."""
+    datum_from_start: Optional[float] = Field(default=None, description="""Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``."""
 
 
 class _BAMDiagnosticElementBase(_DiagnosticElementBase):
@@ -2862,6 +2865,8 @@ class _BAMDiagnosticElementBase(_DiagnosticElementBase):
                        'CameraDiagnosticElement'],
          'ifabsent': 'string(DESY)'} })
     """BAM type. Accepted in YAML as ``bam_type``."""
+    datum_from_start: Optional[float] = Field(default=None, description="""Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``."""
 
 
 class _PhotonIntensityMonitorDiagnosticBase(_DiagnosticElementBase):
@@ -2884,6 +2889,8 @@ class _PhotonIntensityMonitorDiagnosticBase(_DiagnosticElementBase):
     """Photon intensity monitor type. Accepted in YAML as ``intensity_monitor_type``."""
     intensity: float = Field(default=0.0, description="""Measured photon intensity.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhotonIntensityMonitorDiagnostic'], 'ifabsent': 'float(0.0)'} })
     """Measured photon intensity."""
+    datum_from_start: Optional[float] = Field(default=None, description="""Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``."""
 
 
 class _BLMDiagnosticElementBase(_DiagnosticElementBase):
@@ -2904,6 +2911,8 @@ class _BLMDiagnosticElementBase(_DiagnosticElementBase):
                        'CameraDiagnosticElement'],
          'ifabsent': 'string(CDR)'} })
     """BLM type (e.g., ``CDR``). Accepted in YAML as ``blm_type``."""
+    datum_from_start: Optional[float] = Field(default=None, description="""Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``."""
 
 
 class _WireScannerDiagnosticElementBase(_DiagnosticElementBase):
@@ -2922,6 +2931,8 @@ class _WireScannerDiagnosticElementBase(_DiagnosticElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Length of the scanning wire [m]."""
+    datum_from_start: Optional[float] = Field(default=None, description="""Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``."""
 
 
 class _ScreenDiagnosticElementBase(_DiagnosticElementBase):
@@ -2948,6 +2959,8 @@ class _ScreenDiagnosticElementBase(_DiagnosticElementBase):
     """Name of the associated camera element."""
     devices: list[str] = Field(default_factory=list, description="""List of attached devices.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ScreenDiagnosticElement']} })
     """List of attached devices."""
+    datum_from_start: Optional[float] = Field(default=None, description="""Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``."""
 
 
 class _ChargeDiagnosticElementBase(_DiagnosticElementBase):
@@ -2967,6 +2980,8 @@ class _ChargeDiagnosticElementBase(_DiagnosticElementBase):
                        'ChargeDiagnosticElement',
                        'CameraDiagnosticElement']} })
     """Charge-diagnostic type. Accepted in YAML as ``charge_type``."""
+    datum_from_start: Optional[float] = Field(default=None, description="""Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``."""
 
 
 class _CameraPixelResultsIndicesBase(ConfiguredBaseModel):
@@ -3151,6 +3166,8 @@ class _CameraDiagnosticElementBase(_DiagnosticElementBase):
     """Camera analysis mask configuration."""
     sensor: Optional[_CameraSensorBase] = Field(default=None, description="""Camera sensor hardware configuration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
     """Camera sensor hardware configuration."""
+    datum_from_start: Optional[float] = Field(default=None, description="""Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``."""
 
 
 class _LaserMirrorElementBase(ConfiguredBaseModel):

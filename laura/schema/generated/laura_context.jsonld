@@ -447,6 +447,10 @@
          "@type": "xsd:float",
          "@id": "design_power"
       },
+      "datum_from_start": {
+         "@type": "xsd:float",
+         "@id": "datum_from_start"
+      },
       "output_filename": {
          "@id": "output_filename"
       },

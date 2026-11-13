@@ -1771,6 +1771,8 @@ export interface PhotonMonitor extends Diagnostic {
  * Base class for diagnostic instrument sub-models.  Concrete sub-models extend this with instrument-specific fields.
  */
 export interface DiagnosticElement {
+    /** Distance [m] along the beam from the element's upstream face (``physical.start``) to the instrument's own datum: the plane it measures at, such as a BPM's pickups.  A property of the hardware, so it does not depend on where a lattice puts ``physical.datum``, which is the mechanical datum and is left untouched.  Absent means the instrument datum is ``physical.datum``. */
+    datum_from_start?: number,
 }
 
 

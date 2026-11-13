@@ -496,3 +496,34 @@ class TestTheReversalExample:
         assert machine.sections["ARC"].order == self.FORWARD
         assert machine["QUAD_A"].magnetic.k1l == pytest.approx(0.6)
         assert machine["BEND"].magnetic.angle == pytest.approx(0.25)
+
+
+class TestDiagnosticDatum:
+    """``diagnostic.datum_from_start`` is measured from the upstream face, which reversal swaps."""
+
+    @staticmethod
+    def bpm(**diagnostic):
+        from laura.models.element import BeamPositionMonitor
+
+        return BeamPositionMonitor(
+            name="BPM",
+            machine_area="S",
+            physical={"length": 0.21},
+            diagnostic=diagnostic,
+        )
+
+    def test_it_is_re_measured_from_the_new_upstream_face(self):
+        reversed_ = reverse_element(self.bpm(datum_from_start=0.0353))
+        assert reversed_.diagnostic.datum_from_start == pytest.approx(0.21 - 0.0353)
+
+    def test_twice_is_the_identity(self):
+        twice = reverse_element(reverse_element(self.bpm(datum_from_start=0.0353)))
+        assert twice.diagnostic.datum_from_start == pytest.approx(0.0353)
+
+    def test_the_source_is_untouched(self):
+        original = self.bpm(datum_from_start=0.0353)
+        reverse_element(original)
+        assert original.diagnostic.datum_from_start == pytest.approx(0.0353)
+
+    def test_absent_stays_absent(self):
+        assert reverse_element(self.bpm()).diagnostic.datum_from_start is None
