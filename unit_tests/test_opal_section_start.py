@@ -7,6 +7,8 @@ dumped every step of it.
 
 import re
 
+import numpy as np
+
 import pytest
 
 from laura.models.element import Collimator, Dipole, Drift, Marker
@@ -130,3 +132,18 @@ def test_zstop_follows_the_path_of_a_bend_as_elemedge_does():
     deck = deck_of(neighbours_block([bend, gap, last], names=["b", "d", "c"]))
     assert edges(deck)[-1] == pytest.approx(2.0)  # along the path: the bend and the drift
     assert zstop(deck) == pytest.approx(2.1 + 0.1)  # the collimator's length and OPAL's margin
+
+
+def test_after_an_rbend_elemedge_is_short_of_the_path_by_its_arc_less_its_straight_length():
+    """OPAL's s goes through an rbend by its straight length: JFEL's VBC monitor fired 2.2 mm (7.4 ps) late."""
+    bend = Dipole(
+        name="b", machine_area="S", physical={"length": 1.0},
+        magnetic={"length": 1.0, "k0l": 0.5, "entrance_edge_angle": 0.0, "exit_edge_angle": 0.5},
+    )
+    gap = Drift(name="d", hardware_class="Drift", machine_area="S", physical={"length": 1.0})
+    last = Collimator(name="c", machine_area="S", physical={"length": 0.1}, aperture=SIZE)
+    deck = deck_of(neighbours_block([bend, gap, last], names=["b", "d", "c"]))
+    assert "rbend" in deck
+    short = 1.0 - np.sin(0.5) / 0.5
+    assert edges(deck)[-1] == pytest.approx(2.0 - short)
+    assert zstop(deck) == pytest.approx(2.2 - short)

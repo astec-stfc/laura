@@ -475,7 +475,7 @@ def test_other_cavities_stay_thin(tmp_path, span, cavity_type, field_maps, warns
     ]
 
 
-def linac_cavity(structure_type, s=1.5, name="cav"):
+def linac_cavity(structure_type, s=1.5, name="cav", n_cells=None):
     return RFCavity(
         name=name,
         machine_area="S",
@@ -486,17 +486,23 @@ def linac_cavity(structure_type, s=1.5, name="cav"):
             "structure_type": structure_type,
             "mode_numerator": 2,
             "mode_denominator": 3,
+            **({"n_cells": n_cells} if n_cells else {}),
         },
         simulation={"field_amplitude": 20e6},
     )
 
 
+@pytest.mark.parametrize("n_cells", [None, 4])
 @pytest.mark.parametrize("structure_type", ["TravellingWave", "StandingWave"])
-def test_a_thick_cavity_focuses_as_rf_focusing(structure_type):
+def test_a_thick_cavity_focuses_as_rf_focusing(structure_type, n_cells):
     """ShortRF only damps px, so ImpactX tracked linacs without RF focusing:
-    LCLS's beta came out 30-60% off Bmad's at WS32."""
-    cavity = translator(linac_cavity(structure_type))
+    LCLS's beta came out 30-60% off Bmad's at WS32. Three kicks a cell, as ELEGANT and Xsuite: one at the
+    centre crossed the LCLS L02 linac 0.35 ps late."""
+    cavity = translator(linac_cavity(structure_type, n_cells=n_cells))
     dicts = cavity.to_impactx(energy=E * 1e6)
+    cells = cavity.get_cells()  # as ELEGANT's N_KICKS
+    assert [d["type"] for d in dicts].count("ShortRF") == (3 * cells if cells > 1 else 1)
+    assert sum(d["ds"] for d in dicts if "ds" in d) == pytest.approx(3.0)
     start = [[0] * 6, [1e-3, 0, 0, 0, 0, 0], [0, 1e-4, 0, 0, 0, 0], [0, 0, 1e-3, 0, 0, 0]]
     out = impactx_track(dicts, start)
     gain = float(cavity.voltage) * np.cos(np.radians(20.0)) / 1e6

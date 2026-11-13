@@ -288,6 +288,31 @@ class TestComposition:
         split, _ = self.build({"A": names[:3], "B": names[3:]}, {"L": ["A", "B"]})
         assert split.elements["B1"].physical.rotation.theta != pytest.approx(0.0)
 
+    def test_a_surveyed_section_continues_the_arc_length_past_a_bend(self, names):
+        # positions stated, s not (JFEL): B's s must carry A's bend path, not restart at |position|
+        whole, _ = self.build({"ALL": names}, {"L": ["ALL"]})
+        surveyed = []
+        for element in self.elements():
+            placed, data = whole.elements[element.name].physical, element.model_dump(exclude_none=True)
+            data["physical"].update(middle=placed.middle.model_dump(), rotation=placed.rotation.model_dump())
+            surveyed.append(type(element).model_validate(data))
+
+        def surveyed_as(sections, layout):
+            with quiet():
+                return MachineModel(
+                    elements={e.name: e.model_copy(deep=True) for e in surveyed},
+                    section={"sections": sections},
+                    layout={"layouts": {"L": layout}, "default_layout": "L"},
+                )
+
+        one = surveyed_as({"ALL": names}, ["ALL"])
+        split = surveyed_as({"A": names[:3], "B": names[3:]}, ["A", "B"])
+        assert not split.sections["B"]._placed_sequentially
+        for name in names:
+            assert split.elements[name].physical.s == pytest.approx(
+                one.elements[name].physical.s, abs=1e-12
+            ), name
+
     def test_a_stated_section_is_not_moved(self):
         stated = [
             drift("s1", 1.0, s=10.0, s_point="end"),

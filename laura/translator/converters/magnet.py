@@ -42,14 +42,16 @@ GPT_HARD_EDGE_B1 = 300.0
 MAP_SOLENOID_RADIUS = {"astra": 0.001, "opal": 0.005, "gpt": 0.001, "rftrack": 0.001}
 """Least current-sheet radius, as a fraction of its length, of a solenoid without a field
 map; unless ``coil_radius`` is larger, the radius used. It departs from a hard edge by about
-half of it. Below it the code's own numerics depart by more: ASTRA's (first order) at 0.0005,
-OPAL's (Fourier rebuild, third order) at 0.002-0.003; GPT showed none down to 0.0005, and
-RF-Track loses every particle at R = 0."""
+half of it."""
 
 
 def solenoid_sheet_radius(magnetic, length: float, code: str) -> float:
     """``magnetic.coil_radius``, at least ``code``'s :data:`MAP_SOLENOID_RADIUS` of ``length``."""
-    return max(getattr(magnetic, "coil_radius", None) or 0.0, MAP_SOLENOID_RADIUS[code] * length)
+    return max(
+        getattr(magnetic, "coil_radius", None) or 0.0,
+        MAP_SOLENOID_RADIUS[code] * length,
+    )
+
 
 BEND_ANGLE_PER_KICK = 0.01
 """Largest angle [rad] one integration step of a bend may turn through when
@@ -466,7 +468,11 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         if self.hardware_type.lower() == "octupole":
             aperture = self.aperture
             bore = max(
-                (aperture.radius or 0, aperture.horizontal_size or 0, aperture.vertical_size or 0)
+                (
+                    aperture.radius or 0,
+                    aperture.horizontal_size or 0,
+                    aperture.vertical_size or 0,
+                )
                 if aperture
                 else (0,)
             )
@@ -513,7 +519,9 @@ class MagnetTranslator(MultipoleStrengthTranslator):
             z_m=float(field_ref_pos[2]) + self.dz,
             k1=self.k1,
             k2=self.k2,
-            grad_t_per_m=self.magnetic.gradient if self.magnetic.gradient is not None else 0.0,
+            grad_t_per_m=(
+                self.magnetic.gradient if self.magnetic.gradient is not None else 0.0
+            ),
         )
 
 
@@ -718,7 +726,8 @@ class DipoleTranslator(MultipoleStrengthTranslator):
                     "default": 1e6,
                 }
             else:
-                params["D_radius"] = {"value": 1 * self.magnetic.rho, "default": 1e6}
+                # ASTRA bends a positive radius towards -x; LAURA lays a positive angle out towards +x
+                params["D_radius"] = {"value": -1 * self.magnetic.rho, "default": 1e6}
             return self._write_astra_dictionary(params, n)
         else:
             return ""
@@ -734,8 +743,11 @@ class DipoleTranslator(MultipoleStrengthTranslator):
             Dipole corner positions
         """
         corners = [0, 0, 0, 0]
-        rotation = self.physical.global_rotation.theta
-        theta = self.e1 + rotation
+        # faces square to the beam lie at its heading, theta = -dx/dz; e1 turns the entrance face towards the bend
+        # and e2 the exit face back. global_rotation alone was 0 here, which put a dipole entered at an angle, the
+        # second of a chicane, square to z: ASTRA's beam took 18 ps more through a 0.1 rad chicane
+        rotation = self.physical.rotation.theta + self.physical.global_rotation.theta
+        theta = rotation - self.e1
         corners[0] = np.array(
             list(
                 map(
@@ -764,7 +776,7 @@ class DipoleTranslator(MultipoleStrengthTranslator):
                 )
             )
         )
-        theta = self.magnetic.KnL(0) - self.e2 + rotation
+        theta = rotation - self.magnetic.KnL(0) + self.e2
         corners[1] = np.array(
             list(
                 map(
@@ -965,6 +977,25 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         else:
             return ccs
 
+    def _opal_straight_length(self) -> float | None:
+        """The straight length of the magnet OPAL's ``rbend`` takes as ``l``, where LAURA's is the arc; ``None`` for
+        anything written as another type (an ``sbend`` takes the arc)."""
+        theta = self.magnetic.KnL(0)
+        if self.e1 == self.e2 or not self.physical.length or theta == 0:
+            return None
+        if self._convert_type_opal(self.hardware_type).lower() != "rbend":
+            return None
+        return (
+            self.physical.length / theta * (np.sin(self.e1) + np.sin(theta - self.e1))
+        )
+
+    def opal_s_shortfall(self) -> float:
+        """How much less than the beam's path OPAL's s advances through this magnet:
+        through an ``rbend`` its straight length, so every ``ELEMEDGE`` after it is that much shorter.
+        """
+        straight = self._opal_straight_length()
+        return 0.0 if straight is None else self.physical.length - straight
+
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
         """
         Generates a string representation of the object's properties in the OPAL format.
@@ -992,16 +1023,21 @@ class DipoleTranslator(MultipoleStrengthTranslator):
             or self.magnetic.KnL(0) == 0
         ):
             return ""
+        overrides = self._opal_alignment()
+        if etype == "rbend":
+            overrides["l"] = self._opal_straight_length()
         for key, value in self._dump_items(
             self._convert_keyword_opal,
             elements_opal[etype],
-            overrides=self._opal_alignment(),
+            overrides=overrides,
         ):
             if key in ("k1", "k2", "k3", "k4", "k5", "k6"):
                 value = getattr(self, f"{key}l")
             wholestring += f", {key} = {self._flag(self._angle_token(value))}"
         if etype == "monitor":
             wholestring += f', OUTFN = "{self.name}_opal"'
+        if designenergy:  # the momentum [MeV/c]; OPAL's is kinetic, so it bent a 5 MeV/c bunch 10% too far
+            designenergy = float(np.hypot(designenergy, self.opal_rest_energy) - self.opal_rest_energy)
         wholestring += f", DESIGNENERGY = {designenergy}"
         wholestring += f", ELEMEDGE = {sval}"
         wholestring += ', FMAPFN = "1DPROFILE1-DEFAULT";\n'
@@ -1041,7 +1077,9 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
         keywords = self._bdsim_keywords(obj, section_aperture)
         obj, keywords = magnet_frame_workaround(obj, keywords, integrator_set)
-        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+        return obj(
+            **self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set)
+        )
 
 
 class DecapoleTranslator(MagnetTranslator):
@@ -1240,7 +1278,9 @@ class SolenoidTranslator(BaseElementTranslator):
             String representation of the element for ASTRA
         """
         field_ref_pos = self.get_field_reference_position()
-        field_file_name = self.generate_field_file_name(self._field_map("astra"), code="astra")
+        field_file_name = self.generate_field_file_name(
+            self._field_map("astra"), code="astra"
+        )
         if not isinstance(field_file_name, str):
             raise NotImplementedError(
                 f"ASTRA solenoids require fieldmaps; see element {self.name}"
@@ -1258,7 +1298,11 @@ class SolenoidTranslator(BaseElementTranslator):
                 },
                 # smoothing a generated (exact) map would only widen its edge
                 "S_smooth": {
-                    "value": 0 if self.simulation.field_definition is None else self.simulation.smooth,
+                    "value": (
+                        0
+                        if self.simulation.field_definition is None
+                        else self.simulation.smooth
+                    ),
                     "default": 10,
                 },
                 "S_xoff": {"value": field_ref_pos[0] + self.dx, "default": 0},
@@ -1362,9 +1406,13 @@ class SolenoidTranslator(BaseElementTranslator):
         """
         length = self.magnetic.length
         if not length:
-            raise NotImplementedError(f"GPT has no thin solenoid; see element {self.name}")
+            raise NotImplementedError(
+                f"GPT has no thin solenoid; see element {self.name}"
+            )
         radius = solenoid_sheet_radius(self.magnetic, length, "gpt")
-        stands_for = "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        stands_for = (
+            "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        )
         warn(
             f"GPT: {self.name!r} has no field map: writing a bzsolenoid, the analytic field "
             f"of a current sheet of radius {radius:.3g} m, for {stands_for}."
@@ -1398,7 +1446,9 @@ class SolenoidTranslator(BaseElementTranslator):
             return None
         length = self.magnetic.length
         if not length:
-            raise NotImplementedError(f"A thin solenoid has no field map; see element {self.name}")
+            raise NotImplementedError(
+                f"A thin solenoid has no field map; see element {self.name}"
+            )
         return solenoid_sheet_radius(self.magnetic, length, code)
 
     def _map_amplitude(self, code: str):
@@ -1420,16 +1470,18 @@ class SolenoidTranslator(BaseElementTranslator):
         if radius is None:
             return self.simulation.field_definition
         length = self.magnetic.length
-        stands_for = "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        stands_for = (
+            "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        )
         warn(
             f"{code.upper()} needs a field map and {self.name!r} has none: writing the analytic "
             f"field of a current sheet of radius {radius:.3g} m, for {stands_for}."
         )
         half = length / 2 + 50 * radius
         z = np.linspace(-half, half, int(np.ceil(8 * half / radius)) + 1)
-        bz = (z + length / 2) / np.hypot(z + length / 2, radius) - (z - length / 2) / np.hypot(
-            z - length / 2, radius
-        )
+        bz = (z + length / 2) / np.hypot(z + length / 2, radius) - (
+            z - length / 2
+        ) / np.hypot(z - length / 2, radius)
         offset = self.physical.middle.z - self.get_field_reference_position()[2]
         field = FieldMap()
         field.length = len(z)
@@ -1507,7 +1559,9 @@ class SolenoidTranslator(BaseElementTranslator):
                 wholestring += f", {key} = {value}"
         field = self._field_map("opal")
         if isinstance(field, FieldMap):
-            wholestring += f', fmapfn = "{self.generate_field_file_name(field, code="opal")}"'
+            wholestring += (
+                f', fmapfn = "{self.generate_field_file_name(field, code="opal")}"'
+            )
             sval += float(
                 np.linalg.norm(
                     self.get_field_reference_position()
@@ -1559,7 +1613,9 @@ class SolenoidTranslator(BaseElementTranslator):
                 keywords["ks"] = self.magnetic.field_amplitude / self.Brho
             else:
                 keywords.pop("ks")
-        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+        return obj(
+            **self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set)
+        )
 
 
 class WigglerTranslator(BaseElementTranslator):
@@ -1655,7 +1711,9 @@ class WigglerTranslator(BaseElementTranslator):
         strength = m.resolved("strength") if m.strength is not None else 0.0
         if m.period:
             obj.lperiod = float(m.period)
-            obj.nperiods = int(m.num_periods or round(float(m.length) / float(m.period)))
+            obj.nperiods = int(
+                m.num_periods or round(float(m.length) / float(m.period))
+            )
         obj.Kx = float(strength)
         obj.Ky = float(strength) if m.helical else 0.0
         return obj

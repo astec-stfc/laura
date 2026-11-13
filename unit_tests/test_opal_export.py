@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from laura.models.element import (
+    Dipole,
     HorizontalCorrector,
     Quadrupole,
     RFCavity,
@@ -64,6 +65,18 @@ def test_opal_quadrupole_k1_is_a_gradient():
     # 599.584916 MeV is B*rho = 2 T m; the field gradient flips sign for electrons
     written = quad.to_opal(sval=0.0, designenergy=599.584916)
     assert float(re.search(r"k1 = ([^,]+)", written).group(1)) == pytest.approx(-10.0)
+
+
+@pytest.mark.parametrize("e1", [0.0, 0.13])
+def test_opal_rbend_length_is_the_straight_length_of_its_arc(e1):
+    """OPAL's rbend `l` is straight; LAURA's arc was 0.57 mm a JFEL VBC dipole longer in OPAL, 7.6 ps over the chicane."""
+    bend = translate(
+        Dipole(name="B", hardware_class="Magnet", machine_area="S", physical={"length": 0.2},
+               magnetic={"length": 0.2, "k0l": 0.13, "entrance_edge_angle": e1, "exit_edge_angle": 0.13 - e1})
+    )
+    written = bend.to_opal(sval=0.0, designenergy=180.0)
+    assert written.split(":")[1].split(",")[0].strip() == "rbend"
+    assert float(re.search(r"\bl = ([^,]+)", written).group(1)) == pytest.approx(0.2 * np.sin(0.13) / 0.13)
 
 
 def test_opal_correctors_are_kickers_and_thin_ones_last_ten_time_steps():
@@ -210,3 +223,28 @@ def test_opal_design_energy_after_a_cavity_is_its_gain(tmp_path, monkeypatch):
     # |int cos(kz) exp(ikz)| over two wavelengths is one wavelength, at 10 MV/m
     assert seen["Q2"] == pytest.approx(5.0 + 10 * WAVELENGTH, rel=1e-4)
     assert steps == {2e-12}  # the longest stage step
+
+
+def test_opal_design_energy_is_kinetic():
+    """The section's energy is the momentum [MeV/c]; OPAL's DESIGNENERGY is kinetic, so a 5 MeV/c
+    bunch was bent 10% too far, 4 ps more path through a 0.1 rad chicane."""
+    bend = translate(
+        Dipole(name="B", hardware_class="Magnet", machine_area="S", physical={"length": 0.2},
+               magnetic={"length": 0.2, "k0l": 0.1, "entrance_edge_angle": 0.0, "exit_edge_angle": 0.1})
+    )
+    written = bend.to_opal(sval=0.0, designenergy=5.0)
+    assert float(re.search(r"DESIGNENERGY = ([^,]+)", written).group(1)) == pytest.approx(np.hypot(5.0, 0.51099895) - 0.51099895)
+
+
+
+def test_opal_design_energy_takes_the_section_s_particle(tmp_path, monkeypatch):
+    bend = Dipole(name="B", hardware_class="Magnet", machine_area="S", physical={"length": 0.2, "middle": [0, 0, 0.1]},
+                  magnetic={"length": 0.2, "k0l": 0.1})
+    section = SectionLatticeTranslator.from_section(SectionLattice(name="S", order=["B"], elements=[bend]))
+    section.directory = str(tmp_path)
+    section.opal_headers = {k: _Header() for k in ("option", "distribution", "fieldsolver", "beam", "track", "run")}
+    monkeypatch.chdir(tmp_path)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        written = section.to_opal(energy=5.0, particle="proton")
+    assert float(re.search(r"DESIGNENERGY = ([^,]+)", written).group(1)) == pytest.approx(np.hypot(5.0, 938.27208816) - 938.27208816)

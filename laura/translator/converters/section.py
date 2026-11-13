@@ -1,7 +1,7 @@
 import json
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, List
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
 from warnings import warn
 
 import numpy as np
@@ -61,14 +61,14 @@ from .codes import (
     madx_unsupported,
     ocelot_unsupported,
     opal_unsupported,
-    slipstream_unsupported,
     pals_unsupported,
     rftrack_unsupported,
+    slipstream_unsupported,
     wake_t_unsupported,
     xsuite_unsupported,
 )
-from .codes.slipstream import SlipstreamElement
 from .codes.gpt import GptCcs, GptDtMinT, GptZMinMax
+from .codes.slipstream import SlipstreamElement
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
 from .magnet import MagnetTranslator, SolenoidTranslator
@@ -791,7 +791,10 @@ class SectionLatticeTranslator(SectionLattice):
         astrastr = ""
         for h in self.astra_headers.values():
             astrastr += h.write_astra()
-        h_max = next((h.h_max for h in self.astra_headers.values() if getattr(h, "h_max", None)), 0.0)
+        h_max = next(
+            (h.h_max for h in self.astra_headers.values() if getattr(h, "h_max", None)),
+            0.0,
+        )
         aperture_min_length = max(1e-3, 1e-9 * speed_of_light * h_max)
         for e in elem_dict.values():
             for key, count in counter.items():
@@ -800,12 +803,14 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[key] += (
-                            f"{section_header_text_astra[key]} = True\n"
-                        )
+                        element_headers[
+                            key
+                        ] += f"{section_header_text_astra[key]} = True\n"
                         written.append(key)
                     if isinstance(e, ApertureTranslator):
-                        element_headers[key] += e.to_astra(n=count, min_length=aperture_min_length)
+                        element_headers[key] += e.to_astra(
+                            n=count, min_length=aperture_min_length
+                        )
                     else:
                         element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
@@ -837,9 +842,9 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers["&WAKE"] += (
-                                f"{section_header_text_astra['&WAKE']} = True\n"
-                            )
+                            element_headers[
+                                "&WAKE"
+                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += w.astra_wake_spacing[1]
@@ -866,7 +871,8 @@ class SectionLatticeTranslator(SectionLattice):
         """
         self._check_elements_supported("slipstream")
         section_with_drifts = self.create_drifts(
-            csr_enable=False, lsc_enable=False,
+            csr_enable=False,
+            lsc_enable=False,
         )
         elem_dict = translate_elements(
             section_with_drifts.values(),
@@ -1008,7 +1014,9 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += dtmint.write_gpt()
         return fulltext
 
-    def to_opal(self, energy: float = 0, breakstr: str = "") -> str:
+    def to_opal(
+        self, energy: float = 0, breakstr: str = "", particle: str = "electron"
+    ) -> str:
         """
         Create an OPAL-compatible input file based on the lattice information and
         the settings provided in :attr:`~opal_headers`.
@@ -1023,9 +1031,11 @@ class SectionLatticeTranslator(SectionLattice):
         Parameters
         ----------
         energy: float
-            Beam energy at the start of the section [MeV]
+            Beam momentum at the start of the section [MeV/c]
         breakstr: str
             String for separating sections in the lattice file.
+        particle: str
+            The species, for the rest energy that turns ``energy`` into OPAL's kinetic ``DESIGNENERGY``.
 
         Returns
         -------
@@ -1058,9 +1068,14 @@ class SectionLatticeTranslator(SectionLattice):
         dt = self.opal_headers["track"].DT
         # with staged steps, the longest one fits a thin element into every stage
         dt = max(dt) if isinstance(dt, (list, tuple)) else dt
+        shortfall = 0.0
+        from beamphysics.species import mass_of
+
+        rest_energy = mass_of(particle) / 1e6
         for d in elem_dict.values():
             d.opal_version = self.opal_version
             d.opal_time_step = float(dt)
+            d.opal_rest_energy = rest_energy
             if isinstance(d, RFCavityTranslator):
                 energy += cavity_energy_gain(d)
             if d.subelement:
@@ -1073,14 +1088,16 @@ class SectionLatticeTranslator(SectionLattice):
                 )
             else:
                 sval = svals[d.name] - s0
+            sval -= shortfall
             stnew = d.to_opal(sval=sval, designenergy=energy)
             if len(stnew) > 0:
                 written.append(d.name)
                 fulltext += stnew
             # ZSTOP is a path length, like ELEMEDGE: after a bend the path is longer than z
             phys = d.physical
+            shortfall += getattr(d, "opal_s_shortfall", lambda: 0.0)()
             if not d.subelement and phys.s is not None:
-                zstops.append(phys.s + phys.length / 2.0 - s0)
+                zstops.append(phys.s + phys.length / 2.0 - s0 - shortfall)
             else:
                 zstops.append(phys.end.z - z0)
         zstop = max(zstops)
@@ -1371,7 +1388,9 @@ class SectionLatticeTranslator(SectionLattice):
                 if not isinstance(o, OcelotAperture):
                     o.dx, o.dy = d.dx, d.dy
                 o.tilt += roll
-            d._warn_dropped_misalignment("ocelot", {"dx", "dy", "dx_rot", "dy_rot"}, tilt=True)
+            d._warn_dropped_misalignment(
+                "ocelot", {"dx", "dy", "dx_rot", "dy_rot"}, tilt=True
+            )
             if (d.dx or d.dy) and roll:
                 warn(f"OCELOT offsets {d.name!r} before rolling it, unlike LAURA.")
             if symbolic and objs:
@@ -1384,11 +1403,17 @@ class SectionLatticeTranslator(SectionLattice):
             if alignment is not None:
                 unit = {f"r{i}{i}": 1.0 for i in range(1, 7)}
                 objs = [
-                    OcelotMatrix(eid=f"{d.name}_align_in", **unit,
-                                 **{f"b{i}": float(v) for i, v in enumerate(alignment[0], 1)}),
+                    OcelotMatrix(
+                        eid=f"{d.name}_align_in",
+                        **unit,
+                        **{f"b{i}": float(v) for i, v in enumerate(alignment[0], 1)},
+                    ),
                     *objs,
-                    OcelotMatrix(eid=f"{d.name}_align_out", **unit,
-                                 **{f"b{i}": float(v) for i, v in enumerate(alignment[1], 1)}),
+                    OcelotMatrix(
+                        eid=f"{d.name}_align_out",
+                        **unit,
+                        **{f"b{i}": float(v) for i, v in enumerate(alignment[1], 1)},
+                    ),
                 ]
             elements.extend(objs)
 
@@ -1490,7 +1515,10 @@ class SectionLatticeTranslator(SectionLattice):
         rft = get_rftrack()
         elem_dict = self._translate()
         first = next(iter(elem_dict.values())).physical
-        origin, R0 = np.asarray(first.start.array, dtype=float), first.rotation_matrix # noqa N803
+        origin, R0 = (  # noqa N803
+            np.asarray(first.start.array, dtype=float),
+            first.rotation_matrix,
+        )
         volume = rft.Volume()
         placements = {}
         for name, d in elem_dict.items():
@@ -1505,12 +1533,12 @@ class SectionLatticeTranslator(SectionLattice):
         return volume
 
     @classmethod
-    def _rftrack_placements(cls, d, objs, origin, R0) -> list: # noqa N803
+    def _rftrack_placements(cls, d, objs, origin, R0) -> list:  # noqa N803
         """``(x, y, z, roll, pitch, yaw)`` [m, rad] of each of ``d``'s RF-Track
         ``objs`` in the Volume frame;
         a list is laid end to end, but a bend's
         ``[arc, entrance edge, exit edge]`` has its edges just outside its faces."""
-        R = d.physical.rotation_matrix # noqa N803
+        R = d.physical.rotation_matrix  # noqa N803
 
         def placed(point, rotation):
             axis = R0.T @ rotation[:, 2]
@@ -2023,17 +2051,22 @@ class SectionLatticeTranslator(SectionLattice):
         self._check_elements_supported("fbpic")
         elem_dict = self._translate(self.create_drifts().values())
         beamline = []
-        if not any([elem.hardware_type.lower() == "plasma" for elem in elem_dict.values()]):
-            raise ValueError(f"No plasma elements defined for {self.name}; "
-                             f"cannot run FBPIC")
+        if not any(
+            [elem.hardware_type.lower() == "plasma" for elem in elem_dict.values()]
+        ):
+            raise ValueError(
+                f"No plasma elements defined for {self.name}; cannot run FBPIC"
+            )
         for element in list(elem_dict.values()):
             if element.hardware_type.lower() in ["plasma", "laser"]:
                 beamline.append(element)
             elif "drift" in element.hardware_type.lower():
                 pass
             else:
-                warn(f"Element type {element.hardware_type} not supported for FBPIC; "
-                     f"skipping {element.name}")
+                warn(
+                    f"Element type {element.hardware_type} not supported for FBPIC; "
+                    f"skipping {element.name}"
+                )
 
         return beamline
 

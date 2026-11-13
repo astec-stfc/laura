@@ -193,6 +193,10 @@ class BaseElementTranslator(PhysicalBaseElement):
     """OPAL ``TRACK`` time step [s];
     OPAL's own default until :meth:`SectionLatticeTranslator.to_opal` sets it."""
 
+    opal_rest_energy: float = 0.51099895
+    """Rest energy of the beam's particle [MeV], for OPAL's ``DESIGNENERGY``, which is kinetic;
+    an electron's until :meth:`SectionLatticeTranslator.to_opal` sets it."""
+
     verbose: bool = True
     """Print debug messages and warnings"""
 
