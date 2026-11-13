@@ -14,6 +14,7 @@ from ..utils.functions import sanitize_string
 from ..utils.pals import PalsBeamLine, pals_document
 from .ac_dipole import ACDipoleTranslator
 from .codes.importer import infer_geometry
+from .codes.narad import narad_yaml
 from .converter import translate_elements
 from .fanout import ContainerTranslator, wrap_lattice_line
 from .section import SectionLatticeTranslator, fix_ring_reference
@@ -314,6 +315,27 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
             for _, section in self._children()
         ]
         return pals_document(beamlines, self.name)
+
+    def to_narad(self, particle: str | None = None, **kwargs) -> str:
+        """
+        Create a NARAD instance holding this layout's sections, one beamline each.
+
+        The layout itself (which sections, in what order) is not written yet;
+        NARAD has no settled way to say it.
+
+        Parameters
+        ----------
+        particle: str | None
+            Used only if the layout does not name a particle itself.
+        **kwargs
+            Passed to :func:`~laura.translator.converters.codes.narad.narad_instance`.
+
+        Returns
+        -------
+        str
+            The contents of a ``*.narad.yaml`` file.
+        """
+        return narad_yaml(dict(self._children()), self.particle or particle, **kwargs)
 
     def to_pals_multipass(self, particle: str | None = None) -> str:
         """

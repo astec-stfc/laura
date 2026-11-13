@@ -34,6 +34,7 @@ from laura.models.element import (
     Wire,
     WireScanner,
 )
+from laura.models.base_models import attach_functional_scope
 from laura.translator.utils.fields import FieldMap
 
 from .ac_dipole import ACDipoleTranslator
@@ -167,4 +168,5 @@ def translate_elements(
             )
         elem_dict[elem.name].master_lattice = master_lattice
         elem_dict[elem.name].directory = directory
+        attach_functional_scope(elem_dict[elem.name], elem.functional_scope)
     return elem_dict

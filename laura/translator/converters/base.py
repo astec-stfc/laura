@@ -6,7 +6,6 @@ from warnings import warn
 import numpy as np
 from pydantic import Field, PrivateAttr, computed_field
 
-from laura.models.base_models import IgnoreExtra
 from laura.models.element import PhysicalBaseElement
 from laura.models.physical import PhysicalElement, Position  # noqa E402
 from laura.utils import flatten_dict
@@ -38,6 +37,7 @@ from ..converters import (
     type_conversion_rules_opal,
 )
 from ..converters.codes.gpt import GptCcs
+from ..converters.codes.slipstream import SlipstreamElement
 from ..utils.alignment import arc_point, sagitta, to_frame
 from ..utils.bmad import bmad_misalignment
 from ..utils.fields import FieldMap
@@ -250,7 +250,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             separator="_",
         )
         data.pop("magnetic_gap", None)
-        defs = IgnoreExtra.functional_definitions
+        defs = self.functional_scope.definitions
         if resolve and defs:
             data = {
                 key: (defs[value] if self.is_functional(value) else value)
@@ -258,21 +258,20 @@ class BaseElementTranslator(PhysicalBaseElement):
             }
         return data
 
-    @staticmethod
-    def is_functional(value: Any) -> bool:
+    def is_functional(self, value: Any) -> bool:
         """
         True if ``value`` is a string naming an entry in the lattice's functional
         definitions (i.e. it should be resolved to a number, or passed through
         symbolically to codes that support it).
         """
-        return isinstance(value, str) and value in IgnoreExtra.functional_definitions
+        return isinstance(value, str) and value in self.functional_scope.definitions
 
     @property
     def _resolve_functional(self) -> bool:
-        """The global resolution mode. When True, functional attributes are
+        """The machine's resolution mode. When True, functional attributes are
         baked in as resolved numbers even for codes that support symbolic
         parameters; when False (default) they are rendered symbolically."""
-        return IgnoreExtra.resolve_functional
+        return self.functional_scope.resolve
 
     def _raw_multipole_strength(self, order: int) -> str | None:
         """
@@ -522,11 +521,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         from ocelot.cpbd.elements import Aperture, Marker
 
-        from ..conversion_rules.codes import ocelot_conversion
-
-        type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_ocelot[self.hardware_type](eid=self.name)
+        obj = self._convert_type_ocelot(self.hardware_type)(eid=self.name)
         attributes = ocelot_attributes(type(obj))
         convert = self._keyword_converter("ocelot")
         for key, value in self.full_dump().items():
@@ -575,7 +571,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
         try:
-            obj = type_conversion_rules_cheetah[self.hardware_type](
+            obj = self._convert_type_cheetah(self.hardware_type)(
                 name=self.name,
                 length=tensor(self.physical.length, dtype=float64),
                 sanitize_name=True,
@@ -813,7 +809,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         return ""
 
-    def to_rftrack(self, P_Q: float = float("nan")) -> object:
+    def to_rftrack(self, P_Q: float = float("nan"), volume: bool = False) -> object:
         """
         Generates an RF-Track element object based on the element's properties and type.
 
@@ -825,25 +821,35 @@ class BaseElementTranslator(PhysicalBaseElement):
         ----------
         P_Q: float
             Beam reference momentum-over-charge [MV/c] at this point in the
-            lattice. Only used by dipoles: RF-Track's ``SBend`` cannot defer it
-            to ``autophase()``, and a NaN value gives zero transmission.
+            lattice. Only used by dipoles; the default, NaN, makes RF-Track's
+            ``SBend`` take the bunch's own P/Q, set by ``autophase()`` (as
+            quadrupoles always do), which follows acceleration.
+        volume: bool
+            Build for a ``Volume`` instead, using
+            :data:`~laura.translator.conversion_rules.codes.rftrack_conversion.rftrack_volume_conversion_rules`
+            where it has an entry (a dipole as a field box).
 
         Returns
         -------
         object or list of object
             An RF-Track element object (e.g. ``RF_Track.Quadrupole``), with its
-            name and aperture (if any) applied. Some builders (e.g.
-            ``build_tw_fieldmap``) return a list, which
+            name and aperture (if any) applied. A builder may return a list,
+            which
             :func:`~laura.translator.converters.section.SectionLatticeTranslator.to_rftrack`
             flattens into its own Lattice.
         """
         from ..conversion_rules.codes.rftrack_conversion import (
+            WAKE_HOST_LENGTH,
             build_drift,
+            get_rftrack,
             rftrack_conversion_rules,
+            rftrack_volume_conversion_rules,
         )
 
         self.start_write()
         builder = rftrack_conversion_rules.get(self.hardware_type, None)
+        if volume:
+            builder = rftrack_volume_conversion_rules.get(self.hardware_type, builder)
         if builder is None:
             warn(
                 f"Element type {self.hardware_type} of {self.name} not supported by "
@@ -851,12 +857,21 @@ class BaseElementTranslator(PhysicalBaseElement):
             )
             builder = build_drift
         obj = builder(self, P_Q=P_Q)
+        wake = self._rftrack_wake_args()
+        if wake is not None and not self.physical.length:
+            # zero-length elements apply no wake, so it rides on a short Drift after them
+            obj = [*(obj if isinstance(obj, list) else [obj]), get_rftrack().Drift(WAKE_HOST_LENGTH)]
         for o in obj if isinstance(obj, list) else [obj]:
             o.set_name(self.name)
             self._apply_rftrack_aperture(o)
+            if wake is not None:
+                o.add_collective_effect(get_rftrack().Wakefield_1d(*wake))
+                o.set_cfx_nsteps(1)
         return obj
 
-    def to_rftrack_repr(self, varname: str, P_Q: float = float("nan")) -> tuple:
+    def to_rftrack_repr(
+        self, varname: str, P_Q: float = float("nan"), volume: bool = False
+    ) -> tuple:
         """
         Generates the Python source lines that construct this element as an
         ``RF_Track`` object, mirroring :func:`to_rftrack`; used for
@@ -868,6 +883,8 @@ class BaseElementTranslator(PhysicalBaseElement):
             Python variable name to assign the constructed object to.
         P_Q: float
             Beam reference momentum-over-charge [MV/c]; see :func:`to_rftrack`.
+        volume: bool
+            Build for a ``Volume``; see :func:`to_rftrack`.
 
         Returns
         -------
@@ -879,16 +896,22 @@ class BaseElementTranslator(PhysicalBaseElement):
             returns a list.
         """
         from ..conversion_rules.codes.rftrack_conversion import (
+            WAKE_HOST_LENGTH,
+            _format_args,
             repr_drift,
             rftrack_repr_rules,
+            rftrack_volume_repr_rules,
         )
 
         self.start_write()
-        repr_fn = rftrack_repr_rules.get(self.hardware_type, None)
-        if repr_fn is None:
-            repr_fn = repr_drift
+        repr_fn = rftrack_repr_rules.get(self.hardware_type, repr_drift)
+        if volume:
+            repr_fn = rftrack_volume_repr_rules.get(self.hardware_type, repr_fn)
         result = repr_fn(self, P_Q=P_Q)
         entries = result if isinstance(result, list) else [result]
+        wake = self._rftrack_wake_args()
+        if wake is not None and not self.physical.length:
+            entries = [*entries, (f"Drift({WAKE_HOST_LENGTH!r})", [])]
         lines = []
         varnames = []
         for i, (ctor_expr, post_stmts) in enumerate(entries):
@@ -898,7 +921,40 @@ class BaseElementTranslator(PhysicalBaseElement):
             lines.append(f"{vn}.set_name({self.name!r})")
             lines += self._rftrack_aperture_repr(vn)
             lines += [s.format(var=vn) for s in post_stmts]
+            if wake is not None:
+                lines.append(
+                    f"{vn}.add_collective_effect(rft.Wakefield_1d({_format_args(wake)}))"
+                )
+                lines.append(f"{vn}.set_cfx_nsteps(1)")
         return lines, varnames
+
+    def _rftrack_wake_args(self):
+        """
+        ``RF_Track.Wakefield_1d`` arguments for this element's wake (see
+        :func:`~laura.translator.utils.fields.rftrack.wakefield_1d_args`): once
+        per cell (``n_cells`` over the length, as Xsuite and Ocelot), or once per
+        ``reference_length`` for a wake tabulated over that length (as
+        ``WakefieldTranslator.astra_wake_spacing``), or just once for a
+        zero-length element; ``None`` if it has none, or
+        one RF-Track cannot take (with a warning).
+        """
+        from ..utils.fields import rftrack as fields_rftrack
+
+        if not self._wakefield_active():
+            return None
+        from ..conversion_rules.codes.rftrack_conversion import WAKE_HOST_LENGTH
+
+        wake, length = self.simulation.wakefield_definition, self.physical.length
+        if isinstance(wake, str):
+            warn(f"RF-Track: wake of {self.name} dropped (file not read)")
+            return None
+        if not length:
+            # once, on the WAKE_HOST_LENGTH Drift that to_rftrack puts after the element
+            return fields_rftrack.wakefield_1d_args(wake, factor=1 / WAKE_HOST_LENGTH)
+        if getattr(wake, "reference_length", None):
+            return fields_rftrack.wakefield_1d_args(wake, factor=1 / wake.reference_length)
+        n_cells = getattr(getattr(self, "cavity", None), "n_cells", None) or 1
+        return fields_rftrack.wakefield_1d_args(wake, factor=n_cells / length)
 
     def _rftrack_aperture_params(self, code: str = "RF-Track"):
         """
@@ -985,6 +1041,32 @@ class BaseElementTranslator(PhysicalBaseElement):
                 setattr(obj, self._convert_keyword_wake_t(key), value)
         return obj
 
+    def to_slipstream(self) -> SlipstreamElement:
+        """
+        Default ``slipstream`` record: a plain drift-equivalent of this
+        element's physical length -- mirrors :meth:`to_wake_t`'s own
+        fallback-to-drift default. Overridden by
+        :class:`~laura.translator.converters.drift.DriftTranslator`,
+        :class:`~laura.translator.converters.magnet.MagnetTranslator` (and
+        :class:`~laura.translator.converters.magnet.DipoleTranslator`/
+        :class:`~laura.translator.converters.magnet.SolenoidTranslator`), and
+        :class:`~laura.translator.converters.cavity.RFCavityTranslator`,
+        which carry real optics/field parameters through instead. Everything
+        else (correctors, diagnostics, apertures, markers, ...) has no
+        transport model in slipstream's linac tracker either, so a length-
+        only drift is the correct -- not merely convenient -- translation;
+        see ``plans/LAURA_INTERFACE_PLAN.md`` (``slipstream`` repo).
+
+        Returns
+        -------
+        SlipstreamElement
+        """
+        return SlipstreamElement(
+            name=self.name,
+            hardware_type=self.hardware_type,
+            length=self.physical.length,
+            z_m=self.physical.start.z,
+        )
     def to_fbpic(self) -> object:
         """
         Generates a FBPIC object based on the element's properties and type.
@@ -1138,7 +1220,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             if isinstance(value, str) and isinstance(numeric, (int, float)):
                 return numeric
             return value
-        resolved = IgnoreExtra.functional_definitions.get(str(expression))
+        resolved = self.functional_scope.definitions.get(str(expression))
         if resolved is None:
             resolved = numeric if isinstance(numeric, (int, float)) else 0.0
         return GmadExpression(resolved, str(expression))
@@ -1905,6 +1987,31 @@ class BaseElementTranslator(PhysicalBaseElement):
             "dpsi": rotation[2],
         }
         return {key: float(value) for key, value in terms.items() if value}
+
+    def ocelot_alignment(self) -> tuple | None:
+        """
+        ``(B in, B out)``, the constant terms of the maps into and out of the
+        element's frame for its yaw and pitch, which OCELOT elements cannot take;
+        to first order, about the centre. None without either. The offsets and roll
+        go on the element itself.
+        """
+        if not (self.dx_rot or self.dy_rot):
+            return None
+        curved = self._curved
+        length = self.physical.length or 0.0
+        angle = float(self.resolve(self.magnetic.KnL(0))) if curved else 0.0
+        errors = {"dx_rot": self.dx_rot, "dy_rot": self.dy_rot}
+        ends = []
+        for s in (-length / 2, length / 2):
+            offset, rotation = to_frame(
+                errors,
+                *arc_point(length, angle, s),
+                tilt=self.roll - self.dz_rot if curved else 0.0,
+                rolled=False,
+                chord=sagitta(length, angle),
+            )
+            ends.append(np.array([offset[0], rotation[1], offset[1], -rotation[0], 0.0, 0.0]))
+        return -ends[0], ends[1]
 
     @property
     def _curved(self) -> bool:

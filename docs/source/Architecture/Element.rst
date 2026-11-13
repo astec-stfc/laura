@@ -1148,10 +1148,11 @@ numeric values behave exactly as before.
 Resolution mode
 ---------------
 
-A global flag controls whether the *configured* accessors render functional
-attributes as strings or as resolved numbers. It is **off by default** (render as
-strings) and is set from the top level via the ``resolve_functional`` option of a
-lattice container (see :ref:`functional-definitions`) or directly with
+A flag controls whether the *configured* accessors render functional attributes
+as strings or as resolved numbers. It is **off by default** (render as strings)
+and is set per machine via the ``resolve_functional`` option of a lattice
+container (see :ref:`functional-definitions`). For an element that belongs to no
+machine, the session-wide flag applies, set with
 :py:func:`set_resolve_functional <laura.models.base_models.set_resolve_functional>`:
 
 .. code-block:: python
@@ -1159,7 +1160,7 @@ lattice container (see :ref:`functional-definitions`) or directly with
     from laura.models.base_models import set_resolve_functional
 
     set_resolve_functional(True)
-    quad.magnetic.k1l   # -2.0 (now resolved)
+    quad.magnetic.k1l   # -2.0 (now resolved, for a quad in no machine)
 
 Resolved/computation accessors such as ``KnL`` are unaffected by this flag — they
 always return numbers.

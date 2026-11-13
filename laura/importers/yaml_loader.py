@@ -11,10 +11,11 @@ import yaml
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from yaml import CSafeLoader as Loader
 
+from ..models.base_models import attach_functional_scope
 from ..models.control import ControlVariable
 
 # Import elements before building registry
-from ..models.element import ELEMENT_REGISTRY
+from ..models.element import ELEMENT_REGISTRY, Element, PhysicalBaseElement
 
 _log = logging.getLogger("laura.loader")
 
@@ -254,6 +255,10 @@ class LazyElementDict(dict):
     Dictionary that loads elements from YAML files only when accessed.
     """
 
+    functional_scope = None
+    """Set by the machine that owns the dictionary; each element joins it as it
+    is read (see :class:`~laura.models.base_models.FunctionalScope`)."""
+
     def __init__(
         self,
         filenames,
@@ -323,6 +328,8 @@ class LazyElementDict(dict):
             )
             if elem is None:
                 self._failed.add(key)
+            elif self.functional_scope is not None:
+                attach_functional_scope(elem, self.functional_scope)
             super().__setitem__(key, elem)
             return elem
         raise KeyError(key)
@@ -369,6 +376,8 @@ class LazyAdapterDict(dict):
 
 
 ADAPTERS = LazyAdapterDict()
+
+_GENERIC_ADAPTERS: dict = {}
 
 # ── Optional JSON Schema validation ──────────────────────────────────────────
 
@@ -911,21 +920,28 @@ def interpret_yaml_element(
     adapter = ADAPTERS.get(hw_type)
     if adapter is None:
         name = elem.get("name", "<unknown>")
+        if strict:
+            _record_load_failure(
+                ElementLoadError(
+                    name,
+                    "unregistered_hardware_type",
+                    f"unregistered hardware_type '{hw_type}'",
+                    hardware_type=hw_type,
+                    filename=filename,
+                ),
+                errors,
+                strict,
+            )
+        generic = PhysicalBaseElement if "physical" in elem else Element
         _log.warning(
-            "Skipping element '%s': unregistered hardware_type '%s'", name, hw_type
+            "Loading element '%s' as a generic %s: unregistered hardware_type '%s'",
+            name,
+            generic.__name__,
+            hw_type,
         )
-        _record_load_failure(
-            ElementLoadError(
-                name,
-                "unregistered_hardware_type",
-                f"unregistered hardware_type '{hw_type}'",
-                hardware_type=hw_type,
-                filename=filename,
-            ),
-            errors,
-            strict,
-        )
-        return None
+        if generic not in _GENERIC_ADAPTERS:
+            _GENERIC_ADAPTERS[generic] = TypeAdapter(generic)
+        adapter = _GENERIC_ADAPTERS[generic]
 
     controls = elem.get("controls")
     if isinstance(controls, dict) and "schema_" in controls:

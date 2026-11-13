@@ -20,7 +20,8 @@ from .impactx import ImpactXLatticeImporter
 from .madx import madx_unsupported, MadxLatticeImporter
 from .ocelot import ocelot_unsupported, OcelotLatticeImporter
 from .opal import opal_unsupported
-from .pals import pals_unsupported
+from .slipstream import slipstream_unsupported
+from .pals import pals_unsupported, PalsLatticeImporter
 from .rftrack import rftrack_unsupported
 from .wake_t import wake_t_unsupported
 from .xsuite import xsuite_unsupported, XsuiteLatticeImporter

@@ -356,6 +356,42 @@ def test_ocelot_round_trip():
     assert q.magnetic.tilt == pytest.approx(0.1)
 
 
+@pytest.mark.parametrize("make", [quad, strong_bend], ids=["quad", "bend"])
+@pytest.mark.parametrize("case", ["dx_rot", "dy_rot"])
+def test_ocelot_takes_yaw_and_pitch_as_xsuite_does(make, case):
+    """No OCELOT element has a yaw or pitch, so they go in maps either side;
+    first order, so compared as test_madx_and_xsuite_agree does."""
+    pytest.importorskip("ocelot")
+    xt = pytest.importorskip("xtrack")
+    from ocelot.cpbd.beam import ParticleArray
+    from ocelot.cpbd.navi import Navigator
+    from ocelot.cpbd.track import track
+
+    start = (1e-3, 5e-4)
+
+    def ocelot(element):
+        lattice = section(element).to_ocelot()
+        particles = ParticleArray(n=1)
+        particles.E = 1.0
+        particles.rparticles[:, 0] = [start[0], 0, start[1], 0, 0, 0]
+        track(lattice, particles, Navigator(lattice), print_progress=False, calc_tws=False)
+        return particles.rparticles[:4, 0].copy()
+
+    def xsuite(element):
+        line = section(element).to_xsuite(beam_length=1, save=False)
+        line.particle_ref = xt.Particles(p0c=1e9, mass0=xt.ELECTRON_MASS_EV)
+        p = line.build_particles(x=start[0], px=0, y=start[1], py=0)
+        line.track(p)
+        return np.array([p.x[0], p.px[0], p.y[0], p.py[0]])
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        got = ocelot(make(CASES[case])) - ocelot(make({}))
+        want = xsuite(make(CASES[case])) - xsuite(make({}))
+    assert not [w for w in caught if "ocelot cannot take" in str(w.message)]
+    np.testing.assert_allclose(got, want, atol=1e-2 * np.abs(want).max())
+
+
 def test_cheetah_writes_offsets_and_roll():
     pytest.importorskip("cheetah")
     with warnings.catch_warnings():

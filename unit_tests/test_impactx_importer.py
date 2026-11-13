@@ -46,7 +46,7 @@ ELEMENTS = [
     Solenoid(
         name="sol",
         machine_area="S",
-        physical={"s": 6.0, "length": 0.2},
+        physical={"s": 6.1, "length": 0.2},
         magnetic={"length": 0.2, "fields": {"S0L": 0.4}},
     ),
     CombinedCorrector(

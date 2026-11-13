@@ -36,7 +36,7 @@ def _coerce_pid_range(v: Union[str, List, None], range_type):
     raise ValueError("range should be a string or a list of numbers")
 
 
-class RFCavityElement(_RFCavityElementBase, FunctionalMixin):
+class RFCavityElement(FunctionalMixin, _RFCavityElementBase):
     """
     RF Cavity model.
     """
@@ -107,7 +107,7 @@ class WakefieldElement(_WakefieldElementBase):
     pass
 
 
-class RFDeflectingCavityElement(_RFDeflectingCavityElementBase, FunctionalMixin):
+class RFDeflectingCavityElement(FunctionalMixin, _RFDeflectingCavityElementBase):
     """
     RF deflecting cavity model.
     """
