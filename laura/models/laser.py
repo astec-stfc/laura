@@ -1,20 +1,27 @@
-from pydantic import computed_field
 from warnings import warn
-from .constants import pi, c, e, m_e, epsilon_0
-import numpy as np
 
-from .base_models import IgnoreExtra
+import numpy as np
+from pydantic import computed_field
+from scipy.integrate import trapezoid
+
+from laura.translator.utils.fields import FieldMap
+
 from ._generated import (
     _LaserElementBase,
-    _LaserHalfWavePlateElementBase,
     _LaserEnergyMeterElementBase,
-    _LaserMirrorSenseBase,
+    _LaserHalfWavePlateElementBase,
     _LaserMirrorElementBase,
+    _LaserMirrorSenseBase,
 )
+from .base_models import IgnoreExtra
+from .constants import c, e, epsilon_0, m_e, pi
 
 
 class LaserElement(_LaserElementBase):
     """Laser info model."""
+
+    field_definition: str | FieldMap | None = None
+    """A ``LaserTimeProfile`` field-map file name, or the field map itself."""
 
     @property
     def pulse_duration_1e_field(self) -> float:
@@ -27,6 +34,28 @@ class LaserElement(_LaserElementBase):
             Field 1/e half-width [s]
         """
         return self.pulse_duration_fwhm / np.sqrt(2 * np.log(2))
+
+    @property
+    def peak_power(self) -> float | None:
+        """
+        Peak power of a Gaussian pulse, ``2*sqrt(ln2/pi) * E / tau_FWHM`` [W];
+        None unless the pulse energy and duration are both positive.
+        With a loaded time profile ``Ex(t)`` it is ``E / integral(Ex**2 dt)``: the
+        power per unit ``Ex**2``, the true peak power when the profile peaks at 1.
+        """
+        profile = self.field_definition
+        if isinstance(profile, FieldMap):
+            if self.pulse_energy is None or self.pulse_energy <= 0:
+                return None
+            t, field = np.asarray(profile.t.value.val), np.asarray(profile.Ex.value.val)
+            return self.pulse_energy / trapezoid(field**2, t)
+        if any(
+            p is None or p <= 0 for p in (self.pulse_energy, self.pulse_duration_fwhm)
+        ):
+            return None
+        return (
+            2 * np.sqrt(np.log(2) / pi) * self.pulse_energy / self.pulse_duration_fwhm
+        )
 
     @computed_field
     @property
@@ -60,9 +89,8 @@ class LaserElement(_LaserElementBase):
                 "duration, to compute laser amplitude."
             )
             return 0
-        peak_power = 2 * np.sqrt(np.log(2) / pi) * self.pulse_energy / self.pulse_duration_fwhm
         return ((e * self.wavelength) / (pi * m_e * c**2 * self.waist)) * np.sqrt(
-            peak_power / (pi * epsilon_0 * c)
+            self.peak_power / (pi * epsilon_0 * c)
         )
 
     @property
@@ -103,7 +131,9 @@ class LaserElement(_LaserElementBase):
             If wavelength is not set or non-positive
         """
         if self.wavelength <= 0:
-            raise ValueError("Wavelength must be positive to compute laser angular frequency.")
+            raise ValueError(
+                "Wavelength must be positive to compute laser angular frequency."
+            )
         return self.angular_frequency * self.pulse_duration_fwhm <= 10
 
 

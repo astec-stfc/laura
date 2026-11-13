@@ -2128,6 +2128,14 @@ class BaseElementTranslator(PhysicalBaseElement):
                             self.master_lattice,
                         ),
                     )
+        laser = getattr(self, "laser", None)
+        if laser is not None and isinstance(laser.field_definition, str):
+            laser.field_definition = FieldMap(
+                filename=expand_substitution(
+                    self, laser.field_definition, self.master_lattice
+                ),
+                field_type="LaserTimeProfile",
+            )
 
     def _wakefield_active(self) -> bool:
         """

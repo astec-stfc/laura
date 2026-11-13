@@ -2070,6 +2070,8 @@ export interface LaserElement {
     pulse_energy?: number,
     /** Pulse duration at FWHM [s]. */
     pulse_duration_fwhm?: number,
+    /** Path to a field-map file giving the laser's time profile: a LaserTimeProfile field map with columns t [s], relative to the bunch centroid (positive towards the tail), and Ex, the field envelope in any units. When set it replaces the Gaussian pulse_duration_fwhm, and pulse_energy is the integral of the power over the profile. */
+    field_definition?: string,
     /** Focal (waist) position along the propagation axis [m]. */
     focal_position?: number,
     /** Carrier-envelope phase [rad]. */
@@ -2090,6 +2092,8 @@ export interface LaserElement {
     polarization_angle?: number,
     /** The amount of temporal chirp, at focus (in the lab frame). */
     temporal_chirp_2nd_order?: number,
+    /** Angle between the particle beam's direction and the laser's axis, for a laser colliding with the beam at its focus [rad]: 0 is head-on (counter-propagating). */
+    collision_angle?: number,
 }
 
 
@@ -2377,7 +2381,7 @@ export interface WigglerMagnet {
  * Wiggler / undulator insertion device.
  */
 export interface Wiggler extends Magnet {
-    /** Drive laser, for laser-undulator (inverse-Compton) configurations. */
+    /** Laser co-propagating through the wiggler: a laser heater or modulator, or the drive laser of an inverse-Compton source. */
     laser?: LaserElement,
 }
 

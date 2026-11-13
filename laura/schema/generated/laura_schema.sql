@@ -1734,6 +1734,7 @@
 --     * Slot: wavelength Description: Laser wavelength [m].
 --     * Slot: pulse_energy Description: Laser pulse energy [J].
 --     * Slot: pulse_duration_fwhm Description: Pulse duration at FWHM [s].
+--     * Slot: field_definition Description: Path to a field-map file giving the laser's time profile: a LaserTimeProfile field map with columns t [s], relative to the bunch centroid (positive towards the tail), and Ex, the field envelope in any units. When set it replaces the Gaussian pulse_duration_fwhm, and pulse_energy is the integral of the power over the profile.
 --     * Slot: focal_position Description: Focal (waist) position along the propagation axis [m].
 --     * Slot: cep_phase Description: Carrier-envelope phase [rad].
 --     * Slot: polarization Description: Laser polarization state. Codes that model the laser envelope (Wake-T) scale the ponderomotive force by it, so it must be set; linear unless stated otherwise.
@@ -1744,6 +1745,7 @@
 --     * Slot: propagation_direction Description: Laser propagation direction; +1 means laser  and particles co-propagate, -1 means they counter-propagate.
 --     * Slot: polarization_angle Description: Laser polarization angle with respect to the x-axis.
 --     * Slot: temporal_chirp_2nd_order Description: The amount of temporal chirp, at focus (in the lab frame).
+--     * Slot: collision_angle Description: Angle between the particle beam's direction and the laser's axis, for a laser colliding with the beam at its focus [rad]: 0 is head-on (counter-propagating).
 -- # Class: LaserEnergyMeterElement Description: Laser energy-meter sub-model (no additional fields).
 --     * Slot: id
 -- # Class: LaserHalfWavePlateElement Description: Half-wave plate sub-model (no additional fields).
@@ -2233,7 +2235,7 @@
 --     * Slot: virtual_name Description: Alternative internal name used by the control system when the physical name is inaccessible.
 --     * Slot: subelement Description: If set, this element is a logical sub-component of the named parent element.
 --     * Slot: inherits_from Description: If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.
---     * Slot: laser_id Description: Drive laser, for laser-undulator (inverse-Compton) configurations.
+--     * Slot: laser_id Description: Laser co-propagating through the wiggler: a laser heater or modulator, or the drive laser of an inverse-Compton source.
 --     * Slot: magnetic_id Description: Magnetic field parameters.
 --     * Slot: degauss_id Description: Degaussing-cycle parameters.
 --     * Slot: physical_id Description: Position, rotation, and length data.
@@ -4205,6 +4207,7 @@ CREATE TABLE "LaserElement" (
 	wavelength FLOAT,
 	pulse_energy FLOAT,
 	pulse_duration_fwhm FLOAT,
+	field_definition TEXT,
 	focal_position FLOAT,
 	cep_phase FLOAT,
 	polarization VARCHAR(10),
@@ -4215,6 +4218,7 @@ CREATE TABLE "LaserElement" (
 	propagation_direction INTEGER,
 	polarization_angle FLOAT,
 	temporal_chirp_2nd_order FLOAT,
+	collision_angle FLOAT,
 	PRIMARY KEY (id)
 );
 CREATE INDEX "ix_LaserElement_id" ON "LaserElement" (id);
@@ -4421,6 +4425,10 @@ CREATE TABLE "ControlVariable" (
 	FOREIGN KEY("ControlsInformation_id") REFERENCES "ControlsInformation" (id),
 	FOREIGN KEY(value_id) REFERENCES "Any" (id)
 );
+CREATE INDEX "ix_ControlVariable_name" ON "ControlVariable" (name);
+CREATE INDEX "ix_ControlVariable_read_only" ON "ControlVariable" (read_only);
+CREATE INDEX "ix_ControlVariable_identifier" ON "ControlVariable" (identifier);
+CREATE INDEX "ix_ControlVariable_type" ON "ControlVariable" (type);
 CREATE INDEX "ix_ControlVariable_target" ON "ControlVariable" (target);
 CREATE INDEX "ix_ControlVariable_expression" ON "ControlVariable" (expression);
 CREATE INDEX "ix_ControlVariable_canonical_type" ON "ControlVariable" (canonical_type);
@@ -4439,10 +4447,6 @@ CREATE INDEX "ix_ControlVariable_description" ON "ControlVariable" (description)
 CREATE INDEX "ix_ControlVariable_readback" ON "ControlVariable" (readback);
 CREATE INDEX "ControlVariable_ControlsInformation_id_name_idx" ON "ControlVariable" ("ControlsInformation_id", name);
 CREATE INDEX "ix_ControlVariable_element_dtype" ON "ControlVariable" (element_dtype);
-CREATE INDEX "ix_ControlVariable_name" ON "ControlVariable" (name);
-CREATE INDEX "ix_ControlVariable_read_only" ON "ControlVariable" (read_only);
-CREATE INDEX "ix_ControlVariable_identifier" ON "ControlVariable" (identifier);
-CREATE INDEX "ix_ControlVariable_type" ON "ControlVariable" (type);
 
 CREATE TABLE "Lighting" (
 	name TEXT NOT NULL,
@@ -4847,8 +4851,8 @@ CREATE TABLE "ReferenceElement_drawings" (
 	PRIMARY KEY ("ReferenceElement_id", drawings),
 	FOREIGN KEY("ReferenceElement_id") REFERENCES "ReferenceElement" (id)
 );
-CREATE INDEX "ix_ReferenceElement_drawings_ReferenceElement_id" ON "ReferenceElement_drawings" ("ReferenceElement_id");
 CREATE INDEX "ix_ReferenceElement_drawings_drawings" ON "ReferenceElement_drawings" (drawings);
+CREATE INDEX "ix_ReferenceElement_drawings_ReferenceElement_id" ON "ReferenceElement_drawings" ("ReferenceElement_id");
 
 CREATE TABLE "ReferenceElement_design_files" (
 	"ReferenceElement_id" INTEGER,
@@ -4856,8 +4860,8 @@ CREATE TABLE "ReferenceElement_design_files" (
 	PRIMARY KEY ("ReferenceElement_id", design_files),
 	FOREIGN KEY("ReferenceElement_id") REFERENCES "ReferenceElement" (id)
 );
-CREATE INDEX "ix_ReferenceElement_design_files_ReferenceElement_id" ON "ReferenceElement_design_files" ("ReferenceElement_id");
 CREATE INDEX "ix_ReferenceElement_design_files_design_files" ON "ReferenceElement_design_files" (design_files);
+CREATE INDEX "ix_ReferenceElement_design_files_ReferenceElement_id" ON "ReferenceElement_design_files" ("ReferenceElement_id");
 
 CREATE TABLE "ShutterElement_interlocks" (
 	"ShutterElement_id" INTEGER,
@@ -4865,8 +4869,8 @@ CREATE TABLE "ShutterElement_interlocks" (
 	PRIMARY KEY ("ShutterElement_id", interlocks),
 	FOREIGN KEY("ShutterElement_id") REFERENCES "ShutterElement" (id)
 );
-CREATE INDEX "ix_ShutterElement_interlocks_ShutterElement_id" ON "ShutterElement_interlocks" ("ShutterElement_id");
 CREATE INDEX "ix_ShutterElement_interlocks_interlocks" ON "ShutterElement_interlocks" (interlocks);
+CREATE INDEX "ix_ShutterElement_interlocks_ShutterElement_id" ON "ShutterElement_interlocks" ("ShutterElement_id");
 
 CREATE TABLE "CrystalElement_lattice_constants" (
 	"CrystalElement_id" INTEGER,
@@ -4883,8 +4887,8 @@ CREATE TABLE "CrystalElement_lattice_angles" (
 	PRIMARY KEY ("CrystalElement_id", lattice_angles),
 	FOREIGN KEY("CrystalElement_id") REFERENCES "CrystalElement" (id)
 );
-CREATE INDEX "ix_CrystalElement_lattice_angles_lattice_angles" ON "CrystalElement_lattice_angles" (lattice_angles);
 CREATE INDEX "ix_CrystalElement_lattice_angles_CrystalElement_id" ON "CrystalElement_lattice_angles" ("CrystalElement_id");
+CREATE INDEX "ix_CrystalElement_lattice_angles_lattice_angles" ON "CrystalElement_lattice_angles" (lattice_angles);
 
 CREATE TABLE "SampledWaveform_time" (
 	"SampledWaveform_id" INTEGER,
@@ -4892,8 +4896,8 @@ CREATE TABLE "SampledWaveform_time" (
 	PRIMARY KEY ("SampledWaveform_id", time),
 	FOREIGN KEY("SampledWaveform_id") REFERENCES "SampledWaveform" (id)
 );
-CREATE INDEX "ix_SampledWaveform_time_SampledWaveform_id" ON "SampledWaveform_time" ("SampledWaveform_id");
 CREATE INDEX "ix_SampledWaveform_time_time" ON "SampledWaveform_time" (time);
+CREATE INDEX "ix_SampledWaveform_time_SampledWaveform_id" ON "SampledWaveform_time" ("SampledWaveform_id");
 
 CREATE TABLE "SampledWaveform_factor" (
 	"SampledWaveform_id" INTEGER,
@@ -4910,8 +4914,8 @@ CREATE TABLE "RFMultipoleSimulationElement_knl" (
 	PRIMARY KEY ("RFMultipoleSimulationElement_id", knl),
 	FOREIGN KEY("RFMultipoleSimulationElement_id") REFERENCES "RFMultipoleSimulationElement" (id)
 );
-CREATE INDEX "ix_RFMultipoleSimulationElement_knl_RFMultipoleSimulationElement_id" ON "RFMultipoleSimulationElement_knl" ("RFMultipoleSimulationElement_id");
 CREATE INDEX "ix_RFMultipoleSimulationElement_knl_knl" ON "RFMultipoleSimulationElement_knl" (knl);
+CREATE INDEX "ix_RFMultipoleSimulationElement_knl_RFMultipoleSimulationElement_id" ON "RFMultipoleSimulationElement_knl" ("RFMultipoleSimulationElement_id");
 
 CREATE TABLE "RFMultipoleSimulationElement_ksl" (
 	"RFMultipoleSimulationElement_id" INTEGER,
@@ -4937,8 +4941,8 @@ CREATE TABLE "RFMultipoleSimulationElement_psl" (
 	PRIMARY KEY ("RFMultipoleSimulationElement_id", psl),
 	FOREIGN KEY("RFMultipoleSimulationElement_id") REFERENCES "RFMultipoleSimulationElement" (id)
 );
-CREATE INDEX "ix_RFMultipoleSimulationElement_psl_psl" ON "RFMultipoleSimulationElement_psl" (psl);
 CREATE INDEX "ix_RFMultipoleSimulationElement_psl_RFMultipoleSimulationElement_id" ON "RFMultipoleSimulationElement_psl" ("RFMultipoleSimulationElement_id");
+CREATE INDEX "ix_RFMultipoleSimulationElement_psl_psl" ON "RFMultipoleSimulationElement_psl" (psl);
 
 CREATE TABLE "FieldIntegral_coefficients" (
 	"FieldIntegral_id" INTEGER,
@@ -4964,8 +4968,8 @@ CREATE TABLE "RFCavityElement_power_calibration" (
 	PRIMARY KEY ("RFCavityElement_id", power_calibration),
 	FOREIGN KEY("RFCavityElement_id") REFERENCES "RFCavityElement" (id)
 );
-CREATE INDEX "ix_RFCavityElement_power_calibration_RFCavityElement_id" ON "RFCavityElement_power_calibration" ("RFCavityElement_id");
 CREATE INDEX "ix_RFCavityElement_power_calibration_power_calibration" ON "RFCavityElement_power_calibration" (power_calibration);
+CREATE INDEX "ix_RFCavityElement_power_calibration_RFCavityElement_id" ON "RFCavityElement_power_calibration" ("RFCavityElement_id");
 
 CREATE TABLE "RFCavityElement_gradient_calibration" (
 	"RFCavityElement_id" INTEGER,
@@ -4973,8 +4977,8 @@ CREATE TABLE "RFCavityElement_gradient_calibration" (
 	PRIMARY KEY ("RFCavityElement_id", gradient_calibration),
 	FOREIGN KEY("RFCavityElement_id") REFERENCES "RFCavityElement" (id)
 );
-CREATE INDEX "ix_RFCavityElement_gradient_calibration_RFCavityElement_id" ON "RFCavityElement_gradient_calibration" ("RFCavityElement_id");
 CREATE INDEX "ix_RFCavityElement_gradient_calibration_gradient_calibration" ON "RFCavityElement_gradient_calibration" (gradient_calibration);
+CREATE INDEX "ix_RFCavityElement_gradient_calibration_RFCavityElement_id" ON "RFCavityElement_gradient_calibration" ("RFCavityElement_id");
 
 CREATE TABLE "ScreenDiagnosticElement_devices" (
 	"ScreenDiagnosticElement_id" INTEGER,
@@ -5000,8 +5004,8 @@ CREATE TABLE "CameraMask_radius" (
 	PRIMARY KEY ("CameraMask_id", radius),
 	FOREIGN KEY("CameraMask_id") REFERENCES "CameraMask" (id)
 );
-CREATE INDEX "ix_CameraMask_radius_radius" ON "CameraMask_radius" (radius);
 CREATE INDEX "ix_CameraMask_radius_CameraMask_id" ON "CameraMask_radius" ("CameraMask_id");
+CREATE INDEX "ix_CameraMask_radius_radius" ON "CameraMask_radius" (radius);
 
 CREATE TABLE "CameraMask_maximum" (
 	"CameraMask_id" INTEGER,
@@ -5018,8 +5022,8 @@ CREATE TABLE "CameraSensor_middle" (
 	PRIMARY KEY ("CameraSensor_id", middle),
 	FOREIGN KEY("CameraSensor_id") REFERENCES "CameraSensor" (id)
 );
-CREATE INDEX "ix_CameraSensor_middle_middle" ON "CameraSensor_middle" (middle);
 CREATE INDEX "ix_CameraSensor_middle_CameraSensor_id" ON "CameraSensor_middle" ("CameraSensor_id");
+CREATE INDEX "ix_CameraSensor_middle_middle" ON "CameraSensor_middle" (middle);
 
 CREATE TABLE "CameraSensor_minimum" (
 	"CameraSensor_id" INTEGER,
@@ -5027,8 +5031,8 @@ CREATE TABLE "CameraSensor_minimum" (
 	PRIMARY KEY ("CameraSensor_id", minimum),
 	FOREIGN KEY("CameraSensor_id") REFERENCES "CameraSensor" (id)
 );
-CREATE INDEX "ix_CameraSensor_minimum_minimum" ON "CameraSensor_minimum" (minimum);
 CREATE INDEX "ix_CameraSensor_minimum_CameraSensor_id" ON "CameraSensor_minimum" ("CameraSensor_id");
+CREATE INDEX "ix_CameraSensor_minimum_minimum" ON "CameraSensor_minimum" (minimum);
 
 CREATE TABLE "CameraSensor_maximum" (
 	"CameraSensor_id" INTEGER,
@@ -5036,8 +5040,8 @@ CREATE TABLE "CameraSensor_maximum" (
 	PRIMARY KEY ("CameraSensor_id", maximum),
 	FOREIGN KEY("CameraSensor_id") REFERENCES "CameraSensor" (id)
 );
-CREATE INDEX "ix_CameraSensor_maximum_maximum" ON "CameraSensor_maximum" (maximum);
 CREATE INDEX "ix_CameraSensor_maximum_CameraSensor_id" ON "CameraSensor_maximum" ("CameraSensor_id");
+CREATE INDEX "ix_CameraSensor_maximum_maximum" ON "CameraSensor_maximum" (maximum);
 
 CREATE TABLE "CameraSensor_operating_middle" (
 	"CameraSensor_id" INTEGER,
@@ -5045,8 +5049,8 @@ CREATE TABLE "CameraSensor_operating_middle" (
 	PRIMARY KEY ("CameraSensor_id", operating_middle),
 	FOREIGN KEY("CameraSensor_id") REFERENCES "CameraSensor" (id)
 );
-CREATE INDEX "ix_CameraSensor_operating_middle_operating_middle" ON "CameraSensor_operating_middle" (operating_middle);
 CREATE INDEX "ix_CameraSensor_operating_middle_CameraSensor_id" ON "CameraSensor_operating_middle" ("CameraSensor_id");
+CREATE INDEX "ix_CameraSensor_operating_middle_operating_middle" ON "CameraSensor_operating_middle" (operating_middle);
 
 CREATE TABLE "CameraSensor_mechanical_middle" (
 	"CameraSensor_id" INTEGER,
@@ -5054,8 +5058,8 @@ CREATE TABLE "CameraSensor_mechanical_middle" (
 	PRIMARY KEY ("CameraSensor_id", mechanical_middle),
 	FOREIGN KEY("CameraSensor_id") REFERENCES "CameraSensor" (id)
 );
-CREATE INDEX "ix_CameraSensor_mechanical_middle_CameraSensor_id" ON "CameraSensor_mechanical_middle" ("CameraSensor_id");
 CREATE INDEX "ix_CameraSensor_mechanical_middle_mechanical_middle" ON "CameraSensor_mechanical_middle" (mechanical_middle);
+CREATE INDEX "ix_CameraSensor_mechanical_middle_CameraSensor_id" ON "CameraSensor_mechanical_middle" ("CameraSensor_id");
 
 CREATE TABLE "PlasmaElement_density_profile_positions" (
 	"PlasmaElement_id" INTEGER,
@@ -5063,8 +5067,8 @@ CREATE TABLE "PlasmaElement_density_profile_positions" (
 	PRIMARY KEY ("PlasmaElement_id", density_profile_positions),
 	FOREIGN KEY("PlasmaElement_id") REFERENCES "PlasmaElement" (id)
 );
-CREATE INDEX "ix_PlasmaElement_density_profile_positions_density_profile_positions" ON "PlasmaElement_density_profile_positions" (density_profile_positions);
 CREATE INDEX "ix_PlasmaElement_density_profile_positions_PlasmaElement_id" ON "PlasmaElement_density_profile_positions" ("PlasmaElement_id");
+CREATE INDEX "ix_PlasmaElement_density_profile_positions_density_profile_positions" ON "PlasmaElement_density_profile_positions" (density_profile_positions);
 
 CREATE TABLE "PlasmaElement_density_profile_values" (
 	"PlasmaElement_id" INTEGER,
@@ -5509,8 +5513,8 @@ CREATE TABLE "AcceleratorElement_alias" (
 	PRIMARY KEY ("AcceleratorElement_name", alias),
 	FOREIGN KEY("AcceleratorElement_name") REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_AcceleratorElement_alias_AcceleratorElement_name" ON "AcceleratorElement_alias" ("AcceleratorElement_name");
 CREATE INDEX "ix_AcceleratorElement_alias_alias" ON "AcceleratorElement_alias" (alias);
+CREATE INDEX "ix_AcceleratorElement_alias_AcceleratorElement_name" ON "AcceleratorElement_alias" ("AcceleratorElement_name");
 
 CREATE TABLE "AcceleratorElement_inputs" (
 	"AcceleratorElement_name" TEXT,
@@ -5556,8 +5560,8 @@ CREATE TABLE "StandardElement_alias" (
 	PRIMARY KEY ("StandardElement_name", alias),
 	FOREIGN KEY("StandardElement_name") REFERENCES "StandardElement" (name)
 );
-CREATE INDEX "ix_StandardElement_alias_alias" ON "StandardElement_alias" (alias);
 CREATE INDEX "ix_StandardElement_alias_StandardElement_name" ON "StandardElement_alias" ("StandardElement_name");
+CREATE INDEX "ix_StandardElement_alias_alias" ON "StandardElement_alias" (alias);
 
 CREATE TABLE "StandardElement_inputs" (
 	"StandardElement_name" TEXT,
@@ -5574,8 +5578,8 @@ CREATE TABLE "StandardElement_outputs" (
 	PRIMARY KEY ("StandardElement_name", outputs),
 	FOREIGN KEY("StandardElement_name") REFERENCES "StandardElement" (name)
 );
-CREATE INDEX "ix_StandardElement_outputs_StandardElement_name" ON "StandardElement_outputs" ("StandardElement_name");
 CREATE INDEX "ix_StandardElement_outputs_outputs" ON "StandardElement_outputs" (outputs);
+CREATE INDEX "ix_StandardElement_outputs_StandardElement_name" ON "StandardElement_outputs" ("StandardElement_name");
 
 CREATE TABLE "StandardElement_upstream" (
 	"StandardElement_name" TEXT,
@@ -5651,8 +5655,8 @@ CREATE TABLE "ControlVariable_shape" (
 	FOREIGN KEY("ControlVariable_name") REFERENCES "ControlVariable" (name),
 	FOREIGN KEY(shape_id) REFERENCES "Any" (id)
 );
-CREATE INDEX "ix_ControlVariable_shape_shape_id" ON "ControlVariable_shape" (shape_id);
 CREATE INDEX "ix_ControlVariable_shape_ControlVariable_name" ON "ControlVariable_shape" ("ControlVariable_name");
+CREATE INDEX "ix_ControlVariable_shape_shape_id" ON "ControlVariable_shape" (shape_id);
 
 CREATE TABLE "Lighting_alias" (
 	"Lighting_name" TEXT,
@@ -5660,8 +5664,8 @@ CREATE TABLE "Lighting_alias" (
 	PRIMARY KEY ("Lighting_name", alias),
 	FOREIGN KEY("Lighting_name") REFERENCES "Lighting" (name)
 );
-CREATE INDEX "ix_Lighting_alias_alias" ON "Lighting_alias" (alias);
 CREATE INDEX "ix_Lighting_alias_Lighting_name" ON "Lighting_alias" ("Lighting_name");
+CREATE INDEX "ix_Lighting_alias_alias" ON "Lighting_alias" (alias);
 
 CREATE TABLE "Lighting_inputs" (
 	"Lighting_name" TEXT,
@@ -5688,8 +5692,8 @@ CREATE TABLE "Lighting_upstream" (
 	FOREIGN KEY("Lighting_name") REFERENCES "Lighting" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Lighting_upstream_Lighting_name" ON "Lighting_upstream" ("Lighting_name");
 CREATE INDEX "ix_Lighting_upstream_upstream_name" ON "Lighting_upstream" (upstream_name);
+CREATE INDEX "ix_Lighting_upstream_Lighting_name" ON "Lighting_upstream" ("Lighting_name");
 
 CREATE TABLE "Lighting_downstream" (
 	"Lighting_name" TEXT,
@@ -5725,8 +5729,8 @@ CREATE TABLE "PowerSupply_outputs" (
 	PRIMARY KEY ("PowerSupply_name", outputs),
 	FOREIGN KEY("PowerSupply_name") REFERENCES "PowerSupply" (name)
 );
-CREATE INDEX "ix_PowerSupply_outputs_outputs" ON "PowerSupply_outputs" (outputs);
 CREATE INDEX "ix_PowerSupply_outputs_PowerSupply_name" ON "PowerSupply_outputs" ("PowerSupply_name");
+CREATE INDEX "ix_PowerSupply_outputs_outputs" ON "PowerSupply_outputs" (outputs);
 
 CREATE TABLE "PowerSupply_upstream" (
 	"PowerSupply_name" TEXT,
@@ -5745,8 +5749,8 @@ CREATE TABLE "PowerSupply_downstream" (
 	FOREIGN KEY("PowerSupply_name") REFERENCES "PowerSupply" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_PowerSupply_downstream_PowerSupply_name" ON "PowerSupply_downstream" ("PowerSupply_name");
 CREATE INDEX "ix_PowerSupply_downstream_downstream_name" ON "PowerSupply_downstream" (downstream_name);
+CREATE INDEX "ix_PowerSupply_downstream_PowerSupply_name" ON "PowerSupply_downstream" ("PowerSupply_name");
 
 CREATE TABLE "SectionLattice_elements" (
 	"SectionLattice_name" TEXT,
@@ -5763,8 +5767,8 @@ CREATE TABLE "MachineLayout_sections" (
 	PRIMARY KEY ("MachineLayout_name", sections),
 	FOREIGN KEY("MachineLayout_name") REFERENCES "MachineLayout" (name)
 );
-CREATE INDEX "ix_MachineLayout_sections_MachineLayout_name" ON "MachineLayout_sections" ("MachineLayout_name");
 CREATE INDEX "ix_MachineLayout_sections_sections" ON "MachineLayout_sections" (sections);
+CREATE INDEX "ix_MachineLayout_sections_MachineLayout_name" ON "MachineLayout_sections" ("MachineLayout_name");
 
 CREATE TABLE "MachineLayout_passes" (
 	"MachineLayout_name" TEXT,
@@ -5782,8 +5786,8 @@ CREATE TABLE "ACDipoleSimulationElement_ramp" (
 	PRIMARY KEY ("ACDipoleSimulationElement_id", ramp),
 	FOREIGN KEY("ACDipoleSimulationElement_id") REFERENCES "ACDipoleSimulationElement" (id)
 );
-CREATE INDEX "ix_ACDipoleSimulationElement_ramp_ramp" ON "ACDipoleSimulationElement_ramp" (ramp);
 CREATE INDEX "ix_ACDipoleSimulationElement_ramp_ACDipoleSimulationElement_id" ON "ACDipoleSimulationElement_ramp" ("ACDipoleSimulationElement_id");
+CREATE INDEX "ix_ACDipoleSimulationElement_ramp_ramp" ON "ACDipoleSimulationElement_ramp" (ramp);
 
 CREATE TABLE "RFModulator_alias" (
 	"RFModulator_name" TEXT,
@@ -5791,8 +5795,8 @@ CREATE TABLE "RFModulator_alias" (
 	PRIMARY KEY ("RFModulator_name", alias),
 	FOREIGN KEY("RFModulator_name") REFERENCES "RFModulator" (name)
 );
-CREATE INDEX "ix_RFModulator_alias_alias" ON "RFModulator_alias" (alias);
 CREATE INDEX "ix_RFModulator_alias_RFModulator_name" ON "RFModulator_alias" ("RFModulator_name");
+CREATE INDEX "ix_RFModulator_alias_alias" ON "RFModulator_alias" (alias);
 
 CREATE TABLE "RFModulator_inputs" (
 	"RFModulator_name" TEXT,
@@ -5809,8 +5813,8 @@ CREATE TABLE "RFModulator_outputs" (
 	PRIMARY KEY ("RFModulator_name", outputs),
 	FOREIGN KEY("RFModulator_name") REFERENCES "RFModulator" (name)
 );
-CREATE INDEX "ix_RFModulator_outputs_outputs" ON "RFModulator_outputs" (outputs);
 CREATE INDEX "ix_RFModulator_outputs_RFModulator_name" ON "RFModulator_outputs" ("RFModulator_name");
+CREATE INDEX "ix_RFModulator_outputs_outputs" ON "RFModulator_outputs" (outputs);
 
 CREATE TABLE "RFModulator_upstream" (
 	"RFModulator_name" TEXT,
@@ -5819,8 +5823,8 @@ CREATE TABLE "RFModulator_upstream" (
 	FOREIGN KEY("RFModulator_name") REFERENCES "RFModulator" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_RFModulator_upstream_RFModulator_name" ON "RFModulator_upstream" ("RFModulator_name");
 CREATE INDEX "ix_RFModulator_upstream_upstream_name" ON "RFModulator_upstream" (upstream_name);
+CREATE INDEX "ix_RFModulator_upstream_RFModulator_name" ON "RFModulator_upstream" ("RFModulator_name");
 
 CREATE TABLE "RFModulator_downstream" (
 	"RFModulator_name" TEXT,
@@ -5829,8 +5833,8 @@ CREATE TABLE "RFModulator_downstream" (
 	FOREIGN KEY("RFModulator_name") REFERENCES "RFModulator" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_RFModulator_downstream_downstream_name" ON "RFModulator_downstream" (downstream_name);
 CREATE INDEX "ix_RFModulator_downstream_RFModulator_name" ON "RFModulator_downstream" ("RFModulator_name");
+CREATE INDEX "ix_RFModulator_downstream_downstream_name" ON "RFModulator_downstream" (downstream_name);
 
 CREATE TABLE "RFProtection_alias" (
 	"RFProtection_name" TEXT,
@@ -5838,8 +5842,8 @@ CREATE TABLE "RFProtection_alias" (
 	PRIMARY KEY ("RFProtection_name", alias),
 	FOREIGN KEY("RFProtection_name") REFERENCES "RFProtection" (name)
 );
-CREATE INDEX "ix_RFProtection_alias_RFProtection_name" ON "RFProtection_alias" ("RFProtection_name");
 CREATE INDEX "ix_RFProtection_alias_alias" ON "RFProtection_alias" (alias);
+CREATE INDEX "ix_RFProtection_alias_RFProtection_name" ON "RFProtection_alias" ("RFProtection_name");
 
 CREATE TABLE "RFProtection_inputs" (
 	"RFProtection_name" TEXT,
@@ -5847,8 +5851,8 @@ CREATE TABLE "RFProtection_inputs" (
 	PRIMARY KEY ("RFProtection_name", inputs),
 	FOREIGN KEY("RFProtection_name") REFERENCES "RFProtection" (name)
 );
-CREATE INDEX "ix_RFProtection_inputs_RFProtection_name" ON "RFProtection_inputs" ("RFProtection_name");
 CREATE INDEX "ix_RFProtection_inputs_inputs" ON "RFProtection_inputs" (inputs);
+CREATE INDEX "ix_RFProtection_inputs_RFProtection_name" ON "RFProtection_inputs" ("RFProtection_name");
 
 CREATE TABLE "RFProtection_outputs" (
 	"RFProtection_name" TEXT,
@@ -5866,8 +5870,8 @@ CREATE TABLE "RFProtection_upstream" (
 	FOREIGN KEY("RFProtection_name") REFERENCES "RFProtection" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_RFProtection_upstream_RFProtection_name" ON "RFProtection_upstream" ("RFProtection_name");
 CREATE INDEX "ix_RFProtection_upstream_upstream_name" ON "RFProtection_upstream" (upstream_name);
+CREATE INDEX "ix_RFProtection_upstream_RFProtection_name" ON "RFProtection_upstream" ("RFProtection_name");
 
 CREATE TABLE "RFProtection_downstream" (
 	"RFProtection_name" TEXT,
@@ -5913,8 +5917,8 @@ CREATE TABLE "RFHeartbeat_upstream" (
 	FOREIGN KEY("RFHeartbeat_name") REFERENCES "RFHeartbeat" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_RFHeartbeat_upstream_upstream_name" ON "RFHeartbeat_upstream" (upstream_name);
 CREATE INDEX "ix_RFHeartbeat_upstream_RFHeartbeat_name" ON "RFHeartbeat_upstream" ("RFHeartbeat_name");
+CREATE INDEX "ix_RFHeartbeat_upstream_upstream_name" ON "RFHeartbeat_upstream" (upstream_name);
 
 CREATE TABLE "RFHeartbeat_downstream" (
 	"RFHeartbeat_name" TEXT,
@@ -5932,8 +5936,8 @@ CREATE TABLE "LaserEnergyMeter_alias" (
 	PRIMARY KEY ("LaserEnergyMeter_name", alias),
 	FOREIGN KEY("LaserEnergyMeter_name") REFERENCES "LaserEnergyMeter" (name)
 );
-CREATE INDEX "ix_LaserEnergyMeter_alias_alias" ON "LaserEnergyMeter_alias" (alias);
 CREATE INDEX "ix_LaserEnergyMeter_alias_LaserEnergyMeter_name" ON "LaserEnergyMeter_alias" ("LaserEnergyMeter_name");
+CREATE INDEX "ix_LaserEnergyMeter_alias_alias" ON "LaserEnergyMeter_alias" (alias);
 
 CREATE TABLE "LaserEnergyMeter_inputs" (
 	"LaserEnergyMeter_name" TEXT,
@@ -5941,8 +5945,8 @@ CREATE TABLE "LaserEnergyMeter_inputs" (
 	PRIMARY KEY ("LaserEnergyMeter_name", inputs),
 	FOREIGN KEY("LaserEnergyMeter_name") REFERENCES "LaserEnergyMeter" (name)
 );
-CREATE INDEX "ix_LaserEnergyMeter_inputs_LaserEnergyMeter_name" ON "LaserEnergyMeter_inputs" ("LaserEnergyMeter_name");
 CREATE INDEX "ix_LaserEnergyMeter_inputs_inputs" ON "LaserEnergyMeter_inputs" (inputs);
+CREATE INDEX "ix_LaserEnergyMeter_inputs_LaserEnergyMeter_name" ON "LaserEnergyMeter_inputs" ("LaserEnergyMeter_name");
 
 CREATE TABLE "LaserEnergyMeter_outputs" (
 	"LaserEnergyMeter_name" TEXT,
@@ -5960,8 +5964,8 @@ CREATE TABLE "LaserEnergyMeter_upstream" (
 	FOREIGN KEY("LaserEnergyMeter_name") REFERENCES "LaserEnergyMeter" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LaserEnergyMeter_upstream_upstream_name" ON "LaserEnergyMeter_upstream" (upstream_name);
 CREATE INDEX "ix_LaserEnergyMeter_upstream_LaserEnergyMeter_name" ON "LaserEnergyMeter_upstream" ("LaserEnergyMeter_name");
+CREATE INDEX "ix_LaserEnergyMeter_upstream_upstream_name" ON "LaserEnergyMeter_upstream" (upstream_name);
 
 CREATE TABLE "LaserEnergyMeter_downstream" (
 	"LaserEnergyMeter_name" TEXT,
@@ -5988,8 +5992,8 @@ CREATE TABLE "LaserHalfWavePlate_inputs" (
 	PRIMARY KEY ("LaserHalfWavePlate_name", inputs),
 	FOREIGN KEY("LaserHalfWavePlate_name") REFERENCES "LaserHalfWavePlate" (name)
 );
-CREATE INDEX "ix_LaserHalfWavePlate_inputs_inputs" ON "LaserHalfWavePlate_inputs" (inputs);
 CREATE INDEX "ix_LaserHalfWavePlate_inputs_LaserHalfWavePlate_name" ON "LaserHalfWavePlate_inputs" ("LaserHalfWavePlate_name");
+CREATE INDEX "ix_LaserHalfWavePlate_inputs_inputs" ON "LaserHalfWavePlate_inputs" (inputs);
 
 CREATE TABLE "LaserHalfWavePlate_outputs" (
 	"LaserHalfWavePlate_name" TEXT,
@@ -5997,8 +6001,8 @@ CREATE TABLE "LaserHalfWavePlate_outputs" (
 	PRIMARY KEY ("LaserHalfWavePlate_name", outputs),
 	FOREIGN KEY("LaserHalfWavePlate_name") REFERENCES "LaserHalfWavePlate" (name)
 );
-CREATE INDEX "ix_LaserHalfWavePlate_outputs_LaserHalfWavePlate_name" ON "LaserHalfWavePlate_outputs" ("LaserHalfWavePlate_name");
 CREATE INDEX "ix_LaserHalfWavePlate_outputs_outputs" ON "LaserHalfWavePlate_outputs" (outputs);
+CREATE INDEX "ix_LaserHalfWavePlate_outputs_LaserHalfWavePlate_name" ON "LaserHalfWavePlate_outputs" ("LaserHalfWavePlate_name");
 
 CREATE TABLE "LaserHalfWavePlate_upstream" (
 	"LaserHalfWavePlate_name" TEXT,
@@ -6026,8 +6030,8 @@ CREATE TABLE "LaserAttenuator_alias" (
 	PRIMARY KEY ("LaserAttenuator_name", alias),
 	FOREIGN KEY("LaserAttenuator_name") REFERENCES "LaserAttenuator" (name)
 );
-CREATE INDEX "ix_LaserAttenuator_alias_alias" ON "LaserAttenuator_alias" (alias);
 CREATE INDEX "ix_LaserAttenuator_alias_LaserAttenuator_name" ON "LaserAttenuator_alias" ("LaserAttenuator_name");
+CREATE INDEX "ix_LaserAttenuator_alias_alias" ON "LaserAttenuator_alias" (alias);
 
 CREATE TABLE "LaserAttenuator_inputs" (
 	"LaserAttenuator_name" TEXT,
@@ -6044,8 +6048,8 @@ CREATE TABLE "LaserAttenuator_outputs" (
 	PRIMARY KEY ("LaserAttenuator_name", outputs),
 	FOREIGN KEY("LaserAttenuator_name") REFERENCES "LaserAttenuator" (name)
 );
-CREATE INDEX "ix_LaserAttenuator_outputs_LaserAttenuator_name" ON "LaserAttenuator_outputs" ("LaserAttenuator_name");
 CREATE INDEX "ix_LaserAttenuator_outputs_outputs" ON "LaserAttenuator_outputs" (outputs);
+CREATE INDEX "ix_LaserAttenuator_outputs_LaserAttenuator_name" ON "LaserAttenuator_outputs" ("LaserAttenuator_name");
 
 CREATE TABLE "LaserAttenuator_upstream" (
 	"LaserAttenuator_name" TEXT,
@@ -6054,8 +6058,8 @@ CREATE TABLE "LaserAttenuator_upstream" (
 	FOREIGN KEY("LaserAttenuator_name") REFERENCES "LaserAttenuator" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LaserAttenuator_upstream_upstream_name" ON "LaserAttenuator_upstream" (upstream_name);
 CREATE INDEX "ix_LaserAttenuator_upstream_LaserAttenuator_name" ON "LaserAttenuator_upstream" ("LaserAttenuator_name");
+CREATE INDEX "ix_LaserAttenuator_upstream_upstream_name" ON "LaserAttenuator_upstream" (upstream_name);
 
 CREATE TABLE "LaserAttenuator_downstream" (
 	"LaserAttenuator_name" TEXT,
@@ -6064,8 +6068,8 @@ CREATE TABLE "LaserAttenuator_downstream" (
 	FOREIGN KEY("LaserAttenuator_name") REFERENCES "LaserAttenuator" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LaserAttenuator_downstream_LaserAttenuator_name" ON "LaserAttenuator_downstream" ("LaserAttenuator_name");
 CREATE INDEX "ix_LaserAttenuator_downstream_downstream_name" ON "LaserAttenuator_downstream" (downstream_name);
+CREATE INDEX "ix_LaserAttenuator_downstream_LaserAttenuator_name" ON "LaserAttenuator_downstream" ("LaserAttenuator_name");
 
 CREATE TABLE "PhysicalAcceleratorElement" (
 	material TEXT,
@@ -7636,8 +7640,8 @@ CREATE TABLE "PID_alias" (
 	PRIMARY KEY ("PID_name", alias),
 	FOREIGN KEY("PID_name") REFERENCES "PID" (name)
 );
-CREATE INDEX "ix_PID_alias_PID_name" ON "PID_alias" ("PID_name");
 CREATE INDEX "ix_PID_alias_alias" ON "PID_alias" (alias);
+CREATE INDEX "ix_PID_alias_PID_name" ON "PID_alias" ("PID_name");
 
 CREATE TABLE "PID_inputs" (
 	"PID_name" TEXT,
@@ -7645,8 +7649,8 @@ CREATE TABLE "PID_inputs" (
 	PRIMARY KEY ("PID_name", inputs),
 	FOREIGN KEY("PID_name") REFERENCES "PID" (name)
 );
-CREATE INDEX "ix_PID_inputs_PID_name" ON "PID_inputs" ("PID_name");
 CREATE INDEX "ix_PID_inputs_inputs" ON "PID_inputs" (inputs);
+CREATE INDEX "ix_PID_inputs_PID_name" ON "PID_inputs" ("PID_name");
 
 CREATE TABLE "PID_outputs" (
 	"PID_name" TEXT,
@@ -7664,8 +7668,8 @@ CREATE TABLE "PID_upstream" (
 	FOREIGN KEY("PID_name") REFERENCES "PID" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_PID_upstream_upstream_name" ON "PID_upstream" (upstream_name);
 CREATE INDEX "ix_PID_upstream_PID_name" ON "PID_upstream" ("PID_name");
+CREATE INDEX "ix_PID_upstream_upstream_name" ON "PID_upstream" (upstream_name);
 
 CREATE TABLE "PID_downstream" (
 	"PID_name" TEXT,
@@ -7674,8 +7678,8 @@ CREATE TABLE "PID_downstream" (
 	FOREIGN KEY("PID_name") REFERENCES "PID" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_PID_downstream_PID_name" ON "PID_downstream" ("PID_name");
 CREATE INDEX "ix_PID_downstream_downstream_name" ON "PID_downstream" (downstream_name);
+CREATE INDEX "ix_PID_downstream_PID_name" ON "PID_downstream" ("PID_name");
 
 CREATE TABLE "LaserMirror_alias" (
 	"LaserMirror_name" TEXT,
@@ -7692,8 +7696,8 @@ CREATE TABLE "LaserMirror_inputs" (
 	PRIMARY KEY ("LaserMirror_name", inputs),
 	FOREIGN KEY("LaserMirror_name") REFERENCES "LaserMirror" (name)
 );
-CREATE INDEX "ix_LaserMirror_inputs_inputs" ON "LaserMirror_inputs" (inputs);
 CREATE INDEX "ix_LaserMirror_inputs_LaserMirror_name" ON "LaserMirror_inputs" ("LaserMirror_name");
+CREATE INDEX "ix_LaserMirror_inputs_inputs" ON "LaserMirror_inputs" (inputs);
 
 CREATE TABLE "LaserMirror_outputs" (
 	"LaserMirror_name" TEXT,
@@ -7701,8 +7705,8 @@ CREATE TABLE "LaserMirror_outputs" (
 	PRIMARY KEY ("LaserMirror_name", outputs),
 	FOREIGN KEY("LaserMirror_name") REFERENCES "LaserMirror" (name)
 );
-CREATE INDEX "ix_LaserMirror_outputs_LaserMirror_name" ON "LaserMirror_outputs" ("LaserMirror_name");
 CREATE INDEX "ix_LaserMirror_outputs_outputs" ON "LaserMirror_outputs" (outputs);
+CREATE INDEX "ix_LaserMirror_outputs_LaserMirror_name" ON "LaserMirror_outputs" ("LaserMirror_name");
 
 CREATE TABLE "LaserMirror_upstream" (
 	"LaserMirror_name" TEXT,
@@ -7711,8 +7715,8 @@ CREATE TABLE "LaserMirror_upstream" (
 	FOREIGN KEY("LaserMirror_name") REFERENCES "LaserMirror" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LaserMirror_upstream_LaserMirror_name" ON "LaserMirror_upstream" ("LaserMirror_name");
 CREATE INDEX "ix_LaserMirror_upstream_upstream_name" ON "LaserMirror_upstream" (upstream_name);
+CREATE INDEX "ix_LaserMirror_upstream_LaserMirror_name" ON "LaserMirror_upstream" ("LaserMirror_name");
 
 CREATE TABLE "LaserMirror_downstream" (
 	"LaserMirror_name" TEXT,
@@ -7782,8 +7786,8 @@ CREATE TABLE "PhysicalAcceleratorElement_outputs" (
 	PRIMARY KEY ("PhysicalAcceleratorElement_name", outputs),
 	FOREIGN KEY("PhysicalAcceleratorElement_name") REFERENCES "PhysicalAcceleratorElement" (name)
 );
-CREATE INDEX "ix_PhysicalAcceleratorElement_outputs_PhysicalAcceleratorElement_name" ON "PhysicalAcceleratorElement_outputs" ("PhysicalAcceleratorElement_name");
 CREATE INDEX "ix_PhysicalAcceleratorElement_outputs_outputs" ON "PhysicalAcceleratorElement_outputs" (outputs);
+CREATE INDEX "ix_PhysicalAcceleratorElement_outputs_PhysicalAcceleratorElement_name" ON "PhysicalAcceleratorElement_outputs" ("PhysicalAcceleratorElement_name");
 
 CREATE TABLE "PhysicalAcceleratorElement_upstream" (
 	"PhysicalAcceleratorElement_name" TEXT,
@@ -7811,8 +7815,8 @@ CREATE TABLE "TwissMatch_alias" (
 	PRIMARY KEY ("TwissMatch_name", alias),
 	FOREIGN KEY("TwissMatch_name") REFERENCES "TwissMatch" (name)
 );
-CREATE INDEX "ix_TwissMatch_alias_alias" ON "TwissMatch_alias" (alias);
 CREATE INDEX "ix_TwissMatch_alias_TwissMatch_name" ON "TwissMatch_alias" ("TwissMatch_name");
+CREATE INDEX "ix_TwissMatch_alias_alias" ON "TwissMatch_alias" (alias);
 
 CREATE TABLE "TwissMatch_inputs" (
 	"TwissMatch_name" TEXT,
@@ -7829,8 +7833,8 @@ CREATE TABLE "TwissMatch_outputs" (
 	PRIMARY KEY ("TwissMatch_name", outputs),
 	FOREIGN KEY("TwissMatch_name") REFERENCES "TwissMatch" (name)
 );
-CREATE INDEX "ix_TwissMatch_outputs_outputs" ON "TwissMatch_outputs" (outputs);
 CREATE INDEX "ix_TwissMatch_outputs_TwissMatch_name" ON "TwissMatch_outputs" ("TwissMatch_name");
+CREATE INDEX "ix_TwissMatch_outputs_outputs" ON "TwissMatch_outputs" (outputs);
 
 CREATE TABLE "TwissMatch_upstream" (
 	"TwissMatch_name" TEXT,
@@ -7839,8 +7843,8 @@ CREATE TABLE "TwissMatch_upstream" (
 	FOREIGN KEY("TwissMatch_name") REFERENCES "TwissMatch" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_TwissMatch_upstream_TwissMatch_name" ON "TwissMatch_upstream" ("TwissMatch_name");
 CREATE INDEX "ix_TwissMatch_upstream_upstream_name" ON "TwissMatch_upstream" (upstream_name);
+CREATE INDEX "ix_TwissMatch_upstream_TwissMatch_name" ON "TwissMatch_upstream" ("TwissMatch_name");
 
 CREATE TABLE "TwissMatch_downstream" (
 	"TwissMatch_name" TEXT,
@@ -7849,8 +7853,8 @@ CREATE TABLE "TwissMatch_downstream" (
 	FOREIGN KEY("TwissMatch_name") REFERENCES "TwissMatch" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_TwissMatch_downstream_TwissMatch_name" ON "TwissMatch_downstream" ("TwissMatch_name");
 CREATE INDEX "ix_TwissMatch_downstream_downstream_name" ON "TwissMatch_downstream" (downstream_name);
+CREATE INDEX "ix_TwissMatch_downstream_TwissMatch_name" ON "TwissMatch_downstream" ("TwissMatch_name");
 
 CREATE TABLE "MatrixTransform_alias" (
 	"MatrixTransform_name" TEXT,
@@ -7867,8 +7871,8 @@ CREATE TABLE "MatrixTransform_inputs" (
 	PRIMARY KEY ("MatrixTransform_name", inputs),
 	FOREIGN KEY("MatrixTransform_name") REFERENCES "MatrixTransform" (name)
 );
-CREATE INDEX "ix_MatrixTransform_inputs_MatrixTransform_name" ON "MatrixTransform_inputs" ("MatrixTransform_name");
 CREATE INDEX "ix_MatrixTransform_inputs_inputs" ON "MatrixTransform_inputs" (inputs);
+CREATE INDEX "ix_MatrixTransform_inputs_MatrixTransform_name" ON "MatrixTransform_inputs" ("MatrixTransform_name");
 
 CREATE TABLE "MatrixTransform_outputs" (
 	"MatrixTransform_name" TEXT,
@@ -7886,8 +7890,8 @@ CREATE TABLE "MatrixTransform_upstream" (
 	FOREIGN KEY("MatrixTransform_name") REFERENCES "MatrixTransform" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_MatrixTransform_upstream_upstream_name" ON "MatrixTransform_upstream" (upstream_name);
 CREATE INDEX "ix_MatrixTransform_upstream_MatrixTransform_name" ON "MatrixTransform_upstream" ("MatrixTransform_name");
+CREATE INDEX "ix_MatrixTransform_upstream_upstream_name" ON "MatrixTransform_upstream" (upstream_name);
 
 CREATE TABLE "MatrixTransform_downstream" (
 	"MatrixTransform_name" TEXT,
@@ -7914,8 +7918,8 @@ CREATE TABLE "ElectrostaticSeparator_inputs" (
 	PRIMARY KEY ("ElectrostaticSeparator_name", inputs),
 	FOREIGN KEY("ElectrostaticSeparator_name") REFERENCES "ElectrostaticSeparator" (name)
 );
-CREATE INDEX "ix_ElectrostaticSeparator_inputs_inputs" ON "ElectrostaticSeparator_inputs" (inputs);
 CREATE INDEX "ix_ElectrostaticSeparator_inputs_ElectrostaticSeparator_name" ON "ElectrostaticSeparator_inputs" ("ElectrostaticSeparator_name");
+CREATE INDEX "ix_ElectrostaticSeparator_inputs_inputs" ON "ElectrostaticSeparator_inputs" (inputs);
 
 CREATE TABLE "ElectrostaticSeparator_outputs" (
 	"ElectrostaticSeparator_name" TEXT,
@@ -7933,8 +7937,8 @@ CREATE TABLE "ElectrostaticSeparator_upstream" (
 	FOREIGN KEY("ElectrostaticSeparator_name") REFERENCES "ElectrostaticSeparator" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_ElectrostaticSeparator_upstream_ElectrostaticSeparator_name" ON "ElectrostaticSeparator_upstream" ("ElectrostaticSeparator_name");
 CREATE INDEX "ix_ElectrostaticSeparator_upstream_upstream_name" ON "ElectrostaticSeparator_upstream" (upstream_name);
+CREATE INDEX "ix_ElectrostaticSeparator_upstream_ElectrostaticSeparator_name" ON "ElectrostaticSeparator_upstream" ("ElectrostaticSeparator_name");
 
 CREATE TABLE "ElectrostaticSeparator_downstream" (
 	"ElectrostaticSeparator_name" TEXT,
@@ -7970,8 +7974,8 @@ CREATE TABLE "ACDipole_outputs" (
 	PRIMARY KEY ("ACDipole_name", outputs),
 	FOREIGN KEY("ACDipole_name") REFERENCES "ACDipole" (name)
 );
-CREATE INDEX "ix_ACDipole_outputs_outputs" ON "ACDipole_outputs" (outputs);
 CREATE INDEX "ix_ACDipole_outputs_ACDipole_name" ON "ACDipole_outputs" ("ACDipole_name");
+CREATE INDEX "ix_ACDipole_outputs_outputs" ON "ACDipole_outputs" (outputs);
 
 CREATE TABLE "ACDipole_upstream" (
 	"ACDipole_name" TEXT,
@@ -7980,8 +7984,8 @@ CREATE TABLE "ACDipole_upstream" (
 	FOREIGN KEY("ACDipole_name") REFERENCES "ACDipole" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_ACDipole_upstream_upstream_name" ON "ACDipole_upstream" (upstream_name);
 CREATE INDEX "ix_ACDipole_upstream_ACDipole_name" ON "ACDipole_upstream" ("ACDipole_name");
+CREATE INDEX "ix_ACDipole_upstream_upstream_name" ON "ACDipole_upstream" (upstream_name);
 
 CREATE TABLE "ACDipole_downstream" (
 	"ACDipole_name" TEXT,
@@ -7990,8 +7994,8 @@ CREATE TABLE "ACDipole_downstream" (
 	FOREIGN KEY("ACDipole_name") REFERENCES "ACDipole" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_ACDipole_downstream_downstream_name" ON "ACDipole_downstream" (downstream_name);
 CREATE INDEX "ix_ACDipole_downstream_ACDipole_name" ON "ACDipole_downstream" ("ACDipole_name");
+CREATE INDEX "ix_ACDipole_downstream_downstream_name" ON "ACDipole_downstream" (downstream_name);
 
 CREATE TABLE "Horizontal_AC_Dipole_alias" (
 	"Horizontal_AC_Dipole_name" TEXT,
@@ -7999,8 +8003,8 @@ CREATE TABLE "Horizontal_AC_Dipole_alias" (
 	PRIMARY KEY ("Horizontal_AC_Dipole_name", alias),
 	FOREIGN KEY("Horizontal_AC_Dipole_name") REFERENCES "Horizontal_AC_Dipole" (name)
 );
-CREATE INDEX "ix_Horizontal_AC_Dipole_alias_Horizontal_AC_Dipole_name" ON "Horizontal_AC_Dipole_alias" ("Horizontal_AC_Dipole_name");
 CREATE INDEX "ix_Horizontal_AC_Dipole_alias_alias" ON "Horizontal_AC_Dipole_alias" (alias);
+CREATE INDEX "ix_Horizontal_AC_Dipole_alias_Horizontal_AC_Dipole_name" ON "Horizontal_AC_Dipole_alias" ("Horizontal_AC_Dipole_name");
 
 CREATE TABLE "Horizontal_AC_Dipole_inputs" (
 	"Horizontal_AC_Dipole_name" TEXT,
@@ -8008,8 +8012,8 @@ CREATE TABLE "Horizontal_AC_Dipole_inputs" (
 	PRIMARY KEY ("Horizontal_AC_Dipole_name", inputs),
 	FOREIGN KEY("Horizontal_AC_Dipole_name") REFERENCES "Horizontal_AC_Dipole" (name)
 );
-CREATE INDEX "ix_Horizontal_AC_Dipole_inputs_inputs" ON "Horizontal_AC_Dipole_inputs" (inputs);
 CREATE INDEX "ix_Horizontal_AC_Dipole_inputs_Horizontal_AC_Dipole_name" ON "Horizontal_AC_Dipole_inputs" ("Horizontal_AC_Dipole_name");
+CREATE INDEX "ix_Horizontal_AC_Dipole_inputs_inputs" ON "Horizontal_AC_Dipole_inputs" (inputs);
 
 CREATE TABLE "Horizontal_AC_Dipole_outputs" (
 	"Horizontal_AC_Dipole_name" TEXT,
@@ -8027,8 +8031,8 @@ CREATE TABLE "Horizontal_AC_Dipole_upstream" (
 	FOREIGN KEY("Horizontal_AC_Dipole_name") REFERENCES "Horizontal_AC_Dipole" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Horizontal_AC_Dipole_upstream_Horizontal_AC_Dipole_name" ON "Horizontal_AC_Dipole_upstream" ("Horizontal_AC_Dipole_name");
 CREATE INDEX "ix_Horizontal_AC_Dipole_upstream_upstream_name" ON "Horizontal_AC_Dipole_upstream" (upstream_name);
+CREATE INDEX "ix_Horizontal_AC_Dipole_upstream_Horizontal_AC_Dipole_name" ON "Horizontal_AC_Dipole_upstream" ("Horizontal_AC_Dipole_name");
 
 CREATE TABLE "Horizontal_AC_Dipole_downstream" (
 	"Horizontal_AC_Dipole_name" TEXT,
@@ -8046,8 +8050,8 @@ CREATE TABLE "Vertical_AC_Dipole_alias" (
 	PRIMARY KEY ("Vertical_AC_Dipole_name", alias),
 	FOREIGN KEY("Vertical_AC_Dipole_name") REFERENCES "Vertical_AC_Dipole" (name)
 );
-CREATE INDEX "ix_Vertical_AC_Dipole_alias_alias" ON "Vertical_AC_Dipole_alias" (alias);
 CREATE INDEX "ix_Vertical_AC_Dipole_alias_Vertical_AC_Dipole_name" ON "Vertical_AC_Dipole_alias" ("Vertical_AC_Dipole_name");
+CREATE INDEX "ix_Vertical_AC_Dipole_alias_alias" ON "Vertical_AC_Dipole_alias" (alias);
 
 CREATE TABLE "Vertical_AC_Dipole_inputs" (
 	"Vertical_AC_Dipole_name" TEXT,
@@ -8064,8 +8068,8 @@ CREATE TABLE "Vertical_AC_Dipole_outputs" (
 	PRIMARY KEY ("Vertical_AC_Dipole_name", outputs),
 	FOREIGN KEY("Vertical_AC_Dipole_name") REFERENCES "Vertical_AC_Dipole" (name)
 );
-CREATE INDEX "ix_Vertical_AC_Dipole_outputs_Vertical_AC_Dipole_name" ON "Vertical_AC_Dipole_outputs" ("Vertical_AC_Dipole_name");
 CREATE INDEX "ix_Vertical_AC_Dipole_outputs_outputs" ON "Vertical_AC_Dipole_outputs" (outputs);
+CREATE INDEX "ix_Vertical_AC_Dipole_outputs_Vertical_AC_Dipole_name" ON "Vertical_AC_Dipole_outputs" ("Vertical_AC_Dipole_name");
 
 CREATE TABLE "Vertical_AC_Dipole_upstream" (
 	"Vertical_AC_Dipole_name" TEXT,
@@ -8074,8 +8078,8 @@ CREATE TABLE "Vertical_AC_Dipole_upstream" (
 	FOREIGN KEY("Vertical_AC_Dipole_name") REFERENCES "Vertical_AC_Dipole" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Vertical_AC_Dipole_upstream_upstream_name" ON "Vertical_AC_Dipole_upstream" (upstream_name);
 CREATE INDEX "ix_Vertical_AC_Dipole_upstream_Vertical_AC_Dipole_name" ON "Vertical_AC_Dipole_upstream" ("Vertical_AC_Dipole_name");
+CREATE INDEX "ix_Vertical_AC_Dipole_upstream_upstream_name" ON "Vertical_AC_Dipole_upstream" (upstream_name);
 
 CREATE TABLE "Vertical_AC_Dipole_downstream" (
 	"Vertical_AC_Dipole_name" TEXT,
@@ -8093,8 +8097,8 @@ CREATE TABLE "Wire_alias" (
 	PRIMARY KEY ("Wire_name", alias),
 	FOREIGN KEY("Wire_name") REFERENCES "Wire" (name)
 );
-CREATE INDEX "ix_Wire_alias_alias" ON "Wire_alias" (alias);
 CREATE INDEX "ix_Wire_alias_Wire_name" ON "Wire_alias" ("Wire_name");
+CREATE INDEX "ix_Wire_alias_alias" ON "Wire_alias" (alias);
 
 CREATE TABLE "Wire_inputs" (
 	"Wire_name" TEXT,
@@ -8102,8 +8106,8 @@ CREATE TABLE "Wire_inputs" (
 	PRIMARY KEY ("Wire_name", inputs),
 	FOREIGN KEY("Wire_name") REFERENCES "Wire" (name)
 );
-CREATE INDEX "ix_Wire_inputs_inputs" ON "Wire_inputs" (inputs);
 CREATE INDEX "ix_Wire_inputs_Wire_name" ON "Wire_inputs" ("Wire_name");
+CREATE INDEX "ix_Wire_inputs_inputs" ON "Wire_inputs" (inputs);
 
 CREATE TABLE "Wire_outputs" (
 	"Wire_name" TEXT,
@@ -8111,8 +8115,8 @@ CREATE TABLE "Wire_outputs" (
 	PRIMARY KEY ("Wire_name", outputs),
 	FOREIGN KEY("Wire_name") REFERENCES "Wire" (name)
 );
-CREATE INDEX "ix_Wire_outputs_Wire_name" ON "Wire_outputs" ("Wire_name");
 CREATE INDEX "ix_Wire_outputs_outputs" ON "Wire_outputs" (outputs);
+CREATE INDEX "ix_Wire_outputs_Wire_name" ON "Wire_outputs" ("Wire_name");
 
 CREATE TABLE "Wire_upstream" (
 	"Wire_name" TEXT,
@@ -8131,8 +8135,8 @@ CREATE TABLE "Wire_downstream" (
 	FOREIGN KEY("Wire_name") REFERENCES "Wire" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Wire_downstream_Wire_name" ON "Wire_downstream" ("Wire_name");
 CREATE INDEX "ix_Wire_downstream_downstream_name" ON "Wire_downstream" (downstream_name);
+CREATE INDEX "ix_Wire_downstream_Wire_name" ON "Wire_downstream" ("Wire_name");
 
 CREATE TABLE "BeamBeam_alias" (
 	"BeamBeam_name" TEXT,
@@ -8140,8 +8144,8 @@ CREATE TABLE "BeamBeam_alias" (
 	PRIMARY KEY ("BeamBeam_name", alias),
 	FOREIGN KEY("BeamBeam_name") REFERENCES "BeamBeam" (name)
 );
-CREATE INDEX "ix_BeamBeam_alias_alias" ON "BeamBeam_alias" (alias);
 CREATE INDEX "ix_BeamBeam_alias_BeamBeam_name" ON "BeamBeam_alias" ("BeamBeam_name");
+CREATE INDEX "ix_BeamBeam_alias_alias" ON "BeamBeam_alias" (alias);
 
 CREATE TABLE "BeamBeam_inputs" (
 	"BeamBeam_name" TEXT,
@@ -8149,8 +8153,8 @@ CREATE TABLE "BeamBeam_inputs" (
 	PRIMARY KEY ("BeamBeam_name", inputs),
 	FOREIGN KEY("BeamBeam_name") REFERENCES "BeamBeam" (name)
 );
-CREATE INDEX "ix_BeamBeam_inputs_inputs" ON "BeamBeam_inputs" (inputs);
 CREATE INDEX "ix_BeamBeam_inputs_BeamBeam_name" ON "BeamBeam_inputs" ("BeamBeam_name");
+CREATE INDEX "ix_BeamBeam_inputs_inputs" ON "BeamBeam_inputs" (inputs);
 
 CREATE TABLE "BeamBeam_outputs" (
 	"BeamBeam_name" TEXT,
@@ -8168,8 +8172,8 @@ CREATE TABLE "BeamBeam_upstream" (
 	FOREIGN KEY("BeamBeam_name") REFERENCES "BeamBeam" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_BeamBeam_upstream_BeamBeam_name" ON "BeamBeam_upstream" ("BeamBeam_name");
 CREATE INDEX "ix_BeamBeam_upstream_upstream_name" ON "BeamBeam_upstream" (upstream_name);
+CREATE INDEX "ix_BeamBeam_upstream_BeamBeam_name" ON "BeamBeam_upstream" ("BeamBeam_name");
 
 CREATE TABLE "BeamBeam_downstream" (
 	"BeamBeam_name" TEXT,
@@ -8178,8 +8182,8 @@ CREATE TABLE "BeamBeam_downstream" (
 	FOREIGN KEY("BeamBeam_name") REFERENCES "BeamBeam" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_BeamBeam_downstream_BeamBeam_name" ON "BeamBeam_downstream" ("BeamBeam_name");
 CREATE INDEX "ix_BeamBeam_downstream_downstream_name" ON "BeamBeam_downstream" (downstream_name);
+CREATE INDEX "ix_BeamBeam_downstream_BeamBeam_name" ON "BeamBeam_downstream" ("BeamBeam_name");
 
 CREATE TABLE "RFMultipole_alias" (
 	"RFMultipole_name" TEXT,
@@ -8196,8 +8200,8 @@ CREATE TABLE "RFMultipole_inputs" (
 	PRIMARY KEY ("RFMultipole_name", inputs),
 	FOREIGN KEY("RFMultipole_name") REFERENCES "RFMultipole" (name)
 );
-CREATE INDEX "ix_RFMultipole_inputs_RFMultipole_name" ON "RFMultipole_inputs" ("RFMultipole_name");
 CREATE INDEX "ix_RFMultipole_inputs_inputs" ON "RFMultipole_inputs" (inputs);
+CREATE INDEX "ix_RFMultipole_inputs_RFMultipole_name" ON "RFMultipole_inputs" ("RFMultipole_name");
 
 CREATE TABLE "RFMultipole_outputs" (
 	"RFMultipole_name" TEXT,
@@ -8225,8 +8229,8 @@ CREATE TABLE "RFMultipole_downstream" (
 	FOREIGN KEY("RFMultipole_name") REFERENCES "RFMultipole" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_RFMultipole_downstream_RFMultipole_name" ON "RFMultipole_downstream" ("RFMultipole_name");
 CREATE INDEX "ix_RFMultipole_downstream_downstream_name" ON "RFMultipole_downstream" (downstream_name);
+CREATE INDEX "ix_RFMultipole_downstream_RFMultipole_name" ON "RFMultipole_downstream" ("RFMultipole_name");
 
 CREATE TABLE "Stage_alias" (
 	"Stage_name" TEXT,
@@ -8234,8 +8238,8 @@ CREATE TABLE "Stage_alias" (
 	PRIMARY KEY ("Stage_name", alias),
 	FOREIGN KEY("Stage_name") REFERENCES "Stage" (name)
 );
-CREATE INDEX "ix_Stage_alias_alias" ON "Stage_alias" (alias);
 CREATE INDEX "ix_Stage_alias_Stage_name" ON "Stage_alias" ("Stage_name");
+CREATE INDEX "ix_Stage_alias_alias" ON "Stage_alias" (alias);
 
 CREATE TABLE "Stage_inputs" (
 	"Stage_name" TEXT,
@@ -8252,8 +8256,8 @@ CREATE TABLE "Stage_outputs" (
 	PRIMARY KEY ("Stage_name", outputs),
 	FOREIGN KEY("Stage_name") REFERENCES "Stage" (name)
 );
-CREATE INDEX "ix_Stage_outputs_outputs" ON "Stage_outputs" (outputs);
 CREATE INDEX "ix_Stage_outputs_Stage_name" ON "Stage_outputs" ("Stage_name");
+CREATE INDEX "ix_Stage_outputs_outputs" ON "Stage_outputs" (outputs);
 
 CREATE TABLE "Stage_upstream" (
 	"Stage_name" TEXT,
@@ -8281,8 +8285,8 @@ CREATE TABLE "VacuumGauge_alias" (
 	PRIMARY KEY ("VacuumGauge_name", alias),
 	FOREIGN KEY("VacuumGauge_name") REFERENCES "VacuumGauge" (name)
 );
-CREATE INDEX "ix_VacuumGauge_alias_alias" ON "VacuumGauge_alias" (alias);
 CREATE INDEX "ix_VacuumGauge_alias_VacuumGauge_name" ON "VacuumGauge_alias" ("VacuumGauge_name");
+CREATE INDEX "ix_VacuumGauge_alias_alias" ON "VacuumGauge_alias" (alias);
 
 CREATE TABLE "VacuumGauge_inputs" (
 	"VacuumGauge_name" TEXT,
@@ -8290,8 +8294,8 @@ CREATE TABLE "VacuumGauge_inputs" (
 	PRIMARY KEY ("VacuumGauge_name", inputs),
 	FOREIGN KEY("VacuumGauge_name") REFERENCES "VacuumGauge" (name)
 );
-CREATE INDEX "ix_VacuumGauge_inputs_VacuumGauge_name" ON "VacuumGauge_inputs" ("VacuumGauge_name");
 CREATE INDEX "ix_VacuumGauge_inputs_inputs" ON "VacuumGauge_inputs" (inputs);
+CREATE INDEX "ix_VacuumGauge_inputs_VacuumGauge_name" ON "VacuumGauge_inputs" ("VacuumGauge_name");
 
 CREATE TABLE "VacuumGauge_outputs" (
 	"VacuumGauge_name" TEXT,
@@ -8299,8 +8303,8 @@ CREATE TABLE "VacuumGauge_outputs" (
 	PRIMARY KEY ("VacuumGauge_name", outputs),
 	FOREIGN KEY("VacuumGauge_name") REFERENCES "VacuumGauge" (name)
 );
-CREATE INDEX "ix_VacuumGauge_outputs_outputs" ON "VacuumGauge_outputs" (outputs);
 CREATE INDEX "ix_VacuumGauge_outputs_VacuumGauge_name" ON "VacuumGauge_outputs" ("VacuumGauge_name");
+CREATE INDEX "ix_VacuumGauge_outputs_outputs" ON "VacuumGauge_outputs" (outputs);
 
 CREATE TABLE "VacuumGauge_upstream" (
 	"VacuumGauge_name" TEXT,
@@ -8319,8 +8323,8 @@ CREATE TABLE "VacuumGauge_downstream" (
 	FOREIGN KEY("VacuumGauge_name") REFERENCES "VacuumGauge" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_VacuumGauge_downstream_downstream_name" ON "VacuumGauge_downstream" (downstream_name);
 CREATE INDEX "ix_VacuumGauge_downstream_VacuumGauge_name" ON "VacuumGauge_downstream" ("VacuumGauge_name");
+CREATE INDEX "ix_VacuumGauge_downstream_downstream_name" ON "VacuumGauge_downstream" (downstream_name);
 
 CREATE TABLE "Laser_alias" (
 	"Laser_name" TEXT,
@@ -8328,8 +8332,8 @@ CREATE TABLE "Laser_alias" (
 	PRIMARY KEY ("Laser_name", alias),
 	FOREIGN KEY("Laser_name") REFERENCES "Laser" (name)
 );
-CREATE INDEX "ix_Laser_alias_alias" ON "Laser_alias" (alias);
 CREATE INDEX "ix_Laser_alias_Laser_name" ON "Laser_alias" ("Laser_name");
+CREATE INDEX "ix_Laser_alias_alias" ON "Laser_alias" (alias);
 
 CREATE TABLE "Laser_inputs" (
 	"Laser_name" TEXT,
@@ -8337,8 +8341,8 @@ CREATE TABLE "Laser_inputs" (
 	PRIMARY KEY ("Laser_name", inputs),
 	FOREIGN KEY("Laser_name") REFERENCES "Laser" (name)
 );
-CREATE INDEX "ix_Laser_inputs_Laser_name" ON "Laser_inputs" ("Laser_name");
 CREATE INDEX "ix_Laser_inputs_inputs" ON "Laser_inputs" (inputs);
+CREATE INDEX "ix_Laser_inputs_Laser_name" ON "Laser_inputs" ("Laser_name");
 
 CREATE TABLE "Laser_outputs" (
 	"Laser_name" TEXT,
@@ -8346,8 +8350,8 @@ CREATE TABLE "Laser_outputs" (
 	PRIMARY KEY ("Laser_name", outputs),
 	FOREIGN KEY("Laser_name") REFERENCES "Laser" (name)
 );
-CREATE INDEX "ix_Laser_outputs_outputs" ON "Laser_outputs" (outputs);
 CREATE INDEX "ix_Laser_outputs_Laser_name" ON "Laser_outputs" ("Laser_name");
+CREATE INDEX "ix_Laser_outputs_outputs" ON "Laser_outputs" (outputs);
 
 CREATE TABLE "Laser_upstream" (
 	"Laser_name" TEXT,
@@ -8356,8 +8360,8 @@ CREATE TABLE "Laser_upstream" (
 	FOREIGN KEY("Laser_name") REFERENCES "Laser" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Laser_upstream_upstream_name" ON "Laser_upstream" (upstream_name);
 CREATE INDEX "ix_Laser_upstream_Laser_name" ON "Laser_upstream" ("Laser_name");
+CREATE INDEX "ix_Laser_upstream_upstream_name" ON "Laser_upstream" (upstream_name);
 
 CREATE TABLE "Laser_downstream" (
 	"Laser_name" TEXT,
@@ -8366,8 +8370,8 @@ CREATE TABLE "Laser_downstream" (
 	FOREIGN KEY("Laser_name") REFERENCES "Laser" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Laser_downstream_downstream_name" ON "Laser_downstream" (downstream_name);
 CREATE INDEX "ix_Laser_downstream_Laser_name" ON "Laser_downstream" ("Laser_name");
+CREATE INDEX "ix_Laser_downstream_downstream_name" ON "Laser_downstream" (downstream_name);
 
 CREATE TABLE "Shutter_alias" (
 	"Shutter_name" TEXT,
@@ -8393,8 +8397,8 @@ CREATE TABLE "Shutter_outputs" (
 	PRIMARY KEY ("Shutter_name", outputs),
 	FOREIGN KEY("Shutter_name") REFERENCES "Shutter" (name)
 );
-CREATE INDEX "ix_Shutter_outputs_outputs" ON "Shutter_outputs" (outputs);
 CREATE INDEX "ix_Shutter_outputs_Shutter_name" ON "Shutter_outputs" ("Shutter_name");
+CREATE INDEX "ix_Shutter_outputs_outputs" ON "Shutter_outputs" (outputs);
 
 CREATE TABLE "Shutter_upstream" (
 	"Shutter_name" TEXT,
@@ -8403,8 +8407,8 @@ CREATE TABLE "Shutter_upstream" (
 	FOREIGN KEY("Shutter_name") REFERENCES "Shutter" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Shutter_upstream_Shutter_name" ON "Shutter_upstream" ("Shutter_name");
 CREATE INDEX "ix_Shutter_upstream_upstream_name" ON "Shutter_upstream" (upstream_name);
+CREATE INDEX "ix_Shutter_upstream_Shutter_name" ON "Shutter_upstream" ("Shutter_name");
 
 CREATE TABLE "Shutter_downstream" (
 	"Shutter_name" TEXT,
@@ -8413,8 +8417,8 @@ CREATE TABLE "Shutter_downstream" (
 	FOREIGN KEY("Shutter_name") REFERENCES "Shutter" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Shutter_downstream_Shutter_name" ON "Shutter_downstream" ("Shutter_name");
 CREATE INDEX "ix_Shutter_downstream_downstream_name" ON "Shutter_downstream" (downstream_name);
+CREATE INDEX "ix_Shutter_downstream_Shutter_name" ON "Shutter_downstream" ("Shutter_name");
 
 CREATE TABLE "Valve_alias" (
 	"Valve_name" TEXT,
@@ -8422,8 +8426,8 @@ CREATE TABLE "Valve_alias" (
 	PRIMARY KEY ("Valve_name", alias),
 	FOREIGN KEY("Valve_name") REFERENCES "Valve" (name)
 );
-CREATE INDEX "ix_Valve_alias_Valve_name" ON "Valve_alias" ("Valve_name");
 CREATE INDEX "ix_Valve_alias_alias" ON "Valve_alias" (alias);
+CREATE INDEX "ix_Valve_alias_Valve_name" ON "Valve_alias" ("Valve_name");
 
 CREATE TABLE "Valve_inputs" (
 	"Valve_name" TEXT,
@@ -8440,8 +8444,8 @@ CREATE TABLE "Valve_outputs" (
 	PRIMARY KEY ("Valve_name", outputs),
 	FOREIGN KEY("Valve_name") REFERENCES "Valve" (name)
 );
-CREATE INDEX "ix_Valve_outputs_outputs" ON "Valve_outputs" (outputs);
 CREATE INDEX "ix_Valve_outputs_Valve_name" ON "Valve_outputs" ("Valve_name");
+CREATE INDEX "ix_Valve_outputs_outputs" ON "Valve_outputs" (outputs);
 
 CREATE TABLE "Valve_upstream" (
 	"Valve_name" TEXT,
@@ -8450,8 +8454,8 @@ CREATE TABLE "Valve_upstream" (
 	FOREIGN KEY("Valve_name") REFERENCES "Valve" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Valve_upstream_upstream_name" ON "Valve_upstream" (upstream_name);
 CREATE INDEX "ix_Valve_upstream_Valve_name" ON "Valve_upstream" ("Valve_name");
+CREATE INDEX "ix_Valve_upstream_upstream_name" ON "Valve_upstream" (upstream_name);
 
 CREATE TABLE "Valve_downstream" (
 	"Valve_name" TEXT,
@@ -8460,8 +8464,8 @@ CREATE TABLE "Valve_downstream" (
 	FOREIGN KEY("Valve_name") REFERENCES "Valve" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Valve_downstream_Valve_name" ON "Valve_downstream" ("Valve_name");
 CREATE INDEX "ix_Valve_downstream_downstream_name" ON "Valve_downstream" (downstream_name);
+CREATE INDEX "ix_Valve_downstream_Valve_name" ON "Valve_downstream" ("Valve_name");
 
 CREATE TABLE "Marker_alias" (
 	"Marker_name" TEXT,
@@ -8478,8 +8482,8 @@ CREATE TABLE "Marker_inputs" (
 	PRIMARY KEY ("Marker_name", inputs),
 	FOREIGN KEY("Marker_name") REFERENCES "Marker" (name)
 );
-CREATE INDEX "ix_Marker_inputs_Marker_name" ON "Marker_inputs" ("Marker_name");
 CREATE INDEX "ix_Marker_inputs_inputs" ON "Marker_inputs" (inputs);
+CREATE INDEX "ix_Marker_inputs_Marker_name" ON "Marker_inputs" ("Marker_name");
 
 CREATE TABLE "Marker_outputs" (
 	"Marker_name" TEXT,
@@ -8507,8 +8511,8 @@ CREATE TABLE "Marker_downstream" (
 	FOREIGN KEY("Marker_name") REFERENCES "Marker" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Marker_downstream_downstream_name" ON "Marker_downstream" (downstream_name);
 CREATE INDEX "ix_Marker_downstream_Marker_name" ON "Marker_downstream" ("Marker_name");
+CREATE INDEX "ix_Marker_downstream_downstream_name" ON "Marker_downstream" (downstream_name);
 
 CREATE TABLE "Aperture_alias" (
 	"Aperture_name" TEXT,
@@ -8516,8 +8520,8 @@ CREATE TABLE "Aperture_alias" (
 	PRIMARY KEY ("Aperture_name", alias),
 	FOREIGN KEY("Aperture_name") REFERENCES "Aperture" (name)
 );
-CREATE INDEX "ix_Aperture_alias_alias" ON "Aperture_alias" (alias);
 CREATE INDEX "ix_Aperture_alias_Aperture_name" ON "Aperture_alias" ("Aperture_name");
+CREATE INDEX "ix_Aperture_alias_alias" ON "Aperture_alias" (alias);
 
 CREATE TABLE "Aperture_inputs" (
 	"Aperture_name" TEXT,
@@ -8534,8 +8538,8 @@ CREATE TABLE "Aperture_outputs" (
 	PRIMARY KEY ("Aperture_name", outputs),
 	FOREIGN KEY("Aperture_name") REFERENCES "Aperture" (name)
 );
-CREATE INDEX "ix_Aperture_outputs_Aperture_name" ON "Aperture_outputs" ("Aperture_name");
 CREATE INDEX "ix_Aperture_outputs_outputs" ON "Aperture_outputs" (outputs);
+CREATE INDEX "ix_Aperture_outputs_Aperture_name" ON "Aperture_outputs" ("Aperture_name");
 
 CREATE TABLE "Aperture_upstream" (
 	"Aperture_name" TEXT,
@@ -8554,8 +8558,8 @@ CREATE TABLE "Aperture_downstream" (
 	FOREIGN KEY("Aperture_name") REFERENCES "Aperture" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Aperture_downstream_Aperture_name" ON "Aperture_downstream" ("Aperture_name");
 CREATE INDEX "ix_Aperture_downstream_downstream_name" ON "Aperture_downstream" (downstream_name);
+CREATE INDEX "ix_Aperture_downstream_Aperture_name" ON "Aperture_downstream" ("Aperture_name");
 
 CREATE TABLE "Collimator_alias" (
 	"Collimator_name" TEXT,
@@ -8581,8 +8585,8 @@ CREATE TABLE "Collimator_outputs" (
 	PRIMARY KEY ("Collimator_name", outputs),
 	FOREIGN KEY("Collimator_name") REFERENCES "Collimator" (name)
 );
-CREATE INDEX "ix_Collimator_outputs_Collimator_name" ON "Collimator_outputs" ("Collimator_name");
 CREATE INDEX "ix_Collimator_outputs_outputs" ON "Collimator_outputs" (outputs);
+CREATE INDEX "ix_Collimator_outputs_Collimator_name" ON "Collimator_outputs" ("Collimator_name");
 
 CREATE TABLE "Collimator_upstream" (
 	"Collimator_name" TEXT,
@@ -8610,8 +8614,8 @@ CREATE TABLE "Target_alias" (
 	PRIMARY KEY ("Target_name", alias),
 	FOREIGN KEY("Target_name") REFERENCES "Target" (name)
 );
-CREATE INDEX "ix_Target_alias_alias" ON "Target_alias" (alias);
 CREATE INDEX "ix_Target_alias_Target_name" ON "Target_alias" ("Target_name");
+CREATE INDEX "ix_Target_alias_alias" ON "Target_alias" (alias);
 
 CREATE TABLE "Target_inputs" (
 	"Target_name" TEXT,
@@ -8648,8 +8652,8 @@ CREATE TABLE "Target_downstream" (
 	FOREIGN KEY("Target_name") REFERENCES "Target" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Target_downstream_downstream_name" ON "Target_downstream" (downstream_name);
 CREATE INDEX "ix_Target_downstream_Target_name" ON "Target_downstream" ("Target_name");
+CREATE INDEX "ix_Target_downstream_downstream_name" ON "Target_downstream" (downstream_name);
 
 CREATE TABLE "Crystal_alias" (
 	"Crystal_name" TEXT,
@@ -8675,8 +8679,8 @@ CREATE TABLE "Crystal_outputs" (
 	PRIMARY KEY ("Crystal_name", outputs),
 	FOREIGN KEY("Crystal_name") REFERENCES "Crystal" (name)
 );
-CREATE INDEX "ix_Crystal_outputs_outputs" ON "Crystal_outputs" (outputs);
 CREATE INDEX "ix_Crystal_outputs_Crystal_name" ON "Crystal_outputs" ("Crystal_name");
+CREATE INDEX "ix_Crystal_outputs_outputs" ON "Crystal_outputs" (outputs);
 
 CREATE TABLE "Crystal_upstream" (
 	"Crystal_name" TEXT,
@@ -8713,8 +8717,8 @@ CREATE TABLE "Drift_inputs" (
 	PRIMARY KEY ("Drift_name", inputs),
 	FOREIGN KEY("Drift_name") REFERENCES "Drift" (name)
 );
-CREATE INDEX "ix_Drift_inputs_inputs" ON "Drift_inputs" (inputs);
 CREATE INDEX "ix_Drift_inputs_Drift_name" ON "Drift_inputs" ("Drift_name");
+CREATE INDEX "ix_Drift_inputs_inputs" ON "Drift_inputs" (inputs);
 
 CREATE TABLE "Drift_outputs" (
 	"Drift_name" TEXT,
@@ -8751,8 +8755,8 @@ CREATE TABLE "Magnet_alias" (
 	PRIMARY KEY ("Magnet_name", alias),
 	FOREIGN KEY("Magnet_name") REFERENCES "Magnet" (name)
 );
-CREATE INDEX "ix_Magnet_alias_alias" ON "Magnet_alias" (alias);
 CREATE INDEX "ix_Magnet_alias_Magnet_name" ON "Magnet_alias" ("Magnet_name");
+CREATE INDEX "ix_Magnet_alias_alias" ON "Magnet_alias" (alias);
 
 CREATE TABLE "Magnet_inputs" (
 	"Magnet_name" TEXT,
@@ -8760,8 +8764,8 @@ CREATE TABLE "Magnet_inputs" (
 	PRIMARY KEY ("Magnet_name", inputs),
 	FOREIGN KEY("Magnet_name") REFERENCES "Magnet" (name)
 );
-CREATE INDEX "ix_Magnet_inputs_Magnet_name" ON "Magnet_inputs" ("Magnet_name");
 CREATE INDEX "ix_Magnet_inputs_inputs" ON "Magnet_inputs" (inputs);
+CREATE INDEX "ix_Magnet_inputs_Magnet_name" ON "Magnet_inputs" ("Magnet_name");
 
 CREATE TABLE "Magnet_outputs" (
 	"Magnet_name" TEXT,
@@ -8769,8 +8773,8 @@ CREATE TABLE "Magnet_outputs" (
 	PRIMARY KEY ("Magnet_name", outputs),
 	FOREIGN KEY("Magnet_name") REFERENCES "Magnet" (name)
 );
-CREATE INDEX "ix_Magnet_outputs_outputs" ON "Magnet_outputs" (outputs);
 CREATE INDEX "ix_Magnet_outputs_Magnet_name" ON "Magnet_outputs" ("Magnet_name");
+CREATE INDEX "ix_Magnet_outputs_outputs" ON "Magnet_outputs" (outputs);
 
 CREATE TABLE "Magnet_upstream" (
 	"Magnet_name" TEXT,
@@ -8779,8 +8783,8 @@ CREATE TABLE "Magnet_upstream" (
 	FOREIGN KEY("Magnet_name") REFERENCES "Magnet" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Magnet_upstream_upstream_name" ON "Magnet_upstream" (upstream_name);
 CREATE INDEX "ix_Magnet_upstream_Magnet_name" ON "Magnet_upstream" ("Magnet_name");
+CREATE INDEX "ix_Magnet_upstream_upstream_name" ON "Magnet_upstream" (upstream_name);
 
 CREATE TABLE "Magnet_downstream" (
 	"Magnet_name" TEXT,
@@ -8789,8 +8793,8 @@ CREATE TABLE "Magnet_downstream" (
 	FOREIGN KEY("Magnet_name") REFERENCES "Magnet" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Magnet_downstream_downstream_name" ON "Magnet_downstream" (downstream_name);
 CREATE INDEX "ix_Magnet_downstream_Magnet_name" ON "Magnet_downstream" ("Magnet_name");
+CREATE INDEX "ix_Magnet_downstream_downstream_name" ON "Magnet_downstream" (downstream_name);
 
 CREATE TABLE "RFCavity_alias" (
 	"RFCavity_name" TEXT,
@@ -8816,8 +8820,8 @@ CREATE TABLE "RFCavity_outputs" (
 	PRIMARY KEY ("RFCavity_name", outputs),
 	FOREIGN KEY("RFCavity_name") REFERENCES "RFCavity" (name)
 );
-CREATE INDEX "ix_RFCavity_outputs_RFCavity_name" ON "RFCavity_outputs" ("RFCavity_name");
 CREATE INDEX "ix_RFCavity_outputs_outputs" ON "RFCavity_outputs" (outputs);
+CREATE INDEX "ix_RFCavity_outputs_RFCavity_name" ON "RFCavity_outputs" ("RFCavity_name");
 
 CREATE TABLE "RFCavity_upstream" (
 	"RFCavity_name" TEXT,
@@ -8826,8 +8830,8 @@ CREATE TABLE "RFCavity_upstream" (
 	FOREIGN KEY("RFCavity_name") REFERENCES "RFCavity" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_RFCavity_upstream_upstream_name" ON "RFCavity_upstream" (upstream_name);
 CREATE INDEX "ix_RFCavity_upstream_RFCavity_name" ON "RFCavity_upstream" ("RFCavity_name");
+CREATE INDEX "ix_RFCavity_upstream_upstream_name" ON "RFCavity_upstream" (upstream_name);
 
 CREATE TABLE "RFCavity_downstream" (
 	"RFCavity_name" TEXT,
@@ -8836,8 +8840,8 @@ CREATE TABLE "RFCavity_downstream" (
 	FOREIGN KEY("RFCavity_name") REFERENCES "RFCavity" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_RFCavity_downstream_downstream_name" ON "RFCavity_downstream" (downstream_name);
 CREATE INDEX "ix_RFCavity_downstream_RFCavity_name" ON "RFCavity_downstream" ("RFCavity_name");
+CREATE INDEX "ix_RFCavity_downstream_downstream_name" ON "RFCavity_downstream" (downstream_name);
 
 CREATE TABLE "RFDeflectingCavity_alias" (
 	"RFDeflectingCavity_name" TEXT,
@@ -8845,8 +8849,8 @@ CREATE TABLE "RFDeflectingCavity_alias" (
 	PRIMARY KEY ("RFDeflectingCavity_name", alias),
 	FOREIGN KEY("RFDeflectingCavity_name") REFERENCES "RFDeflectingCavity" (name)
 );
-CREATE INDEX "ix_RFDeflectingCavity_alias_alias" ON "RFDeflectingCavity_alias" (alias);
 CREATE INDEX "ix_RFDeflectingCavity_alias_RFDeflectingCavity_name" ON "RFDeflectingCavity_alias" ("RFDeflectingCavity_name");
+CREATE INDEX "ix_RFDeflectingCavity_alias_alias" ON "RFDeflectingCavity_alias" (alias);
 
 CREATE TABLE "RFDeflectingCavity_inputs" (
 	"RFDeflectingCavity_name" TEXT,
@@ -8863,8 +8867,8 @@ CREATE TABLE "RFDeflectingCavity_outputs" (
 	PRIMARY KEY ("RFDeflectingCavity_name", outputs),
 	FOREIGN KEY("RFDeflectingCavity_name") REFERENCES "RFDeflectingCavity" (name)
 );
-CREATE INDEX "ix_RFDeflectingCavity_outputs_RFDeflectingCavity_name" ON "RFDeflectingCavity_outputs" ("RFDeflectingCavity_name");
 CREATE INDEX "ix_RFDeflectingCavity_outputs_outputs" ON "RFDeflectingCavity_outputs" (outputs);
+CREATE INDEX "ix_RFDeflectingCavity_outputs_RFDeflectingCavity_name" ON "RFDeflectingCavity_outputs" ("RFDeflectingCavity_name");
 
 CREATE TABLE "RFDeflectingCavity_upstream" (
 	"RFDeflectingCavity_name" TEXT,
@@ -8873,8 +8877,8 @@ CREATE TABLE "RFDeflectingCavity_upstream" (
 	FOREIGN KEY("RFDeflectingCavity_name") REFERENCES "RFDeflectingCavity" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_RFDeflectingCavity_upstream_upstream_name" ON "RFDeflectingCavity_upstream" (upstream_name);
 CREATE INDEX "ix_RFDeflectingCavity_upstream_RFDeflectingCavity_name" ON "RFDeflectingCavity_upstream" ("RFDeflectingCavity_name");
+CREATE INDEX "ix_RFDeflectingCavity_upstream_upstream_name" ON "RFDeflectingCavity_upstream" (upstream_name);
 
 CREATE TABLE "RFDeflectingCavity_downstream" (
 	"RFDeflectingCavity_name" TEXT,
@@ -8883,8 +8887,8 @@ CREATE TABLE "RFDeflectingCavity_downstream" (
 	FOREIGN KEY("RFDeflectingCavity_name") REFERENCES "RFDeflectingCavity" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_RFDeflectingCavity_downstream_RFDeflectingCavity_name" ON "RFDeflectingCavity_downstream" ("RFDeflectingCavity_name");
 CREATE INDEX "ix_RFDeflectingCavity_downstream_downstream_name" ON "RFDeflectingCavity_downstream" (downstream_name);
+CREATE INDEX "ix_RFDeflectingCavity_downstream_RFDeflectingCavity_name" ON "RFDeflectingCavity_downstream" ("RFDeflectingCavity_name");
 
 CREATE TABLE "CrabCavity_alias" (
 	"CrabCavity_name" TEXT,
@@ -8892,8 +8896,8 @@ CREATE TABLE "CrabCavity_alias" (
 	PRIMARY KEY ("CrabCavity_name", alias),
 	FOREIGN KEY("CrabCavity_name") REFERENCES "CrabCavity" (name)
 );
-CREATE INDEX "ix_CrabCavity_alias_alias" ON "CrabCavity_alias" (alias);
 CREATE INDEX "ix_CrabCavity_alias_CrabCavity_name" ON "CrabCavity_alias" ("CrabCavity_name");
+CREATE INDEX "ix_CrabCavity_alias_alias" ON "CrabCavity_alias" (alias);
 
 CREATE TABLE "CrabCavity_inputs" (
 	"CrabCavity_name" TEXT,
@@ -8901,8 +8905,8 @@ CREATE TABLE "CrabCavity_inputs" (
 	PRIMARY KEY ("CrabCavity_name", inputs),
 	FOREIGN KEY("CrabCavity_name") REFERENCES "CrabCavity" (name)
 );
-CREATE INDEX "ix_CrabCavity_inputs_CrabCavity_name" ON "CrabCavity_inputs" ("CrabCavity_name");
 CREATE INDEX "ix_CrabCavity_inputs_inputs" ON "CrabCavity_inputs" (inputs);
+CREATE INDEX "ix_CrabCavity_inputs_CrabCavity_name" ON "CrabCavity_inputs" ("CrabCavity_name");
 
 CREATE TABLE "CrabCavity_outputs" (
 	"CrabCavity_name" TEXT,
@@ -8920,8 +8924,8 @@ CREATE TABLE "CrabCavity_upstream" (
 	FOREIGN KEY("CrabCavity_name") REFERENCES "CrabCavity" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_CrabCavity_upstream_CrabCavity_name" ON "CrabCavity_upstream" ("CrabCavity_name");
 CREATE INDEX "ix_CrabCavity_upstream_upstream_name" ON "CrabCavity_upstream" (upstream_name);
+CREATE INDEX "ix_CrabCavity_upstream_CrabCavity_name" ON "CrabCavity_upstream" ("CrabCavity_name");
 
 CREATE TABLE "CrabCavity_downstream" (
 	"CrabCavity_name" TEXT,
@@ -8939,8 +8943,8 @@ CREATE TABLE "Wakefield_alias" (
 	PRIMARY KEY ("Wakefield_name", alias),
 	FOREIGN KEY("Wakefield_name") REFERENCES "Wakefield" (name)
 );
-CREATE INDEX "ix_Wakefield_alias_alias" ON "Wakefield_alias" (alias);
 CREATE INDEX "ix_Wakefield_alias_Wakefield_name" ON "Wakefield_alias" ("Wakefield_name");
+CREATE INDEX "ix_Wakefield_alias_alias" ON "Wakefield_alias" (alias);
 
 CREATE TABLE "Wakefield_inputs" (
 	"Wakefield_name" TEXT,
@@ -8948,8 +8952,8 @@ CREATE TABLE "Wakefield_inputs" (
 	PRIMARY KEY ("Wakefield_name", inputs),
 	FOREIGN KEY("Wakefield_name") REFERENCES "Wakefield" (name)
 );
-CREATE INDEX "ix_Wakefield_inputs_inputs" ON "Wakefield_inputs" (inputs);
 CREATE INDEX "ix_Wakefield_inputs_Wakefield_name" ON "Wakefield_inputs" ("Wakefield_name");
+CREATE INDEX "ix_Wakefield_inputs_inputs" ON "Wakefield_inputs" (inputs);
 
 CREATE TABLE "Wakefield_outputs" (
 	"Wakefield_name" TEXT,
@@ -8977,8 +8981,8 @@ CREATE TABLE "Wakefield_downstream" (
 	FOREIGN KEY("Wakefield_name") REFERENCES "Wakefield" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Wakefield_downstream_downstream_name" ON "Wakefield_downstream" (downstream_name);
 CREATE INDEX "ix_Wakefield_downstream_Wakefield_name" ON "Wakefield_downstream" ("Wakefield_name");
+CREATE INDEX "ix_Wakefield_downstream_downstream_name" ON "Wakefield_downstream" (downstream_name);
 
 CREATE TABLE "LowLevelRF_alias" (
 	"LowLevelRF_name" TEXT,
@@ -9004,8 +9008,8 @@ CREATE TABLE "LowLevelRF_outputs" (
 	PRIMARY KEY ("LowLevelRF_name", outputs),
 	FOREIGN KEY("LowLevelRF_name") REFERENCES "LowLevelRF" (name)
 );
-CREATE INDEX "ix_LowLevelRF_outputs_LowLevelRF_name" ON "LowLevelRF_outputs" ("LowLevelRF_name");
 CREATE INDEX "ix_LowLevelRF_outputs_outputs" ON "LowLevelRF_outputs" (outputs);
+CREATE INDEX "ix_LowLevelRF_outputs_LowLevelRF_name" ON "LowLevelRF_outputs" ("LowLevelRF_name");
 
 CREATE TABLE "LowLevelRF_upstream" (
 	"LowLevelRF_name" TEXT,
@@ -9014,8 +9018,8 @@ CREATE TABLE "LowLevelRF_upstream" (
 	FOREIGN KEY("LowLevelRF_name") REFERENCES "LowLevelRF" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LowLevelRF_upstream_upstream_name" ON "LowLevelRF_upstream" (upstream_name);
 CREATE INDEX "ix_LowLevelRF_upstream_LowLevelRF_name" ON "LowLevelRF_upstream" ("LowLevelRF_name");
+CREATE INDEX "ix_LowLevelRF_upstream_upstream_name" ON "LowLevelRF_upstream" (upstream_name);
 
 CREATE TABLE "LowLevelRF_downstream" (
 	"LowLevelRF_name" TEXT,
@@ -9024,8 +9028,8 @@ CREATE TABLE "LowLevelRF_downstream" (
 	FOREIGN KEY("LowLevelRF_name") REFERENCES "LowLevelRF" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_LowLevelRF_downstream_downstream_name" ON "LowLevelRF_downstream" (downstream_name);
 CREATE INDEX "ix_LowLevelRF_downstream_LowLevelRF_name" ON "LowLevelRF_downstream" ("LowLevelRF_name");
+CREATE INDEX "ix_LowLevelRF_downstream_downstream_name" ON "LowLevelRF_downstream" (downstream_name);
 
 CREATE TABLE "Diagnostic_alias" (
 	"Diagnostic_name" TEXT,
@@ -9042,8 +9046,8 @@ CREATE TABLE "Diagnostic_inputs" (
 	PRIMARY KEY ("Diagnostic_name", inputs),
 	FOREIGN KEY("Diagnostic_name") REFERENCES "Diagnostic" (name)
 );
-CREATE INDEX "ix_Diagnostic_inputs_Diagnostic_name" ON "Diagnostic_inputs" ("Diagnostic_name");
 CREATE INDEX "ix_Diagnostic_inputs_inputs" ON "Diagnostic_inputs" (inputs);
+CREATE INDEX "ix_Diagnostic_inputs_Diagnostic_name" ON "Diagnostic_inputs" ("Diagnostic_name");
 
 CREATE TABLE "Diagnostic_outputs" (
 	"Diagnostic_name" TEXT,
@@ -9061,8 +9065,8 @@ CREATE TABLE "Diagnostic_upstream" (
 	FOREIGN KEY("Diagnostic_name") REFERENCES "Diagnostic" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Diagnostic_upstream_upstream_name" ON "Diagnostic_upstream" (upstream_name);
 CREATE INDEX "ix_Diagnostic_upstream_Diagnostic_name" ON "Diagnostic_upstream" ("Diagnostic_name");
+CREATE INDEX "ix_Diagnostic_upstream_upstream_name" ON "Diagnostic_upstream" (upstream_name);
 
 CREATE TABLE "Diagnostic_downstream" (
 	"Diagnostic_name" TEXT,
@@ -9071,8 +9075,8 @@ CREATE TABLE "Diagnostic_downstream" (
 	FOREIGN KEY("Diagnostic_name") REFERENCES "Diagnostic" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Diagnostic_downstream_downstream_name" ON "Diagnostic_downstream" (downstream_name);
 CREATE INDEX "ix_Diagnostic_downstream_Diagnostic_name" ON "Diagnostic_downstream" ("Diagnostic_name");
+CREATE INDEX "ix_Diagnostic_downstream_downstream_name" ON "Diagnostic_downstream" (downstream_name);
 
 CREATE TABLE "BeamPositionMonitor_alias" (
 	"BeamPositionMonitor_name" TEXT,
@@ -9080,8 +9084,8 @@ CREATE TABLE "BeamPositionMonitor_alias" (
 	PRIMARY KEY ("BeamPositionMonitor_name", alias),
 	FOREIGN KEY("BeamPositionMonitor_name") REFERENCES "BeamPositionMonitor" (name)
 );
-CREATE INDEX "ix_BeamPositionMonitor_alias_BeamPositionMonitor_name" ON "BeamPositionMonitor_alias" ("BeamPositionMonitor_name");
 CREATE INDEX "ix_BeamPositionMonitor_alias_alias" ON "BeamPositionMonitor_alias" (alias);
+CREATE INDEX "ix_BeamPositionMonitor_alias_BeamPositionMonitor_name" ON "BeamPositionMonitor_alias" ("BeamPositionMonitor_name");
 
 CREATE TABLE "BeamPositionMonitor_inputs" (
 	"BeamPositionMonitor_name" TEXT,
@@ -9089,8 +9093,8 @@ CREATE TABLE "BeamPositionMonitor_inputs" (
 	PRIMARY KEY ("BeamPositionMonitor_name", inputs),
 	FOREIGN KEY("BeamPositionMonitor_name") REFERENCES "BeamPositionMonitor" (name)
 );
-CREATE INDEX "ix_BeamPositionMonitor_inputs_inputs" ON "BeamPositionMonitor_inputs" (inputs);
 CREATE INDEX "ix_BeamPositionMonitor_inputs_BeamPositionMonitor_name" ON "BeamPositionMonitor_inputs" ("BeamPositionMonitor_name");
+CREATE INDEX "ix_BeamPositionMonitor_inputs_inputs" ON "BeamPositionMonitor_inputs" (inputs);
 
 CREATE TABLE "BeamPositionMonitor_outputs" (
 	"BeamPositionMonitor_name" TEXT,
@@ -9098,8 +9102,8 @@ CREATE TABLE "BeamPositionMonitor_outputs" (
 	PRIMARY KEY ("BeamPositionMonitor_name", outputs),
 	FOREIGN KEY("BeamPositionMonitor_name") REFERENCES "BeamPositionMonitor" (name)
 );
-CREATE INDEX "ix_BeamPositionMonitor_outputs_BeamPositionMonitor_name" ON "BeamPositionMonitor_outputs" ("BeamPositionMonitor_name");
 CREATE INDEX "ix_BeamPositionMonitor_outputs_outputs" ON "BeamPositionMonitor_outputs" (outputs);
+CREATE INDEX "ix_BeamPositionMonitor_outputs_BeamPositionMonitor_name" ON "BeamPositionMonitor_outputs" ("BeamPositionMonitor_name");
 
 CREATE TABLE "BeamPositionMonitor_upstream" (
 	"BeamPositionMonitor_name" TEXT,
@@ -9108,8 +9112,8 @@ CREATE TABLE "BeamPositionMonitor_upstream" (
 	FOREIGN KEY("BeamPositionMonitor_name") REFERENCES "BeamPositionMonitor" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_BeamPositionMonitor_upstream_upstream_name" ON "BeamPositionMonitor_upstream" (upstream_name);
 CREATE INDEX "ix_BeamPositionMonitor_upstream_BeamPositionMonitor_name" ON "BeamPositionMonitor_upstream" ("BeamPositionMonitor_name");
+CREATE INDEX "ix_BeamPositionMonitor_upstream_upstream_name" ON "BeamPositionMonitor_upstream" (upstream_name);
 
 CREATE TABLE "BeamPositionMonitor_downstream" (
 	"BeamPositionMonitor_name" TEXT,
@@ -9127,8 +9131,8 @@ CREATE TABLE "BeamArrivalMonitor_alias" (
 	PRIMARY KEY ("BeamArrivalMonitor_name", alias),
 	FOREIGN KEY("BeamArrivalMonitor_name") REFERENCES "BeamArrivalMonitor" (name)
 );
-CREATE INDEX "ix_BeamArrivalMonitor_alias_BeamArrivalMonitor_name" ON "BeamArrivalMonitor_alias" ("BeamArrivalMonitor_name");
 CREATE INDEX "ix_BeamArrivalMonitor_alias_alias" ON "BeamArrivalMonitor_alias" (alias);
+CREATE INDEX "ix_BeamArrivalMonitor_alias_BeamArrivalMonitor_name" ON "BeamArrivalMonitor_alias" ("BeamArrivalMonitor_name");
 
 CREATE TABLE "BeamArrivalMonitor_inputs" (
 	"BeamArrivalMonitor_name" TEXT,
@@ -9145,8 +9149,8 @@ CREATE TABLE "BeamArrivalMonitor_outputs" (
 	PRIMARY KEY ("BeamArrivalMonitor_name", outputs),
 	FOREIGN KEY("BeamArrivalMonitor_name") REFERENCES "BeamArrivalMonitor" (name)
 );
-CREATE INDEX "ix_BeamArrivalMonitor_outputs_outputs" ON "BeamArrivalMonitor_outputs" (outputs);
 CREATE INDEX "ix_BeamArrivalMonitor_outputs_BeamArrivalMonitor_name" ON "BeamArrivalMonitor_outputs" ("BeamArrivalMonitor_name");
+CREATE INDEX "ix_BeamArrivalMonitor_outputs_outputs" ON "BeamArrivalMonitor_outputs" (outputs);
 
 CREATE TABLE "BeamArrivalMonitor_upstream" (
 	"BeamArrivalMonitor_name" TEXT,
@@ -9155,8 +9159,8 @@ CREATE TABLE "BeamArrivalMonitor_upstream" (
 	FOREIGN KEY("BeamArrivalMonitor_name") REFERENCES "BeamArrivalMonitor" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_BeamArrivalMonitor_upstream_BeamArrivalMonitor_name" ON "BeamArrivalMonitor_upstream" ("BeamArrivalMonitor_name");
 CREATE INDEX "ix_BeamArrivalMonitor_upstream_upstream_name" ON "BeamArrivalMonitor_upstream" (upstream_name);
+CREATE INDEX "ix_BeamArrivalMonitor_upstream_BeamArrivalMonitor_name" ON "BeamArrivalMonitor_upstream" ("BeamArrivalMonitor_name");
 
 CREATE TABLE "BeamArrivalMonitor_downstream" (
 	"BeamArrivalMonitor_name" TEXT,
@@ -9165,8 +9169,8 @@ CREATE TABLE "BeamArrivalMonitor_downstream" (
 	FOREIGN KEY("BeamArrivalMonitor_name") REFERENCES "BeamArrivalMonitor" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_BeamArrivalMonitor_downstream_downstream_name" ON "BeamArrivalMonitor_downstream" (downstream_name);
 CREATE INDEX "ix_BeamArrivalMonitor_downstream_BeamArrivalMonitor_name" ON "BeamArrivalMonitor_downstream" ("BeamArrivalMonitor_name");
+CREATE INDEX "ix_BeamArrivalMonitor_downstream_downstream_name" ON "BeamArrivalMonitor_downstream" (downstream_name);
 
 CREATE TABLE "BunchLengthMonitor_alias" (
 	"BunchLengthMonitor_name" TEXT,
@@ -9183,8 +9187,8 @@ CREATE TABLE "BunchLengthMonitor_inputs" (
 	PRIMARY KEY ("BunchLengthMonitor_name", inputs),
 	FOREIGN KEY("BunchLengthMonitor_name") REFERENCES "BunchLengthMonitor" (name)
 );
-CREATE INDEX "ix_BunchLengthMonitor_inputs_inputs" ON "BunchLengthMonitor_inputs" (inputs);
 CREATE INDEX "ix_BunchLengthMonitor_inputs_BunchLengthMonitor_name" ON "BunchLengthMonitor_inputs" ("BunchLengthMonitor_name");
+CREATE INDEX "ix_BunchLengthMonitor_inputs_inputs" ON "BunchLengthMonitor_inputs" (inputs);
 
 CREATE TABLE "BunchLengthMonitor_outputs" (
 	"BunchLengthMonitor_name" TEXT,
@@ -9192,8 +9196,8 @@ CREATE TABLE "BunchLengthMonitor_outputs" (
 	PRIMARY KEY ("BunchLengthMonitor_name", outputs),
 	FOREIGN KEY("BunchLengthMonitor_name") REFERENCES "BunchLengthMonitor" (name)
 );
-CREATE INDEX "ix_BunchLengthMonitor_outputs_BunchLengthMonitor_name" ON "BunchLengthMonitor_outputs" ("BunchLengthMonitor_name");
 CREATE INDEX "ix_BunchLengthMonitor_outputs_outputs" ON "BunchLengthMonitor_outputs" (outputs);
+CREATE INDEX "ix_BunchLengthMonitor_outputs_BunchLengthMonitor_name" ON "BunchLengthMonitor_outputs" ("BunchLengthMonitor_name");
 
 CREATE TABLE "BunchLengthMonitor_upstream" (
 	"BunchLengthMonitor_name" TEXT,
@@ -9202,8 +9206,8 @@ CREATE TABLE "BunchLengthMonitor_upstream" (
 	FOREIGN KEY("BunchLengthMonitor_name") REFERENCES "BunchLengthMonitor" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_BunchLengthMonitor_upstream_upstream_name" ON "BunchLengthMonitor_upstream" (upstream_name);
 CREATE INDEX "ix_BunchLengthMonitor_upstream_BunchLengthMonitor_name" ON "BunchLengthMonitor_upstream" ("BunchLengthMonitor_name");
+CREATE INDEX "ix_BunchLengthMonitor_upstream_upstream_name" ON "BunchLengthMonitor_upstream" (upstream_name);
 
 CREATE TABLE "BunchLengthMonitor_downstream" (
 	"BunchLengthMonitor_name" TEXT,
@@ -9212,8 +9216,8 @@ CREATE TABLE "BunchLengthMonitor_downstream" (
 	FOREIGN KEY("BunchLengthMonitor_name") REFERENCES "BunchLengthMonitor" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_BunchLengthMonitor_downstream_BunchLengthMonitor_name" ON "BunchLengthMonitor_downstream" ("BunchLengthMonitor_name");
 CREATE INDEX "ix_BunchLengthMonitor_downstream_downstream_name" ON "BunchLengthMonitor_downstream" (downstream_name);
+CREATE INDEX "ix_BunchLengthMonitor_downstream_BunchLengthMonitor_name" ON "BunchLengthMonitor_downstream" ("BunchLengthMonitor_name");
 
 CREATE TABLE "Camera_alias" (
 	"Camera_name" TEXT,
@@ -9230,8 +9234,8 @@ CREATE TABLE "Camera_inputs" (
 	PRIMARY KEY ("Camera_name", inputs),
 	FOREIGN KEY("Camera_name") REFERENCES "Camera" (name)
 );
-CREATE INDEX "ix_Camera_inputs_Camera_name" ON "Camera_inputs" ("Camera_name");
 CREATE INDEX "ix_Camera_inputs_inputs" ON "Camera_inputs" (inputs);
+CREATE INDEX "ix_Camera_inputs_Camera_name" ON "Camera_inputs" ("Camera_name");
 
 CREATE TABLE "Camera_outputs" (
 	"Camera_name" TEXT,
@@ -9239,8 +9243,8 @@ CREATE TABLE "Camera_outputs" (
 	PRIMARY KEY ("Camera_name", outputs),
 	FOREIGN KEY("Camera_name") REFERENCES "Camera" (name)
 );
-CREATE INDEX "ix_Camera_outputs_outputs" ON "Camera_outputs" (outputs);
 CREATE INDEX "ix_Camera_outputs_Camera_name" ON "Camera_outputs" ("Camera_name");
+CREATE INDEX "ix_Camera_outputs_outputs" ON "Camera_outputs" (outputs);
 
 CREATE TABLE "Camera_upstream" (
 	"Camera_name" TEXT,
@@ -9249,8 +9253,8 @@ CREATE TABLE "Camera_upstream" (
 	FOREIGN KEY("Camera_name") REFERENCES "Camera" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Camera_upstream_Camera_name" ON "Camera_upstream" ("Camera_name");
 CREATE INDEX "ix_Camera_upstream_upstream_name" ON "Camera_upstream" (upstream_name);
+CREATE INDEX "ix_Camera_upstream_Camera_name" ON "Camera_upstream" ("Camera_name");
 
 CREATE TABLE "Camera_downstream" (
 	"Camera_name" TEXT,
@@ -9259,8 +9263,8 @@ CREATE TABLE "Camera_downstream" (
 	FOREIGN KEY("Camera_name") REFERENCES "Camera" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Camera_downstream_Camera_name" ON "Camera_downstream" ("Camera_name");
 CREATE INDEX "ix_Camera_downstream_downstream_name" ON "Camera_downstream" (downstream_name);
+CREATE INDEX "ix_Camera_downstream_Camera_name" ON "Camera_downstream" ("Camera_name");
 
 CREATE TABLE "Screen_alias" (
 	"Screen_name" TEXT,
@@ -9277,8 +9281,8 @@ CREATE TABLE "Screen_inputs" (
 	PRIMARY KEY ("Screen_name", inputs),
 	FOREIGN KEY("Screen_name") REFERENCES "Screen" (name)
 );
-CREATE INDEX "ix_Screen_inputs_inputs" ON "Screen_inputs" (inputs);
 CREATE INDEX "ix_Screen_inputs_Screen_name" ON "Screen_inputs" ("Screen_name");
+CREATE INDEX "ix_Screen_inputs_inputs" ON "Screen_inputs" (inputs);
 
 CREATE TABLE "Screen_outputs" (
 	"Screen_name" TEXT,
@@ -9296,8 +9300,8 @@ CREATE TABLE "Screen_upstream" (
 	FOREIGN KEY("Screen_name") REFERENCES "Screen" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Screen_upstream_Screen_name" ON "Screen_upstream" ("Screen_name");
 CREATE INDEX "ix_Screen_upstream_upstream_name" ON "Screen_upstream" (upstream_name);
+CREATE INDEX "ix_Screen_upstream_Screen_name" ON "Screen_upstream" ("Screen_name");
 
 CREATE TABLE "Screen_downstream" (
 	"Screen_name" TEXT,
@@ -9306,8 +9310,8 @@ CREATE TABLE "Screen_downstream" (
 	FOREIGN KEY("Screen_name") REFERENCES "Screen" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Screen_downstream_Screen_name" ON "Screen_downstream" ("Screen_name");
 CREATE INDEX "ix_Screen_downstream_downstream_name" ON "Screen_downstream" (downstream_name);
+CREATE INDEX "ix_Screen_downstream_Screen_name" ON "Screen_downstream" ("Screen_name");
 
 CREATE TABLE "WireScanner_alias" (
 	"WireScanner_name" TEXT,
@@ -9315,8 +9319,8 @@ CREATE TABLE "WireScanner_alias" (
 	PRIMARY KEY ("WireScanner_name", alias),
 	FOREIGN KEY("WireScanner_name") REFERENCES "WireScanner" (name)
 );
-CREATE INDEX "ix_WireScanner_alias_alias" ON "WireScanner_alias" (alias);
 CREATE INDEX "ix_WireScanner_alias_WireScanner_name" ON "WireScanner_alias" ("WireScanner_name");
+CREATE INDEX "ix_WireScanner_alias_alias" ON "WireScanner_alias" (alias);
 
 CREATE TABLE "WireScanner_inputs" (
 	"WireScanner_name" TEXT,
@@ -9333,8 +9337,8 @@ CREATE TABLE "WireScanner_outputs" (
 	PRIMARY KEY ("WireScanner_name", outputs),
 	FOREIGN KEY("WireScanner_name") REFERENCES "WireScanner" (name)
 );
-CREATE INDEX "ix_WireScanner_outputs_outputs" ON "WireScanner_outputs" (outputs);
 CREATE INDEX "ix_WireScanner_outputs_WireScanner_name" ON "WireScanner_outputs" ("WireScanner_name");
+CREATE INDEX "ix_WireScanner_outputs_outputs" ON "WireScanner_outputs" (outputs);
 
 CREATE TABLE "WireScanner_upstream" (
 	"WireScanner_name" TEXT,
@@ -9343,8 +9347,8 @@ CREATE TABLE "WireScanner_upstream" (
 	FOREIGN KEY("WireScanner_name") REFERENCES "WireScanner" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_WireScanner_upstream_WireScanner_name" ON "WireScanner_upstream" ("WireScanner_name");
 CREATE INDEX "ix_WireScanner_upstream_upstream_name" ON "WireScanner_upstream" (upstream_name);
+CREATE INDEX "ix_WireScanner_upstream_WireScanner_name" ON "WireScanner_upstream" ("WireScanner_name");
 
 CREATE TABLE "WireScanner_downstream" (
 	"WireScanner_name" TEXT,
@@ -9380,8 +9384,8 @@ CREATE TABLE "ChargeDiagnostic_outputs" (
 	PRIMARY KEY ("ChargeDiagnostic_name", outputs),
 	FOREIGN KEY("ChargeDiagnostic_name") REFERENCES "ChargeDiagnostic" (name)
 );
-CREATE INDEX "ix_ChargeDiagnostic_outputs_outputs" ON "ChargeDiagnostic_outputs" (outputs);
 CREATE INDEX "ix_ChargeDiagnostic_outputs_ChargeDiagnostic_name" ON "ChargeDiagnostic_outputs" ("ChargeDiagnostic_name");
+CREATE INDEX "ix_ChargeDiagnostic_outputs_outputs" ON "ChargeDiagnostic_outputs" (outputs);
 
 CREATE TABLE "ChargeDiagnostic_upstream" (
 	"ChargeDiagnostic_name" TEXT,
@@ -9390,8 +9394,8 @@ CREATE TABLE "ChargeDiagnostic_upstream" (
 	FOREIGN KEY("ChargeDiagnostic_name") REFERENCES "ChargeDiagnostic" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_ChargeDiagnostic_upstream_ChargeDiagnostic_name" ON "ChargeDiagnostic_upstream" ("ChargeDiagnostic_name");
 CREATE INDEX "ix_ChargeDiagnostic_upstream_upstream_name" ON "ChargeDiagnostic_upstream" (upstream_name);
+CREATE INDEX "ix_ChargeDiagnostic_upstream_ChargeDiagnostic_name" ON "ChargeDiagnostic_upstream" ("ChargeDiagnostic_name");
 
 CREATE TABLE "ChargeDiagnostic_downstream" (
 	"ChargeDiagnostic_name" TEXT,
@@ -9400,8 +9404,8 @@ CREATE TABLE "ChargeDiagnostic_downstream" (
 	FOREIGN KEY("ChargeDiagnostic_name") REFERENCES "ChargeDiagnostic" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_ChargeDiagnostic_downstream_downstream_name" ON "ChargeDiagnostic_downstream" (downstream_name);
 CREATE INDEX "ix_ChargeDiagnostic_downstream_ChargeDiagnostic_name" ON "ChargeDiagnostic_downstream" ("ChargeDiagnostic_name");
+CREATE INDEX "ix_ChargeDiagnostic_downstream_downstream_name" ON "ChargeDiagnostic_downstream" (downstream_name);
 
 CREATE TABLE "WallCurrentMonitor_alias" (
 	"WallCurrentMonitor_name" TEXT,
@@ -9409,8 +9413,8 @@ CREATE TABLE "WallCurrentMonitor_alias" (
 	PRIMARY KEY ("WallCurrentMonitor_name", alias),
 	FOREIGN KEY("WallCurrentMonitor_name") REFERENCES "WallCurrentMonitor" (name)
 );
-CREATE INDEX "ix_WallCurrentMonitor_alias_alias" ON "WallCurrentMonitor_alias" (alias);
 CREATE INDEX "ix_WallCurrentMonitor_alias_WallCurrentMonitor_name" ON "WallCurrentMonitor_alias" ("WallCurrentMonitor_name");
+CREATE INDEX "ix_WallCurrentMonitor_alias_alias" ON "WallCurrentMonitor_alias" (alias);
 
 CREATE TABLE "WallCurrentMonitor_inputs" (
 	"WallCurrentMonitor_name" TEXT,
@@ -9418,8 +9422,8 @@ CREATE TABLE "WallCurrentMonitor_inputs" (
 	PRIMARY KEY ("WallCurrentMonitor_name", inputs),
 	FOREIGN KEY("WallCurrentMonitor_name") REFERENCES "WallCurrentMonitor" (name)
 );
-CREATE INDEX "ix_WallCurrentMonitor_inputs_WallCurrentMonitor_name" ON "WallCurrentMonitor_inputs" ("WallCurrentMonitor_name");
 CREATE INDEX "ix_WallCurrentMonitor_inputs_inputs" ON "WallCurrentMonitor_inputs" (inputs);
+CREATE INDEX "ix_WallCurrentMonitor_inputs_WallCurrentMonitor_name" ON "WallCurrentMonitor_inputs" ("WallCurrentMonitor_name");
 
 CREATE TABLE "WallCurrentMonitor_outputs" (
 	"WallCurrentMonitor_name" TEXT,
@@ -9427,8 +9431,8 @@ CREATE TABLE "WallCurrentMonitor_outputs" (
 	PRIMARY KEY ("WallCurrentMonitor_name", outputs),
 	FOREIGN KEY("WallCurrentMonitor_name") REFERENCES "WallCurrentMonitor" (name)
 );
-CREATE INDEX "ix_WallCurrentMonitor_outputs_outputs" ON "WallCurrentMonitor_outputs" (outputs);
 CREATE INDEX "ix_WallCurrentMonitor_outputs_WallCurrentMonitor_name" ON "WallCurrentMonitor_outputs" ("WallCurrentMonitor_name");
+CREATE INDEX "ix_WallCurrentMonitor_outputs_outputs" ON "WallCurrentMonitor_outputs" (outputs);
 
 CREATE TABLE "WallCurrentMonitor_upstream" (
 	"WallCurrentMonitor_name" TEXT,
@@ -9437,8 +9441,8 @@ CREATE TABLE "WallCurrentMonitor_upstream" (
 	FOREIGN KEY("WallCurrentMonitor_name") REFERENCES "WallCurrentMonitor" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_WallCurrentMonitor_upstream_WallCurrentMonitor_name" ON "WallCurrentMonitor_upstream" ("WallCurrentMonitor_name");
 CREATE INDEX "ix_WallCurrentMonitor_upstream_upstream_name" ON "WallCurrentMonitor_upstream" (upstream_name);
+CREATE INDEX "ix_WallCurrentMonitor_upstream_WallCurrentMonitor_name" ON "WallCurrentMonitor_upstream" ("WallCurrentMonitor_name");
 
 CREATE TABLE "WallCurrentMonitor_downstream" (
 	"WallCurrentMonitor_name" TEXT,
@@ -9456,8 +9460,8 @@ CREATE TABLE "FaradayCupMonitor_alias" (
 	PRIMARY KEY ("FaradayCupMonitor_name", alias),
 	FOREIGN KEY("FaradayCupMonitor_name") REFERENCES "FaradayCupMonitor" (name)
 );
-CREATE INDEX "ix_FaradayCupMonitor_alias_FaradayCupMonitor_name" ON "FaradayCupMonitor_alias" ("FaradayCupMonitor_name");
 CREATE INDEX "ix_FaradayCupMonitor_alias_alias" ON "FaradayCupMonitor_alias" (alias);
+CREATE INDEX "ix_FaradayCupMonitor_alias_FaradayCupMonitor_name" ON "FaradayCupMonitor_alias" ("FaradayCupMonitor_name");
 
 CREATE TABLE "FaradayCupMonitor_inputs" (
 	"FaradayCupMonitor_name" TEXT,
@@ -9465,8 +9469,8 @@ CREATE TABLE "FaradayCupMonitor_inputs" (
 	PRIMARY KEY ("FaradayCupMonitor_name", inputs),
 	FOREIGN KEY("FaradayCupMonitor_name") REFERENCES "FaradayCupMonitor" (name)
 );
-CREATE INDEX "ix_FaradayCupMonitor_inputs_inputs" ON "FaradayCupMonitor_inputs" (inputs);
 CREATE INDEX "ix_FaradayCupMonitor_inputs_FaradayCupMonitor_name" ON "FaradayCupMonitor_inputs" ("FaradayCupMonitor_name");
+CREATE INDEX "ix_FaradayCupMonitor_inputs_inputs" ON "FaradayCupMonitor_inputs" (inputs);
 
 CREATE TABLE "FaradayCupMonitor_outputs" (
 	"FaradayCupMonitor_name" TEXT,
@@ -9484,8 +9488,8 @@ CREATE TABLE "FaradayCupMonitor_upstream" (
 	FOREIGN KEY("FaradayCupMonitor_name") REFERENCES "FaradayCupMonitor" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_FaradayCupMonitor_upstream_upstream_name" ON "FaradayCupMonitor_upstream" (upstream_name);
 CREATE INDEX "ix_FaradayCupMonitor_upstream_FaradayCupMonitor_name" ON "FaradayCupMonitor_upstream" ("FaradayCupMonitor_name");
+CREATE INDEX "ix_FaradayCupMonitor_upstream_upstream_name" ON "FaradayCupMonitor_upstream" (upstream_name);
 
 CREATE TABLE "FaradayCupMonitor_downstream" (
 	"FaradayCupMonitor_name" TEXT,
@@ -9503,8 +9507,8 @@ CREATE TABLE "IntegratedCurrentTransformer_alias" (
 	PRIMARY KEY ("IntegratedCurrentTransformer_name", alias),
 	FOREIGN KEY("IntegratedCurrentTransformer_name") REFERENCES "IntegratedCurrentTransformer" (name)
 );
-CREATE INDEX "ix_IntegratedCurrentTransformer_alias_IntegratedCurrentTransformer_name" ON "IntegratedCurrentTransformer_alias" ("IntegratedCurrentTransformer_name");
 CREATE INDEX "ix_IntegratedCurrentTransformer_alias_alias" ON "IntegratedCurrentTransformer_alias" (alias);
+CREATE INDEX "ix_IntegratedCurrentTransformer_alias_IntegratedCurrentTransformer_name" ON "IntegratedCurrentTransformer_alias" ("IntegratedCurrentTransformer_name");
 
 CREATE TABLE "IntegratedCurrentTransformer_inputs" (
 	"IntegratedCurrentTransformer_name" TEXT,
@@ -9531,8 +9535,8 @@ CREATE TABLE "IntegratedCurrentTransformer_upstream" (
 	FOREIGN KEY("IntegratedCurrentTransformer_name") REFERENCES "IntegratedCurrentTransformer" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_IntegratedCurrentTransformer_upstream_upstream_name" ON "IntegratedCurrentTransformer_upstream" (upstream_name);
 CREATE INDEX "ix_IntegratedCurrentTransformer_upstream_IntegratedCurrentTransformer_name" ON "IntegratedCurrentTransformer_upstream" ("IntegratedCurrentTransformer_name");
+CREATE INDEX "ix_IntegratedCurrentTransformer_upstream_upstream_name" ON "IntegratedCurrentTransformer_upstream" (upstream_name);
 
 CREATE TABLE "IntegratedCurrentTransformer_downstream" (
 	"IntegratedCurrentTransformer_name" TEXT,
@@ -9559,8 +9563,8 @@ CREATE TABLE "PhotonMonitor_inputs" (
 	PRIMARY KEY ("PhotonMonitor_name", inputs),
 	FOREIGN KEY("PhotonMonitor_name") REFERENCES "PhotonMonitor" (name)
 );
-CREATE INDEX "ix_PhotonMonitor_inputs_inputs" ON "PhotonMonitor_inputs" (inputs);
 CREATE INDEX "ix_PhotonMonitor_inputs_PhotonMonitor_name" ON "PhotonMonitor_inputs" ("PhotonMonitor_name");
+CREATE INDEX "ix_PhotonMonitor_inputs_inputs" ON "PhotonMonitor_inputs" (inputs);
 
 CREATE TABLE "PhotonMonitor_outputs" (
 	"PhotonMonitor_name" TEXT,
@@ -9568,8 +9572,8 @@ CREATE TABLE "PhotonMonitor_outputs" (
 	PRIMARY KEY ("PhotonMonitor_name", outputs),
 	FOREIGN KEY("PhotonMonitor_name") REFERENCES "PhotonMonitor" (name)
 );
-CREATE INDEX "ix_PhotonMonitor_outputs_PhotonMonitor_name" ON "PhotonMonitor_outputs" ("PhotonMonitor_name");
 CREATE INDEX "ix_PhotonMonitor_outputs_outputs" ON "PhotonMonitor_outputs" (outputs);
+CREATE INDEX "ix_PhotonMonitor_outputs_PhotonMonitor_name" ON "PhotonMonitor_outputs" ("PhotonMonitor_name");
 
 CREATE TABLE "PhotonMonitor_upstream" (
 	"PhotonMonitor_name" TEXT,
@@ -9578,8 +9582,8 @@ CREATE TABLE "PhotonMonitor_upstream" (
 	FOREIGN KEY("PhotonMonitor_name") REFERENCES "PhotonMonitor" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_PhotonMonitor_upstream_upstream_name" ON "PhotonMonitor_upstream" (upstream_name);
 CREATE INDEX "ix_PhotonMonitor_upstream_PhotonMonitor_name" ON "PhotonMonitor_upstream" ("PhotonMonitor_name");
+CREATE INDEX "ix_PhotonMonitor_upstream_upstream_name" ON "PhotonMonitor_upstream" (upstream_name);
 
 CREATE TABLE "PhotonMonitor_downstream" (
 	"PhotonMonitor_name" TEXT,
@@ -9588,8 +9592,8 @@ CREATE TABLE "PhotonMonitor_downstream" (
 	FOREIGN KEY("PhotonMonitor_name") REFERENCES "PhotonMonitor" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_PhotonMonitor_downstream_downstream_name" ON "PhotonMonitor_downstream" (downstream_name);
 CREATE INDEX "ix_PhotonMonitor_downstream_PhotonMonitor_name" ON "PhotonMonitor_downstream" ("PhotonMonitor_name");
+CREATE INDEX "ix_PhotonMonitor_downstream_downstream_name" ON "PhotonMonitor_downstream" (downstream_name);
 
 CREATE TABLE "Plasma_alias" (
 	"Plasma_name" TEXT,
@@ -9606,8 +9610,8 @@ CREATE TABLE "Plasma_inputs" (
 	PRIMARY KEY ("Plasma_name", inputs),
 	FOREIGN KEY("Plasma_name") REFERENCES "Plasma" (name)
 );
-CREATE INDEX "ix_Plasma_inputs_Plasma_name" ON "Plasma_inputs" ("Plasma_name");
 CREATE INDEX "ix_Plasma_inputs_inputs" ON "Plasma_inputs" (inputs);
+CREATE INDEX "ix_Plasma_inputs_Plasma_name" ON "Plasma_inputs" ("Plasma_name");
 
 CREATE TABLE "Plasma_outputs" (
 	"Plasma_name" TEXT,
@@ -9635,8 +9639,8 @@ CREATE TABLE "Plasma_downstream" (
 	FOREIGN KEY("Plasma_name") REFERENCES "Plasma" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Plasma_downstream_downstream_name" ON "Plasma_downstream" (downstream_name);
 CREATE INDEX "ix_Plasma_downstream_Plasma_name" ON "Plasma_downstream" ("Plasma_name");
+CREATE INDEX "ix_Plasma_downstream_downstream_name" ON "Plasma_downstream" (downstream_name);
 
 CREATE TABLE "PlasmaLens_alias" (
 	"PlasmaLens_name" TEXT,
@@ -9672,8 +9676,8 @@ CREATE TABLE "PlasmaLens_upstream" (
 	FOREIGN KEY("PlasmaLens_name") REFERENCES "PlasmaLens" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_PlasmaLens_upstream_PlasmaLens_name" ON "PlasmaLens_upstream" ("PlasmaLens_name");
 CREATE INDEX "ix_PlasmaLens_upstream_upstream_name" ON "PlasmaLens_upstream" (upstream_name);
+CREATE INDEX "ix_PlasmaLens_upstream_PlasmaLens_name" ON "PlasmaLens_upstream" ("PlasmaLens_name");
 
 CREATE TABLE "PlasmaLens_downstream" (
 	"PlasmaLens_name" TEXT,
@@ -9700,8 +9704,8 @@ CREATE TABLE "Dipole_inputs" (
 	PRIMARY KEY ("Dipole_name", inputs),
 	FOREIGN KEY("Dipole_name") REFERENCES "Dipole" (name)
 );
-CREATE INDEX "ix_Dipole_inputs_Dipole_name" ON "Dipole_inputs" ("Dipole_name");
 CREATE INDEX "ix_Dipole_inputs_inputs" ON "Dipole_inputs" (inputs);
+CREATE INDEX "ix_Dipole_inputs_Dipole_name" ON "Dipole_inputs" ("Dipole_name");
 
 CREATE TABLE "Dipole_outputs" (
 	"Dipole_name" TEXT,
@@ -9709,8 +9713,8 @@ CREATE TABLE "Dipole_outputs" (
 	PRIMARY KEY ("Dipole_name", outputs),
 	FOREIGN KEY("Dipole_name") REFERENCES "Dipole" (name)
 );
-CREATE INDEX "ix_Dipole_outputs_Dipole_name" ON "Dipole_outputs" ("Dipole_name");
 CREATE INDEX "ix_Dipole_outputs_outputs" ON "Dipole_outputs" (outputs);
+CREATE INDEX "ix_Dipole_outputs_Dipole_name" ON "Dipole_outputs" ("Dipole_name");
 
 CREATE TABLE "Dipole_upstream" (
 	"Dipole_name" TEXT,
@@ -9738,8 +9742,8 @@ CREATE TABLE "Quadrupole_alias" (
 	PRIMARY KEY ("Quadrupole_name", alias),
 	FOREIGN KEY("Quadrupole_name") REFERENCES "Quadrupole" (name)
 );
-CREATE INDEX "ix_Quadrupole_alias_alias" ON "Quadrupole_alias" (alias);
 CREATE INDEX "ix_Quadrupole_alias_Quadrupole_name" ON "Quadrupole_alias" ("Quadrupole_name");
+CREATE INDEX "ix_Quadrupole_alias_alias" ON "Quadrupole_alias" (alias);
 
 CREATE TABLE "Quadrupole_inputs" (
 	"Quadrupole_name" TEXT,
@@ -9756,8 +9760,8 @@ CREATE TABLE "Quadrupole_outputs" (
 	PRIMARY KEY ("Quadrupole_name", outputs),
 	FOREIGN KEY("Quadrupole_name") REFERENCES "Quadrupole" (name)
 );
-CREATE INDEX "ix_Quadrupole_outputs_Quadrupole_name" ON "Quadrupole_outputs" ("Quadrupole_name");
 CREATE INDEX "ix_Quadrupole_outputs_outputs" ON "Quadrupole_outputs" (outputs);
+CREATE INDEX "ix_Quadrupole_outputs_Quadrupole_name" ON "Quadrupole_outputs" ("Quadrupole_name");
 
 CREATE TABLE "Quadrupole_upstream" (
 	"Quadrupole_name" TEXT,
@@ -9785,8 +9789,8 @@ CREATE TABLE "Sextupole_alias" (
 	PRIMARY KEY ("Sextupole_name", alias),
 	FOREIGN KEY("Sextupole_name") REFERENCES "Sextupole" (name)
 );
-CREATE INDEX "ix_Sextupole_alias_Sextupole_name" ON "Sextupole_alias" ("Sextupole_name");
 CREATE INDEX "ix_Sextupole_alias_alias" ON "Sextupole_alias" (alias);
+CREATE INDEX "ix_Sextupole_alias_Sextupole_name" ON "Sextupole_alias" ("Sextupole_name");
 
 CREATE TABLE "Sextupole_inputs" (
 	"Sextupole_name" TEXT,
@@ -9813,8 +9817,8 @@ CREATE TABLE "Sextupole_upstream" (
 	FOREIGN KEY("Sextupole_name") REFERENCES "Sextupole" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_Sextupole_upstream_Sextupole_name" ON "Sextupole_upstream" ("Sextupole_name");
 CREATE INDEX "ix_Sextupole_upstream_upstream_name" ON "Sextupole_upstream" (upstream_name);
+CREATE INDEX "ix_Sextupole_upstream_Sextupole_name" ON "Sextupole_upstream" ("Sextupole_name");
 
 CREATE TABLE "Sextupole_downstream" (
 	"Sextupole_name" TEXT,
@@ -9841,8 +9845,8 @@ CREATE TABLE "Octupole_inputs" (
 	PRIMARY KEY ("Octupole_name", inputs),
 	FOREIGN KEY("Octupole_name") REFERENCES "Octupole" (name)
 );
-CREATE INDEX "ix_Octupole_inputs_inputs" ON "Octupole_inputs" (inputs);
 CREATE INDEX "ix_Octupole_inputs_Octupole_name" ON "Octupole_inputs" ("Octupole_name");
+CREATE INDEX "ix_Octupole_inputs_inputs" ON "Octupole_inputs" (inputs);
 
 CREATE TABLE "Octupole_outputs" (
 	"Octupole_name" TEXT,
@@ -9888,8 +9892,8 @@ CREATE TABLE "Decapole_inputs" (
 	PRIMARY KEY ("Decapole_name", inputs),
 	FOREIGN KEY("Decapole_name") REFERENCES "Decapole" (name)
 );
-CREATE INDEX "ix_Decapole_inputs_Decapole_name" ON "Decapole_inputs" ("Decapole_name");
 CREATE INDEX "ix_Decapole_inputs_inputs" ON "Decapole_inputs" (inputs);
+CREATE INDEX "ix_Decapole_inputs_Decapole_name" ON "Decapole_inputs" ("Decapole_name");
 
 CREATE TABLE "Decapole_outputs" (
 	"Decapole_name" TEXT,
@@ -9926,8 +9930,8 @@ CREATE TABLE "HorizontalCorrector_alias" (
 	PRIMARY KEY ("HorizontalCorrector_name", alias),
 	FOREIGN KEY("HorizontalCorrector_name") REFERENCES "HorizontalCorrector" (name)
 );
-CREATE INDEX "ix_HorizontalCorrector_alias_alias" ON "HorizontalCorrector_alias" (alias);
 CREATE INDEX "ix_HorizontalCorrector_alias_HorizontalCorrector_name" ON "HorizontalCorrector_alias" ("HorizontalCorrector_name");
+CREATE INDEX "ix_HorizontalCorrector_alias_alias" ON "HorizontalCorrector_alias" (alias);
 
 CREATE TABLE "HorizontalCorrector_inputs" (
 	"HorizontalCorrector_name" TEXT,
@@ -10029,8 +10033,8 @@ CREATE TABLE "Solenoid_inputs" (
 	PRIMARY KEY ("Solenoid_name", inputs),
 	FOREIGN KEY("Solenoid_name") REFERENCES "Solenoid" (name)
 );
-CREATE INDEX "ix_Solenoid_inputs_Solenoid_name" ON "Solenoid_inputs" ("Solenoid_name");
 CREATE INDEX "ix_Solenoid_inputs_inputs" ON "Solenoid_inputs" (inputs);
+CREATE INDEX "ix_Solenoid_inputs_Solenoid_name" ON "Solenoid_inputs" ("Solenoid_name");
 
 CREATE TABLE "Solenoid_outputs" (
 	"Solenoid_name" TEXT,
@@ -10114,8 +10118,8 @@ CREATE TABLE "Wiggler_alias" (
 	PRIMARY KEY ("Wiggler_name", alias),
 	FOREIGN KEY("Wiggler_name") REFERENCES "Wiggler" (name)
 );
-CREATE INDEX "ix_Wiggler_alias_alias" ON "Wiggler_alias" (alias);
 CREATE INDEX "ix_Wiggler_alias_Wiggler_name" ON "Wiggler_alias" ("Wiggler_name");
+CREATE INDEX "ix_Wiggler_alias_alias" ON "Wiggler_alias" (alias);
 
 CREATE TABLE "Wiggler_inputs" (
 	"Wiggler_name" TEXT,
@@ -10123,8 +10127,8 @@ CREATE TABLE "Wiggler_inputs" (
 	PRIMARY KEY ("Wiggler_name", inputs),
 	FOREIGN KEY("Wiggler_name") REFERENCES "Wiggler" (name)
 );
-CREATE INDEX "ix_Wiggler_inputs_inputs" ON "Wiggler_inputs" (inputs);
 CREATE INDEX "ix_Wiggler_inputs_Wiggler_name" ON "Wiggler_inputs" ("Wiggler_name");
+CREATE INDEX "ix_Wiggler_inputs_inputs" ON "Wiggler_inputs" (inputs);
 
 CREATE TABLE "Wiggler_outputs" (
 	"Wiggler_name" TEXT,
@@ -10170,8 +10174,8 @@ CREATE TABLE "NonLinearLens_inputs" (
 	PRIMARY KEY ("NonLinearLens_name", inputs),
 	FOREIGN KEY("NonLinearLens_name") REFERENCES "NonLinearLens" (name)
 );
-CREATE INDEX "ix_NonLinearLens_inputs_NonLinearLens_name" ON "NonLinearLens_inputs" ("NonLinearLens_name");
 CREATE INDEX "ix_NonLinearLens_inputs_inputs" ON "NonLinearLens_inputs" (inputs);
+CREATE INDEX "ix_NonLinearLens_inputs_NonLinearLens_name" ON "NonLinearLens_inputs" ("NonLinearLens_name");
 
 CREATE TABLE "NonLinearLens_outputs" (
 	"NonLinearLens_name" TEXT,
@@ -10199,8 +10203,8 @@ CREATE TABLE "NonLinearLens_downstream" (
 	FOREIGN KEY("NonLinearLens_name") REFERENCES "NonLinearLens" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_NonLinearLens_downstream_NonLinearLens_name" ON "NonLinearLens_downstream" ("NonLinearLens_name");
 CREATE INDEX "ix_NonLinearLens_downstream_downstream_name" ON "NonLinearLens_downstream" (downstream_name);
+CREATE INDEX "ix_NonLinearLens_downstream_NonLinearLens_name" ON "NonLinearLens_downstream" ("NonLinearLens_name");
 
 CREATE TABLE "CombinedCorrector_alias" (
 	"CombinedCorrector_name" TEXT,
@@ -10236,8 +10240,8 @@ CREATE TABLE "CombinedCorrector_upstream" (
 	FOREIGN KEY("CombinedCorrector_name") REFERENCES "CombinedCorrector" (name),
 	FOREIGN KEY(upstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_CombinedCorrector_upstream_CombinedCorrector_name" ON "CombinedCorrector_upstream" ("CombinedCorrector_name");
 CREATE INDEX "ix_CombinedCorrector_upstream_upstream_name" ON "CombinedCorrector_upstream" (upstream_name);
+CREATE INDEX "ix_CombinedCorrector_upstream_CombinedCorrector_name" ON "CombinedCorrector_upstream" ("CombinedCorrector_name");
 
 CREATE TABLE "CombinedCorrector_downstream" (
 	"CombinedCorrector_name" TEXT,
@@ -10246,6 +10250,6 @@ CREATE TABLE "CombinedCorrector_downstream" (
 	FOREIGN KEY("CombinedCorrector_name") REFERENCES "CombinedCorrector" (name),
 	FOREIGN KEY(downstream_name) REFERENCES "AcceleratorElement" (name)
 );
-CREATE INDEX "ix_CombinedCorrector_downstream_downstream_name" ON "CombinedCorrector_downstream" (downstream_name);
 CREATE INDEX "ix_CombinedCorrector_downstream_CombinedCorrector_name" ON "CombinedCorrector_downstream" ("CombinedCorrector_name");
+CREATE INDEX "ix_CombinedCorrector_downstream_downstream_name" ON "CombinedCorrector_downstream" (downstream_name);
 

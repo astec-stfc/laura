@@ -5,10 +5,11 @@ The main class for representing accelerator elements in LAURA.
 """
 
 import copy
-import warnings
 import os
+import warnings
 from typing import Any, ClassVar, Dict, List, Optional, Union
 
+import numpy as np
 from pydantic import Field, field_validator
 
 from laura._compat import DeprecatedMethodAliases
@@ -22,13 +23,14 @@ from ._generated import (
     _BeamBeamBase,
     _BeamPositionMonitorBase,
     _BunchLengthMonitorBase,
-    _PhotonMonitorBase,
     _CameraBase,
     _ChargeDiagnosticBase,
     _CollimatorBase,
     _CombinedCorrectorBase,
     _CombinedSolenoidQuadrupoleBase,
     _CrabCavityBase,
+    _CrystalBase,
+    _CrystalElementBase,
     _DecapoleBase,
     _DiagnosticBase,
     _DipoleBase,
@@ -51,6 +53,7 @@ from ._generated import (
     _MatrixTransformBase,
     _NonLinearLensBase,
     _OctupoleBase,
+    _PhotonMonitorBase,
     _PhysicalAcceleratorElementBase,
     _PIDBase,
     _PlasmaBase,
@@ -67,8 +70,6 @@ from ._generated import (
     _ShutterBase,
     _SolenoidBase,
     _StageBase,
-    _CrystalBase,
-    _CrystalElementBase,
     _TargetBase,
     _TargetElementBase,
     _TwissMatchBase,
@@ -83,6 +84,12 @@ from ._generated import (
     _WireScannerBase,
 )
 from .base_models import IgnoreExtra
+from .constants import (
+    electron_mass,
+    elementary_charge,
+    speed_of_light,
+    vacuum_permittivity,
+)
 from .control import (
     ControlsInformation,
     MirrorControlsInformation,
@@ -605,7 +612,71 @@ class Wiggler(Magnet, _WigglerBase):
     """Magnetic attributes of the wiggler."""
 
     laser: LaserElement | None = None
-    """Laser attached to the wiggler."""
+    """Laser co-propagating through the wiggler (a laser heater or modulator)."""
+
+    @property
+    def deflection_parameter(self) -> float:
+        """Peak K: ``strength``, or ``0.934 * B[T] * period[cm]`` from the peak field."""
+        m = self.magnetic
+        if m.strength:
+            return float(m.resolved("strength"))
+        return 93.3728962 * float(m.peak_magnetic_field or 0.0) * float(m.period or 0.0)
+
+    @property
+    def undulator_length(self) -> float:
+        """``num_periods * period`` if both are set, else the element length [m]."""
+        m = self.magnetic
+        if m.num_periods and m.period:
+            return m.num_periods * m.period
+        return float(self.physical.length)
+
+    def resonant_wavelength(self, gamma: float) -> float:
+        """Wavelength [m] resonant with the wiggler at Lorentz factor ``gamma``."""
+        K = self.deflection_parameter
+        aw2 = K**2 if self.magnetic.helical else K**2 / 2
+        return self.magnetic.period * (1 + aw2) / (2 * gamma**2)
+
+    def laser_energy_modulation(self, gamma: float) -> float:
+        """
+        Peak energy modulation [eV] the laser gives an on-axis electron at its
+        peak, on resonance: ``dE = sqrt(P/P0) * K*L_u*[JJ] / (gamma*sigma_r) * m_e*c**2``,
+        with ``P0`` ~8.7 GW and the rms laser spot ``sigma_r = waist/2``.
+        Zero without a laser, or with no pulse energy.
+        """
+        from scipy.special import j0, j1
+
+        laser = self.laser
+        if laser is None or laser.peak_power is None:
+            return 0.0
+        if self.magnetic.helical:
+            # planar only; a helical wiggler needs the polarisation-dependent coupling
+            raise NotImplementedError(
+                "laser modulation is only implemented for planar wigglers"
+            )
+        if not laser.waist or laser.waist <= 0:
+            raise ValueError(f"{self.name}: the laser needs a positive waist")
+        K = self.deflection_parameter
+        xi = K**2 / (4 + 2 * K**2)
+        jj = j0(xi) - j1(xi)
+        mc2 = electron_mass * speed_of_light**2
+        p0 = (
+            4
+            * np.pi
+            * vacuum_permittivity
+            * mc2**2
+            * speed_of_light
+            / elementary_charge**2
+        )
+        sigma_r = laser.waist / 2
+        return float(
+            np.sqrt(laser.peak_power / p0)
+            * K
+            * self.undulator_length
+            * jj
+            / (gamma * sigma_r)
+            * mc2
+            / elementary_charge
+        )
 
 
 class TwissMatch(PhysicalBaseElement, _TwissMatchBase):

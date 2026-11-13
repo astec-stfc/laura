@@ -1387,6 +1387,7 @@ class LaserElement(Base):
     wavelength = Column(Float())
     pulse_energy = Column(Float())
     pulse_duration_fwhm = Column(Float())
+    field_definition = Column(Text())
     focal_position = Column(Float())
     cep_phase = Column(Float())
     polarization = Column(Enum('linear', 'circular', 'elliptical', name='LaserPolarizationEnum'))
@@ -1397,10 +1398,11 @@ class LaserElement(Base):
     propagation_direction = Column(Integer())
     polarization_angle = Column(Float())
     temporal_chirp_2nd_order = Column(Float())
+    collision_angle = Column(Float())
     
 
     def __repr__(self):
-        return f"LaserElement(id={self.id},role={self.role},a0={self.a0},initial_position={self.initial_position},waist={self.waist},wavelength={self.wavelength},pulse_energy={self.pulse_energy},pulse_duration_fwhm={self.pulse_duration_fwhm},focal_position={self.focal_position},cep_phase={self.cep_phase},polarization={self.polarization},profile_type={self.profile_type},laguerre_polynomial_order_p={self.laguerre_polynomial_order_p},laguerre_polynomial_order_m={self.laguerre_polynomial_order_m},flatness={self.flatness},propagation_direction={self.propagation_direction},polarization_angle={self.polarization_angle},temporal_chirp_2nd_order={self.temporal_chirp_2nd_order},)"
+        return f"LaserElement(id={self.id},role={self.role},a0={self.a0},initial_position={self.initial_position},waist={self.waist},wavelength={self.wavelength},pulse_energy={self.pulse_energy},pulse_duration_fwhm={self.pulse_duration_fwhm},field_definition={self.field_definition},focal_position={self.focal_position},cep_phase={self.cep_phase},polarization={self.polarization},profile_type={self.profile_type},laguerre_polynomial_order_p={self.laguerre_polynomial_order_p},laguerre_polynomial_order_m={self.laguerre_polynomial_order_m},flatness={self.flatness},propagation_direction={self.propagation_direction},polarization_angle={self.polarization_angle},temporal_chirp_2nd_order={self.temporal_chirp_2nd_order},collision_angle={self.collision_angle},)"
 
 
 
