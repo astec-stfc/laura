@@ -108,6 +108,7 @@ unsupported_elements = {
     "gpt": gpt_unsupported,
     "impactx": [],  # impactx_conversion.to_dicts already warns per element it writes as a drift
     "madx": madx_unsupported,
+    "narad": pals_unsupported,  # NARAD elements are written by the PALS writer
     "ocelot": ocelot_unsupported,
     "opal": opal_unsupported,
     "slipstream": slipstream_unsupported,
@@ -756,6 +757,8 @@ class SectionLatticeTranslator(SectionLattice):
             The contents of a ``*.narad.yaml`` file.
         """
         from .codes.narad import narad_yaml  # narad imports this module
+
+        self._check_elements_supported("narad")
 
         return narad_yaml({self.name: self}, particle, **kwargs)
 
