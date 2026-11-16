@@ -439,6 +439,14 @@ class TestMadxCavityAndAperture:
         )
         assert expected in getattr(translate_elements([cav])["c1"], method)()
 
+    def test_unpowered_cavity_has_no_body_focus_model(self):
+        # elegant's RFCW with SRS at volt = 0 loses every particle
+        cav = RFCavity(
+            name="c1", machine_area="S", cavity={"phase": 0.0},
+            simulation={"field_amplitude": 0.0}, physical={"length": 1.0},
+        )
+        assert "body_focus_model" not in translate_elements([cav])["c1"].to_elegant()
+
     def test_standing_wave_cavity_uses_rfcavity(self):
         cav = RFCavity(
             name="c1", machine_area="S",

@@ -252,8 +252,12 @@ class RFCavityTranslator(BaseElementTranslator):
         SlipstreamElement
         """
         self.start_write()
-        field_map_hdf5_path = getattr(self.simulation.field_definition, "filename", None)
-        wakefield_hdf5_path = getattr(self.simulation.wakefield_definition, "filename", None)
+        field_map_hdf5_path = getattr(
+            self.simulation.field_definition, "filename", None
+        )
+        wakefield_hdf5_path = getattr(
+            self.simulation.wakefield_definition, "filename", None
+        )
         # get_field_reference_position()[2] + self.dz, not physical.start.z --
         # the exact computation _write_astra_cavity uses for ASTRA's own
         # C_pos, see SolenoidTranslator.to_slipstream()'s identical fix.
@@ -291,7 +295,8 @@ class RFCavityTranslator(BaseElementTranslator):
             end1_focus=bool(self.simulation.end1_focus),
             end2_focus=bool(self.simulation.end2_focus),
             body_focus_model=(
-                "TW1" if self.cavity.structure_type == "TravellingWave"
+                "TW1"
+                if self.cavity.structure_type == "TravellingWave"
                 else self.simulation.body_focus_model
             ),
         )
@@ -318,7 +323,7 @@ class RFCavityTranslator(BaseElementTranslator):
             sim.t_column = sim.t_column or "t"
             for col in ("Wx", "Wy", "Wz"):
                 if getattr(
-                        getattr(wake, col, None), "value", None
+                    getattr(wake, col, None), "value", None
                 ) is not None and not getattr(sim, f"{col.lower()}_column"):
                     setattr(sim, f"{col.lower()}_column", col)
             self.set_wakefield_column_names(wakefield_file_name)
@@ -414,7 +419,9 @@ class RFCavityTranslator(BaseElementTranslator):
                 if key == "wakefile":
                     value = value
 
-                if key == "body_focus_model" and not self.length:
+                if key == "body_focus_model" and (
+                    not self.length or self.field_amplitude == 0
+                ):
                     continue
                 if (
                     key == "body_focus_model"
@@ -703,7 +710,9 @@ class RFCavityTranslator(BaseElementTranslator):
                 )
             else:
                 keywords["gradient"] /= self.physical.length
-        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+        return obj(
+            **self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set)
+        )
 
     def rf_focusing(
         self,
