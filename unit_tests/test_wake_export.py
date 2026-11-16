@@ -94,6 +94,15 @@ def test_elegant_writes_a_wakefield_as_a_zero_voltage_rfcw(tmp_path, monkeypatch
     assert 'zwakefile = "wk.sdds", tcolumn = "t", wzcolumn = "Wz"' in written
 
 
+def test_ocelot_writes_a_wakefields_wake_table(tmp_path, monkeypatch):
+    """Only cavities wrote their Ocelot wake table, so SIMBA's Wake process found no file."""
+    pytest.importorskip("ocelot")
+    monkeypatch.chdir(tmp_path)
+    wake = translate_elements([_wakefield(_wake_file(tmp_path), 1.0)], directory=str(tmp_path))["W"]
+    wake.to_ocelot()
+    assert (tmp_path / "wk.ocelot").exists() or (tmp_path / "wk.astra").exists()
+
+
 def test_astra_numbers_and_places_every_wake_once(tmp_path, monkeypatch):
     """A float counter crashed the second wake element, each was placed by its index in
     the deck rather than by its own cells, and a Wakefield mustn't be written twice."""

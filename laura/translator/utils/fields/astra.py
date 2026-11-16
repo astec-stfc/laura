@@ -2,6 +2,7 @@ import re
 from warnings import warn
 
 import numpy as np
+from scipy.constants import speed_of_light
 
 from ..units import UnitValue
 from .field_parameter import FieldParameter, require_rf, set_field
@@ -66,20 +67,20 @@ def generate_astra_field_data(self, ocelot: bool = False) -> np.ndarray:
         )
         xpreamble = np.array(
             [
-                [length, 0],
+                [0, length],
                 [0, 0],
                 [0, 13],
             ]
         )
         ypreamble = np.array(
             [
-                [length, 0],
+                [0, length],
                 [0, 0],
                 [0, 24],
             ]
         )
-        wxdata = self.Wx.value.val
-        wydata = self.Wy.value.val
+        wxdata = -self.Wx.value.val / (2 * speed_of_light)
+        wydata = -self.Wy.value.val / (2 * speed_of_light)
         wzdata = self.Wz.value.val
         zvals = np.concatenate([zpreamble, np.transpose([zdata, wzdata])])
         xvals = np.concatenate([xpreamble, np.transpose([zdata, wxdata])])
@@ -262,8 +263,15 @@ def read_astra_field_file(
         numrows = int(fdat[1, 0])
         set_field(self, "z", fdat[4 : 4 + numrows][::, 0], "m")
         set_field(self, "Wz", fdat[4 : 4 + numrows][::, 1], "V/C")
-        set_field(self, "Wx", fdat[numrows + 7 : (2 * numrows) + 7][::, 1], "V/C/m")
-        set_field(self, "Wy", fdat[(2 * numrows) + 10 :][::, 1], "V/C/m")
+        set_field(
+            self,
+            "Wx",
+            fdat[numrows + 7 : (2 * numrows) + 7][::, 1] * -2 * speed_of_light,
+            "V/C/m",
+        )
+        set_field(
+            self, "Wy", fdat[(2 * numrows) + 10 :][::, 1] * -2 * speed_of_light, "V/C/m"
+        )
     elif field_type == "1DQuadrupole":
         fdat = np.loadtxt(filename)
         set_field(self, "z", fdat[::, 0], "m")
