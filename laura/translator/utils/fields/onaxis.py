@@ -140,11 +140,9 @@ K_PER_TESLA_METRE = 93.3728962
 @dataclass
 class UndulatorTerm:
     """
-    An ideal undulator of ``length`` from code z ``z``, starting on a cosine so that
-    whole periods leave no net kick. Planar: the vacuum
-    field ``B_y = B0 cosh(k y) cos(k s)``, ``B_z = -B0 sinh(k y) sin(k s)``, which
-    carries the natural vertical focusing. Helical: ``B0 (cos, sin)(k s)`` with the
-    first-order ``B_z``.
+    An ideal undulator of ``length`` from code z ``z``, on a cosine, its field ramped
+    in and out over one period each end by ``f = sin^2``: whole periods leave no net
+    kick, and the orbit stays centred. 
     """
 
     peak_field: float
@@ -165,19 +163,25 @@ class UndulatorTerm:
 
     def components(self, name: str) -> tuple[str, dict]:
         """Parser statements and ``{component: expression}`` of this term."""
-        k, b = number(2 * np.pi / self.period), number(self.peak_field)
-        s, dx, dy = f"s_{name}", f"(x-{number(self.x)})", f"(y-{number(self.y)})"
+        k, b, length = number(2 * np.pi / self.period), number(self.peak_field), number(self.length)
+        h = number(np.pi / (2 * min(self.period, self.length / 2)))  # sin^2(h s) rises over a period
+        ramp = number(min(self.period, self.length / 2))
+        s, d, dx, dy = f"s_{name}", f"{name}_d", f"(x-{number(self.x)})", f"(y-{number(self.y)})"
         head = (f"{s} = z-{number(self.z)}; "
-                f"{name} = if({s}<0,0,if({s}>{number(self.length)},0,1)); ")
+                f"{name} = if({s}<0,0,if({s}>{length},0,if({s}<{ramp},sin({h}*{s})^2,"
+                f"if({s}>{length}-{ramp},sin({h}*({length}-{s}))^2,1)))); "
+                f"{d} = if({s}<0,0,if({s}>{length},0,if({s}<{ramp},{h}*sin(2*{h}*{s}),"
+                f"if({s}>{length}-{ramp},-{h}*sin(2*{h}*({length}-{s})),0)))); ")
+        cos, sin = f"cos({k}*{s})", f"sin({k}*{s})"
         if self.helical:
             return head, {
-                "Bx": f"{name}*{b}*cos({k}*{s})",
-                "By": f"{name}*{b}*sin({k}*{s})",
-                "Bz": f"{name}*{b}*{k}*({dy}*cos({k}*{s})-{dx}*sin({k}*{s}))",
+                "Bx": f"{name}*{b}*{cos}",
+                "By": f"{name}*{b}*{sin}",
+                "Bz": f"{b}*({dx}*({d}*{cos}-{name}*{k}*{sin})+{dy}*({d}*{sin}+{name}*{k}*{cos}))",
             }
         return head, {
-            "By": f"{name}*{b}*cosh({k}*{dy})*cos({k}*{s})",
-            "Bz": f"-{name}*{b}*sinh({k}*{dy})*sin({k}*{s})",
+            "By": f"{name}*{b}*cosh({k}*{dy})*{cos}",
+            "Bz": f"{b}*sinh({k}*{dy})*({d}*{cos}/{k}-{name}*{sin})",
         }
 
 

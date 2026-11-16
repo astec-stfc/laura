@@ -124,19 +124,26 @@ def test_planar_undulator_is_a_vacuum_field_of_whole_periods():
               for k in "yz")
     k = 2 * np.pi / 0.03
     inside = (zz >= 0) & (zz <= 0.3)
-    np.testing.assert_allclose(by, np.where(inside, term.peak_field * np.cosh(k * y) * np.cos(k * zz), 0), atol=1e-12)
-    # curl B = 0: dBy/dz = dBz/dy, exactly
-    dbz_dy = -term.peak_field * k * np.cosh(k * y) * np.sin(k * zz)
-    np.testing.assert_allclose(np.gradient(by, zz)[inside][2:-2], dbz_dy[inside][2:-2], rtol=1e-3, atol=1e-3)
+    f = np.where(zz < 0.03, np.sin(np.pi * zz / 0.06) ** 2, np.where(zz > 0.27, np.sin(np.pi * (0.3 - zz) / 0.06) ** 2, 1))
+    np.testing.assert_allclose(by, np.where(inside, term.peak_field * f * np.cosh(k * y) * np.cos(k * zz), 0), atol=1e-12)
+    # curl B = 0: dBy/dz = dBz/dy, exactly, ramps included (Bz goes as sinh(k y), so dBz/dy = k coth(k y) Bz)
+    dbz_dy = k / np.tanh(k * y) * bz
+    smooth = inside & (np.abs(zz - 0.03) > 1e-4) & (np.abs(zz - 0.27) > 1e-4)  # f'' steps where the ramps join the body
+    np.testing.assert_allclose(np.gradient(by, zz)[smooth][2:-2], dbz_dy[smooth][2:-2], rtol=1e-3, atol=1e-3)
     assert np.all(bz[~inside] == 0)
+    # no step at either end, and the ramps leave the orbit as whole periods do: no net angle, no net offset to speak of
+    assert by[np.searchsorted(zz, 0.0)] == pytest.approx(0.0, abs=1e-6 * term.peak_field)
+    angle = np.cumsum(by) * (zz[1] - zz[0])
+    assert angle[-1] == pytest.approx(0.0, abs=1e-4 * term.peak_field * 0.03)
+    assert abs(np.mean(angle[inside])) < 0.05 * term.peak_field / k  # the step-on start gave peak_field / k
 
 
 def test_helical_undulator_has_both_components():
     (term,) = translate_elements([_wiggler(helical=True)])["U"].warpx_field_terms(0.0)
     p = render([term])
-    bx = _evaluate(p["particles.Bx_external_particle_function(x,y,z,t)"], x=0.0, y=0.0, z=0.0075, t=0.0)
-    by = _evaluate(p["particles.By_external_particle_function(x,y,z,t)"], x=0.0, y=0.0, z=0.0075, t=0.0)
-    assert (bx, by) == pytest.approx((0.0, term.peak_field), abs=1e-12)  # a quarter period in
+    bx = _evaluate(p["particles.Bx_external_particle_function(x,y,z,t)"], x=0.0, y=0.0, z=0.0375, t=0.0)
+    by = _evaluate(p["particles.By_external_particle_function(x,y,z,t)"], x=0.0, y=0.0, z=0.0375, t=0.0)
+    assert (bx, by) == pytest.approx((0.0, term.peak_field), abs=1e-12)  # a quarter period past the ramp
 
 
 def test_ignored_wiggler_attributes_warn():
