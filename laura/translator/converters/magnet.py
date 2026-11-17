@@ -30,7 +30,6 @@ from ..converters import (
 )
 from ..utils.functions import (
     _rotation_matrix,
-    chop,
     expand_substitution,
     sanitize_string,
 )
@@ -415,19 +414,18 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         str
             String representation of the element for CSRTrack
         """
-        z1 = self.physical.start.z
-        z2 = self.physical.end.z
         s_comment = (
             f"! quad{n} s={self.physical.s:.6f}\n"
             if self.physical.s is not None
             else ""
         )
+        theta = self.physical.global_rotation.theta
         return (
             f"{s_comment}quadrupole{{\n"
-            f"position{{rho={z1!s}, psi=0.0, marker=quad{n!s}a}}\n"
-            f"properties{{strength={self.magnetic.KnL(1)!s}, alpha=0, horizontal_offset=0,vertical_offset=0}}\n"
-            f"position{{rho={z2!s}, psi=0.0, marker=quad{n!s}b}}\n"
-            "}\n"
+            + self._csrtrack_position(self.physical.start, theta, f"quad{n}a")
+            + f"properties{{strength={self.magnetic.KnL(1)!s}, alpha=0, horizontal_offset=0,vertical_offset=0}}\n"
+            + self._csrtrack_position(self.physical.end, theta, f"quad{n}b")
+            + "}\n"
         )
 
     def to_gpt(self, Brho: float = 0, charge_sign: int = -1, *args, **kwargs) -> str:
@@ -885,20 +883,20 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         str
             String representation of the element for CSRTrack
         """
-        z1 = self.physical.start.z
-        z2 = self.physical.end.z
         s_comment = (
             f"! dipole{n} s={self.physical.s:.6f}\n"
             if self.physical.s is not None
             else ""
         )
-        theta = self.physical.rotation.theta
+        theta = self.physical.global_rotation.theta
         return (
             f"{s_comment}dipole{{\n"
-            f"position{{rho={z1!s}, psi={chop(theta + self.e1)!s}, marker=d{n!s}a}}\n"
-            f"properties{{r={self.magnetic.rho!s}}}\n"
-            f"position{{rho={z2!s}, psi={chop(theta + self.e2)!s}, marker=d{n!s}b}}\n"
-            "}\n"
+            + self._csrtrack_position(self.physical.start, theta - self.e1, f"d{n}a")
+            + f"properties{{r={self.magnetic.rho!s}}}\n"
+            + self._csrtrack_position(
+                self.physical.end, theta - self.angle + self.e2, f"d{n}b"
+            )
+            + "}\n"
         )
 
     def to_gpt(self, Brho: float = 0.0, *args, **kwargs) -> str:

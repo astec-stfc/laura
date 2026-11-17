@@ -492,6 +492,19 @@ class BaseElementTranslator(PhysicalBaseElement):
         """The alignment errors, keyed by attribute name."""
         return {q: getattr(self, q) for q in _MISALIGNMENTS}
 
+    @staticmethod
+    def _csrtrack_position(point: Position, normal: float, marker: str) -> str:
+        """
+        A CSRTrack field boundary through ``point`` (global frame) whose normal is
+        at ``normal`` [rad] to the global z axis. CSRTrack takes the line in Hesse
+        form -- ``rho`` its distance from the origin, ``psi`` its normal's angle in
+        **degrees** -- with the same angle sign as LAURA and ``y = -x``.
+        """
+        rho = point.z * math.cos(normal) - point.x * math.sin(normal)
+        psi = math.degrees(normal)
+        psi = 0.0 if abs(psi) < 1e-8 else psi
+        return f"position{{rho={float(rho)!s}, psi={float(psi)!s}, marker={marker}}}\n"
+
     def _warn_dropped_misalignment(
         self, code: str, written: set, tilt: bool = False
     ) -> None:
