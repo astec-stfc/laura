@@ -208,6 +208,29 @@ def _quad(name, k1, length=0.1):
                       magnetic={"length": length, "k1l": k1 * length})
 
 
+def test_apertures_are_drifts_handed_to_the_caller(recwarn):
+    from laura.models.element import Aperture
+
+    def aperture(name, length, **shape):
+        return Aperture(name=name, machine_area="X", hardware_class="Simulation", physical={"length": length},
+                        aperture=shape)
+
+    collimator = aperture("COL", 0.2, shape="elliptical", horizontal_size=1e-3, vertical_size=2e-3,
+                          horizontal_offset=4e-4)
+    thin = aperture("AP", 0.0, shape="rectangular", horizontal_size=3e-3)  # no vertical size: open in y
+    params = _line(Drift(name="D", machine_area="X", physical={"length": 0.1}), collimator, thin, zstart=0.05)
+    assert params["lattice.elements"] == ["D", "COL"]  # the thin one has no length, and is still applied
+    assert params["COL.type"] == "drift"
+    assert params["_apertures"] == [
+        {"name": "COL", "z": pytest.approx([0.05, 0.25]), "shape": "elliptical", "half": [1e-3, 2e-3],
+         "centre": [4e-4, 0.0]},
+        {"name": "AP", "z": pytest.approx([0.25, 0.25]), "shape": "rectangular", "half": [3e-3, 0.0],
+         "centre": [0.0, 0.0]},
+    ]
+    assert not [w for w in recwarn if "not supported" in str(w.message)]
+    assert "_apertures" not in hipace_inputs(params)
+
+
 def test_fodo_is_a_lattice_of_drifts_and_quads():
     params = _line(_quad("QF", 2.0), Drift(name="D-1", machine_area="X", physical={"length": 0.3}),
                    _quad("QD", -2.0), Brho=0.5, charge_sign=-1)

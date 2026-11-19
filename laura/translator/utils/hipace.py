@@ -180,7 +180,8 @@ def write_density_rz(path: str, z, r, density, modes: bool = False) -> None:
 def hipace_inputs(params: dict) -> str:
     """
     Render ``{key: value}`` as a HiPACE++ inputs file: lists space-separated,
-    booleans as 0/1, strings (parser expressions included) verbatim.
+    booleans as 0/1, strings (parser expressions included) verbatim. Keys starting
+    with ``_`` are not inputs (e.g. WarpX's ``_apertures``, for the caller) and are skipped.
 
     Parameters
     ----------
@@ -202,4 +203,4 @@ def hipace_inputs(params: dict) -> str:
             return number(value)
         return str(value)
 
-    return "".join(f"{key} = {fmt(value)}\n" for key, value in params.items())
+    return "".join(f"{key} = {fmt(value)}\n" for key, value in params.items() if not key.startswith("_"))

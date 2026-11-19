@@ -95,6 +95,36 @@ class ApertureTranslator(BaseElementTranslator):
             limits.update(min_y=-half_y, max_y=half_y)
         return (xt.LimitRect, limits) if limits else None
 
+    def warpx_aperture(self, zstart: float) -> dict | None:
+        """
+        The aperture for WarpX: the box z of its two ends, where a straight track through
+        a convex aperture is checked exactly, its shape, half widths and centre. The caller
+        removes the particles outside it.
+
+        Parameters
+        ----------
+        zstart : float
+            Lattice z of WarpX's z = 0
+
+        Returns
+        -------
+        dict or None
+            ``{"name", "z", "shape", "half", "centre"}``, or None if the aperture has no size
+        """
+        shape = getattr(self.aperture.shape, "value", self.aperture.shape)
+        half_x, half_y = self.aperture.horizontal_size or 0.0, self.aperture.vertical_size or 0.0
+        if shape in ("circular", "elliptical"):
+            a = self.aperture.radius or half_x or half_y
+            half, shape = (a, self.aperture.radius or half_y or a), "elliptical"
+        else:
+            half, shape = (half_x, half_y), "rectangular"
+        if not any(half):
+            return None
+        x0, y0 = (float(o or 0.0) for o in self._offsets())
+        start = float(self.physical.start.z) - zstart
+        return {"name": self.name, "z": [start, start + float(self.physical.length or 0.0)], "shape": shape,
+                "half": [float(h) for h in half], "centre": [x0 + float(self.dx), y0 + float(self.dy)]}
+
     def to_madx(self, at: float = None) -> str:
         """
         Generates a string representation of the object's properties in the MAD-X

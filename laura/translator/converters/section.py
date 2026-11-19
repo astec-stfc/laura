@@ -1984,13 +1984,17 @@ class SectionLatticeTranslator(SectionLattice):
         from ..utils.fields.onaxis import MultipoleTerm, autophase, render, track
 
         self._check_elements_supported("warpx")
-        elements = [e for e in self._translate(self.create_drifts().values()).values()
-                    if float(e.physical.length or 0.0) > 0]
+        translated = list(self._translate(self.create_drifts().values()).values())
+        elements = [e for e in translated if float(e.physical.length or 0.0) > 0]
         if not elements:
             raise ValueError(f"{self.name} has no elements with a length; cannot run WarpX")
         if zstart is None:
             zstart = float(elements[0].physical.start.z)
         params, lattice, stage, terms = {}, [], None, []
+        apertures = [a for a in (e.warpx_aperture(zstart) for e in translated if isinstance(e, ApertureTranslator))
+                     if a is not None and a["z"][1] >= 0]  # thin ones too; none wholly behind box z = 0
+        if apertures:
+            params["_apertures"] = apertures
 
         def place(name: str, length: float, **fields) -> None:
             key = re.sub(r"\W", "_", name)
@@ -2056,14 +2060,16 @@ class SectionLatticeTranslator(SectionLattice):
                     for term in mapped:
                         term.crest = np.radians(float(element.cavity.crest))
                 terms += mapped
-                if "drift" not in kind and not mapped:
+                aperture = isinstance(element, ApertureTranslator)  # a drift in the lattice; see _apertures
+                if "drift" not in kind and not mapped and not aperture:
                     field = getattr(getattr(element, "simulation", None), "field_definition", None)
                     kind_of_map = getattr(field, "field_type", None)
                     why = f" (its {kind_of_map} field map is not supported)" if kind_of_map else ""
                     warn(f"Element type {element.hardware_type} not supported for WarpX{why}; "
                          f"{element.name} is a drift")
                 place(element.name, length)
-                element._warn_dropped_misalignment("WarpX", {"dx", "dy", "dz"} if mapped else set())
+                kept = {"dx", "dy", "dz"} if mapped else {"dx", "dy"} if aperture else set()
+                element._warn_dropped_misalignment("WarpX", kept)
         params["lattice.elements"] = lattice
         if z_reference is not None and Brho:
             p0c = Brho * speed_of_light

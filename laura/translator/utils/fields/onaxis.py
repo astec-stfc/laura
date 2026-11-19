@@ -141,8 +141,8 @@ K_PER_TESLA_METRE = 93.3728962
 class UndulatorTerm:
     """
     An ideal undulator of ``length`` from code z ``z``, on a cosine, its field ramped
-    in and out over one period each end by ``f = sin^2``: whole periods leave no net
-    kick, and the orbit stays centred. 
+    in and out over two periods each end by ``f = sin^2``: whole periods leave no net
+    kick.
     """
 
     peak_field: float
@@ -164,8 +164,8 @@ class UndulatorTerm:
     def components(self, name: str) -> tuple[str, dict]:
         """Parser statements and ``{component: expression}`` of this term."""
         k, b, length = number(2 * np.pi / self.period), number(self.peak_field), number(self.length)
-        h = number(np.pi / (2 * min(self.period, self.length / 2)))  # sin^2(h s) rises over a period
-        ramp = number(min(self.period, self.length / 2))
+        rise = min(2 * self.period, self.length / 2)
+        h, ramp = number(np.pi / (2 * rise)), number(rise)  # sin^2(h s) rises over two periods
         s, d, dx, dy = f"s_{name}", f"{name}_d", f"(x-{number(self.x)})", f"(y-{number(self.y)})"
         head = (f"{s} = z-{number(self.z)}; "
                 f"{name} = if({s}<0,0,if({s}>{length},0,if({s}<{ramp},sin({h}*{s})^2,"
