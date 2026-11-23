@@ -29,7 +29,7 @@ def choose_cheetah_tracking_method(
 ) -> str:
     """
     Resolves ``cheetah_tracking_method = "auto"`` for a beam: which order is needed depends
-    on its energy spread and the lattice. A subsample of ``beam`` is tracked
+    on its energy spread and the lattice. A fixed (seeded) subsample of ``beam`` is tracked
     through ``segment`` at first and second order, and the segment's drifts, quadrupoles
     and dipoles are set to ``second_order`` (with a warning) if any final beam size or
     emittance differs by more than ``tolerance``; otherwise, or for a ``ParameterBeam``,
@@ -61,7 +61,8 @@ def choose_cheetah_tracking_method(
     ]
     method = "linear"
     if isinstance(beam, cheetah.ParticleBeam):
-        idx = torch.randperm(beam.num_particles)[:num_particles]
+        generator = torch.Generator().manual_seed(0)
+        idx = torch.randperm(beam.num_particles, generator=generator)[:num_particles]
         sample = cheetah.ParticleBeam(
             beam.particles[idx],
             beam.energy,

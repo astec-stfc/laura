@@ -158,3 +158,31 @@ def test_cheetah_auto_raises_to_second_order_when_the_beam_needs_it(sigma_p, exp
     assert {e.tracking_method for e in segment.flattened().elements} == {expected}
     parameter_beam = cheetah.ParameterBeam.from_parameters(energy=torch.tensor(1e9)).to(torch.float64)
     assert choose_cheetah_tracking_method(segment, parameter_beam) == "linear"
+
+
+def test_cheetah_auto_takes_the_same_subsample_whatever_torch_was_seeded_with():
+    """laura#54: an unseeded subsample put a section near the tolerance on either side of it, run to run."""
+    cheetah = pytest.importorskip("cheetah")
+    import torch
+
+    from laura.translator.converters.codes.cheetah import choose_cheetah_tracking_method
+
+    quads = [
+        Quadrupole(name=f"Q{i}", machine_area="S", physical={"length": 0.2, "middle": [0, 0, i + 0.5]},
+                   magnetic={"k1l": 0.4 * (-1) ** i})
+        for i in range(40)
+    ]
+    segment = _section(quads).to_cheetah()
+    beam = cheetah.ParticleBeam.from_twiss(
+        num_particles=2000, energy=torch.tensor(1e9), beta_x=torch.tensor(3.0),
+        beta_y=torch.tensor(3.0), sigma_p=torch.tensor(2e-2),
+        emittance_x=torch.tensor(1e-9), emittance_y=torch.tensor(1e-9),
+    ).to(torch.float64)
+    messages = []
+    for seed in (1, 2):
+        torch.manual_seed(seed)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            choose_cheetah_tracking_method(segment, beam, num_particles=20)  # a small sample: each draw differs
+        messages += [str(w.message) for w in caught if "set cheetah_tracking_method" in str(w.message)]
+    assert len(messages) == 2 and messages[0] == messages[1]
