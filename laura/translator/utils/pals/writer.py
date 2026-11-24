@@ -33,7 +33,18 @@ __all__ = [
 ]
 
 PALS_RESERVED_NAMES = frozenset(
-    {"expand_lattice", "include", "load", "set", "superimpose", "use"}
+    {
+        "expand_lattice",
+        "include",
+        "load",
+        "set",
+        "superimpose",
+        "use",
+        "self",
+        "parameter",
+        "global_origin",
+        "previous_element",
+    }
 )
 """Facility keys a PALS parser reads as a command rather than as a name.
 """

@@ -21,7 +21,7 @@ _REFERENCE = {"pc_ref": 0.465144443755972, "species_ref": "electron"}
 
 def _component(name, kind, s, length=0.0, **groups):
     return {
-        "id": f"inst:{name}",
+        "id": f"{name}",
         "kind": kind,
         "native_types": groups.pop("native_types", []),
         "LongitudinalPlacementP": {"length": length, "s_position": s},
@@ -37,20 +37,20 @@ def _instance(components, order=None):
         "kind": "PALSAccelerator",
         "facility": {
             "components": components,
-            "beamlines": [{"id": "inst:LINE", "kind": "BeamLine"}],
+            "beamlines": [{"id": "LINE", "kind": "BeamLine"}],
             "component_relations": [
                 {
                     "subject": a,
                     "predicate": "Precedes",
                     "object": b,
-                    "beamline_context": "inst:LINE",
+                    "beamline_context": "LINE",
                 }
                 for a, b in zip(order, order[1:])
             ],
             "signals": _SIGNALS,
             "signal_bindings": [
                 {
-                    "subject": "inst:BEND",
+                    "subject": "BEND",
                     "predicate": "HasSetpointSignal",
                     "object": s["id"],
                 }
@@ -62,7 +62,7 @@ def _instance(components, order=None):
 
 _SIGNALS = [
     {
-        "id": "inst:MBEND.S",
+        "id": "MBEND.S",
         "signal_role": "Setpoint",
         "source_system": "EPICS",
         "native_description": "current setpoint",
@@ -71,7 +71,7 @@ _SIGNALS = [
         "alias": ["current_setpoint"],
     },
     {
-        "id": "inst:MBEND.STAT",
+        "id": "MBEND.STAT",
         "signal_role": "Readback",
         "source_system": "EPICS",
         "access_protocol": "EPICS Channel Access",
@@ -136,7 +136,7 @@ _UITF_LIKE = [
     _component("APER", "Aperture", 1.6),
 ]
 _ORDER = [
-    f"inst:{n}"
+    f"{n}"
     for n in (
         "GUN",
         "SOL",
@@ -169,7 +169,7 @@ def elements():
 
 def test_beam_order_follows_the_precedes_chain(elements):
     assert list(elements) == ["LINE_begin"] + [
-        n.split(":")[1] for n in _ORDER if n != "inst:ODD"
+        n for n in _ORDER if n != "ODD"
     ]
 
 
@@ -279,22 +279,93 @@ def test_reference_energy_is_recovered_from_pc_ref():
 
 
 def test_missing_placement_sits_at_the_previous_exit():
-    marker = _component("M", "Marker", 0.0)
-    del marker["LongitudinalPlacementP"]
-    instance = _instance([_UITF_LIKE[0], marker], ["inst:SOL", "inst:M"])
+    monitor = _component("M", "BeamPositionMonitor", 0.0)
+    del monitor["LongitudinalPlacementP"]
+    instance = _instance([_UITF_LIKE[0], monitor], ["SOL", "M"])
     with pytest.warns(UserWarning, match="no LongitudinalPlacementP"):
         document = narad_document(instance)
     assert document.branch("LINE").elements[-1].s_start == pytest.approx(0.6)
 
 
-def test_a_beginning_needs_no_placement():
-    beginning = _component("B", "BeginningEle", 0.0)
+@pytest.mark.parametrize("kind", ["BeginningEle", "Marker"])  # NARAD gives them none
+def test_a_bookkeeping_component_needs_no_placement(kind):
+    beginning = _component("B", kind, 0.0)
     del beginning["LongitudinalPlacementP"]
-    instance = _instance([beginning, _UITF_LIKE[0]], ["inst:B", "inst:SOL"])
+    instance = _instance([beginning, _UITF_LIKE[0]], ["B", "SOL"])
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)  # and says nothing about it
         document = narad_document(instance)
     assert document.branch("LINE").elements[0].s_start == 0.0
+
+
+def test_cebaf_injector_shapes():
+    """As CEBAF's INJECTOR writes them: a bare PhysicalComponent, a supply
+    off the beamline, and BodyShiftP rotations in degrees."""
+    ladder = _component(
+        "LADDER", "PhysicalComponent", 0.2, native_types=["Instrument", "TargetLadder"]
+    )
+    supply = _component(
+        "HV",
+        "SupportingFacilityComponent",
+        0.3,
+        native_types=["Drift", "WienHV"],
+        beamline_relation="SupportingFacility",
+    )
+    bpm = _component("BPM", "BeamPositionMonitor", 0.4, BodyShiftP={"z_rot": 45.0})
+    instance = _instance([ladder, supply, bpm])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        document = narad_document(instance, floor_angle_scale=math.pi / 180)
+        elements = NaradLatticeImporter(
+            document=document
+        ).create_laura_element_dictionary()
+    assert elements["LADDER"].hardware_type == "Diagnostic"
+    assert elements["HV"].is_subelement()
+    assert elements["BPM"].physical.error.rotation.psi == pytest.approx(math.pi / 4)
+
+
+def test_a_beamline_of_beamlines_is_the_layout_not_a_section():
+    """As UITF writes it: KV and MV are IsPartOf GUN_thru_MV, which repeats
+    their Precedes chains."""
+    instance = _instance([dict(c) for c in _UITF_LIKE[:3]], ["GUN", "SOL", "HK"])
+    facility = instance["facility"]
+    chain = facility["component_relations"]
+    facility["beamlines"] = [{"id": name, "kind": "BeamLine"} for name in ("LINE", "KV", "MV")]
+    # KV is GUN -> SOL, MV is SOL -> HK
+    chain += [dict(chain[0], beamline_context="KV"), dict(chain[1], beamline_context="MV")]
+    chain += [
+        {"subject": part, "predicate": "IsPartOf", "object": "LINE"}
+        for part in ("KV", "MV")
+    ]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        document = narad_document(instance)
+    (lattice,) = document.lattices
+    assert lattice.name == "LINE"
+    assert [branch.name for branch in lattice.branches] == ["KV", "MV"]
+
+
+def test_legacy_inst_prefixed_ids_lose_the_prefix():
+    """``inst:`` CURIEs, as instances before pals-facility-config wrote them."""
+    instance = _instance([dict(_UITF_LIKE[0]), dict(_UITF_LIKE[2])])
+    facility = instance["facility"]
+    for component in facility["components"]:
+        component["id"] = "inst:" + component["id"]
+    for relation in facility["component_relations"]:
+        relation.update(
+            subject="inst:" + relation["subject"],
+            object="inst:" + relation["object"],
+            beamline_context="inst:LINE",
+        )
+    facility["beamlines"][0]["id"] = "inst:LINE"
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        document = narad_document(instance)
+    assert [e.name for e in document.branch("LINE").elements] == [
+        "LINE_begin",
+        "SOL",
+        "HK",
+    ]
 
 
 def test_a_ring_in_the_eic_toy_shape():
@@ -317,7 +388,7 @@ def test_a_ring_in_the_eic_toy_shape():
         relation["predicate"] = "pals:precedes"
     facility["components"].reverse()  # so only the chain gives the order
     facility["signals"] = [dict(_SIGNALS[1], access_protocol="EPICS PVAccess")]
-    facility["signal_bindings"] = [{"subject": "inst:Q", "object": "inst:MBEND.STAT"}]
+    facility["signal_bindings"] = [{"subject": "Q", "object": "MBEND.STAT"}]
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         document = narad_document(instance, s_position_at="exit")
@@ -339,13 +410,13 @@ def test_a_ring_in_the_eic_toy_shape():
 
 
 def test_a_forked_chain_is_refused():
-    instance = _instance(_UITF_LIKE[:3], ["inst:GUN", "inst:SOL"])
+    instance = _instance(_UITF_LIKE[:3], ["GUN", "SOL"])
     instance["facility"]["component_relations"].append(
         {
-            "subject": "inst:GUN",
+            "subject": "GUN",
             "predicate": "Precedes",
-            "object": "inst:HK",
-            "beamline_context": "inst:LINE",
+            "object": "HK",
+            "beamline_context": "LINE",
         }
     )
     with pytest.raises(ValueError, match="single linear"):

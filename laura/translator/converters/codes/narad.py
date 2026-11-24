@@ -16,6 +16,7 @@ import reads back.
 from __future__ import annotations
 
 import json
+from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
@@ -38,6 +39,7 @@ from ...utils.pals import (
     PalsLattice,
     laura_type_to_pals_kind,
     pals_element_body,
+    pals_kind_to_laura_type,
 )
 from ..converter import translate_elements
 from ..section import _s_bounds
@@ -264,6 +266,17 @@ def _element(
     laura = _extras(component.get("MetaP"))
     stated = laura.get("hardware_type")
     stated_class = laura.get("hardware_class")
+    if (
+        kind == "PhysicalComponent"
+    ):  # no subclass fits; a native type may be a PALS kind
+        kind = next(
+            (
+                native
+                for native in component.get("native_types") or []
+                if native.lower() in pals_kind_to_laura_type()
+            ),
+            "SupportingFacilityComponent",
+        )
     if kind == "SupportingFacilityComponent":
         native = component.get("native_types") or []
         hardware_type = next(
@@ -295,7 +308,8 @@ def _element(
         "LongitudinalPlacementP", None
     )
     if placement is None:
-        if kind != "BeginningEle":  # a beginning just starts the line
+        # NARAD's Marker and BeginningEle have no LongitudinalPlacementP slot
+        if component["kind"] not in ("Marker", "BeginningEle"):
             warn(
                 f"NARAD component {name!r} has no LongitudinalPlacementP; it was "
                 "placed, zero length, at the exit of the component before it."
@@ -320,6 +334,11 @@ def _element(
         if reference.get("pc_ref") is not None:
             reference["pc_ref"] = float(reference["pc_ref"]) * pc_ref_scale
         parameters["ReferenceP"] = reference
+    if "BodyShiftP" in component:  # JLab states these rotations in degrees too
+        parameters["BodyShiftP"] = {
+            key: float(value) * floor_angle_scale if key.endswith("_rot") else value
+            for key, value in component["BodyShiftP"].items()
+        }
     # LAURA's export marks a FloorP it computed, which places the element
     # rather than surveys it
     computed = laura.pop("FloorP", None) == "computed"
@@ -338,8 +357,7 @@ def _element(
         parameters[LAURA_TYPE_EXTENSION]["hardware_class"] = hardware_class
     narad = {
         "controls": controls,
-        "off_beamline": component.get("beamline_relation")
-        in ("AttachedToPipe", "AssociatedWithBeamLine"),
+        "off_beamline": component.get("beamline_relation") not in (None, "Inline"),
         "laura": laura,
         "floor": dict(floor, face=s_position_at) if computed and floor else None,
     }
@@ -366,9 +384,20 @@ def narad_document(
     relations = facility.get("component_relations") or []
     controls = _controls(facility)
 
-    lattice = PalsLattice(name=path.name.split(".")[0])
+    beamlines = facility.get("beamlines") or []
+    wholes = {
+        relation["object"]
+        for relation in relations
+        if relation.get("predicate") == "IsPartOf"
+        and relation.get("subject") in {beamline["id"] for beamline in beamlines}
+    }
+    lattice = PalsLattice(
+        name=_name(next(iter(wholes))) if len(wholes) == 1 else path.name.split(".")[0]
+    )
     skipped: List[str] = []
-    for beamline in facility.get("beamlines") or []:
+    for beamline in beamlines:
+        if beamline["id"] in wholes:
+            continue
         branch = PalsBranch(name=_name(beamline["id"]), attributes=dict(beamline))
         previous_exit = 0.0
         reference = None
@@ -414,15 +443,15 @@ class NaradLatticeImporter(PalsLatticeImporter):
     """Read a ``*.narad.yaml`` instance into LAURA elements, sections and layouts."""
 
     pc_ref_scale: float = 1.0
-    """eV per unit of the instance's ``pc_ref``. PALS states eV; NARAD states no
-    unit."""
+    """eV per unit of the instance's ``pc_ref``. PALS states eV, the NARAD schema
+    MeV; JLab instances use MeV, BNL's eV."""
 
     s_position_at: Literal["entrance", "exit"] = "entrance"
     """Which face ``s_position`` marks. PALS says the entrance; NARAD does not say."""
 
     floor_angle_scale: float = 1.0
-    """Radians per unit of the instance's ``FloorP`` angles. PALS states radians.
-    ``FloorP`` is kept as ``physical.survey``, as given,
+    """Radians per unit of the instance's ``FloorP`` and ``BodyShiftP`` angles.
+    PALS states radians; JLab instances use degrees. ``FloorP`` is kept as ``physical.survey``, as given,
     at whichever face the instance puts it; one LAURA computed places the element."""
 
     def create_laura_element_dictionary(
@@ -500,14 +529,14 @@ class NaradLatticeImporter(PalsLatticeImporter):
         if floor:  # LAURA computed it, so it is where the element actually is
             physical = converted.physical
             face = "end" if floor["face"] == "exit" else "start"
-            # undo the export's mirror of LAURA's floor x and psi
+            # undo the export's flips of LAURA's floor x, phi and psi
             theta = floor["theta"] + (
                 physical._physical_angle if face == "end" else 0.0
             )
             own = physical.rotation
             physical.global_rotation = Rotation(
                 theta=theta - own.theta,
-                phi=floor["phi"] - own.phi,
+                phi=-floor["phi"] - own.phi,
                 psi=-floor["psi"] - own.psi,
             )
             at_face = np.array([-floor["x"], floor["y"], floor["z"]])
@@ -620,13 +649,12 @@ def _floor(
         rotation = survey.rotation
         theta, phi, psi = rotation.theta, rotation.phi, rotation.psi
     else:
-        # LAURA's floor x points the opposite way to PALS's, so x and psi flip.
         x, y, z = physical.start if face == "entrance" else physical.end
         x = -x
         theta = physical.rotation.theta + physical.global_rotation.theta
         if face == "exit":
             theta -= physical._physical_angle
-        phi = physical.rotation.phi + physical.global_rotation.phi
+        phi = -(physical.rotation.phi + physical.global_rotation.phi)
         psi = -(physical.rotation.psi + physical.global_rotation.psi)
     floor = {"x": x, "y": y, "z": z}
     for key, angle in (("theta", theta), ("phi", phi), ("psi", psi)):
@@ -667,7 +695,7 @@ def _component(
         kind = "SupportingFacilityComponent"
     kind = kind or _PALS_KINDS.get(body["kind"], body["kind"])
 
-    component: Dict[str, Any] = {"id": f"inst:{name}", "kind": kind}
+    component: Dict[str, Any] = {"id": name, "kind": kind}
     if kind in _FUNCTIONS:
         component["functions"] = [_FUNCTIONS[kind]]
         component["beamline_relation"] = (
@@ -708,6 +736,9 @@ def _component(
         if body.get(group):
             groups[group] = dict(body[group])
     groups.get("RFP", {}).pop("gradient", None)  # NARAD's RFP has none
+    shift = groups.get("BodyShiftP", {})
+    for key in [key for key in shift if key.endswith("_rot")]:
+        shift[key] /= floor_angle_scale
     multipoles = body.get("MagneticMultipoleP")
     if multipoles and length:
         groups["MagneticMultipoleP"] = {
@@ -723,13 +754,13 @@ def _component(
         if group in _MISSING_GROUPS.get(kind, ()):
             extras[group] = value  # the import reads it back from there
         else:
-            component[group] = {"id": f"inst:{name}/{group}", **value}
+            component[group] = {"id": f"{name}/{group}", **value}
     floor, computed = _floor(element, s_position_at, floor_angle_scale)
     if floor is not None:
-        component["FloorP"] = {"id": f"inst:{name}/FloorP", **floor}
+        component["FloorP"] = {"id": f"{name}/FloorP", **floor}
     if computed:  # so the import does not take it for a survey
         extras["FloorP"] = "computed"
-    meta: Dict[str, Any] = {"id": f"inst:{name}/MetaP"}
+    meta: Dict[str, Any] = {"id": f"{name}/MetaP"}
     if element.alias:
         meta["alias"] = list(element.alias)
     meta["additional_metadata"] = _metadata(extras)
@@ -754,7 +785,7 @@ def _beginning(
     }
     extras["LongitudinalPlacementP"] = {"length": 0.0, "s_position": _s_start(seed)}
     component: Dict[str, Any] = {
-        "id": f"inst:{name}",
+        "id": name,
         "kind": "BeginningEle",
         "functions": ["Mark"],
         "beamline_relation": "Inline",
@@ -762,14 +793,14 @@ def _beginning(
     for group, values in (("ReferenceP", reference), ("TwissP", twiss)):
         values = {key: value for key, value in values.items() if value is not None}
         if values:
-            component[group] = {"id": f"inst:{name}/{group}", **values}
+            component[group] = {"id": f"{name}/{group}", **values}
     floor, computed = _floor(seed, "entrance", floor_angle_scale)
     if floor is not None:
-        component["FloorP"] = {"id": f"inst:{name}/FloorP", **floor}
+        component["FloorP"] = {"id": f"{name}/FloorP", **floor}
     if computed:
         extras["FloorP"] = "computed"
     component["MetaP"] = {
-        "id": f"inst:{name}/MetaP",
+        "id": f"{name}/MetaP",
         "additional_metadata": _metadata(extras),
     }
     return component
@@ -787,7 +818,7 @@ def _signals(element: Any, missing: set) -> tuple:
         )
         data.pop("read_only", None)  # the role says it
         signal: Dict[str, Any] = {
-            "id": f"inst:{identifier}",
+            "id": identifier,
             "kind": "Signal",
             "signal_role": role,
         }
@@ -813,14 +844,14 @@ def _signals(element: Any, missing: set) -> tuple:
         data = {field: value for field, value in data.items() if value is not None}
         if data:
             signal["MetaP"] = {
-                "id": f"inst:{identifier}/MetaP",
+                "id": f"{identifier}/MetaP",
                 "additional_metadata": _metadata(data),
             }
         signals.append(signal)
         bindings.append(
             {
-                "id": f"inst:{element.name}_{key}",
-                "subject": f"inst:{element.name}",
+                "id": f"{element.name}_{key}",
+                "subject": element.name,
                 "predicate": _PREDICATES.get(role, "HasReadbackSignal"),
                 "object": signal["id"],
             }
@@ -898,7 +929,7 @@ def narad_instance(
         Which face ``s_position`` and ``FloorP`` mark (see
         :class:`NaradLatticeImporter`).
     floor_angle_scale: float
-        Radians per unit of the written ``FloorP`` angles.
+        Radians per unit of the written ``FloorP`` and ``BodyShiftP`` angles.
 
     Returns
     -------
@@ -914,7 +945,7 @@ def narad_instance(
     unphysical = 0
     for section_name, members in _section_members(machine).items():
         section = machine.sections[section_name]
-        beamline = f"inst:{section_name}"
+        beamline = section_name
         beamlines.append(
             {
                 "id": beamline,
@@ -970,10 +1001,10 @@ def narad_instance(
         for upstream, downstream in zip(line, line[1:]):
             relations.append(
                 {
-                    "id": f"inst:{upstream}_to_{downstream}",
-                    "subject": f"inst:{upstream}",
+                    "id": f"{upstream}_to_{downstream}",
+                    "subject": upstream,
                     "predicate": "Precedes",
-                    "object": f"inst:{downstream}",
+                    "object": downstream,
                     "context": "beamline_order",
                     "beamline_context": beamline,
                 }
@@ -985,10 +1016,20 @@ def narad_instance(
             "Some signals lack slots NARAD requires, which LAURA does not know: "
             f"{', '.join(sorted(missing))}. They were left out, not guessed."
         )
+    today = date.today().isoformat()
     return {
         "description": "A NARAD instance written by LAURA.",
         "kind": "PALSAccelerator",
-        "version": None,
+        "version": "0.0.0",
+        "schema_version": "0.0.1",  # the pals-facility-config release written to
+        "created_date": today,
+        "change_log": [
+            {
+                "change_date": today,
+                "instance_version": "0.0.0",
+                "summary": "Initial creation.",
+            }
+        ],
         "facility": {
             "components": list(components.values()),
             "beamlines": beamlines,

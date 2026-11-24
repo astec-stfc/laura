@@ -1,7 +1,7 @@
 # Fixture for unit_tests/test_pals_importer.py: the two conversions that need
 # more than the element in front of them.
 #
-# - a cavity stating `harmon` rather than a frequency, which only means
+# - a cavity stating `harmonic_number` rather than a frequency, which only means
 #   something given the revolution period of the whole periodic branch
 # - a BeamBeam, whose group holds more about the opposing bunch than LAURA can
 PALS:
@@ -22,7 +22,7 @@ PALS:
               kind: RFCavity
               length: 1.0
               RFP:
-                harmon: 400
+                harmonic_number: 400
                 voltage: 1.0e6
           - ip:
               kind: BeamBeam

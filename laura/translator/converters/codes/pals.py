@@ -36,7 +36,6 @@ from laura.models.element_list import (
 )
 from laura.models.magnetic import Multipoles
 
-from .. import keyword_conversion_rules_pals
 from ...utils.functions import merge_layout_elements, number_repeated_names
 from ...utils.pals import (
     LAURA_TYPE_EXTENSION,
@@ -50,6 +49,7 @@ from ...utils.pals import (
     pals_kind_to_laura_type,
     parse_pals_file,
 )
+from .. import keyword_conversion_rules_pals
 from .importer import LatticeImporter, check_layouts, element_class, section_entry
 
 MAX_MULTIPOLE_ORDER = max(
@@ -652,13 +652,13 @@ def _cavity(element: PalsElement, period: Optional[float] = None) -> Dict[str, D
         return {}
     length = element.length
     frequency = _number(rf.get("frequency"))
-    harmon = _number(rf.get("harmon"))
+    harmon = _number(rf.get("harmonic_number", rf.get("harmon")))
     if frequency is None and harmon:
         if period:
             frequency = harmon / period
         else:
             warn(
-                f"PALS cavity {element.name!r} sets harmon rather than frequency; "
+                f"PALS cavity {element.name!r} sets harmonic_number rather than frequency; "
                 "converting it needs a periodic branch with a reference energy, "
                 "which this one does not give, so no frequency was set."
             )
