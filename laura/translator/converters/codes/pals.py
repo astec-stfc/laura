@@ -645,7 +645,9 @@ def _revolution_period(branch: PalsBranch) -> Optional[float]:
     return period or None
 
 
-def _cavity(element: PalsElement, period: Optional[float] = None) -> Dict[str, Dict[str, Any]]:
+def _cavity(
+    element: PalsElement, period: Optional[float] = None
+) -> Dict[str, Dict[str, Any]]:
     """Convert ``RFP`` to LAURA ``cavity`` and ``simulation`` dicts."""
     rf = element.group("RFP")
     if not rf:
@@ -848,7 +850,9 @@ class PalsLatticeImporter(LatticeImporter):
                     energy = (momentum**2 + rest**2) ** 0.5
             if energy is not None:
                 reference["reference_energy"] = energy
-        reference["geometry"] = "closed" if branch.attributes.get("periodic") else "open"
+        reference["geometry"] = (
+            "closed" if branch.attributes.get("periodic") else "open"
+        )
         return reference
 
     def create_laura_element_dictionary(
