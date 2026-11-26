@@ -128,6 +128,29 @@ def test_corrector_kick_angle_is_imported():
     assert elements["CV1"].magnetic.vertical_kick == pytest.approx(-0.002)
 
 
+def test_vertical_corrector_builtin_roll_is_not_a_tilt():
+    """Ocelot's Vcor carries tilt = pi/2 to kick vertically; read as a tilt, it
+    came back from export rolled by pi, kicking the wrong way."""
+    from ocelot.cpbd.elements import Vcor
+
+    from laura.translator.converters.converter import translate_elements
+
+    elem = _elements(Vcor(l=0.3, angle=-0.002, eid="CV1"))["CV1"]
+    assert not elem.magnetic.tilt
+    v = translate_elements([elem])["CV1"].to_ocelot()
+    assert v.element.tilt == pytest.approx(0.5 * 3.141592653589793)
+
+
+def test_zero_length_quadrupole_exports():
+    """k = KnL / length had no answer for a zero-length placeholder quad."""
+    from ocelot.cpbd.elements import Quadrupole
+
+    from laura.translator.converters.converter import translate_elements
+
+    elem = _elements(Quadrupole(eid="QLN"))["QLN"]
+    assert translate_elements([elem])["QLN"].to_ocelot().k1 == 0.0
+
+
 def test_initial_twiss_is_imported_as_twiss_match():
     """Ocelot's initial `Twiss` (`tws0`) is not in `MagneticLattice.sequence`, so it is
     passed in via `initial_twiss`.
