@@ -32,6 +32,12 @@ def test_astra_solver(mode, lspch3d, grid):
     assert f"{grid} = " in text
 
 
+def test_an_astra_grid_set_by_the_user_is_the_only_one_written():
+    text = AstraCharge(space_charge_mode="2D", npart=2**15, nrad=70).write_astra()
+    assert text.count("nrad = ") == 1 and "nrad = 70," in text
+    assert text.count("nlong_in = ") == 1 and "nlong_in = 32" in text
+
+
 @pytest.mark.parametrize("mode", ["3", "cylindrical", True])
 def test_an_unknown_mode_is_an_error(mode):
     with pytest.raises(ValueError, match="space_charge_mode"):

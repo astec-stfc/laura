@@ -341,10 +341,11 @@ class AstraCharge(AstraHeader):
     """Variation of the cell height in radial direction."""
 
     nrad: int | None = None
-    """Number of grid cells in radial direction up to the bunch radius."""
+    """Number of grid cells in radial direction up to the bunch radius; None sizes it from ``npart``."""
 
     nlong_in: int | None = None
-    """Maximum number of grid cells in longitudinal direction within the bunch length."""
+    """Maximum number of grid cells in longitudinal direction within the bunch length;
+    None sizes it from ``npart``."""
 
     smooth_x: int = 0
     """Smoothing parameter for x-direction. Only for 3D FFT algorithm; ASTRA's
@@ -399,8 +400,9 @@ class AstraCharge(AstraHeader):
                 else:
                     output += f"{key} = {self._astra_str(val)},\n"
         if self.space_charge_2d and not self.space_charge_3d:
-            output += f"nrad = {self.grid_size},\n"
-            output += f"nlong_in = {self.grid_size},\n"
+            for key in ("nrad", "nlong_in"):
+                if getattr(self, key) is None:
+                    output += f"{key} = {self.grid_size},\n"
         elif self.space_charge_3d:
             output += f"nxf = {self.grid_size},\n"
             output += f"nyf = {self.grid_size},\n"
