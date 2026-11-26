@@ -1008,6 +1008,7 @@ type LaserElement
     wavelength: Float
     pulseEnergy: Float
     pulseDurationFwhm: Float
+    fieldDefinition: String
     focalPosition: Float
     cepPhase: Float
     polarization: LaserPolarizationEnum
@@ -1018,6 +1019,7 @@ type LaserElement
     propagationDirection: Int
     polarizationAngle: Float
     temporalChirp2ndOrder: Float
+    collisionAngle: Float
   }
 
 type LaserEnergyMeter

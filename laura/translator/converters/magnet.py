@@ -6,6 +6,7 @@ import numpy as np
 from pydantic import computed_field, field_validator, model_validator
 
 from laura.models.constants import speed_of_light, vacuum_permittivity
+from laura.models.laser import LaserElement
 from laura.models.magnetic import (
     CombinedCorrectorMagnet,
     CombinedSolenoidQuadrupoleMagnet,
@@ -29,11 +30,10 @@ from ..converters import (
 )
 from ..utils.functions import (
     _rotation_matrix,
-    chop,
     expand_substitution,
     sanitize_string,
 )
-from .base import BaseElementTranslator
+from .base import BaseElementTranslator, elegant_line
 from .codes.gpt import GptCcs
 from .codes.slipstream import SlipstreamElement
 
@@ -49,7 +49,11 @@ RF-Track loses every particle at R = 0."""
 
 def solenoid_sheet_radius(magnetic, length: float, code: str) -> float:
     """``magnetic.coil_radius``, at least ``code``'s :data:`MAP_SOLENOID_RADIUS` of ``length``."""
-    return max(getattr(magnetic, "coil_radius", None) or 0.0, MAP_SOLENOID_RADIUS[code] * length)
+    return max(
+        getattr(magnetic, "coil_radius", None) or 0.0,
+        MAP_SOLENOID_RADIUS[code] * length,
+    )
+
 
 BEND_ANGLE_PER_KICK = 0.01
 """Largest angle [rad] one integration step of a bend may turn through when
@@ -410,19 +414,18 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         str
             String representation of the element for CSRTrack
         """
-        z1 = self.physical.start.z
-        z2 = self.physical.end.z
         s_comment = (
             f"! quad{n} s={self.physical.s:.6f}\n"
             if self.physical.s is not None
             else ""
         )
+        theta = self.physical.global_rotation.theta
         return (
             f"{s_comment}quadrupole{{\n"
-            f"position{{rho={z1!s}, psi=0.0, marker=quad{n!s}a}}\n"
-            f"properties{{strength={self.magnetic.KnL(1)!s}, alpha=0, horizontal_offset=0,vertical_offset=0}}\n"
-            f"position{{rho={z2!s}, psi=0.0, marker=quad{n!s}b}}\n"
-            "}\n"
+            + self._csrtrack_position(self.physical.start, theta, f"quad{n}a")
+            + f"properties{{strength={self.magnetic.KnL(1)!s}, alpha=0, horizontal_offset=0,vertical_offset=0}}\n"
+            + self._csrtrack_position(self.physical.end, theta, f"quad{n}b")
+            + "}\n"
         )
 
     def to_gpt(self, Brho: float = 0, charge_sign: int = -1, *args, **kwargs) -> str:
@@ -466,7 +469,11 @@ class MagnetTranslator(MultipoleStrengthTranslator):
         if self.hardware_type.lower() == "octupole":
             aperture = self.aperture
             bore = max(
-                (aperture.radius or 0, aperture.horizontal_size or 0, aperture.vertical_size or 0)
+                (
+                    aperture.radius or 0,
+                    aperture.horizontal_size or 0,
+                    aperture.vertical_size or 0,
+                )
                 if aperture
                 else (0,)
             )
@@ -513,7 +520,9 @@ class MagnetTranslator(MultipoleStrengthTranslator):
             z_m=float(field_ref_pos[2]) + self.dz,
             k1=self.k1,
             k2=self.k2,
-            grad_t_per_m=self.magnetic.gradient if self.magnetic.gradient is not None else 0.0,
+            grad_t_per_m=self.magnetic.gradient
+            if self.magnetic.gradient is not None
+            else 0.0,
         )
 
 
@@ -874,20 +883,20 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         str
             String representation of the element for CSRTrack
         """
-        z1 = self.physical.start.z
-        z2 = self.physical.end.z
         s_comment = (
             f"! dipole{n} s={self.physical.s:.6f}\n"
             if self.physical.s is not None
             else ""
         )
-        theta = self.physical.rotation.theta
+        theta = self.physical.global_rotation.theta
         return (
             f"{s_comment}dipole{{\n"
-            f"position{{rho={z1!s}, psi={chop(theta + self.e1)!s}, marker=d{n!s}a}}\n"
-            f"properties{{r={self.magnetic.rho!s}}}\n"
-            f"position{{rho={z2!s}, psi={chop(theta + self.e2)!s}, marker=d{n!s}b}}\n"
-            "}\n"
+            + self._csrtrack_position(self.physical.start, theta - self.e1, f"d{n}a")
+            + f"properties{{r={self.magnetic.rho!s}}}\n"
+            + self._csrtrack_position(
+                self.physical.end, theta - self.angle + self.e2, f"d{n}b"
+            )
+            + "}\n"
         )
 
     def to_gpt(self, Brho: float = 0.0, *args, **kwargs) -> str:
@@ -1041,7 +1050,9 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
         keywords = self._bdsim_keywords(obj, section_aperture)
         obj, keywords = magnet_frame_workaround(obj, keywords, integrator_set)
-        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+        return obj(
+            **self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set)
+        )
 
 
 class DecapoleTranslator(MagnetTranslator):
@@ -1240,7 +1251,9 @@ class SolenoidTranslator(BaseElementTranslator):
             String representation of the element for ASTRA
         """
         field_ref_pos = self.get_field_reference_position()
-        field_file_name = self.generate_field_file_name(self._field_map("astra"), code="astra")
+        field_file_name = self.generate_field_file_name(
+            self._field_map("astra"), code="astra"
+        )
         if not isinstance(field_file_name, str):
             raise NotImplementedError(
                 f"ASTRA solenoids require fieldmaps; see element {self.name}"
@@ -1258,7 +1271,9 @@ class SolenoidTranslator(BaseElementTranslator):
                 },
                 # smoothing a generated (exact) map would only widen its edge
                 "S_smooth": {
-                    "value": 0 if self.simulation.field_definition is None else self.simulation.smooth,
+                    "value": 0
+                    if self.simulation.field_definition is None
+                    else self.simulation.smooth,
                     "default": 10,
                 },
                 "S_xoff": {"value": field_ref_pos[0] + self.dx, "default": 0},
@@ -1362,9 +1377,13 @@ class SolenoidTranslator(BaseElementTranslator):
         """
         length = self.magnetic.length
         if not length:
-            raise NotImplementedError(f"GPT has no thin solenoid; see element {self.name}")
+            raise NotImplementedError(
+                f"GPT has no thin solenoid; see element {self.name}"
+            )
         radius = solenoid_sheet_radius(self.magnetic, length, "gpt")
-        stands_for = "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        stands_for = (
+            "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        )
         warn(
             f"GPT: {self.name!r} has no field map: writing a bzsolenoid, the analytic field "
             f"of a current sheet of radius {radius:.3g} m, for {stands_for}."
@@ -1398,7 +1417,9 @@ class SolenoidTranslator(BaseElementTranslator):
             return None
         length = self.magnetic.length
         if not length:
-            raise NotImplementedError(f"A thin solenoid has no field map; see element {self.name}")
+            raise NotImplementedError(
+                f"A thin solenoid has no field map; see element {self.name}"
+            )
         return solenoid_sheet_radius(self.magnetic, length, code)
 
     def _map_amplitude(self, code: str):
@@ -1420,16 +1441,18 @@ class SolenoidTranslator(BaseElementTranslator):
         if radius is None:
             return self.simulation.field_definition
         length = self.magnetic.length
-        stands_for = "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        stands_for = (
+            "its coil" if getattr(self.magnetic, "coil_radius", None) else "a hard edge"
+        )
         warn(
             f"{code.upper()} needs a field map and {self.name!r} has none: writing the analytic "
             f"field of a current sheet of radius {radius:.3g} m, for {stands_for}."
         )
         half = length / 2 + 50 * radius
         z = np.linspace(-half, half, int(np.ceil(8 * half / radius)) + 1)
-        bz = (z + length / 2) / np.hypot(z + length / 2, radius) - (z - length / 2) / np.hypot(
-            z - length / 2, radius
-        )
+        bz = (z + length / 2) / np.hypot(z + length / 2, radius) - (
+            z - length / 2
+        ) / np.hypot(z - length / 2, radius)
         offset = self.physical.middle.z - self.get_field_reference_position()[2]
         field = FieldMap()
         field.length = len(z)
@@ -1507,7 +1530,9 @@ class SolenoidTranslator(BaseElementTranslator):
                 wholestring += f", {key} = {value}"
         field = self._field_map("opal")
         if isinstance(field, FieldMap):
-            wholestring += f', fmapfn = "{self.generate_field_file_name(field, code="opal")}"'
+            wholestring += (
+                f', fmapfn = "{self.generate_field_file_name(field, code="opal")}"'
+            )
             sval += float(
                 np.linalg.norm(
                     self.get_field_reference_position()
@@ -1559,7 +1584,9 @@ class SolenoidTranslator(BaseElementTranslator):
                 keywords["ks"] = self.magnetic.field_amplitude / self.Brho
             else:
                 keywords.pop("ks")
-        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+        return obj(
+            **self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set)
+        )
 
 
 class WigglerTranslator(BaseElementTranslator):
@@ -1573,6 +1600,9 @@ class WigglerTranslator(BaseElementTranslator):
 
     simulation: MagnetSimulationElement
     """Wiggler simulation element."""
+
+    laser: LaserElement | None = None
+    """Laser co-propagating through the wiggler (a laser heater or modulator)."""
 
     @computed_field
     @property
@@ -1612,6 +1642,27 @@ class WigglerTranslator(BaseElementTranslator):
                 keyword_conversion_rules_elegant["cwiggler"]
                 | keyword_conversion_rules_elegant["general"]
             )
+        elif self.laser is not None and self.laser.peak_power:
+            # without a time profile the laser is CW at its Gaussian peak power,
+            terms = [
+                f"l = {self.magnetic.length}",
+                f"bu = {self.magnetic.peak_magnetic_field}",
+                f"periods = {self.magnetic.num_periods}",
+                f"n_steps = {20 * self.magnetic.num_periods}",
+                "accuracy = 1e-4",
+                f"laser_wavelength = {self.laser.wavelength}",
+                f"laser_peak_power = {self.laser.peak_power}",
+                f"laser_w0 = {self.laser.waist}",
+            ]
+            if isinstance(self.laser.field_definition, FieldMap):
+                profile = self.generate_field_file_name(
+                    self.laser.field_definition, code="elegant"
+                )
+                terms += [
+                    f'time_profile = "{profile}=t+Ex"',
+                    f"time_offset = {-self.laser.initial_position / speed_of_light}",
+                ]
+            return elegant_line(f"{self.name}: lsrmdltr", terms)
         return super().to_elegant()
 
     def to_genesis(self, index: int) -> str:
@@ -1655,7 +1706,9 @@ class WigglerTranslator(BaseElementTranslator):
         strength = m.resolved("strength") if m.strength is not None else 0.0
         if m.period:
             obj.lperiod = float(m.period)
-            obj.nperiods = int(m.num_periods or round(float(m.length) / float(m.period)))
+            obj.nperiods = int(
+                m.num_periods or round(float(m.length) / float(m.period))
+            )
         obj.Kx = float(strength)
         obj.Ky = float(strength) if m.helical else 0.0
         return obj

@@ -8797,6 +8797,20 @@
             "null"
           ]
         },
+        "collision_angle": {
+          "description": "Angle between the particle beam's direction and the laser's axis, for a laser colliding with the beam at its focus [rad]: 0 is head-on (counter-propagating).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_definition": {
+          "description": "Path to a field-map file giving the laser's time profile: a LaserTimeProfile field map with columns t [s], relative to the bunch centroid (positive towards the tail), and Ex, the field envelope in any units. When set it replaces the Gaussian pulse_duration_fwhm, and pulse_energy is the integral of the power over the profile.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "flatness": {
           "description": "Flatness order N of a flattened-Gaussian profile (for ``profile_type = flattened-gaussian``).",
           "minimum": 1,
@@ -21548,7 +21562,7 @@
               "type": "null"
             }
           ],
-          "description": "Drive laser, for laser-undulator (inverse-Compton) configurations."
+          "description": "Laser co-propagating through the wiggler: a laser heater or modulator, or the drive laser of an inverse-Compton source."
         },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",

@@ -7,15 +7,15 @@ version: "0.1.0"
 license: GPL-3.0-or-later
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
 
 default_prefix: laura
 default_range: string
@@ -144,19 +144,19 @@ classes:
       left:
         range: float
         description: Left sense value.
-        aliases: [left_sense]
+        aliases: [ left_sense ]
       right:
         range: float
         description: Right sense value.
-        aliases: [right_sense]
+        aliases: [ right_sense ]
       up:
         range: float
         description: Up sense value.
-        aliases: [up_sense]
+        aliases: [ up_sense ]
       down:
         range: float
         description: Down sense value.
-        aliases: [down_sense]
+        aliases: [ down_sense ]
 
   LaserAttenuator:
     is_a: StandardElement
@@ -236,6 +236,13 @@ classes:
         minimum_value: 0.0
         unit:
           ucum_code: s
+      field_definition:
+        range: string
+        description: >-
+          Path to a field-map file giving the laser's time profile: a
+          LaserTimeProfile field map with columns t [s], relative to the bunch
+          centroid (positive towards the tail), and Ex, the field envelope in
+          any units.
       focal_position:
         range: float
         description: Focal (waist) position along the propagation axis [m].

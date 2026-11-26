@@ -21,6 +21,7 @@ from ..converters import (
     keyword_conversion_rules_bmad,
     keyword_conversion_rules_cheetah,
     keyword_conversion_rules_elegant,
+    keyword_conversion_rules_fbpic,
     keyword_conversion_rules_genesis,
     keyword_conversion_rules_madx,
     keyword_conversion_rules_ocelot,
@@ -28,7 +29,6 @@ from ..converters import (
     keyword_conversion_rules_pals,
     keyword_conversion_rules_wake_t,
     keyword_conversion_rules_xsuite,
-    keyword_conversion_rules_fbpic,
     type_conversion_rules,
     type_conversion_rules_bmad,
     type_conversion_rules_elegant,
@@ -492,6 +492,19 @@ class BaseElementTranslator(PhysicalBaseElement):
         """The alignment errors, keyed by attribute name."""
         return {q: getattr(self, q) for q in _MISALIGNMENTS}
 
+    @staticmethod
+    def _csrtrack_position(point: Position, normal: float, marker: str) -> str:
+        """
+        A CSRTrack field boundary through ``point`` (global frame) whose normal is
+        at ``normal`` [rad] to the global z axis. CSRTrack takes the line in Hesse
+        form -- ``rho`` its distance from the origin, ``psi`` its normal's angle in
+        **degrees** -- with the same angle sign as LAURA and ``y = -x``.
+        """
+        rho = point.z * math.cos(normal) - point.x * math.sin(normal)
+        psi = math.degrees(normal)
+        psi = 0.0 if abs(psi) < 1e-8 else psi
+        return f"position{{rho={float(rho)!s}, psi={float(psi)!s}, marker={marker}}}\n"
+
     def _warn_dropped_misalignment(
         self, code: str, written: set, tilt: bool = False
     ) -> None:
@@ -534,7 +547,16 @@ class BaseElementTranslator(PhysicalBaseElement):
                     if value == "angle":
                         value = self.magnetic.KnL(0)
                     if key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                        value = getattr(self, f"{key}l") / self.magnetic.length
+                        value = getattr(self, f"{key}l")
+                        if self.magnetic.length:
+                            value = value / self.magnetic.length
+                        else:
+                            if value:
+                                warn(
+                                    f"Ocelot cannot take {key}l on zero-length "
+                                    f"{self.name!r}; dropped."
+                                )
+                            value = 0.0
                     if key == "gap":
                         value = 2 * value
                     setattr(obj, convert(key), value)
@@ -860,7 +882,10 @@ class BaseElementTranslator(PhysicalBaseElement):
         wake = self._rftrack_wake_args()
         if wake is not None and not self.physical.length:
             # zero-length elements apply no wake, so it rides on a short Drift after them
-            obj = [*(obj if isinstance(obj, list) else [obj]), get_rftrack().Drift(WAKE_HOST_LENGTH)]
+            obj = [
+                *(obj if isinstance(obj, list) else [obj]),
+                get_rftrack().Drift(WAKE_HOST_LENGTH),
+            ]
         for o in obj if isinstance(obj, list) else [obj]:
             o.set_name(self.name)
             self._apply_rftrack_aperture(o)
@@ -952,7 +977,9 @@ class BaseElementTranslator(PhysicalBaseElement):
             # once, on the WAKE_HOST_LENGTH Drift that to_rftrack puts after the element
             return fields_rftrack.wakefield_1d_args(wake, factor=1 / WAKE_HOST_LENGTH)
         if getattr(wake, "reference_length", None):
-            return fields_rftrack.wakefield_1d_args(wake, factor=1 / wake.reference_length)
+            return fields_rftrack.wakefield_1d_args(
+                wake, factor=1 / wake.reference_length
+            )
         n_cells = getattr(getattr(self, "cavity", None), "n_cells", None) or 1
         return fields_rftrack.wakefield_1d_args(wake, factor=n_cells / length)
 
@@ -1067,6 +1094,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             length=self.physical.length,
             z_m=self.physical.start.z,
         )
+
     def to_fbpic(self) -> object:
         """
         Generates a FBPIC object based on the element's properties and type.
@@ -1303,7 +1331,9 @@ class BaseElementTranslator(PhysicalBaseElement):
         obj = self._bdsim_type(section_aperture)
         keywords = self._bdsim_keywords(obj, section_aperture)
         obj, keywords = magnet_frame_workaround(obj, keywords, integrator_set)
-        return obj(**self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set))
+        return obj(
+            **self._bdsim_charge_sign(obj, keywords, charge_sign, integrator_set)
+        )
 
     _KEYWORD_STRIP_PREFIXES = [
         "",
@@ -2010,7 +2040,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                 rolled=False,
                 chord=sagitta(length, angle),
             )
-            ends.append(np.array([offset[0], rotation[1], offset[1], -rotation[0], 0.0, 0.0]))
+            ends.append(
+                np.array([offset[0], rotation[1], offset[1], -rotation[0], 0.0, 0.0])
+            )
         return -ends[0], ends[1]
 
     @property
@@ -2128,6 +2160,14 @@ class BaseElementTranslator(PhysicalBaseElement):
                             self.master_lattice,
                         ),
                     )
+        laser = getattr(self, "laser", None)
+        if laser is not None and isinstance(laser.field_definition, str):
+            laser.field_definition = FieldMap(
+                filename=expand_substitution(
+                    self, laser.field_definition, self.master_lattice
+                ),
+                field_type="LaserTimeProfile",
+            )
 
     def _wakefield_active(self) -> bool:
         """

@@ -79,7 +79,10 @@ def test_round_trip(simple_field, code, field_type):
         # GDF otherwise normalises B to its on-axis peak
         new = _read_back(simple_field, code, **({"normalize_b": False} if code == "gdf" else {}))
     for param in params:
-        assert all(getattr(new, param).value == getattr(simple_field, param).value)
+        # rounding only: ASTRA's 3DWake stores Wx/Wy scaled by -1/(2c)
+        np.testing.assert_allclose(
+            getattr(new, param).value.val, getattr(simple_field, param).value.val, rtol=1e-14
+        )
     for name in simple_field.model_fields_set - set(params):
         if isinstance(getattr(simple_field, name), FieldParameter):
             assert getattr(new, name).value is None

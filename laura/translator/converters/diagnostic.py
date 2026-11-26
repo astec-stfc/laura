@@ -62,17 +62,16 @@ class DiagnosticTranslator(BaseElementTranslator):
         str
             String representation of the element for CSRTrack
         """
-        z = self.physical.middle.z
+        middle = self.physical.middle
+        theta = self.physical.global_rotation.theta
         return (
-            """quadrupole{\nposition{rho="""
-            + str(z)
-            + """, psi=0.0, marker=screen"""
-            + str(n)
-            + """a}\nproperties{strength=0.0, alpha=0, horizontal_offset=0,vertical_offset=0}\nposition{rho="""
-            + str(z + 1e-6)
-            + """, psi=0.0, marker=screen"""
-            + str(n)
-            + """b}\n}\n"""
+            "quadrupole{\n"
+            + self._csrtrack_position(middle, theta, f"screen{n}a")
+            + "properties{strength=0.0, alpha=0, horizontal_offset=0,vertical_offset=0}\n"
+            + self._csrtrack_position(
+                middle.model_copy(update={"z": middle.z + 1e-6}), theta, f"screen{n}b"
+            )
+            + "}\n"
         )
 
 

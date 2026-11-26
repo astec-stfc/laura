@@ -72,6 +72,20 @@ class WakefieldTranslator(BaseElementTranslator):
             + ", n_bins = 0;\n"
         )
 
+    def to_ocelot(self) -> object:
+        """
+        Creates the element for Ocelot, writing its wake table next to the lattice;
+        SIMBA attaches the ``Wake`` process that reads it.
+
+        Returns
+        -------
+        object
+            Ocelot object for the element
+        """
+        self.start_write()
+        self.generate_field_file_name(self.simulation.wakefield_definition, code="ocelot")
+        return super().to_ocelot()
+
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the wakefield element string for ASTRA;

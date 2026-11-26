@@ -1091,7 +1091,7 @@ class _SimulationElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -1207,7 +1207,7 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -1318,7 +1318,7 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -1425,7 +1425,7 @@ class _WakefieldSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -1505,7 +1505,7 @@ class _DriftSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -1567,7 +1567,7 @@ class _DiagnosticSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -1675,7 +1675,7 @@ class _PlasmaSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -1770,7 +1770,7 @@ class _TwissMatchSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -1842,7 +1842,7 @@ class _MatrixTransformSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -1922,7 +1922,7 @@ class _ElectrostaticSeparatorSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -2022,7 +2022,7 @@ class _ACDipoleSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -2090,7 +2090,7 @@ class _WireSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -2166,7 +2166,7 @@ class _BeamBeamSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -2268,7 +2268,7 @@ class _RFMultipoleSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Vertical simulation offset from the reference orbit [m]."""
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
@@ -3213,6 +3213,8 @@ class _LaserElementBase(ConfiguredBaseModel):
     """Laser pulse energy [J]."""
     pulse_duration_fwhm: Optional[float] = Field(default=None, description="""Pulse duration at FWHM [s].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'unit': {'ucum_code': 's'}} })
     """Pulse duration at FWHM [s]."""
+    field_definition: Optional[str] = Field(default=None, description="""Path to a field-map file giving the laser's time profile: a LaserTimeProfile field map with columns t [s], relative to the bunch centroid (positive towards the tail), and Ex, the field envelope in any units. When set it replaces the Gaussian pulse_duration_fwhm, and pulse_energy is the integral of the power over the profile.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement', 'LaserElement']} })
+    """Path to a field-map file giving the laser's time profile: a LaserTimeProfile field map with columns t [s], relative to the bunch centroid (positive towards the tail), and Ex, the field envelope in any units. When set it replaces the Gaussian pulse_duration_fwhm, and pulse_energy is the integral of the power over the profile."""
     focal_position: float = Field(default=0.0, description="""Focal (waist) position along the propagation axis [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
@@ -8358,13 +8360,13 @@ class _WigglerBase(_MagnetBase):
                                           'name': 'hardware_type'},
                         'magnetic': {'name': 'magnetic', 'range': 'Wiggler_Magnet'}}})
 
-    laser: Optional[_LaserElementBase] = Field(default=None, description="""Drive laser, for laser-undulator (inverse-Compton) configurations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Laser',
+    laser: Optional[_LaserElementBase] = Field(default=None, description="""Laser co-propagating through the wiggler: a laser heater or modulator, or the drive laser of an inverse-Compton source.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Laser',
                        'Plasma',
                        'LaserEnergyMeter',
                        'LaserHalfWavePlate',
                        'LaserMirror',
                        'Wiggler']} })
-    """Drive laser, for laser-undulator (inverse-Compton) configurations."""
+    """Laser co-propagating through the wiggler: a laser heater or modulator, or the drive laser of an inverse-Compton source."""
     magnetic: Optional[_WigglerMagnetBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
     """Magnetic field parameters."""
     degauss: Optional[_DegaussableElementBase] = Field(default=None, description="""Degaussing-cycle parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet']} })

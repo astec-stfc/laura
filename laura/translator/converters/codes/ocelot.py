@@ -6,7 +6,7 @@ from pydantic import ConfigDict
 
 if TYPE_CHECKING:
     pass
-from math import isfinite
+from math import isfinite, pi
 from warnings import warn
 
 import laura.models.element as laura_elems
@@ -286,6 +286,9 @@ class OcelotLatticeImporter(LatticeImporter):
             )
             if typeconv == "aperture":
                 dx = dy = 0.0  # an Aperture's dx/dy are its centre, read above
+            elif typeconv == "vcor":
+                tilt -= pi / 2
+                newobj["magnetic"].pop("tilt", None)
             apply_misalignment(
                 newobj, element_class(newobj["hardware_type"]), dx, dy, tilt
             )

@@ -12,6 +12,7 @@ _SDDS_COLUMNS = {
     "TransverseWake": (["z", "t", "Wx", "Wy"], ["m", "s", "V/C/m", "V/C/m"]),
     "3DWake": (["z", "t", "Wx", "Wy", "Wz"], ["m", "s", "V/C/m", "V/C/m", "V/C"]),
     "1DElectroDynamic": (["z", "Ez"], ["m", "V"]),
+    "LaserTimeProfile": (["t", "Ex"], ["s", ""]),
 }
 
 

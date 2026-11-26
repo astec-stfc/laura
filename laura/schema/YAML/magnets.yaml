@@ -7,16 +7,16 @@ version: "0.1.0"
 license: GPL-3.0-or-later
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
-  pals:    https://pals-project.readthedocs.io/
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  pals: https://pals-project.readthedocs.io/
 
 default_prefix: laura
 default_range: string
@@ -453,7 +453,8 @@ classes:
       laser:
         range: LaserElement
         description: >-
-          Drive laser, for laser-undulator (inverse-Compton) configurations.
+          Laser co-propagating through the wiggler: a laser heater or modulator, 
+          or the drive laser of an inverse-Compton source.
 
   # -- Non-linear lens ----------------------------------------------------------
 

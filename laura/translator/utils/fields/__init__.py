@@ -41,6 +41,7 @@ allowed_fields = [
     "TransverseWake",
     "3DWake",
     "1DQuadrupole",
+    "LaserTimeProfile",
 ]
 
 fieldtype = Literal[tuple(allowed_fields)]
