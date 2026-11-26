@@ -3,8 +3,8 @@ from warnings import warn
 
 import numpy as np
 
-from ..units import UnitValue
-from .field_parameter import FieldParameter, require_rf, set_field
+from . import taylor
+from .field_parameter import require_rf, set_field
 
 d = ",!?/&-:;@'\n \t"
 
@@ -32,12 +32,14 @@ def generate_astra_field_data(self, ocelot: bool = False) -> np.ndarray:
     """
     length = str(self.length)
     data = None
-    zdata = self.z_values
     self.field_type = (
         self.field_type.decode("utf-8")
         if isinstance(self.field_type, bytes)
         else self.field_type
     )
+    if self.field_type == "TaylorWake":
+        return taylor.to_table(self.wake_components)
+    zdata = self.z_values
     if self.field_type == "LongitudinalWake":
         wzdata = self.Wz.value.val
         preamble = np.array(
@@ -56,35 +58,11 @@ def generate_astra_field_data(self, ocelot: bool = False) -> np.ndarray:
             [np.array([[length, ""]]), np.transpose([zdata, wxdata, wydata])]
         )
     elif self.field_type == "3DWake":
-        zpreamble = np.array(
-            [
-                [3, 0],
-                [length, 0],
-                [0, 0],
-                [0, 0],
-            ]
+        data = taylor.to_table(
+            taylor.from_3d_wake(
+                zdata, self.Wz.value.val, self.Wx.value.val, self.Wy.value.val
+            )
         )
-        xpreamble = np.array(
-            [
-                [length, 0],
-                [0, 0],
-                [0, 13],
-            ]
-        )
-        ypreamble = np.array(
-            [
-                [length, 0],
-                [0, 0],
-                [0, 24],
-            ]
-        )
-        wxdata = self.Wx.value.val
-        wydata = self.Wy.value.val
-        wzdata = self.Wz.value.val
-        zvals = np.concatenate([zpreamble, np.transpose([zdata, wzdata])])
-        xvals = np.concatenate([xpreamble, np.transpose([zdata, wxdata])])
-        yvals = np.concatenate([ypreamble, np.transpose([zdata, wydata])])
-        data = np.concatenate([zvals, xvals, yvals])
     elif self.field_type == "1DMagnetoStatic":
         bzdata = self.Bz.value.val
         data = np.transpose([zdata, bzdata])
@@ -258,12 +236,13 @@ def read_astra_field_file(
             set_field(self, "z", fdat[::, 0], "m")
             set_field(self, "Wz", fdat[::, 1], "V/C")
     elif field_type == "3DWake":
-        fdat = np.loadtxt(filename)
-        numrows = int(fdat[1, 0])
-        set_field(self, "z", fdat[4 : 4 + numrows][::, 0], "m")
-        set_field(self, "Wz", fdat[4 : 4 + numrows][::, 1], "V/C")
-        set_field(self, "Wx", fdat[numrows + 7 : (2 * numrows) + 7][::, 1], "V/C/m")
-        set_field(self, "Wy", fdat[(2 * numrows) + 10 :][::, 1], "V/C/m")
+        wz, wx, wy = taylor.from_table(np.loadtxt(filename))
+        set_field(self, "z", wz.W0[:, 0], "m")
+        set_field(self, "Wz", wz.W0[:, 1], "V/C")
+        set_field(self, "Wx", wx.W1[:, 1] * taylor.DIPOLE_FACTOR, "V/C/m")
+        set_field(self, "Wy", wy.W1[:, 1] * taylor.DIPOLE_FACTOR, "V/C/m")
+    elif field_type == "TaylorWake":
+        self.wake_components = taylor.from_table(np.loadtxt(filename))
     elif field_type == "1DQuadrupole":
         fdat = np.loadtxt(filename)
         set_field(self, "z", fdat[::, 0], "m")

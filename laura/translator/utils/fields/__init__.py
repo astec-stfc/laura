@@ -26,6 +26,9 @@ from . import hdf5  # noqa E402
 from . import sdds  # noqa E402
 from . import opal  # noqa E402
 from . import rftrack  # noqa E402
+from . import taylor  # noqa E402
+from .field_parameter import set_field  # noqa E402
+from .taylor import WakeComponent  # noqa E402
 
 allowed_fields = [
     "1DElectroStatic",
@@ -40,8 +43,13 @@ allowed_fields = [
     "LongitudinalWake",
     "TransverseWake",
     "3DWake",
+    "TaylorWake",
     "1DQuadrupole",
 ]
+
+TAYLOR_WAKE_CODES = ("astra", "ocelot", "hdf5")
+"""The formats that take a ``TaylorWake`` whole; the others get it as a ``3DWake``
+(:func:`~laura.translator.utils.fields.taylor.to_3d_wake`), with a warning of what that drops."""
 
 fieldtype = Literal[tuple(allowed_fields)]
 
@@ -112,6 +120,10 @@ class FieldMap(BaseModel):
 
     G: FieldParameter = None
     """Magnetic gradient."""
+
+    wake_components: List[WakeComponent] | None = None
+    """The components of a ``TaylorWake``; see :mod:`~laura.translator.utils.fields.taylor`.
+    Reading one also sets ``z`` and ``Wz``/``Wx``/``Wy``, the parts other codes can take."""
 
     filename: str | None = None
     """Filename of the field file."""
@@ -219,6 +231,7 @@ class FieldMap(BaseModel):
         self.norm = 1.0
         for par in FIELD_NAMES:
             setattr(self, par, FieldParameter(name=par))
+        self.wake_components = None
         self.read = False
 
     @property
@@ -300,7 +313,7 @@ class FieldMap(BaseModel):
         if fext == ".hdf5":
             hdf5.read_hdf5_field_file(self, filename)
         else:
-            if fext.lower() in [".astra", ".dat"]:
+            if fext.lower() in [".astra", ".dat", ".ocelot", ".txt"]:
                 astra.read_astra_field_file(
                     self,
                     filename,
@@ -328,6 +341,20 @@ class FieldMap(BaseModel):
                     frequency=frequency,
                 )
             self.read = True
+        if self.field_type == "TaylorWake" and self.wake_components:
+            z, wakes = taylor.to_3d_wake(self.wake_components)
+            set_field(self, "z", z, "m")
+            for name, wake in wakes.items():
+                set_field(self, name, wake, "V/C" if name == "Wz" else "V/C/m")
+
+    def _warn_dropped_wake(self, code: str) -> None:
+        """Warn of the parts of a ``TaylorWake`` that `code`, taking it as a ``3DWake``, loses."""
+        dropped = taylor.dropped_parts(self.wake_components or [])
+        if dropped:
+            warnings.warn(
+                f"{code} takes only the longitudinal and dipole wakes of {self.filename}; "
+                f"dropped: {'; '.join(dropped)}"
+            )
 
     def _output_filename(
         self, extension: str = ".hdf5", location: str | None = None
@@ -419,6 +446,12 @@ class FieldMap(BaseModel):
                 "Field file not read in. Use read_field_file to load in an hdf5 field file."
             )
             return
+        if self.field_type == "TaylorWake" and code.lower() not in TAYLOR_WAKE_CODES:
+            self._warn_dropped_wake(code)
+            kind = "3DWake" if self.Wx.value is not None else "LongitudinalWake"
+            return self.model_copy(update={"field_type": kind}).write_field_file(
+                code, location=location, **kwargs
+            )
         if location is not None:
             self._output_location = os.path.dirname(os.path.abspath(location))
         else:

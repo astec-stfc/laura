@@ -47,7 +47,7 @@ class WakefieldTranslator(BaseElementTranslator):
         if not (
             isinstance(wake, FieldMap)
             and self.simulation.scale_kick > 0
-            and getattr(self.simulation, "wakefield_enable", True)
+            and self._wakefield_active()
         ):
             return f"{self.name}: drift, l = {length};\n"
         if not length:
@@ -217,16 +217,14 @@ class WakefieldTranslator(BaseElementTranslator):
         """
         self.start_write()
         field_ref_pos = self.get_field_reference_position()
-        field_file_name = self.generate_field_file_name(
-            self.simulation.wakefield_definition, code="gpt"
-        )
         fringe_field_coefficient = 3.0 / self.cavity.cell_length
         output = ""
         # scale_kick alone is not enough: wakefields also have to be
         # switched off when the section asks for it via wakefield_enable.
-        if self.simulation.scale_kick > 0 and getattr(
-            self.simulation, "wakefield_enable", True
-        ):
+        if self.simulation.scale_kick > 0 and self._wakefield_active():
+            field_file_name = self.generate_field_file_name(
+                self.simulation.wakefield_definition, code="gpt"
+            )
             zcolumn = "z"
             wake = self.simulation.wakefield_definition
             wxcolumn, wycolumn, wzcolumn = (

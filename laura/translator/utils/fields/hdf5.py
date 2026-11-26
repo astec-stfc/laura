@@ -3,6 +3,7 @@ from warnings import warn
 
 import h5py
 
+from . import taylor
 from .field_parameter import FIELD_NAMES, FieldParameter, set_field
 
 allowed_cavities = [
@@ -82,7 +83,10 @@ def read_hdf5_field_file(self, filename: str) -> str:
         length_set = (
             False if self.field_type != "2DElectroDynamic" else h5file.attrs["length"]
         )
+        self.wake_components = taylor.read_hdf5(h5file)
         for key in h5file:
+            if isinstance(h5file[key], h5py.Group):
+                continue
             if not length_set:
                 self.length = len(h5file[key][()])
             set_field(self, key, h5file[key][()], h5file[key].attrs["units"])
@@ -140,7 +144,7 @@ def write_hdf5_field_file(self):
         )
         if length is not None:
             h5file.attrs["length"] = length
-        dsets = [n for n in FIELD_NAMES if n != "t"]
+        dsets = [] if self.wake_components else [n for n in FIELD_NAMES if n != "t"]
         for dset in dsets:
             if isinstance(getattr(self, dset), FieldParameter):
                 if getattr(self, dset).value is not None:
@@ -148,6 +152,8 @@ def write_hdf5_field_file(self):
                         dset, data=getattr(self, dset).value
                     )
                     dataset.attrs["units"] = getattr(self, dset).value.units
+        if self.wake_components:
+            taylor.write_hdf5(h5file, self.wake_components)
     return self.filename
 
 
