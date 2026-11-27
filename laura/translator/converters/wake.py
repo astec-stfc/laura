@@ -251,9 +251,11 @@ class WakefieldTranslator(BaseElementTranslator):
             zcolumn = "z"
             wake = self.simulation.wakefield_definition
             wxcolumn, wycolumn, wzcolumn = (
-                col
-                if getattr(getattr(wake, col, None), "value", None) is not None
-                else ""
+                (
+                    col
+                    if getattr(getattr(wake, col, None), "value", None) is not None
+                    else ""
+                )
                 for col in ("Wx", "Wy", "Wz")
             )
             factors = "".join(
