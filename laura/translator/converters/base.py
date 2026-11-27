@@ -2165,6 +2165,28 @@ class BaseElementTranslator(PhysicalBaseElement):
                 return False
         return True
 
+    @property
+    def _reference_length(self) -> float | None:
+        """Length of structure the wake table covers [m], if it says so."""
+        return getattr(self.simulation.wakefield_definition, "reference_length", None) or None
+
+    @property
+    def wake_weight(self) -> float:
+        """
+        How many times the wake table is applied over this element, in every code:
+        ``length / reference_length`` for a table over that length of structure
+        (a fraction for a per-module table on each of its cavities, as Ocelot
+        spreads one over the module), else once per cell.
+
+        Returns
+        -------
+        float
+            The number of wake tables this element adds up to.
+        """
+        if self._reference_length:
+            return self.physical.length / self._reference_length
+        return getattr(getattr(self, "cavity", None), "n_cells", None) or 1
+
     def _bmad_sr_wake(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """
         Add this element's short-range wake to its Bmad parameters, if it has one. Bmad

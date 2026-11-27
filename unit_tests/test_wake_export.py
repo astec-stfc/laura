@@ -19,10 +19,11 @@ from laura.translator.utils.units import UnitValue
 CELLS = {"n_cells": 3, "cell_length": 0.1}
 
 
-def _wake_file(tmp_path):
+def _wake_file(tmp_path, reference_length=None):
     wake = FieldMap()
     z = np.linspace(0, 1e-3, 11)
     wake.length = CELLS["cell_length"]  # a per-cell wake: ASTRA places one per cell
+    wake.reference_length = reference_length
     wake.z = FieldParameter(name="z", value=UnitValue(z, "m"))
     wake.Wz = FieldParameter(name="Wz", value=UnitValue(1e12 * np.exp(-z / 1e-4), "V/C"))
     wake.field_type = "LongitudinalWake"
@@ -94,6 +95,18 @@ def test_elegant_writes_a_wakefield_as_a_zero_voltage_rfcw(tmp_path, monkeypatch
     assert 'zwakefile = "wk.sdds", tcolumn = "t", wzcolumn = "Wz"' in written
 
 
+def test_ocelot_writes_a_wakefields_table_beside_the_lattice(tmp_path, monkeypatch):
+    """A Wakefield went to Ocelot without its wake, so the table its wake process
+    reads was never written: only a cavity's was."""
+    monkeypatch.chdir(tmp_path)
+    out = tmp_path / "run"
+    wake = translate_elements([_wakefield(_wake_file(tmp_path), 1.0)], directory=str(out))["W"]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        wake.to_ocelot()
+    assert (out / "wk.astra").exists() or (out / "wk.ocelot").exists()
+
+
 def test_astra_numbers_and_places_every_wake_once(tmp_path, monkeypatch):
     """A float counter crashed the second wake element, each was placed by its index in
     the deck rather than by its own cells, and a Wakefield mustn't be written twice."""
@@ -130,6 +143,41 @@ def test_gpt_wakes_sit_on_their_cells_per_metre_and_decelerate(tmp_path):
     # absolute z, as the screens (laura#55); C starts at 0.85 m
     assert [float(z) for z, _ in wakes] == pytest.approx([0.9, 1.0, 1.1, 1.9, 2.0, 2.1])
     assert [float(f) for _, f in wakes] == pytest.approx([-10.0] * 6)
+
+
+@pytest.mark.parametrize("reference_length, copies", [(1.2, 1), (0.12, 2)])
+def test_every_code_applies_a_wake_length_over_reference_length_times(tmp_path, monkeypatch, reference_length, copies):
+    """A per-module table on each cavity (Ocelot spreads one over the module): ASTRA
+    rounded it up to a whole copy, and Elegant and GPT applied it once per cell."""
+    monkeypatch.chdir(tmp_path)
+    path = _wake_file(tmp_path, reference_length)
+    wake = translate_elements([_wakefield(path, 1.0)], directory=str(tmp_path))["W"]
+    weight = 0.3 / reference_length
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        astra, elegant, gpt = wake.to_astra(), wake.to_elegant(), wake.to_gpt()
+    scalings = [float(s) for s in re.findall(r"Wk_scaling\(\d+\) = ([^,\s]+)", astra)]
+    assert sum(scalings) == pytest.approx(weight) and len(scalings) == copies
+    # rfcw applies l / cell_length tables
+    assert float(re.search(r"cell_length = ([^,]+)", elegant).group(1)) == pytest.approx(reference_length)
+    # one GPT wakefield over the element, at FieldFactor per metre of reference_length
+    (length, factor), = re.findall(r'wakefield\(.*?, ([^,]+), [^,]+, "wk.gdf".*"FieldFactorWz", ([^)]+)\);', gpt)
+    assert float(length) * -float(factor) == pytest.approx(weight)
+
+
+@pytest.mark.parametrize("reference_length, cell_length", [(None, 0.1), (1.2, 1.2)])
+def test_elegant_cavity_rfcw_applies_its_wake_length_over_reference_length_times(
+        tmp_path, monkeypatch, reference_length, cell_length):
+    """A cavity's own rfcw took the RF cell_length, not reference_length: EuXFEL's
+    per-module tables on each cavity came out 249 times too strong."""
+    monkeypatch.chdir(tmp_path)
+    cavity = translate_elements([_cavity()])["C"]
+    cavity.directory = str(tmp_path)
+    cavity.simulation.wakefield_definition = FieldMap(filename=_wake_file(tmp_path, reference_length))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        written = cavity.to_elegant()
+    assert float(re.search(r"cell_length = ([^,]+)", written).group(1)) == pytest.approx(cell_length)
 
 
 @pytest.mark.parametrize("off", [None, "section", "element"])

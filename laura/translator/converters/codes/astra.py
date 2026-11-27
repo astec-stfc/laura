@@ -343,7 +343,7 @@ class AstraCharge(AstraHeader):
     nrad: int | None = None
     """Number of grid cells in radial direction up to the bunch radius."""
 
-    nlong_in: int | None = None
+    nlong_okin: int | None = None
     """Maximum number of grid cells in longitudinal direction within the bunch length."""
 
     smooth_x: int = 0

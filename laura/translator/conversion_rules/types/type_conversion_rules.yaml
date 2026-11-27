@@ -16,7 +16,7 @@ elegant:
   Faraday_Cup_Monitor: watch
   Diagnostic: watch
   RFCavity: rfcw
-  RFDeflectingCavity: rftm110
+  RFDeflectingCavity: rfdf
   Longitudinal_Wakefield: wake
   FEL_Modulator: lsrmdltr
   Scatter: scatter

@@ -30,11 +30,28 @@ class WakefieldTranslator(BaseElementTranslator):
         parameters = self._bmad_sr_wake(self._bmad_parameters("pipe"))
         return self._format_bmad("pipe", parameters)
 
+    def to_ocelot(self) -> object:
+        """
+        The element for Ocelot, with the wake table written beside the lattice,
+        as a cavity's is: Ocelot applies wakes as a physics process.
+
+        Returns
+        -------
+        object
+            Ocelot object
+        """
+        obj = super().to_ocelot()
+        self.generate_field_file_name(
+            self.simulation.wakefield_definition, code="ocelot"
+        )
+        return obj
+
     def to_elegant(self) -> str:
         """
         Writes the wakefield element string for ELEGANT, as an ``rfcw`` with no voltage:
-        ELEGANT's ``wake`` element has no length, and ``rfcw`` scales the per-cell wake
-        by ``l / cell_length``, so it is applied once per cell, as in ASTRA and GPT.
+        ELEGANT's ``wake`` element has no length, and ``rfcw`` scales the wake by
+        ``l / cell_length``, so ``cell_length`` is the wake's ``reference_length``, or
+        one cell; see :func:`~wake_weight`.
 
         Returns
         -------
@@ -66,7 +83,7 @@ class WakefieldTranslator(BaseElementTranslator):
             else "trwakefile"
         )
         return (
-            f"{self.name}: rfcw, l = {length}, volt = 0, cell_length = {length / self.cavity.n_cells},&\n"
+            f"{self.name}: rfcw, l = {length}, volt = 0, cell_length = {length / self.wake_weight},&\n"
             f' {wakefile} = "{filename}", tcolumn = "t", '
             + ", ".join(f'{col.lower()}column = "{col}"' for col in columns)
             + ", n_bins = 0;\n"
@@ -98,19 +115,17 @@ class WakefieldTranslator(BaseElementTranslator):
         How far apart to place the ``&WAKE`` entries, and how many to write.
 
         ASTRA applies a wake file in full at every position it is placed, so the
-        number of copies has to match the length the wake was tabulated over.
+        number of copies has to match the length the wake was tabulated over;
+        ``Wk_scaling`` makes up any fraction (see :func:`~wake_weight`).
 
         Returns
         -------
         tuple[float, int]
             Spacing between consecutive wakes [m], and the number to write.
         """
-        wake_length = getattr(
-            self.simulation.wakefield_definition, "reference_length", None
-        )
-        if not wake_length:
+        if not self._reference_length:
             return self.cavity.cell_length, int(self.cavity.n_cells)
-        return wake_length, max(1, round(self.physical.length / wake_length))
+        return self._reference_length, max(1, round(self.wake_weight))
 
     def _write_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
@@ -191,7 +206,12 @@ class WakefieldTranslator(BaseElementTranslator):
                         "Wk_smooth": {"value": self.simulation.smooth, "default": 0.25},
                         "Wk_sub": {"value": self.simulation.subbins, "default": 10},
                         "Wk_scaling": {
-                            "value": 1 * self.simulation.scale_kick,
+                            "value": self.simulation.scale_kick
+                            * (
+                                self.wake_weight / n_wakes
+                                if self._reference_length
+                                else 1
+                            ),
                             "default": 1,
                         },
                     },
@@ -217,10 +237,13 @@ class WakefieldTranslator(BaseElementTranslator):
         """
         self.start_write()
         field_ref_pos = self.get_field_reference_position()
-        fringe_field_coefficient = 3.0 / self.cavity.cell_length
+        if self._reference_length:
+            span, copies, offset = self.physical.length, 1, 0.0
+        else:
+            span, copies = self.cavity.cell_length, int(self.cavity.n_cells)
+            offset = self.cavity.coupling_cell_length
+        fringe_field_coefficient = 3.0 / span
         output = ""
-        # scale_kick alone is not enough: wakefields also have to be
-        # switched off when the section asks for it via wakefield_enable.
         if self.simulation.scale_kick > 0 and self._wakefield_active():
             field_file_name = self.generate_field_file_name(
                 self.simulation.wakefield_definition, code="gpt"
@@ -233,24 +256,20 @@ class WakefieldTranslator(BaseElementTranslator):
                 else ""
                 for col in ("Wx", "Wy", "Wz")
             )
-            # GPT takes wakes per metre over L, and a positive Wz accelerates;
-            # LAURA's are per cell, with a positive Wz an energy loss
             factors = "".join(
-                f', "FieldFactor{col}", {sign / self.cavity.cell_length}'
+                f', "FieldFactor{col}", {sign / (self._reference_length or span)}'
                 for col, sign in ((wxcolumn, 1), (wycolumn, 1), (wzcolumn, -1))
                 if col
             )
-            for n in range(int(self.cavity.n_cells)):
+            for n in range(copies):
                 # GPT's wakefield() spans -L/2 < z < L/2, so each is centred on its cell
                 ccs_label, value_text = self.ccs.ccs_text(
                     [
                         field_ref_pos[0],
                         field_ref_pos[1],
-                        field_ref_pos[2]
-                        + self.cavity.coupling_cell_length
-                        + (n + 0.5) * self.cavity.cell_length,
+                        field_ref_pos[2] + offset + (n + 0.5) * span,
                     ],
                     list(self.physical.rotation.model_dump().values()),
                 )
-                output += f'wakefield("{self.ccs.name}", {ccs_label}, {value_text}, {self.cavity.cell_length!s}, {fringe_field_coefficient!s}, "{field_file_name!s}", "{zcolumn}", "{wxcolumn}", "{wycolumn}", "{wzcolumn}"{factors});\n'
+                output += f'wakefield("{self.ccs.name}", {ccs_label}, {value_text}, {span!s}, {fringe_field_coefficient!s}, "{field_file_name!s}", "{zcolumn}", "{wxcolumn}", "{wycolumn}", "{wzcolumn}"{factors});\n'
         return output

@@ -102,8 +102,14 @@ class TestElegantSymbolic:
             simulation={"field_amplitude": "V_HERFX"},
         )
         out = RFCavityTranslator.model_validate(cavity.model_dump()).to_elegant()
-        assert out.startswith("HERFX: rftm110")
+        # rfdf, not the zero-length rftm110, so the lattice keeps the cavity's length
+        assert out.startswith("HERFX: rfdf")
         assert 'voltage = "V_HERFX"' in out
+
+    def test_deflecting_cavity_keeps_its_length(self):
+        cavity = RFDeflectingCavity(name="TDS", machine_area="L04", physical={"length": 0.7})
+        out = RFCavityTranslator.model_validate(cavity.model_dump()).to_elegant()
+        assert "l = 0.7" in out
 
     def test_cavity_emits_n_kicks_once(self):
         cavity = RFCavity(
