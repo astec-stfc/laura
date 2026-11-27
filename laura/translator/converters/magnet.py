@@ -1596,15 +1596,32 @@ class WigglerTranslator(BaseElementTranslator):
             return None
         return self.magnetic.peak_magnetic_field
 
+    def _peak_field_from_strength(self) -> None:
+        """For codes that take the peak field, not K: ``B = K / (93.37 * period)``
+        when only ``strength`` is given."""
+        if not self.magnetic.peak_magnetic_field and self.magnetic.period:
+            self.magnetic.peak_magnetic_field = self.magnetic.resolved("strength") / (
+                93.3728962 * self.magnetic.period
+            )
+
+    def to_bmad(self) -> str:
+        """Bmad ``wiggler``, whose ``b_max`` is the peak field: with only K given it
+        was written as 0, a wiggler with no field or focusing. A helical one is
+        Bmad's ``helical_model``, whose ``b_max`` is each transverse component's peak.
+        """
+        self.start_write()
+        self._peak_field_from_strength()
+        parameters = self._bmad_parameters()
+        if self.magnetic.helical:
+            parameters["field_calc"] = "helical_model"
+        return self._format_bmad(parameters=parameters)
+
     def to_elegant(self) -> str:
         """Elegant string. Helical wigglers go to ``CWIGGLER`` -- elegant's
         plain ``WIGGLER`` is a vertical field only.
         """
         self.start_write()
-        if not self.magnetic.peak_magnetic_field and self.magnetic.period:
-            self.magnetic.peak_magnetic_field = self.magnetic.resolved("strength") / (
-                93.3728962 * self.magnetic.period
-            )
+        self._peak_field_from_strength()
         if self.magnetic.helical:
             self.hardware_type = "cwiggler"
             # conversion_rules were frozen from the original type at init

@@ -1,5 +1,6 @@
 """Focused regression tests for native Bmad lattice export."""
 
+import re
 import warnings
 from itertools import permutations
 
@@ -412,6 +413,22 @@ def test_bmad_special_element_conversions(cls, fields, present, absent):
         assert text == present
     else:
         _assert_terms(text, present, absent)
+
+
+@pytest.mark.parametrize("helical", [False, True])
+def test_bmad_wiggler_given_only_k_gets_its_peak_field(helical):
+    """A wiggler with K but no peak field went to Bmad with b_max = 0: no field, no focusing;
+    and a helical one was written as planar."""
+    wiggler = Wiggler(
+        name="U74",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.888, "strength": 1.294, "period": 0.074, "num_periods": 12,
+                  "helical": helical},
+    )
+    text = _bmad(wiggler)
+    b_max = float(re.search(r"b_max = ([^,\s]+)", text).group(1))
+    assert b_max == pytest.approx(1.294 / (93.3728962 * 0.074))
+    assert ("field_calc = helical_model" in text) == helical
 
 
 def test_bmad_optional_tracking_controls_and_aliases():
